@@ -8,8 +8,8 @@
 - **Working directory:** `D:\vitesseeco`
 - **Communication with user:** Arabic only
 - **Website languages:** French (primary) + Spanish, Dutch, German
-- **GitHub:** https://github.com/zmsaddi (user: zmsaddi, logged in via gh CLI)
-- **Vercel:** logged in (account: zakariyas-projects-1c97d142)
+- **GitHub:** https://github.com/zmsaddi/vitesseeco (user: zmsaddi, logged in via gh CLI)
+- **Vercel:** https://vitesseeco.vercel.app (account: zakariyas-projects-1c97d142)
 - **Sanity:** Project ID: `2jvnjf0c`, Dataset: `production`, Org: `oWtjsSGlJ`
 - **Sanity auth token location:** `C:/Users/ZAKARIYA/.config/sanity/config.json` (field: authToken)
 

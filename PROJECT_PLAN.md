@@ -14,101 +14,100 @@
 > Goal: Working site on localhost AND Vercel showing our custom pages (not Welcome to Nuxt)
 
 ### 0.1 Initialize Project
-- [ ] `cd D:\vitesseeco && npx nuxi@latest init . --template minimal --package-manager npm --git-init false`
-- [ ] If nuxi is interactive, choose "minimal" template
-- [ ] Verify `package.json` exists with nuxt dependency
+- [x] `cd D:\vitesseeco && npx nuxi@latest init . --template minimal --package-manager npm --git-init false`
+- [x] If nuxi is interactive, choose "minimal" template
+- [x] Verify `package.json` exists with nuxt dependency
 
 ### 0.2 Fix Nuxt Version (CRITICAL)
-- [ ] Edit `package.json`: change nuxt to `"nuxt": "^3.17.5"`
-- [ ] Edit `package.json`: change vue-router to `"vue-router": "^4.5.0"` (not v5)
-- [ ] Delete `node_modules/` and `package-lock.json`
-- [ ] Run `npm install`
-- [ ] Verify: `npm ls nuxt` shows 3.x (NOT 4.x)
+- [x] Edit `package.json`: change nuxt to `"nuxt": "^3.17.5"`
+- [x] Edit `package.json`: change vue-router to `"vue-router": "^4.5.0"` (not v5)
+- [x] Delete `node_modules/` and `package-lock.json`
+- [x] Run `npm install`
+- [x] Verify: `npm ls nuxt` shows 3.x (NOT 4.x) → 3.21.2
 
 ### 0.3 Install All Dependencies
-- [ ] `npm install @nuxtjs/tailwindcss @nuxtjs/i18n @pinia/nuxt pinia-plugin-persistedstate @nuxt/image @nuxtjs/sanity @nuxt/icon@^1.15.0 @nuxt/fonts`
-- [ ] `npm install -D franc-min sanity`
-- [ ] Verify all packages installed: `npm ls --depth=0`
+- [x] `npm install @nuxtjs/tailwindcss @nuxtjs/i18n @pinia/nuxt pinia-plugin-persistedstate @nuxt/image @nuxtjs/sanity @nuxt/icon@^1.15.0 @nuxt/fonts`
+- [x] `npm install -D franc-min sanity`
+- [x] Verify all packages installed: `npm ls --depth=0`
 
 ### 0.4 Configure nuxt.config.ts
-- [ ] Set `ssr: process.env.VERCEL === '1'` (CRITICAL: fixes Windows IPC bug)
-- [ ] Set `compatibilityDate: '2024-11-01'`
-- [ ] NO `srcDir`, NO `future.compatibilityVersion: 4`
-- [ ] Register all modules: tailwindcss, i18n, pinia, image, sanity, icon, fonts
-- [ ] Configure tailwindcss: `cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }]`
-- [ ] Configure i18n: `langDir: 'locales'`, strategy: 'prefix_except_default', defaultLocale: 'fr', detectBrowserLanguage enabled
-- [ ] Configure sanity: projectId `2jvnjf0c`, dataset `production`
-- [ ] Configure fonts: Inter + Montserrat from Google
-- [ ] Configure runtimeConfig with all env var placeholders
-- [ ] Configure app.head: title, meta description, theme-color, favicon
+- [x] Set `ssr: process.env.VERCEL === '1'` (CRITICAL: fixes Windows IPC bug)
+- [x] Set `compatibilityDate: '2024-11-01'`
+- [x] NO `srcDir`, NO `future.compatibilityVersion: 4`
+- [x] Register all modules: tailwindcss, i18n, pinia, image, sanity, icon, fonts
+- [x] Configure tailwindcss: `cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }]`
+- [x] Configure i18n: `langDir: 'locales'`, strategy: 'prefix_except_default', defaultLocale: 'fr', detectBrowserLanguage enabled
+- [x] Configure sanity: projectId `2jvnjf0c`, dataset `production`
+- [x] Configure fonts: Inter + Montserrat from Google
+- [x] Configure runtimeConfig with all env var placeholders
+- [x] Configure app.head: title, meta description, theme-color, favicon
 
 ### 0.5 Create tailwind.config.ts
-- [ ] Brand colors: primary (#0A1628), accent (#4ADE80), gold (#D4A843), dark-secondary (#1E293B)
-- [ ] Fonts: Inter (sans), Montserrat (display)
+- [x] Brand colors: primary (#0A1628), accent (#4ADE80), gold (#D4A843), dark-secondary (#1E293B)
+- [x] Fonts: Inter (sans), Montserrat (display)
 
 ### 0.6 Create assets/css/main.css
-- [ ] `@tailwind base; @tailwind components; @tailwind utilities;` (NOT `@import "tailwindcss"`)
-- [ ] Custom classes: btn-primary, btn-secondary, btn-outline, card, section-title, container-custom, badge-promo, badge-new, input-field
+- [x] `@tailwind base; @tailwind components; @tailwind utilities;` (NOT `@import "tailwindcss"`)
+- [x] Custom classes: btn-primary, btn-secondary, btn-outline, card, section-title, container-custom, badge-promo, badge-new, input-field
 
 ### 0.7 Create Translation Files
-- [ ] Copy `i18n-reference/*.json` to `i18n/locales/`
-- [ ] All 4 files: fr.json, es.json, nl.json, de.json (146 keys each)
+- [x] Copy `i18n-reference/*.json` to `i18n/locales/`
+- [x] All 4 files: fr.json, es.json, nl.json, de.json (146 keys each)
 
 ### 0.8 Create Language Check Script
-- [ ] Copy/create `scripts/check-languages.mjs`
-- [ ] Add npm script: `"check:langs": "node scripts/check-languages.mjs"`
-- [ ] Run and verify: `npm run check:langs` → ALL CHECKS PASSED
+- [x] Copy/create `scripts/check-languages.mjs`
+- [x] Add npm script: `"check:langs": "node scripts/check-languages.mjs"`
+- [x] Run and verify: `npm run check:langs` → ALL CHECKS PASSED
 
 ### 0.9 Copy Brand Assets
-- [ ] Copy `assets-reference/logo.png` → `public/logo.png`
-- [ ] Copy `assets-reference/poster.jpeg` → `public/poster.jpeg`
+- [x] Copy `assets-reference/logo.png` → `public/logo.png`
+- [x] Copy `assets-reference/poster.jpeg` → `public/poster.jpeg`
 
 ### 0.10 Create Layout
-- [ ] `layouts/default.vue` — AppHeader + slot + AppFooter
+- [x] `layouts/default.vue` — AppHeader + slot + AppFooter
 
 ### 0.11 Create Components
-- [ ] `components/AppHeader.vue` — Sticky header: logo, nav (Home, Products, About, Contact), cart icon with badge, user icon, mobile hamburger menu, LanguageSwitcher
-- [ ] `components/AppFooter.vue` — Brand info, quick links, legal links, newsletter form, social icons, payment icons, copyright
-- [ ] `components/LanguageSwitcher.vue` — Dropdown FR/ES/NL/DE with globe icon, auto-close on click outside
-- [ ] `components/CartDrawer.vue` — Slide-out cart panel (empty state for now)
+- [x] `components/AppHeader.vue` — Sticky header: logo, nav (Home, Products, About, Contact), cart icon with badge, user icon, mobile hamburger menu, LanguageSwitcher
+- [x] `components/AppFooter.vue` — Brand info, quick links, legal links, newsletter form, social icons, payment icons, copyright
+- [x] `components/LanguageSwitcher.vue` — Dropdown FR/ES/NL/DE with globe icon, auto-close on click outside
+- [x] `components/CartDrawer.vue` — Slide-out cart panel (empty state for now)
 
 ### 0.12 Create Pages
-- [ ] `app.vue` — NuxtRouteAnnouncer + NuxtLayout + NuxtPage
-- [ ] `pages/index.vue` — Hero section (poster.jpeg background, title, subtitle, CTA), Brand Values (4 cards), Featured Products (3 placeholder cards), CTA section
-- [ ] `pages/produits/index.vue` — Sidebar filters (category, tire, price), sort dropdown, grid/list toggle, 11 placeholder product cards with color dots
-- [ ] `pages/produits/[slug].vue` — Breadcrumb, image gallery placeholder, specs table, color picker, quantity selector, add-to-cart button, description, related products
-- [ ] `pages/a-propos.vue` — Brand story, poster image, 3 value cards (quality, delivery, SAV)
-- [ ] `pages/contact.vue` — Contact info cards (email, web, hours), contact form (name, email, subject, message)
+- [x] `app.vue` — NuxtRouteAnnouncer + NuxtLayout + NuxtPage
+- [x] `pages/index.vue` — Hero section (poster.jpeg background, title, subtitle, CTA), Brand Values (4 cards), Featured Products (3 placeholder cards), CTA section
+- [x] `pages/produits/index.vue` — Sidebar filters (category, tire, price), sort dropdown, grid/list toggle, 11 placeholder product cards with color dots
+- [x] `pages/produits/[slug].vue` — Breadcrumb, image gallery placeholder, specs table, color picker, quantity selector, add-to-cart button, description, related products
+- [x] `pages/a-propos.vue` — Brand story, poster image, 3 value cards (quality, delivery, SAV)
+- [x] `pages/contact.vue` — Contact info cards (email, web, hours), contact form (name, email, subject, message)
 
 ### 0.13 Test Locally (MUST PASS)
-- [ ] `npm run dev` → no crashes
-- [ ] `curl http://localhost:3000/` → 200, contains "Vitesse Eco" (not "Welcome to Nuxt")
-- [ ] `curl http://localhost:3000/produits` → 200
-- [ ] `curl http://localhost:3000/a-propos` → 200
-- [ ] `curl http://localhost:3000/contact` → 200
-- [ ] `npm run check:langs` → ALL CHECKS PASSED
+- [x] `npm run dev` → no crashes
+- [x] `curl http://localhost:3000/` → 200, contains "Vitesse Eco" (not "Welcome to Nuxt")
+- [x] `curl http://localhost:3000/produits` → 200
+- [x] `curl http://localhost:3000/a-propos` → 200
+- [x] `curl http://localhost:3000/contact` → 200
+- [x] `npm run check:langs` → ALL CHECKS PASSED
 
 ### 0.14 Create .gitignore, .env, .vercelignore
-- [ ] `.gitignore`: node_modules, .output, .nuxt, .env, .env.*, !.env.example
-- [ ] `.env`: SANITY_PROJECT_ID=2jvnjf0c, SANITY_DATASET=production
-- [ ] `.env.example`: all env var placeholders
-- [ ] `.vercelignore`: `cms/` (CRITICAL: prevents Vercel from loading sanity schemas)
+- [x] `.gitignore`: node_modules, .output, .nuxt, .env, .env.*, !.env.example
+- [x] `.env`: SANITY_PROJECT_ID=2jvnjf0c, SANITY_DATASET=production
+- [x] `.env.example`: all env var placeholders
+- [x] `.vercelignore`: `cms/` (CRITICAL: prevents Vercel from loading sanity schemas)
 
 ### 0.15 Git + GitHub
-- [ ] `git init && git add . && git commit -m "Initial setup"`
-- [ ] `export PATH="/c/Program Files/GitHub CLI:$PATH"`
-- [ ] `gh repo create vitesseeco --public --source=. --remote=origin --push`
+- [x] `git init && git add . && git commit -m "Initial setup"`
+- [x] `export PATH="/c/Program Files/GitHub CLI:$PATH"`
+- [x] Repo already existed: github.com/zmsaddi/vitesseeco — pushed to master
 
 ### 0.16 Deploy to Vercel
-- [ ] `npx vercel --yes --prod`
-- [ ] Wait for build to complete
-- [ ] Verify: `curl https://[vercel-url]/` → 200, shows "Vitesse Eco"
-- [ ] **If Vercel fails:** check build logs, fix, push, retry
+- [x] `npx vercel --yes --prod`
+- [x] Build completed successfully
+- [x] Verify: `curl https://vitesseeco.vercel.app/` → 200, shows "Vitesse Eco"
 
 ### 0.17 Update Documentation
-- [ ] Update CLAUDE.md with actual GitHub URL, Vercel URL
-- [ ] Mark all Phase 0 tasks as [x] in this file
-- [ ] Commit and push
+- [x] Update CLAUDE.md with actual GitHub URL, Vercel URL
+- [x] Mark all Phase 0 tasks as [x] in this file
+- [x] Commit and push
 
 ---
 
@@ -262,7 +261,7 @@
 ## Quick Progress Tracker
 | Phase | Description | Status | Done/Total |
 |-------|-------------|--------|------------|
-| 0 | Foundation + Deploy | ⬜ Not started | 0/~40 |
+| 0 | Foundation + Deploy | ✅ Complete | ~40/~40 |
 | 1 | Sanity + Catalogue Launch | ⬜ Not started | 0/~30 |
 | 2 | Cart + Accounts | ⬜ Not started | 0/~20 |
 | 3 | Checkout + Payments | ⬜ Not started | 0/~15 |
