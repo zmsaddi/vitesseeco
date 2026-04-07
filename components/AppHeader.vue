@@ -87,7 +87,8 @@
 <script setup lang="ts">
 const localePath = useLocalePath()
 const mobileMenuOpen = ref(false)
-const cartCount = ref(0)
+const cart = useCartStore()
+const cartCount = computed(() => cart.totalItems)
 const cartOpen = useState('cartOpen', () => false)
 
 const navLinks = [

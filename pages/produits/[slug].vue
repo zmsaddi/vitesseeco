@@ -89,7 +89,11 @@
           </div>
 
           <!-- Add to Cart -->
-          <button class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3 mb-4">
+          <button
+            @click="addToCart"
+            :disabled="currentStock <= 0"
+            class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Icon name="ph:shopping-cart" class="w-5 h-5" />
             {{ $t('product.add_to_cart') }}
           </button>
@@ -165,6 +169,8 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 const route = useRoute()
+const cart = useCartStore()
+const cartOpen = useState('cartOpen', () => false)
 
 const selectedColor = ref(0)
 const qty = ref(1)
@@ -239,6 +245,23 @@ const specRows = computed(() => {
 
 // Reset selected image when color changes
 watch(selectedColor, () => { selectedImageIndex.value = 0 })
+
+function addToCart() {
+  if (!product.value) return
+  const variant = product.value.variants?.[selectedColor.value]
+  cart.addItem({
+    productId: product.value._id,
+    name: product.value.name,
+    slug: product.value.slug?.current || '',
+    price: currentPrice.value,
+    colorHex: variant?.colorHex || '#000',
+    colorName: variant?.colorName || { fr: '' },
+    sku: variant?.sku || product.value._id,
+    image: product.value.mainImage?.asset ? product.value._id : undefined,
+  }, qty.value)
+  cartOpen.value = true
+  qty.value = 1
+}
 
 useHead({ title: computed(() => product.value ? `${l(product.value.name)} — Vitesse Eco` : 'Vitesse Eco') })
 </script>
