@@ -3,16 +3,14 @@
     <div class="text-center px-4">
       <h1 class="font-display text-8xl font-bold text-accent mb-4">{{ error?.statusCode || 500 }}</h1>
       <p class="text-white text-2xl font-display font-semibold mb-2">
-        {{ error?.statusCode === 404 ? 'Page non trouvée' : 'Erreur serveur' }}
+        {{ error?.statusCode === 404 ? $t('error_page.not_found') : $t('error_page.server_error') }}
       </p>
       <p class="text-text-secondary mb-8 max-w-md mx-auto">
-        {{ error?.statusCode === 404
-          ? 'La page que vous recherchez n\'existe pas ou a été déplacée.'
-          : 'Une erreur est survenue. Veuillez réessayer.' }}
+        {{ error?.statusCode === 404 ? $t('error_page.not_found_desc') : $t('error_page.server_error_desc') }}
       </p>
       <div class="flex gap-4 justify-center">
         <button @click="handleError" class="btn-primary">
-          Retour à l'accueil
+          {{ $t('error_page.back_home') }}
         </button>
       </div>
     </div>

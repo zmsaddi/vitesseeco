@@ -175,7 +175,8 @@
     "hours": "ساعات العمل",
     "hours_text": "الإثنين — السبت: 9 صباحاً — 6 مساءً",
     "legal_info": "معلومات قانونية",
-    "send_message": "أرسل لنا رسالة"
+    "send_message": "أرسل لنا رسالة",
+    "web": "ويب"
   },
   "footer": {
     "description": "موزع الدراجات الكهربائية الضخمة. قوة وأناقة ومسؤولية بيئية.",
@@ -188,7 +189,9 @@
     "newsletter": "النشرة الإخبارية",
     "newsletter_placeholder": "بريدك الإلكتروني",
     "newsletter_button": "اشترك",
-    "rights": "جميع الحقوق محفوظة."
+    "rights": "جميع الحقوق محفوظة.",
+    "company_line": "VITESSE ECO — SAS | SIREN 100 732 247 | SIRET 100 732 247 00018",
+    "address_line": "32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France"
   },
   "common": {
     "loading": "جاري التحميل...",
@@ -198,5 +201,26 @@
     "see_more": "عرض المزيد",
     "from": "ابتداءً من",
     "currency": "€"
+  },
+  "legal": {
+    "editor": "ناشر الموقع",
+    "host": "الاستضافة",
+    "ip": "الملكية الفكرية",
+    "data_collection": "جمع البيانات",
+    "data_use": "استخدام البيانات",
+    "your_rights": "حقوقك",
+    "cookies": "ملفات تعريف الارتباط",
+    "article1": "المادة 1 — الغرض",
+    "article2": "المادة 2 — الأسعار",
+    "article3": "المادة 3 — التوصيل",
+    "article4": "المادة 4 — حق الانسحاب",
+    "article5": "المادة 5 — الضمان"
+  },
+  "error_page": {
+    "not_found": "الصفحة غير موجودة",
+    "server_error": "خطأ في الخادم",
+    "not_found_desc": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "server_error_desc": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "back_home": "العودة للرئيسية"
   }
 }

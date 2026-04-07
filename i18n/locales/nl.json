@@ -175,7 +175,8 @@
     "hours": "Openingstijden",
     "hours_text": "Ma — Za: 9:00 — 18:00",
     "legal_info": "Juridische informatie",
-    "send_message": "Stuur ons een bericht"
+    "send_message": "Stuur ons een bericht",
+    "web": "Web"
   },
   "footer": {
     "description": "Dealer in elektrische fatbikes. Kracht, stijl en respect voor het milieu.",
@@ -188,7 +189,9 @@
     "newsletter": "Nieuwsbrief",
     "newsletter_placeholder": "Je email",
     "newsletter_button": "Abonneren",
-    "rights": "Alle rechten voorbehouden."
+    "rights": "Alle rechten voorbehouden.",
+    "company_line": "VITESSE ECO — SAS | SIREN 100 732 247 | SIRET 100 732 247 00018",
+    "address_line": "32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France"
   },
   "common": {
     "loading": "Laden...",
@@ -198,5 +201,26 @@
     "see_more": "Meer bekijken",
     "from": "Vanaf",
     "currency": "€"
+  },
+  "legal": {
+    "editor": "Website-uitgever",
+    "host": "Hosting",
+    "ip": "Intellectueel eigendom",
+    "data_collection": "Gegevensverzameling",
+    "data_use": "Gebruik van gegevens",
+    "your_rights": "Je rechten",
+    "cookies": "Cookies",
+    "article1": "Artikel 1 — Doel",
+    "article2": "Artikel 2 — Prijzen",
+    "article3": "Artikel 3 — Levering",
+    "article4": "Artikel 4 — Herroepingsrecht",
+    "article5": "Artikel 5 — Garantie"
+  },
+  "error_page": {
+    "not_found": "Pagina niet gevonden",
+    "server_error": "Serverfout",
+    "not_found_desc": "De pagina die je zoekt bestaat niet of is verplaatst.",
+    "server_error_desc": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "back_home": "Terug naar home"
   }
 }

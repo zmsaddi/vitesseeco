@@ -175,7 +175,8 @@
     "hours": "Opening Hours",
     "hours_text": "Mon — Sat: 9am — 6pm",
     "legal_info": "Legal Information",
-    "send_message": "Send us a message"
+    "send_message": "Send us a message",
+    "web": "Web"
   },
   "footer": {
     "description": "Electric fatbike retailer. Power, style and environmental responsibility.",
@@ -188,7 +189,9 @@
     "newsletter": "Newsletter",
     "newsletter_placeholder": "Your email",
     "newsletter_button": "Subscribe",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "company_line": "VITESSE ECO — SAS | SIREN 100 732 247 | SIRET 100 732 247 00018",
+    "address_line": "32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France"
   },
   "common": {
     "loading": "Loading...",
@@ -198,5 +201,26 @@
     "see_more": "See more",
     "from": "From",
     "currency": "€"
+  },
+  "legal": {
+    "editor": "Site editor",
+    "host": "Host",
+    "ip": "Intellectual property",
+    "data_collection": "Data collection",
+    "data_use": "Data use",
+    "your_rights": "Your rights",
+    "cookies": "Cookies",
+    "article1": "Article 1 — Purpose",
+    "article2": "Article 2 — Prices",
+    "article3": "Article 3 — Delivery",
+    "article4": "Article 4 — Right of withdrawal",
+    "article5": "Article 5 — Warranty"
+  },
+  "error_page": {
+    "not_found": "Page not found",
+    "server_error": "Server error",
+    "not_found_desc": "The page you're looking for doesn't exist or has been moved.",
+    "server_error_desc": "An error occurred. Please try again.",
+    "back_home": "Back to home"
   }
 }

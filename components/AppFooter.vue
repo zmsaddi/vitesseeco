@@ -77,8 +77,8 @@
       <div class="border-t border-dark-tertiary/50 mt-10 pt-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
           <p class="text-text-secondary text-xs leading-relaxed text-center md:text-left">
-            VITESSE ECO — SAS au capital social | SIREN 100 732 247 | SIRET 100 732 247 00018<br class="hidden md:block" />
-            32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France
+            {{ $t('footer.company_line') }}<br class="hidden md:block" />
+            {{ $t('footer.address_line') }}
           </p>
           <p class="text-text-secondary text-sm shrink-0">
             &copy; {{ new Date().getFullYear() }} Vitesse Eco. {{ $t('footer.rights') }}
