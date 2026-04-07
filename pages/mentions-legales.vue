@@ -26,7 +26,7 @@
 const { t, locale } = useI18n()
 const l = useLocalizedField()
 useHead({ title: `${t('footer.mentions_legales')} — Vitesse Eco` })
-const { data: legalData } = useSanityQuery(groq`*[_type == "legalPages"][0]`)
+const { data: legalData } = useSanityFetch(groq`*[_type == "legalPages"][0]`)
 
 const ipTexts: Record<string, string> = {
   fr: "L'ensemble du contenu de ce site (textes, images, logos, vidéos) est la propriété exclusive de VITESSE ECO ou de ses partenaires. Toute reproduction est interdite sans autorisation écrite préalable.",

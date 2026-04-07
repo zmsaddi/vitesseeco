@@ -185,11 +185,10 @@ const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, mainImage }
 }`
-const { data: product, refresh: refreshProduct } = useSanityQuery(productQuery, { slug })
+const { data: product } = useSanityFetch(productQuery, { slug })
 
-// Refresh when slug changes (client-side navigation)
-watch(slug, () => {
-  refreshProduct()
+// Reset UI state when product changes
+watch(() => product.value?._id, () => {
   selectedColor.value = 0
   qty.value = 1
   selectedImageIndex.value = 0

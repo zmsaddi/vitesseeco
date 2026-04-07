@@ -23,7 +23,7 @@
 const { t, locale } = useI18n()
 const l = useLocalizedField()
 useHead({ title: `${t('footer.privacy')} — Vitesse Eco` })
-const { data: legalData } = useSanityQuery(groq`*[_type == "legalPages"][0]`)
+const { data: legalData } = useSanityFetch(groq`*[_type == "legalPages"][0]`)
 
 const allTexts: Record<string, { collection: string; use: string; rights: string; cookies: string }> = {
   fr: {
