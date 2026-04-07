@@ -27,7 +27,7 @@
             <div>
               <label class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.tire_size') }}</label>
               <select v-model="selectedTire" class="input-field text-sm py-2">
-                <option value="">Toutes</option>
+                <option value="">{{ $t('products.all_sizes') }}</option>
                 <option v-for="size in tireSizes" :key="size" :value="size">{{ size }}</option>
               </select>
             </div>
@@ -35,7 +35,7 @@
             <div>
               <label class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.range_km') }}</label>
               <select v-model="selectedRange" class="input-field text-sm py-2">
-                <option value="">Toutes</option>
+                <option value="">{{ $t('products.all_sizes') }}</option>
                 <option value="30-50">30-50 km</option>
                 <option value="50-70">50-70 km</option>
                 <option value="70+">70+ km</option>
@@ -51,7 +51,7 @@
         <!-- Products Grid -->
         <div class="flex-1">
           <div class="flex items-center justify-between mb-6">
-            <p class="text-text-secondary text-sm">{{ filteredProducts.length }} vélos</p>
+            <p class="text-text-secondary text-sm">{{ $t('products.count', { count: filteredProducts.length }) }}</p>
             <div class="flex items-center gap-4">
               <select v-model="sortBy" class="input-field text-sm py-2 w-auto">
                 <option value="sortOrder">{{ $t('products.sort_newest') }}</option>

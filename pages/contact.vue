@@ -15,7 +15,7 @@
               <Icon name="ph:map-pin" class="w-6 h-6 text-accent" />
             </div>
             <div>
-              <h3 class="font-display font-semibold text-white mb-1">Adresse</h3>
+              <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.address') }}</h3>
               <p class="text-text-secondary text-sm leading-relaxed">
                 32 Rue du Faubourg du Pont Neuf<br />
                 86000 Poitiers, France
@@ -41,7 +41,7 @@
             </div>
             <div>
               <h3 class="font-display font-semibold text-white mb-1">Web</h3>
-              <span class="text-text-secondary text-sm">www.vitesse-eco.com</span>
+              <span class="text-text-secondary text-sm">www.vitesse-eco.fr</span>
             </div>
           </div>
 
@@ -50,8 +50,8 @@
               <Icon name="ph:clock" class="w-6 h-6 text-accent" />
             </div>
             <div>
-              <h3 class="font-display font-semibold text-white mb-1">Horaires</h3>
-              <p class="text-text-secondary text-sm">Lun — Sam : 9h — 18h</p>
+              <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.hours') }}</h3>
+              <p class="text-text-secondary text-sm">{{ $t('contact.hours_text') }}</p>
             </div>
           </div>
 
@@ -60,7 +60,7 @@
               <Icon name="ph:identification-card" class="w-6 h-6 text-accent" />
             </div>
             <div>
-              <h3 class="font-display font-semibold text-white mb-1">Informations légales</h3>
+              <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.legal_info') }}</h3>
               <p class="text-text-secondary text-xs leading-relaxed">
                 VITESSE ECO — SAS<br />
                 SIREN : 100 732 247<br />
@@ -89,7 +89,7 @@
 
           <!-- Contact Form -->
           <div class="card p-6 md:p-8">
-            <h2 class="font-display text-xl font-semibold text-white mb-6">Envoyez-nous un message</h2>
+            <h2 class="font-display text-xl font-semibold text-white mb-6">{{ $t('contact.send_message') }}</h2>
             <form @submit.prevent="handleSubmit" class="space-y-5">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
@@ -142,7 +142,6 @@ const form = reactive({
 })
 
 function handleSubmit() {
-  // Will be implemented in Phase 3
   alert(t('contact.success'))
   form.name = ''
   form.email = ''

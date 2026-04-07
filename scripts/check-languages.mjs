@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const localesDir = join(__dirname, '..', 'i18n', 'locales')
 
-const languages = ['fr', 'es', 'nl', 'de']
+const languages = ['fr', 'en', 'es', 'nl', 'de', 'ar']
 let hasErrors = false
 
 function getKeys(obj, prefix = '') {

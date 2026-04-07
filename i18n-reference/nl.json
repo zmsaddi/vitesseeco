@@ -41,7 +41,7 @@
     "price_range": "Prijsklasse",
     "tire_size": "Bandenmaat",
     "range_km": "Bereik (km)",
-    "no_results": "Geen fietsen gevonden die aan uw criteria voldoen.",
+    "no_results": "Geen fietsen gevonden die aan je criteria voldoen.",
     "clear_filters": "Filters wissen",
     "view_grid": "Raster",
     "view_list": "Lijst"
@@ -72,8 +72,8 @@
     "contact_us": "Neem contact op"
   },
   "cart": {
-    "title": "Uw Winkelwagen",
-    "empty": "Uw winkelwagen is leeg",
+    "title": "Je Winkelwagen",
+    "empty": "Je winkelwagen is leeg",
     "empty_cta": "Ontdek onze fietsen",
     "subtotal": "Subtotaal",
     "shipping": "Verzending",
@@ -107,14 +107,14 @@
     "place_order": "Bestelling bevestigen",
     "order_confirmed": "Bestelling bevestigd!",
     "order_number": "Bestelnummer",
-    "order_email_sent": "Een bevestigingsemail is verzonden naar {email}.",
+    "order_email_sent": "Een bevestigingsmail is verzonden naar {email}.",
     "back_to_home": "Terug naar home"
   },
   "account": {
     "title": "Mijn Account",
     "orders": "Mijn Bestellingen",
     "profile": "Mijn Profiel",
-    "no_orders": "U heeft nog geen bestellingen.",
+    "no_orders": "Je hebt nog geen bestellingen.",
     "order_status": {
       "pending": "In afwachting",
       "paid": "Betaald",
@@ -138,15 +138,15 @@
   },
   "about": {
     "title": "Over Vitesse Eco",
-    "subtitle": "Uw partner voor elektrische mobiliteit vanuit Frankrijk."
+    "subtitle": "Jouw partner voor elektrische mobiliteit vanuit Frankrijk."
   },
   "contact": {
     "title": "Neem contact op",
     "subtitle": "Een vraag? Aarzel niet om ons te schrijven.",
-    "name": "Uw naam",
-    "email": "Uw email",
+    "name": "Je naam",
+    "email": "Je email",
     "subject": "Onderwerp",
-    "message": "Uw bericht",
+    "message": "Je bericht",
     "send": "Versturen",
     "success": "Bericht succesvol verzonden!",
     "error": "Fout bij het verzenden. Probeer het opnieuw."
@@ -160,7 +160,7 @@
     "cgv": "Algemene Verkoopvoorwaarden",
     "follow_us": "Volg ons",
     "newsletter": "Nieuwsbrief",
-    "newsletter_placeholder": "Uw email",
+    "newsletter_placeholder": "Je email",
     "newsletter_button": "Abonneren",
     "rights": "Alle rechten voorbehouden."
   },

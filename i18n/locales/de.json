@@ -26,7 +26,15 @@
     "testimonials_title": "Was unsere Kunden sagen",
     "cta_title": "Bereit zum Fahren?",
     "cta_description": "Finden Sie das perfekte elektrische Fatbike für Sie.",
-    "cta_button": "Alle Modelle ansehen"
+    "cta_button": "Alle Modelle ansehen",
+    "value1_title": "Reichweite",
+    "value1_desc": "Bis zu 100 km Reichweite mit unseren Hochleistungs-Akkus.",
+    "value2_title": "Premium-Qualität",
+    "value2_desc": "Zertifizierte und geprüfte Komponenten für maximale Zuverlässigkeit.",
+    "value3_title": "Schnelle Lieferung",
+    "value3_desc": "Kostenlose Lieferung in Frankreich innerhalb von 5 bis 7 Tagen.",
+    "value4_title": "Reaktionsschneller Support",
+    "value4_desc": "Technischer Support 6 Tage die Woche per Telefon und E-Mail erreichbar."
   },
   "products": {
     "title": "Unsere Elektrofahrräder",
@@ -44,7 +52,9 @@
     "no_results": "Keine Fahrräder entsprechen Ihren Kriterien.",
     "clear_filters": "Filter löschen",
     "view_grid": "Raster",
-    "view_list": "Liste"
+    "view_list": "Liste",
+    "count": "{count} Fahrräder",
+    "all_sizes": "Alle Größen"
   },
   "product": {
     "add_to_cart": "In den Warenkorb",
@@ -138,7 +148,18 @@
   },
   "about": {
     "title": "Über Vitesse Eco",
-    "subtitle": "Ihr Partner für Elektromobilität aus Frankreich."
+    "subtitle": "Ihr Partner für Elektromobilität aus Frankreich.",
+    "our_story": "Unsere Geschichte",
+    "story_text": "Vitesse Eco entstand aus der Leidenschaft für nachhaltige Mobilität und der Freude am Fahren. Wir wählen die besten elektrischen Fatbikes aus, um unseren Kunden ein außergewöhnliches Fahrerlebnis zu bieten, das Leistung, Komfort und Umweltbewusstsein vereint.",
+    "company_info": "Unternehmensinformationen",
+    "company_details": "Vitesse Eco — SIREN 100 732 247, eingetragen im Handelsregister von Poitiers.",
+    "active_since": "Aktiv seit 03.02.2026",
+    "value1_title": "Garantierte Qualität",
+    "value1_desc": "Jedes Fahrrad wird vor dem Versand sorgfältig geprüft, um eine einwandfreie Qualität zu gewährleisten.",
+    "value2_title": "Sorgfältige Lieferung",
+    "value2_desc": "Verstärkte Verpackung und Lieferung mit Sendungsverfolgung, damit Ihr Fahrrad in einwandfreiem Zustand ankommt.",
+    "value3_title": "Engagierter Support",
+    "value3_desc": "Unser Team steht Ihnen vor, während und nach Ihrem Kauf zur Seite."
   },
   "contact": {
     "title": "Kontaktieren Sie uns",
@@ -149,7 +170,12 @@
     "message": "Ihre Nachricht",
     "send": "Senden",
     "success": "Nachricht erfolgreich gesendet!",
-    "error": "Fehler beim Senden. Bitte versuchen Sie es erneut."
+    "error": "Fehler beim Senden. Bitte versuchen Sie es erneut.",
+    "address": "Adresse",
+    "hours": "Öffnungszeiten",
+    "hours_text": "Mo — Sa: 9:00 — 18:00",
+    "legal_info": "Rechtliche Informationen",
+    "send_message": "Senden Sie uns eine Nachricht"
   },
   "footer": {
     "description": "Händler für elektrische Fatbikes. Kraft, Stil und Umweltbewusstsein.",

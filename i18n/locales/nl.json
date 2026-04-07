@@ -26,7 +26,15 @@
     "testimonials_title": "Wat onze klanten zeggen",
     "cta_title": "Klaar om te rijden?",
     "cta_description": "Vind de perfecte elektrische fatbike voor jou.",
-    "cta_button": "Bekijk al onze modellen"
+    "cta_button": "Bekijk al onze modellen",
+    "value1_title": "Bereik",
+    "value1_desc": "Tot 100 km bereik met onze accu's met hoge capaciteit.",
+    "value2_title": "Premium Kwaliteit",
+    "value2_desc": "Gecertificeerde en geteste onderdelen voor maximale betrouwbaarheid.",
+    "value3_title": "Snelle Levering",
+    "value3_desc": "Gratis levering in Frankrijk binnen 5 tot 7 dagen.",
+    "value4_title": "Responsieve Ondersteuning",
+    "value4_desc": "Technische ondersteuning 6 dagen per week beschikbaar per telefoon en email."
   },
   "products": {
     "title": "Onze Elektrische Fietsen",
@@ -41,10 +49,12 @@
     "price_range": "Prijsklasse",
     "tire_size": "Bandenmaat",
     "range_km": "Bereik (km)",
-    "no_results": "Geen fietsen gevonden die aan uw criteria voldoen.",
+    "no_results": "Geen fietsen gevonden die aan je criteria voldoen.",
     "clear_filters": "Filters wissen",
     "view_grid": "Raster",
-    "view_list": "Lijst"
+    "view_list": "Lijst",
+    "count": "{count} fietsen",
+    "all_sizes": "Alle maten"
   },
   "product": {
     "add_to_cart": "In winkelwagen",
@@ -72,8 +82,8 @@
     "contact_us": "Neem contact op"
   },
   "cart": {
-    "title": "Uw Winkelwagen",
-    "empty": "Uw winkelwagen is leeg",
+    "title": "Je Winkelwagen",
+    "empty": "Je winkelwagen is leeg",
     "empty_cta": "Ontdek onze fietsen",
     "subtotal": "Subtotaal",
     "shipping": "Verzending",
@@ -107,14 +117,14 @@
     "place_order": "Bestelling bevestigen",
     "order_confirmed": "Bestelling bevestigd!",
     "order_number": "Bestelnummer",
-    "order_email_sent": "Een bevestigingsemail is verzonden naar {email}.",
+    "order_email_sent": "Een bevestigingsmail is verzonden naar {email}.",
     "back_to_home": "Terug naar home"
   },
   "account": {
     "title": "Mijn Account",
     "orders": "Mijn Bestellingen",
     "profile": "Mijn Profiel",
-    "no_orders": "U heeft nog geen bestellingen.",
+    "no_orders": "Je hebt nog geen bestellingen.",
     "order_status": {
       "pending": "In afwachting",
       "paid": "Betaald",
@@ -138,18 +148,34 @@
   },
   "about": {
     "title": "Over Vitesse Eco",
-    "subtitle": "Uw partner voor elektrische mobiliteit vanuit Frankrijk."
+    "subtitle": "Jouw partner voor elektrische mobiliteit vanuit Frankrijk.",
+    "our_story": "Ons Verhaal",
+    "story_text": "Vitesse Eco is ontstaan uit een passie voor duurzame mobiliteit en het plezier van fietsen. We selecteren de beste elektrische fatbikes om onze klanten een uitzonderlijke rijervaring te bieden, met een combinatie van prestaties, comfort en respect voor het milieu.",
+    "company_info": "Bedrijfsinformatie",
+    "company_details": "Vitesse Eco — SIREN 100 732 247, ingeschreven bij het handelsregister van Poitiers.",
+    "active_since": "Actief sinds 03/02/2026",
+    "value1_title": "Gegarandeerde Kwaliteit",
+    "value1_desc": "Elke fiets wordt grondig gecontroleerd voor verzending om een onberispelijke kwaliteit te garanderen.",
+    "value2_title": "Zorgvuldige Levering",
+    "value2_desc": "Versterkte verpakking en levering met tracking zodat je fiets in perfecte staat aankomt.",
+    "value3_title": "Toegewijde Ondersteuning",
+    "value3_desc": "Ons team staat klaar om je te begeleiden voor, tijdens en na je aankoop."
   },
   "contact": {
     "title": "Neem contact op",
     "subtitle": "Een vraag? Aarzel niet om ons te schrijven.",
-    "name": "Uw naam",
-    "email": "Uw email",
+    "name": "Je naam",
+    "email": "Je email",
     "subject": "Onderwerp",
-    "message": "Uw bericht",
+    "message": "Je bericht",
     "send": "Versturen",
     "success": "Bericht succesvol verzonden!",
-    "error": "Fout bij het verzenden. Probeer het opnieuw."
+    "error": "Fout bij het verzenden. Probeer het opnieuw.",
+    "address": "Adres",
+    "hours": "Openingstijden",
+    "hours_text": "Ma — Za: 9:00 — 18:00",
+    "legal_info": "Juridische informatie",
+    "send_message": "Stuur ons een bericht"
   },
   "footer": {
     "description": "Dealer in elektrische fatbikes. Kracht, stijl en respect voor het milieu.",
@@ -160,7 +186,7 @@
     "cgv": "Algemene Verkoopvoorwaarden",
     "follow_us": "Volg ons",
     "newsletter": "Nieuwsbrief",
-    "newsletter_placeholder": "Uw email",
+    "newsletter_placeholder": "Je email",
     "newsletter_button": "Abonneren",
     "rights": "Alle rechten voorbehouden."
   },

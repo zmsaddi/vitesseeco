@@ -38,7 +38,7 @@
               <Icon :name="value.icon" class="w-7 h-7 text-accent" />
             </div>
             <h3 class="font-display font-semibold text-white mb-2">{{ value.title }}</h3>
-            <p class="text-text-secondary text-sm">{{ value.description }}</p>
+            <p class="text-text-secondary text-sm">{{ value.desc }}</p>
           </div>
         </div>
       </div>
@@ -66,8 +66,8 @@
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <Icon v-else name="ph:bicycle" class="w-20 h-20 text-dark-tertiary/50" />
-              <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo">PROMO</span>
-              <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new">NEW</span>
+              <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo">{{ $t('product.on_sale') }}</span>
+              <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new">{{ $t('product.new') }}</span>
             </div>
             <div class="p-5">
               <h3 class="font-display font-semibold text-white group-hover:text-accent transition-colors mb-1">
@@ -114,9 +114,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 
-useHead({
-  title: 'Vitesse Eco — Fatbikes Électriques',
-})
+useHead({ title: 'Vitesse Eco — Fatbikes Électriques' })
 
 const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder asc)[0..2] {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, mainImage,
@@ -124,12 +122,10 @@ const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder
 }`
 const { data: featuredProducts } = useSanityQuery(query)
 
-const values = [
-  { icon: 'ph:battery-charging', title: t('home.values_title') === t('home.values_title') ? 'Autonomie' : '', description: 'Jusqu\'à 100km d\'autonomie avec nos batteries haute capacité.' },
-  { icon: 'ph:shield-check', title: 'Qualité Premium', description: 'Composants certifiés et garantie constructeur complète.' },
-  { icon: 'ph:truck', title: 'Livraison Rapide', description: 'Livraison offerte en France métropolitaine sous 5 jours.' },
-  { icon: 'ph:headset', title: 'SAV Réactif', description: 'Support technique disponible 6j/7 pour vous accompagner.' },
-]
-// Override values with Sanity data when available - for now use static
-values[0].title = 'Autonomie'
+const values = computed(() => [
+  { icon: 'ph:battery-charging', title: t('home.value1_title'), desc: t('home.value1_desc') },
+  { icon: 'ph:shield-check', title: t('home.value2_title'), desc: t('home.value2_desc') },
+  { icon: 'ph:truck', title: t('home.value3_title'), desc: t('home.value3_desc') },
+  { icon: 'ph:headset', title: t('home.value4_title'), desc: t('home.value4_desc') },
+])
 </script>

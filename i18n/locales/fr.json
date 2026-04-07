@@ -26,7 +26,15 @@
     "testimonials_title": "Ce que disent nos clients",
     "cta_title": "Prêt à rouler ?",
     "cta_description": "Trouvez le fatbike électrique parfait pour vous.",
-    "cta_button": "Voir tous nos modèles"
+    "cta_button": "Voir tous nos modèles",
+    "value1_title": "Autonomie",
+    "value1_desc": "Jusqu'à 100 km d'autonomie avec nos batteries haute capacité.",
+    "value2_title": "Qualité Premium",
+    "value2_desc": "Composants certifiés et contrôlés pour une fiabilité maximale.",
+    "value3_title": "Livraison Rapide",
+    "value3_desc": "Livraison gratuite en France métropolitaine sous 5 à 7 jours.",
+    "value4_title": "Support Réactif",
+    "value4_desc": "Assistance technique disponible 6 jours sur 7 par téléphone et email."
   },
   "products": {
     "title": "Nos Vélos Électriques",
@@ -44,7 +52,9 @@
     "no_results": "Aucun vélo ne correspond à vos critères.",
     "clear_filters": "Effacer les filtres",
     "view_grid": "Grille",
-    "view_list": "Liste"
+    "view_list": "Liste",
+    "count": "{count} vélos",
+    "all_sizes": "Toutes les tailles"
   },
   "product": {
     "add_to_cart": "Ajouter au panier",
@@ -138,7 +148,18 @@
   },
   "about": {
     "title": "À Propos de Vitesse Eco",
-    "subtitle": "Votre partenaire mobilité électrique depuis la France."
+    "subtitle": "Votre partenaire mobilité électrique depuis la France.",
+    "our_story": "Notre Histoire",
+    "story_text": "Vitesse Eco est née de la passion pour la mobilité durable et le plaisir de rouler. Nous sélectionnons les meilleurs fatbikes électriques pour offrir à nos clients une expérience de conduite exceptionnelle, alliant performance, confort et respect de l'environnement.",
+    "company_info": "Informations sur l'entreprise",
+    "company_details": "Vitesse Eco — SIREN 100 732 247, enregistré au RCS de Poitiers.",
+    "active_since": "Actif depuis le 03/02/2026",
+    "value1_title": "Qualité Garantie",
+    "value1_desc": "Chaque vélo est rigoureusement contrôlé avant expédition pour garantir une qualité irréprochable.",
+    "value2_title": "Livraison Soignée",
+    "value2_desc": "Emballage renforcé et livraison avec suivi pour que votre vélo arrive en parfait état.",
+    "value3_title": "Support Dédié",
+    "value3_desc": "Notre équipe est à votre écoute pour vous accompagner avant, pendant et après votre achat."
   },
   "contact": {
     "title": "Contactez-nous",
@@ -149,7 +170,12 @@
     "message": "Votre message",
     "send": "Envoyer",
     "success": "Message envoyé avec succès !",
-    "error": "Erreur lors de l'envoi. Veuillez réessayer."
+    "error": "Erreur lors de l'envoi. Veuillez réessayer.",
+    "address": "Adresse",
+    "hours": "Horaires d'ouverture",
+    "hours_text": "Lun — Sam : 9h — 18h",
+    "legal_info": "Informations légales",
+    "send_message": "Envoyez-nous un message"
   },
   "footer": {
     "description": "Détaillant en fatbikes électriques. Puissance, style et respect de l'environnement.",

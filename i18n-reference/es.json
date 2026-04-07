@@ -16,9 +16,9 @@
     "logout": "Cerrar Sesión"
   },
   "home": {
-    "hero_title": "Potencia Todo-Terreno",
+    "hero_title": "Potencia Todo Terreno",
     "hero_subtitle": "Rendimiento Duradero",
-    "hero_description": "Descubra nuestra gama de fatbikes eléctricas que combinan potencia, estilo y respeto por el medio ambiente.",
+    "hero_description": "Descubre nuestra gama de fatbikes eléctricas que combinan potencia, estilo y respeto por el medio ambiente.",
     "hero_cta": "Descubrir nuestras bicicletas",
     "featured_title": "Nuestros Modelos Destacados",
     "featured_subtitle": "Bicicletas eléctricas diseñadas para todos los terrenos y estilos.",
@@ -41,7 +41,7 @@
     "price_range": "Rango de precios",
     "tire_size": "Tamaño de neumáticos",
     "range_km": "Autonomía (km)",
-    "no_results": "Ninguna bicicleta coincide con sus criterios.",
+    "no_results": "Ninguna bicicleta coincide con tus criterios.",
     "clear_filters": "Borrar filtros",
     "view_grid": "Cuadrícula",
     "view_list": "Lista"
@@ -57,23 +57,23 @@
     "related": "También te gustará",
     "motor": "Motor",
     "battery": "Batería",
-    "tire_size": "Tamaño neumáticos",
-    "max_load": "Carga máx.",
+    "tire_size": "Tamaño de neumáticos",
+    "max_load": "Carga máxima",
     "range": "Autonomía",
     "brake_type": "Frenos",
     "weight": "Peso",
     "dimensions": "Dimensiones",
-    "max_speed": "Velocidad máx.",
+    "max_speed": "Velocidad máxima",
     "suspension": "Suspensión",
     "frame": "Cuadro",
     "charge_time": "Tiempo de carga",
     "on_sale": "En oferta",
     "new": "Nuevo",
-    "contact_us": "Contáctenos"
+    "contact_us": "Contáctanos"
   },
   "cart": {
-    "title": "Su Carrito",
-    "empty": "Su carrito está vacío",
+    "title": "Tu Carrito",
+    "empty": "Tu carrito está vacío",
     "empty_cta": "Descubrir nuestras bicicletas",
     "subtotal": "Subtotal",
     "shipping": "Envío",
@@ -114,7 +114,7 @@
     "title": "Mi Cuenta",
     "orders": "Mis Pedidos",
     "profile": "Mi Perfil",
-    "no_orders": "Aún no tiene pedidos.",
+    "no_orders": "Aún no tienes pedidos.",
     "order_status": {
       "pending": "Pendiente",
       "paid": "Pagado",
@@ -132,24 +132,24 @@
     "confirm_password": "Confirmar contraseña",
     "login_button": "Iniciar sesión",
     "register_button": "Crear mi cuenta",
-    "no_account": "¿No tiene cuenta?",
-    "has_account": "¿Ya tiene cuenta?",
-    "forgot_password": "¿Olvidó su contraseña?"
+    "no_account": "¿No tienes cuenta?",
+    "has_account": "¿Ya tienes cuenta?",
+    "forgot_password": "¿Olvidaste tu contraseña?"
   },
   "about": {
     "title": "Sobre Vitesse Eco",
-    "subtitle": "Su socio de movilidad eléctrica desde Francia."
+    "subtitle": "Tu socio de movilidad eléctrica desde Francia."
   },
   "contact": {
-    "title": "Contáctenos",
-    "subtitle": "¿Alguna pregunta? No dude en escribirnos.",
-    "name": "Su nombre",
-    "email": "Su email",
+    "title": "Contáctanos",
+    "subtitle": "¿Alguna pregunta? No dudes en escribirnos.",
+    "name": "Tu nombre",
+    "email": "Tu email",
     "subject": "Asunto",
-    "message": "Su mensaje",
+    "message": "Tu mensaje",
     "send": "Enviar",
     "success": "¡Mensaje enviado con éxito!",
-    "error": "Error al enviar. Por favor, inténtelo de nuevo."
+    "error": "Error al enviar. Por favor, inténtalo de nuevo."
   },
   "footer": {
     "description": "Distribuidor de fatbikes eléctricas. Potencia, estilo y respeto por el medio ambiente.",
@@ -160,7 +160,7 @@
     "cgv": "Condiciones Generales de Venta",
     "follow_us": "Síguenos",
     "newsletter": "Newsletter",
-    "newsletter_placeholder": "Su email",
+    "newsletter_placeholder": "Tu email",
     "newsletter_button": "Suscribirse",
     "rights": "Todos los derechos reservados."
   },

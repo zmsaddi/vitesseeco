@@ -16,9 +16,9 @@
     "logout": "Cerrar Sesión"
   },
   "home": {
-    "hero_title": "Potencia Todo-Terreno",
+    "hero_title": "Potencia Todo Terreno",
     "hero_subtitle": "Rendimiento Duradero",
-    "hero_description": "Descubra nuestra gama de fatbikes eléctricas que combinan potencia, estilo y respeto por el medio ambiente.",
+    "hero_description": "Descubre nuestra gama de fatbikes eléctricas que combinan potencia, estilo y respeto por el medio ambiente.",
     "hero_cta": "Descubrir nuestras bicicletas",
     "featured_title": "Nuestros Modelos Destacados",
     "featured_subtitle": "Bicicletas eléctricas diseñadas para todos los terrenos y estilos.",
@@ -26,7 +26,15 @@
     "testimonials_title": "Lo que dicen nuestros clientes",
     "cta_title": "¿Listo para rodar?",
     "cta_description": "Encuentra la fatbike eléctrica perfecta para ti.",
-    "cta_button": "Ver todos nuestros modelos"
+    "cta_button": "Ver todos nuestros modelos",
+    "value1_title": "Autonomía",
+    "value1_desc": "Hasta 100 km de autonomía con nuestras baterías de alta capacidad.",
+    "value2_title": "Calidad Premium",
+    "value2_desc": "Componentes certificados y probados para una fiabilidad máxima.",
+    "value3_title": "Entrega Rápida",
+    "value3_desc": "Entrega gratuita en Francia metropolitana en 5 a 7 días.",
+    "value4_title": "Soporte Reactivo",
+    "value4_desc": "Asistencia técnica disponible 6 días a la semana por teléfono y email."
   },
   "products": {
     "title": "Nuestras Bicicletas Eléctricas",
@@ -41,10 +49,12 @@
     "price_range": "Rango de precios",
     "tire_size": "Tamaño de neumáticos",
     "range_km": "Autonomía (km)",
-    "no_results": "Ninguna bicicleta coincide con sus criterios.",
+    "no_results": "Ninguna bicicleta coincide con tus criterios.",
     "clear_filters": "Borrar filtros",
     "view_grid": "Cuadrícula",
-    "view_list": "Lista"
+    "view_list": "Lista",
+    "count": "{count} bicicletas",
+    "all_sizes": "Todos los tamaños"
   },
   "product": {
     "add_to_cart": "Añadir al carrito",
@@ -57,23 +67,23 @@
     "related": "También te gustará",
     "motor": "Motor",
     "battery": "Batería",
-    "tire_size": "Tamaño neumáticos",
-    "max_load": "Carga máx.",
+    "tire_size": "Tamaño de neumáticos",
+    "max_load": "Carga máxima",
     "range": "Autonomía",
     "brake_type": "Frenos",
     "weight": "Peso",
     "dimensions": "Dimensiones",
-    "max_speed": "Velocidad máx.",
+    "max_speed": "Velocidad máxima",
     "suspension": "Suspensión",
     "frame": "Cuadro",
     "charge_time": "Tiempo de carga",
     "on_sale": "En oferta",
     "new": "Nuevo",
-    "contact_us": "Contáctenos"
+    "contact_us": "Contáctanos"
   },
   "cart": {
-    "title": "Su Carrito",
-    "empty": "Su carrito está vacío",
+    "title": "Tu Carrito",
+    "empty": "Tu carrito está vacío",
     "empty_cta": "Descubrir nuestras bicicletas",
     "subtotal": "Subtotal",
     "shipping": "Envío",
@@ -114,7 +124,7 @@
     "title": "Mi Cuenta",
     "orders": "Mis Pedidos",
     "profile": "Mi Perfil",
-    "no_orders": "Aún no tiene pedidos.",
+    "no_orders": "Aún no tienes pedidos.",
     "order_status": {
       "pending": "Pendiente",
       "paid": "Pagado",
@@ -132,24 +142,40 @@
     "confirm_password": "Confirmar contraseña",
     "login_button": "Iniciar sesión",
     "register_button": "Crear mi cuenta",
-    "no_account": "¿No tiene cuenta?",
-    "has_account": "¿Ya tiene cuenta?",
-    "forgot_password": "¿Olvidó su contraseña?"
+    "no_account": "¿No tienes cuenta?",
+    "has_account": "¿Ya tienes cuenta?",
+    "forgot_password": "¿Olvidaste tu contraseña?"
   },
   "about": {
     "title": "Sobre Vitesse Eco",
-    "subtitle": "Su socio de movilidad eléctrica desde Francia."
+    "subtitle": "Tu socio de movilidad eléctrica desde Francia.",
+    "our_story": "Nuestra Historia",
+    "story_text": "Vitesse Eco nació de la pasión por la movilidad sostenible y el placer de pedalear. Seleccionamos las mejores fatbikes eléctricas para ofrecer a nuestros clientes una experiencia de conducción excepcional, combinando rendimiento, confort y respeto por el medio ambiente.",
+    "company_info": "Información de la empresa",
+    "company_details": "Vitesse Eco — SIREN 100 732 247, inscrita en el RCS de Poitiers.",
+    "active_since": "Activo desde el 03/02/2026",
+    "value1_title": "Calidad Garantizada",
+    "value1_desc": "Cada bicicleta es rigurosamente inspeccionada antes del envío para garantizar una calidad impecable.",
+    "value2_title": "Entrega Cuidadosa",
+    "value2_desc": "Embalaje reforzado y entrega con seguimiento para que tu bicicleta llegue en perfecto estado.",
+    "value3_title": "Soporte Dedicado",
+    "value3_desc": "Nuestro equipo está a tu disposición para acompañarte antes, durante y después de tu compra."
   },
   "contact": {
-    "title": "Contáctenos",
-    "subtitle": "¿Alguna pregunta? No dude en escribirnos.",
-    "name": "Su nombre",
-    "email": "Su email",
+    "title": "Contáctanos",
+    "subtitle": "¿Alguna pregunta? No dudes en escribirnos.",
+    "name": "Tu nombre",
+    "email": "Tu email",
     "subject": "Asunto",
-    "message": "Su mensaje",
+    "message": "Tu mensaje",
     "send": "Enviar",
     "success": "¡Mensaje enviado con éxito!",
-    "error": "Error al enviar. Por favor, inténtelo de nuevo."
+    "error": "Error al enviar. Por favor, inténtalo de nuevo.",
+    "address": "Dirección",
+    "hours": "Horario de apertura",
+    "hours_text": "Lun — Sáb: 9h — 18h",
+    "legal_info": "Información legal",
+    "send_message": "Envíanos un mensaje"
   },
   "footer": {
     "description": "Distribuidor de fatbikes eléctricas. Potencia, estilo y respeto por el medio ambiente.",
@@ -160,7 +186,7 @@
     "cgv": "Condiciones Generales de Venta",
     "follow_us": "Síguenos",
     "newsletter": "Newsletter",
-    "newsletter_placeholder": "Su email",
+    "newsletter_placeholder": "Tu email",
     "newsletter_button": "Suscribirse",
     "rights": "Todos los derechos reservados."
   },
