@@ -178,25 +178,26 @@ const selectedImageIndex = ref(0)
 
 const slug = computed(() => route.params.slug as string)
 
-const query = groq`*[_type == "product" && slug.current == $slug][0] {
+const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,
   isOnSale, isNew, isAvailable, mainImage, gallery,
   specifications, category->{ _id, name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, mainImage }
 }`
-const { data: product } = useSanityQuery(query, { slug })
+const { data: product, refresh: refreshProduct } = useSanityQuery(productQuery, { slug })
 
-// If no explicit related products, fetch from same category
-const relatedQuery = groq`*[_type == "product" && category._ref == $catId && slug.current != $slug][0..2] {
-  _id, name, slug, price, mainImage
-}`
-const catId = computed(() => product.value?.category?._id || '')
-const { data: autoRelated } = useSanityQuery(relatedQuery, { catId, slug })
+// Refresh when slug changes (client-side navigation)
+watch(slug, () => {
+  refreshProduct()
+  selectedColor.value = 0
+  qty.value = 1
+  selectedImageIndex.value = 0
+})
 
+// Related products - fetch separately to avoid dependency issues
 const relatedProducts = computed(() => {
-  if (product.value?.relatedProducts?.length) return product.value.relatedProducts
-  return autoRelated.value || []
+  return product.value?.relatedProducts?.length ? product.value.relatedProducts : []
 })
 
 const allImages = computed(() => {
