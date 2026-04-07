@@ -120,7 +120,7 @@ const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, mainImage,
   variants[]{ _key, colorHex }
 }`
-const { data: featuredProducts } = useSanityFetch(query)
+const { data: featuredProducts } = useSanityQuery(query)
 
 const values = computed(() => [
   { icon: 'ph:battery-charging', title: t('home.value1_title'), desc: t('home.value1_desc') },

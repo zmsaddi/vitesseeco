@@ -53,7 +53,7 @@ const l = useLocalizedField()
 useHead({ title: `${t('about.title')} — Vitesse Eco` })
 
 const query = groq`*[_type == "aboutPage"][0] { story }`
-const { data: aboutData } = useSanityFetch(query)
+const { data: aboutData } = useSanityQuery(query)
 
 const aboutText = computed(() => {
   if (aboutData.value?.story) return l(aboutData.value.story)

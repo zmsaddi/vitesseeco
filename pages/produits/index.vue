@@ -151,7 +151,7 @@ const tireSizes = ['16"', '20"', '24"', '70/100-17"']
 
 // Fetch categories
 const catQuery = groq`*[_type == "category"] | order(sortOrder asc) { _id, name, slug }`
-const { data: categories } = useSanityFetch(catQuery)
+const { data: categories } = useSanityQuery(catQuery)
 
 // Fetch all products
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
@@ -159,7 +159,7 @@ const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sort
   mainImage, specifications, category->{ _id },
   variants[]{ _key, colorHex, colorName }
 }`
-const { data: products } = useSanityFetch(prodQuery)
+const { data: products } = useSanityQuery(prodQuery)
 
 const filteredProducts = computed(() => {
   if (!products.value) return []
