@@ -23,12 +23,20 @@ export function useSanityFetch<T = any>(
   }
   if (typeof key === 'function') watchSources.push(key)
 
+  const opts: any = {
+    // Force re-fetch on every client navigation (don't use stale cache)
+    getCachedData: () => undefined,
+  }
+  if (watchSources.length) {
+    opts.watch = watchSources
+  }
+
   return useAsyncData<T>(
     resolveKey(),
     () => {
       const { client } = useSanity()
       return client.fetch<T>(query, resolveParams())
     },
-    watchSources.length ? { watch: watchSources } : {}
+    opts
   )
 }
