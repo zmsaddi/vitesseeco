@@ -15,18 +15,17 @@
         <div class="flex flex-col justify-center">
           <h2 class="font-display text-2xl md:text-3xl font-bold text-white mb-6">Notre Histoire</h2>
           <div class="space-y-4 text-text-secondary leading-relaxed">
-            <p>
-              Vitesse Eco est née d'une passion pour la mobilité électrique et le respect de l'environnement.
-              Basée en France, notre mission est de rendre les fatbikes électriques accessibles à tous.
-            </p>
-            <p>
-              Nous sélectionnons rigoureusement chaque modèle pour garantir qualité, performance et durabilité.
-              Chaque vélo est testé et approuvé avant d'être proposé à nos clients.
-            </p>
-            <p>
-              Notre gamme couvre tous les besoins : du vélo urbain compact au tout-terrain puissant,
-              en passant par des modèles pliables et des versions longue autonomie.
-            </p>
+            <p v-if="aboutData">{{ l(aboutData.story) }}</p>
+            <template v-else>
+              <p>
+                Vitesse Eco est née d'une passion pour la mobilité électrique et le respect de l'environnement.
+                Basée à Poitiers, France, notre mission est de rendre les fatbikes électriques accessibles à tous.
+              </p>
+              <p>
+                VITESSE ECO est une SAS enregistrée sous le SIREN 100 732 247, spécialisée dans la vente de vélos
+                électriques premium. Nous sélectionnons rigoureusement chaque modèle pour garantir qualité, performance et durabilité.
+              </p>
+            </template>
           </div>
         </div>
       </div>
@@ -41,14 +40,30 @@
           <p class="text-text-secondary text-sm leading-relaxed">{{ value.description }}</p>
         </div>
       </div>
+
+      <!-- Company Info -->
+      <div class="mt-16 card p-8 text-center">
+        <h2 class="font-display text-xl font-semibold text-white mb-4">Informations Entreprise</h2>
+        <div class="text-text-secondary text-sm space-y-1">
+          <p><strong class="text-white">VITESSE ECO</strong> — SAS (Société par Actions Simplifiée)</p>
+          <p>SIREN : 100 732 247 | SIRET : 100 732 247 00018</p>
+          <p>APE : 46.90Z — Commerce de gros non spécialisé</p>
+          <p>32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France</p>
+          <p>Entreprise active depuis le 03/02/2026</p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 const { t } = useI18n()
+const l = useLocalizedField()
 
 useHead({ title: `${t('about.title')} — Vitesse Eco` })
+
+const query = groq`*[_type == "aboutPage"][0] { title, subtitle, story, values }`
+const { data: aboutData } = useSanityQuery(query)
 
 const values = [
   {

@@ -52,31 +52,44 @@
           <p class="text-text-secondary text-lg">{{ $t('home.featured_subtitle') }}</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div v-for="product in featuredProducts" :key="product.name" class="card group">
+          <NuxtLink
+            v-for="product in featuredProducts"
+            :key="product._id"
+            :to="localePath(`/produits/${product.slug?.current}`)"
+            class="card group"
+          >
             <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center relative overflow-hidden">
-              <Icon name="ph:bicycle" class="w-20 h-20 text-dark-tertiary/50" />
-              <span v-if="product.badge" class="absolute top-3 left-3" :class="product.badge === 'PROMO' ? 'badge-promo' : 'badge-new'">
-                {{ product.badge }}
-              </span>
+              <NuxtImg
+                v-if="product.mainImage?.asset"
+                :src="$sanity.visual.urlFor(product.mainImage).width(600).height(450).url()"
+                :alt="l(product.name)"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <Icon v-else name="ph:bicycle" class="w-20 h-20 text-dark-tertiary/50" />
+              <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo">PROMO</span>
+              <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new">NEW</span>
             </div>
             <div class="p-5">
               <h3 class="font-display font-semibold text-white group-hover:text-accent transition-colors mb-1">
-                {{ product.name }}
+                {{ l(product.name) }}
               </h3>
-              <p class="text-text-secondary text-sm mb-3">{{ product.description }}</p>
+              <p class="text-text-secondary text-sm mb-3">{{ l(product.shortDescription) }}</p>
               <div class="flex items-center justify-between">
-                <span class="text-accent font-bold text-lg">{{ $t('common.from') }} {{ product.price }}{{ $t('common.currency') }}</span>
+                <div>
+                  <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-sm mr-2">{{ product.compareAtPrice }}{{ $t('common.currency') }}</span>
+                  <span class="text-accent font-bold text-lg">{{ $t('common.from') }} {{ product.price }}{{ $t('common.currency') }}</span>
+                </div>
                 <div class="flex gap-1">
                   <span
-                    v-for="color in product.colors"
-                    :key="color"
+                    v-for="variant in (product.variants || []).slice(0, 4)"
+                    :key="variant._key"
                     class="w-4 h-4 rounded-full border border-white/20"
-                    :style="{ backgroundColor: color }"
+                    :style="{ backgroundColor: variant.colorHex }"
                   />
                 </div>
               </div>
             </div>
-          </div>
+          </NuxtLink>
         </div>
       </div>
     </section>
@@ -99,39 +112,24 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const localePath = useLocalePath()
+const l = useLocalizedField()
 
 useHead({
   title: 'Vitesse Eco — Fatbikes Électriques',
 })
 
+const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder asc)[0..2] {
+  _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, mainImage,
+  variants[]{ _key, colorHex }
+}`
+const { data: featuredProducts } = useSanityQuery(query)
+
 const values = [
-  { icon: 'ph:battery-charging', title: 'Autonomie', description: 'Jusqu\'à 100km d\'autonomie avec nos batteries haute capacité.' },
+  { icon: 'ph:battery-charging', title: t('home.values_title') === t('home.values_title') ? 'Autonomie' : '', description: 'Jusqu\'à 100km d\'autonomie avec nos batteries haute capacité.' },
   { icon: 'ph:shield-check', title: 'Qualité Premium', description: 'Composants certifiés et garantie constructeur complète.' },
   { icon: 'ph:truck', title: 'Livraison Rapide', description: 'Livraison offerte en France métropolitaine sous 5 jours.' },
   { icon: 'ph:headset', title: 'SAV Réactif', description: 'Support technique disponible 6j/7 pour vous accompagner.' },
 ]
-
-const featuredProducts = [
-  {
-    name: 'V20 Pro',
-    description: '48V 15.6AH — 40-50km',
-    price: '1 299',
-    badge: 'BEST',
-    colors: ['#000000', '#8E8E8E', '#4A4A4A'],
-  },
-  {
-    name: 'Q30 Pliable',
-    description: '48V 15.6AH — 40-50km',
-    price: '1 399',
-    badge: 'NEW',
-    colors: ['#000000', '#8E8E8E', '#FFFFFF'],
-  },
-  {
-    name: 'V20 Cross',
-    description: '48V 22AH — 60-70km',
-    price: '1 599',
-    badge: 'PROMO',
-    colors: ['#000000'],
-  },
-]
+// Override values with Sanity data when available - for now use static
+values[0].title = 'Autonomie'
 </script>
