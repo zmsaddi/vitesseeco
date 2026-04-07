@@ -3,8 +3,6 @@ export function useSanityFetch<T = any>(
   query: string,
   params?: Record<string, any>
 ) {
-  const client = useSanityClient()
-
   const resolveParams = () => {
     if (!params) return {}
     const resolved: Record<string, any> = {}
@@ -27,7 +25,10 @@ export function useSanityFetch<T = any>(
 
   return useAsyncData<T>(
     resolveKey(),
-    () => client.fetch<T>(query, resolveParams()),
+    () => {
+      const { client } = useSanity()
+      return client.fetch<T>(query, resolveParams())
+    },
     watchSources.length ? { watch: watchSources } : {}
   )
 }
