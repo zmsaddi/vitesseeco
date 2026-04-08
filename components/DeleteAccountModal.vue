@@ -18,11 +18,10 @@
         leave-from-class="opacity-100 scale-100"
         leave-to-class="opacity-0 scale-90"
       >
-        <div v-if="visible" class="relative w-full max-w-md bg-primary border border-red-800/50 rounded-2xl shadow-2xl overflow-hidden">
+        <div v-if="visible" class="relative w-full max-w-md bg-primary border border-red-800/50 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
 
           <!-- Step 1: Warning -->
           <div v-if="step === 1" class="p-6 md:p-8">
-            <!-- Icon -->
             <div class="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Icon name="ph:warning-diamond-fill" class="w-8 h-8 text-red-400" />
             </div>
@@ -34,7 +33,6 @@
               {{ $t('account.delete_warning') }}
             </p>
 
-            <!-- Consequences list -->
             <div class="bg-red-900/10 border border-red-800/30 rounded-xl p-4 mb-6 space-y-3">
               <div v-for="(item, i) in consequences" :key="i" class="flex items-start gap-3">
                 <Icon :name="item.icon" class="w-4 h-4 shrink-0 mt-0.5" :class="item.color" />
@@ -52,37 +50,30 @@
             </div>
           </div>
 
-          <!-- Step 2: Type confirmation -->
+          <!-- Step 2: Confirm with checkbox (simpler, works on all devices) -->
           <div v-if="step === 2" class="p-6 md:p-8">
             <div class="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Icon name="ph:shield-warning-fill" class="w-8 h-8 text-red-400" />
             </div>
 
-            <h2 class="font-display text-xl font-bold text-white text-center mb-2">
+            <h2 class="font-display text-xl font-bold text-white text-center mb-4">
               {{ $t('account.delete_confirm') }}
             </h2>
 
-            <p class="text-text-secondary text-sm text-center mb-4">
-              {{ $t('account.delete_type_prompt') || typePromptFallback }}
-            </p>
-
-            <!-- Confirmation word -->
-            <div class="bg-red-900/20 border border-red-800/30 rounded-lg px-4 py-2 text-center mb-4">
-              <span class="text-red-400 font-mono font-bold text-lg tracking-wider">{{ confirmWord }}</span>
-            </div>
-
-            <div class="mb-6">
-              <label for="delete-confirm-input" class="sr-only">{{ confirmWord }}</label>
-              <input
-                id="delete-confirm-input"
-                name="confirm"
-                v-model="userInput"
-                type="text"
-                class="input-field text-center font-mono tracking-wider"
-                :placeholder="confirmWord"
-                autocomplete="off"
-                @paste.prevent
-              />
+            <!-- Confirmation checkboxes — more reliable than typing -->
+            <div class="space-y-3 mb-6">
+              <label class="flex items-start gap-3 cursor-pointer bg-red-900/10 border border-red-800/30 rounded-lg p-3">
+                <input type="checkbox" v-model="check1" class="mt-1 accent-red-500 w-4 h-4" />
+                <span class="text-text-secondary text-sm">{{ $t('account.delete_consequence_1') }}</span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer bg-red-900/10 border border-red-800/30 rounded-lg p-3">
+                <input type="checkbox" v-model="check2" class="mt-1 accent-red-500 w-4 h-4" />
+                <span class="text-text-secondary text-sm">{{ $t('account.delete_consequence_3') }}</span>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer bg-red-900/10 border border-red-800/30 rounded-lg p-3">
+                <input type="checkbox" v-model="check3" class="mt-1 accent-red-500 w-4 h-4" />
+                <span class="text-text-secondary text-sm">{{ $t('account.delete_consequence_5') }}</span>
+              </label>
             </div>
 
             <div class="flex gap-3">
@@ -91,9 +82,9 @@
               </button>
               <button
                 @click="confirmDelete"
-                :disabled="!isConfirmed || deleting"
+                :disabled="!allChecked || deleting"
                 class="flex-1 py-3 rounded-lg font-medium transition-all"
-                :class="isConfirmed ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-red-900/20 text-red-800 cursor-not-allowed'"
+                :class="allChecked ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-red-900/20 text-red-800 cursor-not-allowed'"
               >
                 <span v-if="deleting" class="flex items-center justify-center gap-2">
                   <Icon name="ph:spinner" class="w-4 h-4 animate-spin" />
@@ -110,64 +101,50 @@
 </template>
 
 <script setup lang="ts">
-const { t, locale } = useI18n()
+const { t } = useI18n()
 
 const props = defineProps<{ visible: boolean }>()
 const emit = defineEmits<{ 'close': []; 'confirm': [] }>()
 
 const step = ref(1)
-const userInput = ref('')
+const check1 = ref(false)
+const check2 = ref(false)
+const check3 = ref(false)
 const deleting = ref(false)
 
-// Confirmation word per language
-const confirmWords: Record<string, string> = {
-  fr: 'SUPPRIMER',
-  en: 'DELETE',
-  es: 'ELIMINAR',
-  nl: 'VERWIJDEREN',
-  de: 'LÖSCHEN',
-  ar: 'حذف',
-}
-const confirmWord = computed(() => confirmWords[locale.value] || 'DELETE')
-const isConfirmed = computed(() => userInput.value.trim().toUpperCase() === confirmWord.value.toUpperCase())
-
-const typePromptFallback = computed(() => {
-  const w = confirmWord.value
-  return locale.value === 'ar'
-    ? `اكتب "${w}" لتأكيد الحذف`
-    : `Tapez "${w}" pour confirmer`
-})
+const allChecked = computed(() => check1.value && check2.value && check3.value)
 
 const consequences = computed(() => [
-  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_1') || 'Your personal data will be permanently deleted' },
-  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_2') || 'Your saved addresses will be deleted' },
-  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_3') || 'You will lose access to your order history' },
-  { icon: 'ph:warning', color: 'text-gold', text: t('account.delete_consequence_4') || 'Your previous orders will be kept anonymously for our records' },
-  { icon: 'ph:info', color: 'text-text-secondary', text: t('account.delete_consequence_5') || 'This action cannot be undone' },
+  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_1') },
+  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_2') },
+  { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_3') },
+  { icon: 'ph:warning', color: 'text-gold', text: t('account.delete_consequence_4') },
+  { icon: 'ph:info', color: 'text-text-secondary', text: t('account.delete_consequence_5') },
 ])
 
 function cancel() {
   step.value = 1
-  userInput.value = ''
+  check1.value = false
+  check2.value = false
+  check3.value = false
   emit('close')
 }
 
 async function confirmDelete() {
-  if (!isConfirmed.value) return
+  if (!allChecked.value) return
   deleting.value = true
   emit('confirm')
 }
 
-// Reset when modal opens + body scroll lock
 watch(() => props.visible, (v) => {
-  if (v) { step.value = 1; userInput.value = ''; deleting.value = false }
-  document.body.style.overflow = v ? 'hidden' : ''
+  if (v) { step.value = 1; check1.value = false; check2.value = false; check3.value = false; deleting.value = false }
 })
 
-// Close on Escape key
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && props.visible) cancel()
-}
+// Escape key + body scroll lock
+function onKeydown(e: KeyboardEvent) { if (e.key === 'Escape') cancel() }
+watch(() => props.visible, (v) => {
+  if (import.meta.client) document.body.style.overflow = v ? 'hidden' : ''
+})
 onMounted(() => document.addEventListener('keydown', onKeydown))
-onUnmounted(() => document.removeEventListener('keydown', onKeydown))
+onUnmounted(() => { document.removeEventListener('keydown', onKeydown); if (import.meta.client) document.body.style.overflow = '' })
 </script>
