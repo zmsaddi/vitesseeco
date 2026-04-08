@@ -23,9 +23,16 @@ export function useSanityFetch<T = any>(
   }
   if (typeof key === 'function') watchSources.push(key)
 
+  const nuxtApp = useNuxtApp()
+
   const opts: any = {
-    // Force re-fetch on every client navigation (don't use stale cache)
-    getCachedData: () => undefined,
+    // Use SSR data during hydration, force re-fetch during client navigation
+    getCachedData: (k: string) => {
+      if (nuxtApp.isHydrating) {
+        return nuxtApp.payload.data[k]
+      }
+      return undefined
+    },
   }
   if (watchSources.length) {
     opts.watch = watchSources

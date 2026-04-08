@@ -49,9 +49,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     // Set cookie first
     cookie.value = detectedLocale
 
-    // Navigate to detected locale (instead of setLocale which causes hydration issues)
+    // Navigate to detected locale after hydration is fully complete
     if (detectedLocale !== 'fr') {
-      navigateTo(`/${detectedLocale}`, { replace: true })
+      setTimeout(() => {
+        navigateTo(`/${detectedLocale}`, { replace: true })
+      }, 100)
     }
   })
 })
