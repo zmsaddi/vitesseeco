@@ -145,7 +145,11 @@
       "shipped": "Verzonden",
       "delivered": "Geleverd",
       "cancelled": "Geannuleerd"
-    }
+    },
+    "delete_title": "Account verwijderen",
+    "delete_warning": "Deze actie is permanent. Je persoonlijke gegevens worden verwijderd, maar je bestellingen worden anoniem bewaard in onze administratie.",
+    "delete_button": "Mijn account verwijderen",
+    "delete_confirm": "Weet je zeker dat je je account wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
   },
   "auth": {
     "login_title": "Inloggen",

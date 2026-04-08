@@ -145,7 +145,11 @@
       "shipped": "Expédiée",
       "delivered": "Livrée",
       "cancelled": "Annulée"
-    }
+    },
+    "delete_title": "Supprimer le compte",
+    "delete_warning": "Cette action est définitive. Vos données personnelles seront supprimées, mais vos commandes seront conservées de manière anonyme dans nos archives.",
+    "delete_button": "Supprimer mon compte",
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."
   },
   "auth": {
     "login_title": "Connexion",

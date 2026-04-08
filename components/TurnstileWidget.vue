@@ -7,7 +7,7 @@ const emit = defineEmits<{ 'verify': [token: string] }>()
 const container = ref<HTMLElement>()
 const config = useRuntimeConfig()
 
-const siteKey = config.public.turnstileSiteKey || '0x4AAAAAAC2BKiJdmw--5jl9'
+const siteKey = String(config.public.turnstileSiteKey || '0x4AAAAAAC2BKiJdmw--5jl9').trim()
 
 onMounted(() => {
   // Load Turnstile script

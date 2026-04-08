@@ -145,7 +145,11 @@
       "shipped": "Shipped",
       "delivered": "Delivered",
       "cancelled": "Cancelled"
-    }
+    },
+    "delete_title": "Delete Account",
+    "delete_warning": "This action is permanent. Your personal data will be deleted but your orders will be kept anonymously for our records.",
+    "delete_button": "Delete my account",
+    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone."
   },
   "auth": {
     "login_title": "Log In",

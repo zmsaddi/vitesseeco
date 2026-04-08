@@ -145,7 +145,11 @@
       "shipped": "Versendet",
       "delivered": "Geliefert",
       "cancelled": "Storniert"
-    }
+    },
+    "delete_title": "Konto löschen",
+    "delete_warning": "Diese Aktion ist endgültig. Ihre persönlichen Daten werden gelöscht, aber Ihre Bestellungen werden anonymisiert in unseren Aufzeichnungen aufbewahrt.",
+    "delete_button": "Mein Konto löschen",
+    "delete_confirm": "Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
   },
   "auth": {
     "login_title": "Anmelden",

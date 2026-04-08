@@ -178,6 +178,21 @@
             <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline ml-1">{{ $t('cart.empty_cta') }}</NuxtLink>
           </p>
         </div>
+
+        <!-- Delete Account -->
+        <div class="border border-red-800/30 rounded-xl p-6">
+          <h2 class="font-display font-semibold text-red-400 mb-2 flex items-center gap-2">
+            <Icon name="ph:warning" class="w-5 h-5" />
+            {{ $t('account.delete_title') || 'Delete Account' }}
+          </h2>
+          <p class="text-text-secondary text-sm mb-4">{{ $t('account.delete_warning') || 'This action is permanent. Your orders will be kept anonymously.' }}</p>
+          <button
+            @click="confirmDeleteAccount"
+            class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors text-sm px-4 py-2 rounded-lg border border-red-800/50"
+          >
+            {{ $t('account.delete_button') || 'Delete my account' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -284,6 +299,19 @@ async function deleteAddress(id: string) {
 async function handleLogout() {
   await auth.logout()
   navigateTo(localePath('/'))
+}
+
+async function confirmDeleteAccount() {
+  const confirmed = confirm(t('account.delete_confirm') || 'Are you sure? This cannot be undone.')
+  if (!confirmed) return
+
+  try {
+    await $fetch('/api/auth/delete-account', { method: 'POST' })
+    auth.user = null
+    navigateTo(localePath('/'))
+  } catch (e: any) {
+    alert(e.data?.message || 'Error')
+  }
 }
 
 onMounted(fetchAddresses)
