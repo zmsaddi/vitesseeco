@@ -100,6 +100,52 @@ export const useCartStore = defineStore('cart', {
       this._invalidateServer()
     },
 
+    // Check stock — call when opening cart page or before checkout
+    async checkStock(): Promise<{ allValid: boolean; hasChanges: boolean; messages: string[] }> {
+      if (this.items.length === 0) return { allValid: false, hasChanges: false, messages: [] }
+
+      try {
+        const result = await $fetch<any>('/api/cart/check-stock', {
+          method: 'POST',
+          body: {
+            items: this.items.map(i => ({
+              productId: i.productId,
+              sku: i.sku,
+              quantity: i.quantity,
+            })),
+          },
+        })
+
+        const messages: string[] = []
+
+        for (const serverItem of result.items) {
+          const localItem = this.items.find(
+            i => i.productId === serverItem.productId && i.sku === serverItem.sku
+          )
+
+          if (!localItem) continue
+
+          if (!serverItem.valid) {
+            // Remove unavailable items
+            this.items = this.items.filter(i => i !== localItem)
+            messages.push(`${serverItem.productName} (${serverItem.colorName}) — removed: ${serverItem.message}`)
+          } else if (serverItem.message === 'quantity_reduced') {
+            // Reduce quantity to available stock
+            localItem.quantity = serverItem.availableStock
+            localItem.price = serverItem.price // Update price too
+            messages.push(`${serverItem.productName} — quantity reduced to ${serverItem.availableStock}`)
+          } else {
+            // Update price from server
+            localItem.price = serverItem.price
+          }
+        }
+
+        return { allValid: result.allValid, hasChanges: result.hasChanges, messages }
+      } catch {
+        return { allValid: false, hasChanges: false, messages: ['Stock check failed'] }
+      }
+    },
+
     // Server-side validation — MUST be called before checkout
     async validateCart() {
       if (this.items.length === 0) return false

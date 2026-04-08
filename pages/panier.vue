@@ -4,6 +4,17 @@
       <h1 class="section-title mb-8">{{ $t('cart.title') }}</h1>
 
       <!-- Empty State -->
+      <!-- Stock warnings -->
+      <div v-if="stockMessages.length > 0" class="mb-6 bg-gold/10 border border-gold/30 rounded-xl p-4">
+        <p class="text-gold text-sm font-medium mb-2 flex items-center gap-2">
+          <Icon name="ph:warning" class="w-5 h-5" />
+          {{ $t('cart.stock_updated') || 'Your cart has been updated' }}
+        </p>
+        <ul class="text-text-secondary text-xs space-y-1">
+          <li v-for="msg in stockMessages" :key="msg">• {{ msg }}</li>
+        </ul>
+      </div>
+
       <div v-if="cart.isEmpty" class="text-center py-20">
         <Icon name="ph:shopping-cart" class="w-20 h-20 text-dark-tertiary mx-auto mb-6" />
         <p class="text-text-secondary text-lg mb-6">{{ $t('cart.empty') }}</p>
@@ -195,6 +206,18 @@ const promoInput = ref('')
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })
 
+// Check stock when page loads
+const stockMessages = ref<string[]>([])
+const stockChecked = ref(false)
+
+onMounted(async () => {
+  if (cart.items.length > 0) {
+    const { hasChanges, messages } = await cart.checkStock()
+    stockMessages.value = messages
+    stockChecked.value = true
+  }
+})
+
 // Fetch shipping methods for current zone
 const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping/methods', {
   query: { zone: cart.shippingZone },
@@ -221,6 +244,21 @@ async function proceedToCheckout() {
     cart.validationError = t('shipping.select_method')
     return
   }
+
+  // Final stock check before checkout
+  const stockCheck = await cart.checkStock()
+  if (!stockCheck.allValid) {
+    stockMessages.value = stockCheck.messages
+    cart.validationError = t('cart.stock_updated') || 'Some items are no longer available'
+    return
+  }
+  if (stockCheck.hasChanges) {
+    stockMessages.value = stockCheck.messages
+    cart.validationError = t('cart.stock_updated') || 'Cart updated — please review'
+    return
+  }
+
+  // Validate prices + shipping + promo
   const valid = await cart.validateCart()
   if (valid) {
     cart.validationError = ''
