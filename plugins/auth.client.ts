@@ -1,5 +1,7 @@
-export default defineNuxtPlugin(async () => {
-  const auth = useAuthStore()
-  // Try to fetch current user on app load (if auth cookie exists)
-  await auth.fetchUser()
+export default defineNuxtPlugin((nuxtApp) => {
+  // Fetch user AFTER hydration to avoid mismatch
+  nuxtApp.hook('app:mounted', async () => {
+    const auth = useAuthStore()
+    await auth.fetchUser()
+  })
 })
