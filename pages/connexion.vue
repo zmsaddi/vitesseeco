@@ -18,6 +18,7 @@
           <div class="flex-1 border-t border-dark-tertiary" />
         </div>
 
+        <p v-if="googleError" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">Google: {{ googleError }}</p>
         <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
@@ -55,6 +56,10 @@ const localePath = useLocalePath()
 const auth = useAuthStore()
 
 useHead({ title: `${t('auth.login_title')} — Vitesse Eco` })
+
+// Check for Google OAuth error in URL
+const route = useRoute()
+const googleError = computed(() => route.query.error as string || '')
 
 const turnstileToken = ref('')
 
