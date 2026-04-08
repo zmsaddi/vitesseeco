@@ -125,6 +125,7 @@
                   v-model="addressForm.address"
                   input-id="addr-address"
                   :placeholder="$t('checkout.address')"
+                  :countries="[addressForm.country.toLowerCase()]"
                   @select="onAddressSelect"
                 />
                 <template #fallback>

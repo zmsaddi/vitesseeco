@@ -74,7 +74,7 @@ async function fetchSuggestions(query: string) {
     const data = await $fetch<any>('/api/places/autocomplete', {
       query: {
         input: query,
-        countries: (props.countries || ['fr', 'be', 'lu', 'de', 'nl', 'es']).join(','),
+        country: props.countries?.[0] || 'fr',
       },
     })
     suggestions.value = data.predictions || []

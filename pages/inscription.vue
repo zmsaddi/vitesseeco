@@ -197,6 +197,14 @@ const addressPlaceholder = computed(() => {
   return p[locale.value] || p.fr
 })
 
+// Clear address when country changes
+watch(() => form.country, () => {
+  form.address = ''
+  form.city = ''
+  form.postalCode = ''
+  addressSuggestions.value = []
+})
+
 function onAddressInput() {
   clearTimeout(addressTimer)
   if (form.address.length < 3) {
