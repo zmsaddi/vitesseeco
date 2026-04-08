@@ -1,6 +1,6 @@
 <template>
-  <div class="py-8 md:py-16">
-    <div class="container-custom max-w-md">
+  <div class="py-8 md:py-12">
+    <div class="container-custom max-w-lg">
       <div class="card p-6 md:p-8">
         <h1 class="font-display text-2xl font-bold text-white text-center mb-2">{{ $t('auth.register_title') }}</h1>
         <p class="text-text-secondary text-sm text-center mb-6">{{ $t('about.subtitle') }}</p>
@@ -11,7 +11,6 @@
           {{ $t('auth.register_button') }} Google
         </a>
 
-        <!-- Divider -->
         <div class="flex items-center gap-4 my-6">
           <div class="flex-1 border-t border-dark-tertiary" />
           <span class="text-text-secondary text-xs uppercase">{{ $t('common.or') }}</span>
@@ -21,6 +20,7 @@
         <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
 
         <form @submit.prevent="handleRegister" class="space-y-4">
+          <!-- Personal Info -->
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
@@ -31,31 +31,91 @@
               <input id="reg-last" name="lastName" v-model="form.lastName" type="text" class="input-field" required autocomplete="family-name" />
             </div>
           </div>
+
           <div>
             <label for="reg-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.email') }}</label>
             <input id="reg-email" name="email" v-model="form.email" type="email" class="input-field" required autocomplete="email" />
           </div>
+
           <div>
             <label for="reg-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
-            <input id="reg-phone" name="phone" v-model="form.phone" type="tel" class="input-field" autocomplete="tel" />
-          </div>
-          <div>
-            <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
-            <input id="reg-pass" name="password" v-model="form.password" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
-          </div>
-          <div>
-            <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.confirm_password') }}</label>
-            <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
+            <PhoneInput v-model="form.phone" input-id="reg-phone" :default-country="form.country" />
           </div>
 
-          <p v-if="passwordMismatch" class="text-red-400 text-sm">{{ $t('auth.confirm_password') }} ≠ {{ $t('auth.password') }}</p>
+          <!-- Address (collapsible) -->
+          <div class="border-t border-dark-tertiary pt-4">
+            <button type="button" @click="showAddress = !showAddress" class="flex items-center gap-2 text-sm text-accent hover:underline mb-3">
+              <Icon :name="showAddress ? 'ph:caret-down' : 'ph:caret-right'" class="w-4 h-4" />
+              {{ $t('checkout.shipping_address') }}
+              <span class="text-text-secondary text-xs">({{ $t('common.or') === 'ou' ? 'optionnel' : 'optional' }})</span>
+            </button>
+
+            <div v-if="showAddress" class="space-y-4">
+              <div>
+                <label for="reg-address" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }}</label>
+                <AddressAutocomplete
+                  v-model="form.address"
+                  input-id="reg-address"
+                  :placeholder="$t('checkout.address')"
+                  @select="onAddressSelect"
+                />
+              </div>
+              <div>
+                <label for="reg-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
+                <input id="reg-line2" name="addressLine2" v-model="form.addressLine2" type="text" class="input-field" placeholder="Apt, étage, bâtiment..." />
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.postal_code') }}</label>
+                  <input id="reg-postal" name="postalCode" v-model="form.postalCode" type="text" class="input-field" autocomplete="postal-code" />
+                </div>
+                <div>
+                  <label for="reg-city" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.city') }}</label>
+                  <input id="reg-city" name="city" v-model="form.city" type="text" class="input-field" autocomplete="address-level2" />
+                </div>
+                <div>
+                  <label for="reg-country" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.country') }}</label>
+                  <select id="reg-country" name="country" v-model="form.country" class="input-field">
+                    <option value="FR">🇫🇷 France</option>
+                    <option value="BE">🇧🇪 Belgique</option>
+                    <option value="LU">🇱🇺 Luxembourg</option>
+                    <option value="DE">🇩🇪 Deutschland</option>
+                    <option value="NL">🇳🇱 Nederland</option>
+                    <option value="ES">🇪🇸 España</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="border-t border-dark-tertiary pt-4">
+            <div class="space-y-4">
+              <div>
+                <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
+                <input id="reg-pass" name="password" v-model="form.password" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
+                <p class="text-text-secondary text-xs mt-1">{{ passwordHint }}</p>
+              </div>
+              <div>
+                <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.confirm_password') }}</label>
+                <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
+              </div>
+              <p v-if="passwordMismatch" class="text-red-400 text-sm flex items-center gap-1">
+                <Icon name="ph:x-circle" class="w-4 h-4" />
+                {{ $t('auth.confirm_password') }} ≠ {{ $t('auth.password') }}
+              </p>
+            </div>
+          </div>
 
           <ClientOnly>
             <TurnstileWidget @verify="t => turnstileToken = t" />
           </ClientOnly>
 
-          <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken" class="btn-primary w-full py-3 disabled:opacity-50">
-            <span v-if="auth.loading">{{ $t('common.loading') }}</span>
+          <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken" class="btn-primary w-full py-3.5 text-lg disabled:opacity-50">
+            <span v-if="auth.loading" class="flex items-center justify-center gap-2">
+              <Icon name="ph:spinner" class="w-5 h-5 animate-spin" />
+              {{ $t('common.loading') }}
+            </span>
             <span v-else>{{ $t('auth.register_button') }}</span>
           </button>
         </form>
@@ -70,18 +130,43 @@
 </template>
 
 <script setup lang="ts">
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
 const turnstileToken = ref('')
+const showAddress = ref(false)
 
 useHead({ title: `${t('auth.register_title')} — Vitesse Eco` })
 
-const form = reactive({ firstName: '', lastName: '', email: '', phone: '', password: '', confirmPassword: '' })
+const form = reactive({
+  firstName: '', lastName: '', email: '', phone: '',
+  address: '', addressLine2: '', postalCode: '', city: '', country: 'FR',
+  password: '', confirmPassword: '',
+})
+
 const passwordMismatch = computed(() => form.password && form.confirmPassword && form.password !== form.confirmPassword)
+const passwordHint = computed(() => {
+  const hints: Record<string, string> = {
+    fr: 'Minimum 8 caractères',
+    en: 'Minimum 8 characters',
+    es: 'Mínimo 8 caracteres',
+    nl: 'Minimaal 8 tekens',
+    de: 'Mindestens 8 Zeichen',
+    ar: '8 أحرف على الأقل',
+  }
+  return hints[locale.value] || hints.fr
+})
+
+function onAddressSelect(details: { address: string; city: string; postalCode: string; country: string }) {
+  form.address = details.address
+  form.city = details.city
+  form.postalCode = details.postalCode
+  form.country = details.country
+}
 
 async function handleRegister() {
   if (passwordMismatch.value) return
+
   const ok = await auth.register({
     email: form.email,
     password: form.password,
@@ -89,6 +174,27 @@ async function handleRegister() {
     lastName: form.lastName,
     phone: form.phone || undefined,
   })
+
+  if (ok && form.address && form.city && form.postalCode) {
+    // Save address automatically
+    try {
+      await $fetch('/api/addresses', {
+        method: 'POST',
+        body: {
+          firstName: form.firstName,
+          lastName: form.lastName,
+          phone: form.phone || undefined,
+          address: form.address,
+          addressLine2: form.addressLine2 || undefined,
+          city: form.city,
+          postalCode: form.postalCode,
+          country: form.country,
+          isDefault: true,
+        },
+      })
+    } catch {}
+  }
+
   if (ok) navigateTo(localePath('/compte'))
 }
 </script>
