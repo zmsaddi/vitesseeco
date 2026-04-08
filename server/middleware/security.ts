@@ -1,0 +1,21 @@
+export default defineEventHandler((event) => {
+  // Security headers
+  setResponseHeaders(event, {
+    'X-Frame-Options': 'DENY',
+    'X-Content-Type-Options': 'nosniff',
+    'X-XSS-Protection': '1; mode=block',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+    'Content-Security-Policy': [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' https://cdn.sanity.io data: blob:",
+      "connect-src 'self' https://*.sanity.io https://*.apicdn.sanity.io wss://*.sanity.io https://www.google.com",
+      "frame-src https://www.google.com https://maps.google.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; '),
+  })
+})

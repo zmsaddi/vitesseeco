@@ -1,4 +1,5 @@
 import { createClient } from '@sanity/client'
+import { rateLimit } from '~/server/utils/rateLimit'
 
 interface CartItemInput {
   productId: string
@@ -20,6 +21,9 @@ interface ValidatedItem {
 }
 
 export default defineEventHandler(async (event) => {
+  // Rate limit: 20 requests per minute per IP
+  rateLimit(event, { maxRequests: 20, windowMs: 60_000 })
+
   const body = await readBody<{ items: CartItemInput[]; promoCode?: string }>(event)
 
   if (!body?.items || !Array.isArray(body.items) || body.items.length === 0) {
@@ -29,6 +33,22 @@ export default defineEventHandler(async (event) => {
   // Limit cart size
   if (body.items.length > 20) {
     throw createError({ statusCode: 400, message: 'Too many items in cart' })
+  }
+
+  // Sanitize inputs — reject anything that's not a clean string/number
+  for (const item of body.items) {
+    if (typeof item.productId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.productId)) {
+      throw createError({ statusCode: 400, message: 'Invalid product ID' })
+    }
+    if (typeof item.sku !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.sku)) {
+      throw createError({ statusCode: 400, message: 'Invalid SKU' })
+    }
+    if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity)) {
+      throw createError({ statusCode: 400, message: 'Invalid quantity' })
+    }
+  }
+  if (body.promoCode && (typeof body.promoCode !== 'string' || body.promoCode.length > 50)) {
+    throw createError({ statusCode: 400, message: 'Invalid promo code' })
   }
 
   const config = useRuntimeConfig()

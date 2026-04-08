@@ -1,13 +1,26 @@
 import { createClient } from '@sanity/client'
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
 
-// Load token from Sanity CLI config
-const sanityConfig = JSON.parse(readFileSync('C:/Users/ZAKARIYA/.config/sanity/config.json', 'utf-8'))
+function getSanityToken() {
+  if (process.env.SANITY_TOKEN) return process.env.SANITY_TOKEN
+  const configPaths = [
+    join(process.env.HOME || process.env.USERPROFILE || '', '.config', 'sanity', 'config.json'),
+    join(process.env.APPDATA || '', 'sanity', 'config.json'),
+  ]
+  for (const p of configPaths) {
+    if (existsSync(p)) {
+      const config = JSON.parse(readFileSync(p, 'utf-8'))
+      if (config.authToken) return config.authToken
+    }
+  }
+  throw new Error('No Sanity token found. Set SANITY_TOKEN env var or run `npx sanity login`')
+}
 
 const client = createClient({
   projectId: '2jvnjf0c',
   dataset: 'production',
-  token: sanityConfig.authToken,
+  token: getSanityToken(),
   apiVersion: '2024-01-01',
   useCdn: false,
 })

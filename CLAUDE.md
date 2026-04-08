@@ -11,7 +11,7 @@
 - **GitHub:** https://github.com/zmsaddi/vitesseeco (user: zmsaddi, logged in via gh CLI)
 - **Vercel:** https://vitesseeco.vercel.app (account: zakariyas-projects-1c97d142)
 - **Sanity:** Project ID: `2jvnjf0c`, Dataset: `production`, Org: `oWtjsSGlJ`
-- **Sanity auth token location:** `C:/Users/ZAKARIYA/.config/sanity/config.json` (field: authToken)
+- **Sanity auth token:** Use `SANITY_TOKEN` env var or Sanity CLI auth
 
 ## CRITICAL RULES (from previous failed attempt)
 1. **DO NOT use Nuxt 4** — IPC connection closed bug on Windows (Node 22+/24+)
@@ -30,7 +30,7 @@
 |---------|--------|---------|
 | GitHub | Logged in | `gh auth status` — user: zmsaddi |
 | Vercel | Logged in | `npx vercel` works |
-| Sanity | Logged in | Token in `C:/Users/ZAKARIYA/.config/sanity/config.json` |
+| Sanity | Logged in | Via Sanity CLI auth (`npx sanity login`) |
 | gh CLI | Installed | `C:/Program Files/GitHub CLI/gh.exe` — add to PATH: `export PATH="/c/Program Files/GitHub CLI:$PATH"` |
 
 ## Brand Identity
