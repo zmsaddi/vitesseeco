@@ -13,7 +13,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
         <!-- Image Gallery -->
         <div class="space-y-4">
-          <div class="card aspect-square bg-dark-tertiary overflow-hidden relative">
+          <div ref="galleryContainer" class="card aspect-square bg-dark-tertiary overflow-hidden relative touch-pan-y">
             <template v-if="allImages.length > 0">
               <img
                 v-for="(img, i) in allImages"
@@ -204,7 +204,14 @@ const selectedColor = ref(0)
 const qty = ref(1)
 const selectedImageIndex = ref(0)
 
+const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
+
+// Touch swipe for gallery
+useSwipe(galleryContainer, {
+  onLeft: () => { if (allImages.value.length > 1) selectedImageIndex.value = (selectedImageIndex.value + 1) % allImages.value.length },
+  onRight: () => { if (allImages.value.length > 1) selectedImageIndex.value = (selectedImageIndex.value - 1 + allImages.value.length) % allImages.value.length },
+})
 
 const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,

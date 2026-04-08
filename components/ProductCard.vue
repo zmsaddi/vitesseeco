@@ -2,8 +2,9 @@
   <div class="card group" :class="listMode ? 'flex' : ''">
     <!-- Image with color slideshow -->
     <div
+      ref="imageContainer"
       :class="listMode ? 'w-48 shrink-0' : 'aspect-[4/3]'"
-      class="bg-dark-tertiary relative overflow-hidden"
+      class="bg-dark-tertiary relative overflow-hidden touch-pan-y"
       @mouseenter="startSlide"
       @mouseleave="stopSlide"
     >
@@ -81,7 +82,14 @@ const props = defineProps<{
 
 const colorIndex = ref(0)
 const activeIndex = ref(0)
+const imageContainer = ref<HTMLElement>()
 let slideInterval: ReturnType<typeof setInterval> | null = null
+
+// Touch swipe support
+useSwipe(imageContainer, {
+  onLeft: () => { if (allImages.value.length > 1) activeIndex.value = (activeIndex.value + 1) % allImages.value.length },
+  onRight: () => { if (allImages.value.length > 1) activeIndex.value = (activeIndex.value - 1 + allImages.value.length) % allImages.value.length },
+})
 
 // Total stock across all variants
 const totalStock = computed(() => {
