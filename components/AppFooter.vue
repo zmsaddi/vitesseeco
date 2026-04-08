@@ -50,10 +50,14 @@
         <div>
           <h3 class="font-display font-semibold text-white mb-4">{{ $t('footer.newsletter') }}</h3>
           <form @submit.prevent class="flex gap-2">
+            <label for="newsletter-email" class="sr-only">{{ $t('footer.newsletter') }}</label>
             <input
+              id="newsletter-email"
+              name="newsletter-email"
               type="email"
               :placeholder="$t('footer.newsletter_placeholder')"
               class="input-field flex-1 text-sm py-2.5"
+              autocomplete="email"
             />
             <button type="submit" class="btn-primary py-2.5 px-4 text-sm">
               {{ $t('footer.newsletter_button') }}

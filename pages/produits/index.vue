@@ -17,24 +17,24 @@
             </h3>
 
             <div>
-              <label class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.all_categories') }}</label>
-              <select v-model="selectedCategory" class="input-field text-sm py-2">
+              <label for="filter-category" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.all_categories') }}</label>
+              <select id="filter-category" name="category" v-model="selectedCategory" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_categories') }}</option>
                 <option v-for="cat in categories" :key="cat._id" :value="cat._id">{{ l(cat.name) }}</option>
               </select>
             </div>
 
             <div>
-              <label class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.tire_size') }}</label>
-              <select v-model="selectedTire" class="input-field text-sm py-2">
+              <label for="filter-tire" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.tire_size') }}</label>
+              <select id="filter-tire" name="tire-size" v-model="selectedTire" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_sizes') }}</option>
                 <option v-for="size in tireSizes" :key="size" :value="size">{{ size }}</option>
               </select>
             </div>
 
             <div>
-              <label class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.range_km') }}</label>
-              <select v-model="selectedRange" class="input-field text-sm py-2">
+              <label for="filter-range" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.range_km') }}</label>
+              <select id="filter-range" name="range" v-model="selectedRange" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_sizes') }}</option>
                 <option value="30-50">30-50 km</option>
                 <option value="50-70">50-70 km</option>
@@ -53,7 +53,8 @@
           <div class="flex items-center justify-between mb-6">
             <p class="text-text-secondary text-sm">{{ $t('products.count', { count: filteredProducts.length }) }}</p>
             <div class="flex items-center gap-4">
-              <select v-model="sortBy" class="input-field text-sm py-2 w-auto">
+              <label for="sort-by" class="sr-only">{{ $t('products.sort') }}</label>
+              <select id="sort-by" name="sort" v-model="sortBy" class="input-field text-sm py-2 w-auto">
                 <option value="sortOrder">{{ $t('products.sort_newest') }}</option>
                 <option value="name">{{ $t('products.sort_name') }}</option>
                 <option value="price_asc">{{ $t('products.sort_price_asc') }}</option>

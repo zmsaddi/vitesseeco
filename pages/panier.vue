@@ -88,9 +88,11 @@
 
             <!-- Promo Code -->
             <div class="border-t border-dark-tertiary pt-4">
-              <label class="text-text-secondary text-sm block mb-2">{{ $t('cart.promo_code') }}</label>
+              <label for="promo-code" class="text-text-secondary text-sm block mb-2">{{ $t('cart.promo_code') }}</label>
               <div class="flex gap-2">
                 <input
+                  id="promo-code"
+                  name="promo-code"
                   v-model="promoInput"
                   type="text"
                   :placeholder="$t('cart.promo_code')"
