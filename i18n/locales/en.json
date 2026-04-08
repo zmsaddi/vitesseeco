@@ -99,6 +99,19 @@
     "remove": "Remove",
     "quantity": "Quantity"
   },
+  "shipping": {
+    "title": "Shipping",
+    "select_method": "Choose your delivery method",
+    "standard": "Standard delivery",
+    "express": "Express delivery",
+    "relay": "Relay point",
+    "free": "Free",
+    "free_above": "Free shipping from {amount}€",
+    "estimated": "Estimated delivery: {days} business days",
+    "zone_fr": "France",
+    "zone_eu": "Europe",
+    "not_available": "Delivery not available for your zone"
+  },
   "checkout": {
     "title": "Checkout",
     "step_shipping": "Shipping",

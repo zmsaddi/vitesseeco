@@ -99,6 +99,19 @@
     "remove": "Entfernen",
     "quantity": "Menge"
   },
+  "shipping": {
+    "title": "Versand",
+    "select_method": "Wählen Sie Ihre Liefermethode",
+    "standard": "Standardlieferung",
+    "express": "Expresslieferung",
+    "relay": "Paketshop",
+    "free": "Kostenlos",
+    "free_above": "Kostenloser Versand ab {amount}€",
+    "estimated": "Voraussichtliche Lieferung: {days} Werktage",
+    "zone_fr": "Frankreich",
+    "zone_eu": "Europa",
+    "not_available": "Lieferung für Ihre Zone nicht verfügbar"
+  },
   "checkout": {
     "title": "Bestellung abschließen",
     "step_shipping": "Versand",

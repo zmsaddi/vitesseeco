@@ -20,6 +20,10 @@ export const useCartStore = defineStore('cart', {
     items: [] as CartItem[],
     promoCode: null as string | null,
     promoDiscount: 0,
+    shippingCode: null as string | null,
+    shippingZone: 'FR',
+    shippingCost: 0,
+    shippingMethod: null as any,
     // Server-validated totals (authoritative)
     serverSubtotal: null as number | null,
     serverTotal: null as number | null,
@@ -38,7 +42,7 @@ export const useCartStore = defineStore('cart', {
     // Use server total if available, otherwise client estimate
     total(): number {
       if (this.serverTotal !== null) return this.serverTotal
-      return Math.max(0, this.subtotal - this.discount)
+      return Math.max(0, this.subtotal - this.discount + this.shippingCost)
     },
 
     isEmpty: (state) => state.items.length === 0,
@@ -113,6 +117,8 @@ export const useCartStore = defineStore('cart', {
               quantity: i.quantity,
             })),
             promoCode: this.promoCode || undefined,
+            shippingCode: this.shippingCode || undefined,
+            zone: this.shippingZone,
           },
         })
 
@@ -140,6 +146,8 @@ export const useCartStore = defineStore('cart', {
         this.serverSubtotal = result.subtotal
         this.serverTotal = result.total
         this.promoDiscount = result.discount
+        this.shippingCost = result.shippingCost || 0
+        this.shippingMethod = result.shippingMethod || null
 
         if (!result.promoValid && this.promoCode) {
           this.promoCode = null
@@ -166,6 +174,12 @@ export const useCartStore = defineStore('cart', {
       this._invalidateServer()
     },
 
+    async selectShipping(code: string, zone = 'FR') {
+      this.shippingCode = code
+      this.shippingZone = zone
+      return this.validateCart()
+    },
+
     _invalidateServer() {
       this.serverSubtotal = null
       this.serverTotal = null
@@ -174,6 +188,6 @@ export const useCartStore = defineStore('cart', {
 
   persist: {
     // Only persist items and promoCode — NOT server-validated totals
-    pick: ['items', 'promoCode'],
+    pick: ['items', 'promoCode', 'shippingCode', 'shippingZone'],
   },
 })

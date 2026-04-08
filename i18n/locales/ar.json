@@ -99,6 +99,19 @@
     "remove": "حذف",
     "quantity": "الكمية"
   },
+  "shipping": {
+    "title": "الشحن",
+    "select_method": "اختر طريقة التوصيل",
+    "standard": "التوصيل العادي",
+    "express": "التوصيل السريع",
+    "relay": "نقطة استلام",
+    "free": "مجاني",
+    "free_above": "شحن مجاني ابتداءً من {amount}€",
+    "estimated": "التوصيل المتوقع: {days} أيام عمل",
+    "zone_fr": "فرنسا",
+    "zone_eu": "أوروبا",
+    "not_available": "التوصيل غير متاح لمنطقتك"
+  },
   "checkout": {
     "title": "إتمام الطلب",
     "step_shipping": "الشحن",

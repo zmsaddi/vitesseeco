@@ -24,6 +24,9 @@ export const deskStructure = (S: StructureBuilder) =>
       S.listItem()
         .title('⭐ Témoignages')
         .child(S.documentTypeList('testimonial').title('Témoignages')),
+      S.listItem()
+        .title('🚚 Livraison')
+        .child(S.documentTypeList('shippingMethod').title('Méthodes de livraison')),
 
       S.divider(),
 

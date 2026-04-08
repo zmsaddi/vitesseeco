@@ -91,9 +91,43 @@
                 <span class="text-accent">{{ $t('cart.discount') }}</span>
                 <span class="text-accent">-{{ cart.discount }}{{ $t('common.currency') }}</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-text-secondary">{{ $t('cart.shipping') }}</span>
-                <span class="text-text-secondary">{{ $t('cart.shipping_calculated') }}</span>
+            </div>
+
+            <!-- Shipping Methods -->
+            <div class="border-t border-dark-tertiary pt-4">
+              <label class="text-text-secondary text-sm block mb-3">{{ $t('shipping.title') }}</label>
+              <div v-if="shippingPending" class="text-text-secondary text-sm">{{ $t('common.loading') }}</div>
+              <div v-else class="space-y-2">
+                <label
+                  v-for="method in shippingMethods"
+                  :key="method.code"
+                  :for="`ship-${method.code}`"
+                  class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
+                  :class="cart.shippingCode === method.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary hover:border-dark-tertiary/80'"
+                >
+                  <input
+                    :id="`ship-${method.code}`"
+                    :name="'shipping'"
+                    type="radio"
+                    :value="method.code"
+                    :checked="cart.shippingCode === method.code"
+                    @change="selectShipping(method.code)"
+                    class="mt-1 accent-accent"
+                  />
+                  <div class="flex-1 min-w-0">
+                    <div class="flex justify-between">
+                      <span class="text-white text-sm font-medium">{{ l(method.name) }}</span>
+                      <span class="text-accent text-sm font-bold">
+                        {{ getShippingPrice(method) === 0 ? $t('shipping.free') : getShippingPrice(method) + $t('common.currency') }}
+                      </span>
+                    </div>
+                    <p class="text-text-secondary text-xs mt-0.5">{{ l(method.description) }}</p>
+                    <p class="text-text-secondary text-xs">{{ $t('shipping.estimated', { days: method.estimatedDays }) }}</p>
+                    <p v-if="method.freeAbove && cart.subtotal < method.freeAbove" class="text-gold text-xs mt-1">
+                      {{ $t('shipping.free_above', { amount: method.freeAbove }) }}
+                    </p>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -113,6 +147,12 @@
                   {{ $t('cart.apply') }}
                 </button>
               </div>
+            </div>
+
+            <!-- Summary line: shipping -->
+            <div v-if="cart.shippingCode" class="flex justify-between text-sm">
+              <span class="text-text-secondary">{{ $t('cart.shipping') }}</span>
+              <span class="text-white font-medium">{{ cart.shippingCost === 0 ? $t('shipping.free') : cart.shippingCost + $t('common.currency') }}</span>
             </div>
 
             <!-- Total -->
@@ -155,16 +195,34 @@ const promoInput = ref('')
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })
 
+// Fetch shipping methods for current zone
+const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping/methods', {
+  query: { zone: cart.shippingZone },
+  key: `shipping-${cart.shippingZone}`,
+})
+const shippingMethods = computed(() => shippingData.value?.methods || [])
+
+function getShippingPrice(method: any) {
+  if (method.freeAbove && cart.subtotal >= method.freeAbove) return 0
+  return method.price || 0
+}
+
+async function selectShipping(code: string) {
+  await cart.selectShipping(code, cart.shippingZone)
+}
+
 async function applyPromo() {
   if (!promoInput.value.trim()) return
   await cart.applyPromoServer(promoInput.value.trim())
 }
 
 async function proceedToCheckout() {
-  // Server validates ALL prices, stock, and promo before allowing checkout
+  if (!cart.shippingCode) {
+    cart.validationError = t('shipping.select_method')
+    return
+  }
   const valid = await cart.validateCart()
   if (valid) {
-    // Will navigate to checkout page in Phase 3
     alert('Cart validated — checkout coming soon!')
   }
 }

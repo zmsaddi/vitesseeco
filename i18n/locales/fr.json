@@ -99,6 +99,19 @@
     "remove": "Supprimer",
     "quantity": "Quantité"
   },
+  "shipping": {
+    "title": "Livraison",
+    "select_method": "Choisissez votre mode de livraison",
+    "standard": "Livraison standard",
+    "express": "Livraison express",
+    "relay": "Point relais",
+    "free": "Gratuit",
+    "free_above": "Livraison gratuite dès {amount}€",
+    "estimated": "Livraison estimée : {days} jours ouvrés",
+    "zone_fr": "France",
+    "zone_eu": "Europe",
+    "not_available": "Livraison non disponible pour votre zone"
+  },
   "checkout": {
     "title": "Finaliser la commande",
     "step_shipping": "Livraison",

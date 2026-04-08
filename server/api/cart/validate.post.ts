@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   // Rate limit: 20 requests per minute per IP
   rateLimit(event, { maxRequests: 20, windowMs: 60_000 })
 
-  const body = await readBody<{ items: CartItemInput[]; promoCode?: string }>(event)
+  const body = await readBody<{ items: CartItemInput[]; promoCode?: string; shippingCode?: string; zone?: string }>(event)
 
   if (!body?.items || !Array.isArray(body.items) || body.items.length === 0) {
     throw createError({ statusCode: 400, message: 'Cart is empty' })
@@ -221,12 +221,38 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const total = Math.max(0, subtotal - discount)
+  // Shipping calculation
+  let shippingCost = 0
+  let shippingMethod = null as any
+  const zone = body.zone || 'FR'
+
+  if (body.shippingCode) {
+    const methods = await client.fetch(
+      `*[_type == "shippingMethod" && code == $code && isActive == true && $zone in zones][0] {
+        code, name, description, estimatedDays, price, freeAbove
+      }`,
+      { code: body.shippingCode, zone }
+    )
+
+    if (methods) {
+      shippingMethod = methods
+      // Free shipping if subtotal >= freeAbove threshold
+      if (methods.freeAbove && subtotal >= methods.freeAbove) {
+        shippingCost = 0
+      } else {
+        shippingCost = methods.price || 0
+      }
+    }
+  }
+
+  const total = Math.max(0, subtotal - discount + shippingCost)
 
   return {
     items: validatedItems,
     subtotal,
     discount,
+    shippingCost,
+    shippingMethod,
     total,
     promoValid,
     promoMessage,

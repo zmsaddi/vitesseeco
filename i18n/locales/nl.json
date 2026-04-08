@@ -99,6 +99,19 @@
     "remove": "Verwijderen",
     "quantity": "Aantal"
   },
+  "shipping": {
+    "title": "Verzending",
+    "select_method": "Kies je bezorgmethode",
+    "standard": "Standaard levering",
+    "express": "Expreslevering",
+    "relay": "Afhaalpunt",
+    "free": "Gratis",
+    "free_above": "Gratis verzending vanaf {amount}€",
+    "estimated": "Geschatte levering: {days} werkdagen",
+    "zone_fr": "Frankrijk",
+    "zone_eu": "Europa",
+    "not_available": "Levering niet beschikbaar voor jouw zone"
+  },
   "checkout": {
     "title": "Bestelling afronden",
     "step_shipping": "Verzending",

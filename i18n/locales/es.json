@@ -99,6 +99,19 @@
     "remove": "Eliminar",
     "quantity": "Cantidad"
   },
+  "shipping": {
+    "title": "Envío",
+    "select_method": "Elige tu método de entrega",
+    "standard": "Entrega estándar",
+    "express": "Entrega exprés",
+    "relay": "Punto de recogida",
+    "free": "Gratis",
+    "free_above": "Envío gratuito a partir de {amount}€",
+    "estimated": "Entrega estimada: {days} días laborables",
+    "zone_fr": "Francia",
+    "zone_eu": "Europa",
+    "not_available": "Entrega no disponible para tu zona"
+  },
   "checkout": {
     "title": "Finalizar pedido",
     "step_shipping": "Envío",
