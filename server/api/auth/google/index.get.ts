@@ -1,8 +1,9 @@
 export default defineEventHandler((event) => {
   const config = useRuntimeConfig()
-  const clientId = process.env.GOOGLE_CLIENT_ID || config.googleClientId
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NUXT_GOOGLE_CLIENT_ID || config.googleClientId
 
-  // Determine redirect URI based on request host
+  if (!clientId) throw createError({ statusCode: 500, message: 'Google OAuth not configured' })
+
   const host = getRequestHeader(event, 'host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const redirectUri = `${protocol}://${host}/api/auth/google/callback`

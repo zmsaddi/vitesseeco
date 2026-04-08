@@ -12,8 +12,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const config = useRuntimeConfig()
-  const clientId = process.env.GOOGLE_CLIENT_ID || config.googleClientId
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || config.googleClientSecret
+  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NUXT_GOOGLE_CLIENT_ID || config.googleClientId
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || process.env.NUXT_GOOGLE_CLIENT_SECRET || config.googleClientSecret
 
   const host = getRequestHeader(event, 'host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
