@@ -32,12 +32,9 @@
             :key="`${item.productId}-${item.sku}`"
             class="card p-4 md:p-6 flex gap-4 md:gap-6"
           >
-            <!-- Image placeholder -->
-            <NuxtLink :to="localePath(`/produits/${item.slug}`)" class="w-20 h-20 md:w-28 md:h-28 rounded-lg bg-dark-tertiary flex items-center justify-center shrink-0">
-              <span
-                class="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-white/20"
-                :style="{ backgroundColor: item.colorHex }"
-              />
+            <NuxtLink :to="localePath(`/produits/${item.slug}`)" class="w-20 h-20 md:w-28 md:h-28 rounded-lg bg-dark-tertiary shrink-0 overflow-hidden flex items-center justify-center">
+              <img v-if="item.image" :src="item.image" :alt="l(item.name)" class="w-full h-full object-cover" />
+              <span v-else class="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-white/20" :style="{ backgroundColor: item.colorHex }" />
             </NuxtLink>
 
             <!-- Info -->

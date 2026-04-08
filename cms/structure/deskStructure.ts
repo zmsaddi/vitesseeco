@@ -33,6 +33,13 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem()
                 .title('📋 كل الطلبات')
                 .child(S.documentTypeList('order').title('كل الطلبات').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.divider(),
+              S.listItem()
+                .title('🔴 رسائل جديدة')
+                .child(S.documentList().title('غير مقروءة').filter('_type == "contactMessage" && isRead != true').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.listItem()
+                .title('✉️ كل الرسائل')
+                .child(S.documentTypeList('contactMessage').title('الرسائل').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
             ])
         ),
 

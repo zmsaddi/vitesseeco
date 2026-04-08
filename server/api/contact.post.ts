@@ -1,3 +1,4 @@
+import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 
@@ -27,14 +28,27 @@ export default defineEventHandler(async (event) => {
   const valid = await verifyTurnstile(body.turnstileToken)
   if (!valid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
-  // For now, store in memory / log. Will send via Resend in Phase 3
-  console.log('[CONTACT FORM]', {
-    name: body.name,
-    email: body.email,
-    subject: body.subject,
-    message: body.message.substring(0, 100) + '...',
-    date: new Date().toISOString(),
-  })
+  // Save to Sanity (visible in control panel)
+  const sanityToken = process.env.SANITY_TOKEN
+  if (sanityToken) {
+    const client = createClient({
+      projectId: '2jvnjf0c',
+      dataset: 'production',
+      token: sanityToken,
+      apiVersion: '2024-01-01',
+      useCdn: false,
+    })
+
+    await client.create({
+      _type: 'contactMessage',
+      name: body.name.trim(),
+      email: body.email.trim().toLowerCase(),
+      subject: body.subject.trim(),
+      message: body.message.trim(),
+      isRead: false,
+      createdAt: new Date().toISOString(),
+    })
+  }
 
   return { success: true }
 })

@@ -308,6 +308,10 @@ watch(selectedColor, () => { selectedImageIndex.value = 0 })
 function addToCart() {
   if (!product.value) return
   const variant = product.value.variants?.[selectedColor.value]
+  // Get first image URL from selected variant
+  const variantImage = variant?.images?.[0]
+  const imageUrl = variantImage?.asset ? useSanityImageUrl(variantImage, 150, 150) : ''
+
   cart.addItem({
     productId: product.value._id,
     name: product.value.name,
@@ -316,7 +320,7 @@ function addToCart() {
     colorHex: variant?.colorHex || '#000',
     colorName: variant?.colorName || { fr: '' },
     sku: variant?.sku || product.value._id,
-    image: product.value.mainImage?.asset ? product.value._id : undefined,
+    image: imageUrl,
   }, qty.value)
   cartOpen.value = true
   qty.value = 1

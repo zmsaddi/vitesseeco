@@ -47,12 +47,9 @@
               :key="`${item.productId}-${item.sku}`"
               class="flex gap-4 bg-dark-secondary rounded-lg p-3"
             >
-              <!-- Color dot as mini image placeholder -->
-              <div class="w-16 h-16 rounded-lg bg-dark-tertiary flex items-center justify-center shrink-0">
-                <span
-                  class="w-8 h-8 rounded-full border-2 border-white/20"
-                  :style="{ backgroundColor: item.colorHex }"
-                />
+              <div class="w-16 h-16 rounded-lg bg-dark-tertiary flex items-center justify-center shrink-0 overflow-hidden">
+                <img v-if="item.image" :src="item.image" :alt="l(item.name)" class="w-full h-full object-cover" />
+                <span v-else class="w-8 h-8 rounded-full border-2 border-white/20" :style="{ backgroundColor: item.colorHex }" />
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="text-white text-sm font-medium truncate">{{ l(item.name) }}</h3>

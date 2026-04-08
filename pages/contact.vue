@@ -28,7 +28,7 @@
               <Icon name="ph:envelope" class="w-6 h-6 text-accent" />
             </div>
             <div>
-              <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.email') }}</h3>
+              <h3 class="font-display font-semibold text-white mb-1">Email</h3>
               <a :href="`mailto:${contactEmail}`" class="text-text-secondary hover:text-accent transition-colors text-sm">
                 {{ contactEmail }}
               </a>
