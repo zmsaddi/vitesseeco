@@ -5,28 +5,30 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const input = query.input as string
-  const countries = (query.countries as string || 'fr').split(',').map(c => c.trim())
 
   if (!input || input.length < 3) {
     return { predictions: [] }
   }
 
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || useRuntimeConfig().public.googlePlacesApiKey
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.NUXT_PUBLIC_GOOGLE_PLACES_API_KEY
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
-  const components = countries.map(c => `country:${c}`).join('|')
+  try {
+    const res = await $fetch<any>(
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json', {
+        query: {
+          input,
+          key: apiKey,
+          types: 'address',
+          components: 'country:fr|country:be|country:lu|country:de|country:nl',
+          language: 'fr',
+        },
+      }
+    )
 
-  const res = await $fetch<any>(
-    `https://maps.googleapis.com/maps/api/place/autocomplete/json`, {
-      query: {
-        input,
-        key: apiKey,
-        types: 'address',
-        components,
-        language: 'fr',
-      },
-    }
-  )
-
-  return { predictions: res.predictions || [] }
+    return { predictions: res.predictions || [] }
+  } catch (e: any) {
+    console.error('Places API error:', e.message)
+    return { predictions: [] }
+  }
 })

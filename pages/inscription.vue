@@ -205,7 +205,7 @@ function onAddressInput() {
   addressTimer = setTimeout(async () => {
     try {
       const data = await $fetch<any>('/api/places/autocomplete', {
-        query: { input: form.address, countries: 'fr,be,lu,de,nl,es' },
+        query: { input: form.address },
       })
       addressSuggestions.value = data.predictions || []
     } catch {
