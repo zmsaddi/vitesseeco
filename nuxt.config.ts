@@ -76,6 +76,7 @@ export default defineNuxtConfig({
       sanityDataset: 'production',
       stripePublishableKey: '',
       siteUrl: 'https://vitesse-eco.fr',
+      googlePlacesApiKey: '',
     },
   },
 

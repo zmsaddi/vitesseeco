@@ -120,7 +120,12 @@
             </div>
             <div>
               <label for="addr-address" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.address') }}</label>
-              <input id="addr-address" name="address" v-model="addressForm.address" type="text" class="input-field" required autocomplete="street-address" />
+              <AddressAutocomplete
+                v-model="addressForm.address"
+                input-id="addr-address"
+                :placeholder="$t('checkout.address')"
+                @select="onAddressSelect"
+              />
             </div>
             <div>
               <label for="addr-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
@@ -238,6 +243,13 @@ const addressForm = reactive({
   country: 'FR',
   isDefault: false,
 })
+
+function onAddressSelect(details: { address: string; city: string; postalCode: string; country: string }) {
+  addressForm.address = details.address
+  addressForm.city = details.city
+  addressForm.postalCode = details.postalCode
+  addressForm.country = details.country
+}
 
 async function fetchAddresses() {
   try {
