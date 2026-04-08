@@ -118,26 +118,60 @@
               <label for="addr-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
               <input id="addr-phone" name="phone" v-model="addressForm.phone" type="tel" class="input-field" />
             </div>
+            <!-- Country FIRST -->
+            <div>
+              <label for="addr-country" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.country') }}</label>
+              <select id="addr-country" name="country" v-model="addressForm.country" class="input-field">
+                <option value="FR">🇫🇷 France</option>
+                <option value="BE">🇧🇪 Belgique</option>
+                <option value="LU">🇱🇺 Luxembourg</option>
+                <option value="DE">🇩🇪 Deutschland</option>
+                <option value="NL">🇳🇱 Nederland</option>
+                <option value="ES">🇪🇸 España</option>
+              </select>
+            </div>
+            <!-- Address with inline autocomplete -->
             <div>
               <label for="addr-address" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.address') }}</label>
-              <ClientOnly>
-                <AddressAutocomplete
+              <div class="relative">
+                <input
+                  id="addr-address"
+                  ref="addrInput"
+                  name="address"
+                  type="text"
                   v-model="addressForm.address"
-                  input-id="addr-address"
+                  @input="onAddrInput"
+                  @focus="addrFocused = true"
+                  class="input-field"
                   :placeholder="$t('checkout.address')"
-                  :countries="[addressForm.country.toLowerCase()]"
-                  @select="onAddressSelect"
+                  required
+                  autocomplete="off"
                 />
-                <template #fallback>
-                  <input id="addr-address" name="address" v-model="addressForm.address" type="text" class="input-field" :placeholder="$t('checkout.address')" />
-                </template>
-              </ClientOnly>
+                <div v-if="addrLoading" class="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" />
+                </div>
+                <div
+                  v-if="addrFocused && addrSuggestions.length > 0"
+                  class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto"
+                >
+                  <button
+                    v-for="s in addrSuggestions"
+                    :key="s.place_id"
+                    type="button"
+                    @mousedown.prevent="pickAddr(s)"
+                    class="w-full text-left px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
+                  >
+                    <Icon name="ph:map-pin" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" />
+                    <span>{{ s.description }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
             <div>
               <label for="addr-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
               <input id="addr-line2" name="addressLine2" v-model="addressForm.addressLine2" type="text" class="input-field" :placeholder="$t('checkout.address_line2_placeholder')" />
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="addr-postal" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.postal_code') }}</label>
                 <input id="addr-postal" name="postalCode" v-model="addressForm.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
@@ -145,17 +179,6 @@
               <div>
                 <label for="addr-city" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.city') }}</label>
                 <input id="addr-city" name="city" v-model="addressForm.city" type="text" class="input-field" required autocomplete="address-level2" />
-              </div>
-              <div>
-                <label for="addr-country" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.country') }}</label>
-                <select id="addr-country" name="country" v-model="addressForm.country" class="input-field">
-                  <option value="FR">France</option>
-                  <option value="BE">Belgique</option>
-                  <option value="LU">Luxembourg</option>
-                  <option value="DE">Deutschland</option>
-                  <option value="NL">Nederland</option>
-                  <option value="ES">España</option>
-                </select>
               </div>
             </div>
             <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
@@ -274,12 +297,63 @@ const addressForm = reactive({
   isDefault: false,
 })
 
-function onAddressSelect(details: { address: string; city: string; postalCode: string; country: string }) {
-  addressForm.address = details.address
-  addressForm.city = details.city
-  addressForm.postalCode = details.postalCode
-  addressForm.country = details.country
+// Inline address autocomplete
+const addrInput = ref<HTMLInputElement>()
+const addrSuggestions = ref<any[]>([])
+const addrFocused = ref(false)
+const addrLoading = ref(false)
+let addrTimer: ReturnType<typeof setTimeout>
+
+watch(() => addressForm.country, () => {
+  addressForm.address = ''
+  addressForm.city = ''
+  addressForm.postalCode = ''
+  addrSuggestions.value = []
+})
+
+function onAddrInput() {
+  clearTimeout(addrTimer)
+  if (addressForm.address.length < 3) {
+    addrSuggestions.value = []
+    addrLoading.value = false
+    return
+  }
+  addrLoading.value = true
+  addrTimer = setTimeout(async () => {
+    try {
+      const data = await $fetch<any>('/api/places/autocomplete', {
+        query: { input: addressForm.address, country: addressForm.country.toLowerCase() },
+      })
+      addrSuggestions.value = data.predictions || []
+    } catch {
+      addrSuggestions.value = []
+    } finally {
+      addrLoading.value = false
+    }
+  }, 400)
 }
+
+async function pickAddr(s: any) {
+  addrFocused.value = false
+  addrSuggestions.value = []
+  addressForm.address = s.structured_formatting?.main_text || s.description
+  try {
+    const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
+    if (data.address) {
+      addressForm.address = data.address
+      addressForm.city = data.city || ''
+      addressForm.postalCode = data.postalCode || ''
+    }
+  } catch {}
+}
+
+function onAddrClickOutside(e: MouseEvent) {
+  if (addrInput.value && !addrInput.value.parentElement?.contains(e.target as Node)) {
+    addrFocused.value = false
+  }
+}
+onMounted(() => document.addEventListener('click', onAddrClickOutside))
+onUnmounted(() => document.removeEventListener('click', onAddrClickOutside))
 
 async function fetchAddresses() {
   try {
