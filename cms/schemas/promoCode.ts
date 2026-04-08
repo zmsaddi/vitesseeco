@@ -2,27 +2,27 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'promoCode',
-  title: 'Code promo',
+  title: 'كود خصم',
   type: 'document',
   icon: () => '🎟️',
   fields: [
-    { name: 'code', title: 'Code', type: 'string', description: 'Ex: SUMMER20' },
+    { name: 'code', title: 'الكود', type: 'string', description: 'مثال: SUMMER20' },
     {
       name: 'discountType',
-      title: 'Type de remise',
+      title: 'نوع الخصم',
       type: 'string',
-      options: { list: [{ title: 'Pourcentage (%)', value: 'percentage' }, { title: 'Montant fixe (€)', value: 'fixed' }] },
+      options: { list: [{ title: 'نسبة مئوية (%)', value: 'percentage' }, { title: 'مبلغ ثابت (€)', value: 'fixed' }] },
     },
-    { name: 'discountValue', title: 'Valeur de la remise', type: 'number', description: 'Ex: 20 pour 20% ou 50 pour 50€' },
-    { name: 'minOrderAmount', title: 'Montant minimum de commande (€)', type: 'number' },
-    { name: 'maxUses', title: 'Nombre max d\'utilisations', type: 'number' },
-    { name: 'currentUses', title: 'Utilisations actuelles', type: 'number', initialValue: 0, readOnly: true },
-    { name: 'validFrom', title: 'Valide à partir de', type: 'datetime' },
-    { name: 'validUntil', title: 'Valide jusqu\'à', type: 'datetime' },
-    { name: 'isActive', title: 'Actif', type: 'boolean', initialValue: true },
+    { name: 'discountValue', title: 'قيمة الخصم', type: 'number', description: 'مثال: 20 لـ 20% أو 50 لـ 50€' },
+    { name: 'minOrderAmount', title: 'الحد الأدنى للطلب (€)', type: 'number' },
+    { name: 'maxUses', title: 'الحد الأقصى للاستخدامات', type: 'number' },
+    { name: 'currentUses', title: 'الاستخدامات الحالية', type: 'number', initialValue: 0, readOnly: true },
+    { name: 'validFrom', title: 'صالح من', type: 'datetime' },
+    { name: 'validUntil', title: 'صالح حتى', type: 'datetime' },
+    { name: 'isActive', title: 'نشط', type: 'boolean', initialValue: true },
     {
       name: 'applicableProducts',
-      title: 'Produits concernés (vide = tous)',
+      title: 'المنتجات المعنية (فارغ = الكل)',
       type: 'array',
       of: [{ type: 'reference', to: [{ type: 'product' }] }],
     },
@@ -31,7 +31,7 @@ export default defineType({
     select: { title: 'code', type: 'discountType', value: 'discountValue', active: 'isActive' },
     prepare({ title, type, value, active }) {
       const discount = type === 'percentage' ? `${value}%` : `${value}€`
-      return { title: title || 'Code', subtitle: `${discount} ${active ? '✅ Actif' : '❌ Inactif'}` }
+      return { title: title || 'كود', subtitle: `${discount} ${active ? '✅ نشط' : '❌ غير نشط'}` }
     },
   },
 })

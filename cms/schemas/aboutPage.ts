@@ -2,28 +2,28 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'aboutPage',
-  title: 'Page À Propos',
+  title: 'صفحة من نحن',
   type: 'document',
   icon: () => 'ℹ️',
   fields: [
-    { name: 'title', title: 'Titre', type: 'localizedString' },
-    { name: 'subtitle', title: 'Sous-titre', type: 'localizedString' },
-    { name: 'story', title: 'Notre histoire', type: 'localizedText' },
-    { name: 'image', title: 'Image', type: 'image', options: { hotspot: true } },
+    { name: 'title', title: 'العنوان', type: 'localizedString' },
+    { name: 'subtitle', title: 'العنوان الفرعي', type: 'localizedString' },
+    { name: 'story', title: 'قصتنا', type: 'localizedText' },
+    { name: 'image', title: 'الصورة', type: 'image', options: { hotspot: true } },
     {
       name: 'values',
-      title: 'Nos engagements',
+      title: 'التزاماتنا',
       type: 'array',
       of: [{
         type: 'object',
         fields: [
-          { name: 'icon', title: 'Icône (lucide)', type: 'string' },
-          { name: 'title', title: 'Titre', type: 'localizedString' },
-          { name: 'description', title: 'Description', type: 'localizedString' },
+          { name: 'icon', title: 'أيقونة (lucide)', type: 'string' },
+          { name: 'title', title: 'العنوان', type: 'localizedString' },
+          { name: 'description', title: 'الوصف', type: 'localizedString' },
         ],
       }],
     },
     { name: 'seo', title: 'SEO', type: 'seoFields' },
   ],
-  preview: { prepare: () => ({ title: 'Page À Propos' }) },
+  preview: { prepare: () => ({ title: 'صفحة من نحن' }) },
 })

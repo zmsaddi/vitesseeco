@@ -2,13 +2,13 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'legalPages',
-  title: 'Pages Légales',
+  title: 'الصفحات القانونية',
   type: 'document',
   icon: () => '⚖️',
   fields: [
-    { name: 'mentionsLegales', title: 'Mentions Légales', type: 'localizedText' },
-    { name: 'politiqueConfidentialite', title: 'Politique de Confidentialité', type: 'localizedText' },
-    { name: 'cgv', title: 'Conditions Générales de Vente', type: 'localizedText' },
+    { name: 'mentionsLegales', title: 'الإشعارات القانونية', type: 'localizedText' },
+    { name: 'politiqueConfidentialite', title: 'سياسة الخصوصية', type: 'localizedText' },
+    { name: 'cgv', title: 'الشروط العامة للبيع', type: 'localizedText' },
   ],
-  preview: { prepare: () => ({ title: 'Pages Légales' }) },
+  preview: { prepare: () => ({ title: 'الصفحات القانونية' }) },
 })

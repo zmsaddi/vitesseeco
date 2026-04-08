@@ -2,12 +2,14 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'localizedText',
-  title: 'Texte long traduit',
+  title: 'نص طويل مترجم',
   type: 'object',
   fields: [
-    { name: 'fr', title: '🇫🇷 Français', type: 'text', rows: 4 },
-    { name: 'es', title: '🇪🇸 Español', type: 'text', rows: 4 },
-    { name: 'nl', title: '🇳🇱 Nederlands', type: 'text', rows: 4 },
-    { name: 'de', title: '🇩🇪 Deutsch', type: 'text', rows: 4 },
+    { name: 'fr', title: '🇫🇷 الفرنسية', type: 'text', rows: 4 },
+    { name: 'en', title: '🇬🇧 الإنجليزية', type: 'text', rows: 4 },
+    { name: 'es', title: '🇪🇸 الإسبانية', type: 'text', rows: 4 },
+    { name: 'nl', title: '🇳🇱 الهولندية', type: 'text', rows: 4 },
+    { name: 'de', title: '🇩🇪 الألمانية', type: 'text', rows: 4 },
+    { name: 'ar', title: '🇸🇦 العربية', type: 'text', rows: 4 },
   ],
 })

@@ -2,80 +2,80 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'product',
-  title: 'Produit',
+  title: 'منتج',
   type: 'document',
   icon: () => '🚲',
   groups: [
-    { name: 'general', title: 'Général', default: true },
-    { name: 'media', title: 'Photos' },
-    { name: 'pricing', title: 'Prix & Stock' },
-    { name: 'specs', title: 'Fiche Technique' },
-    { name: 'variants', title: 'Couleurs' },
+    { name: 'general', title: 'عام', default: true },
+    { name: 'media', title: 'الصور' },
+    { name: 'pricing', title: 'السعر والمخزون' },
+    { name: 'specs', title: 'المواصفات التقنية' },
+    { name: 'variants', title: 'الألوان' },
     { name: 'seo', title: 'SEO' },
   ],
   fields: [
-    // === GENERAL ===
-    { name: 'name', title: 'Nom du modèle', type: 'localizedString', group: 'general' },
+    // === عام ===
+    { name: 'name', title: 'اسم الموديل', type: 'localizedString', group: 'general' },
     {
       name: 'slug',
-      title: 'URL Slug',
+      title: 'رابط URL',
       type: 'slug',
       options: { source: 'name.fr', maxLength: 96 },
       group: 'general',
     },
-    { name: 'brand', title: 'Marque', type: 'reference', to: [{ type: 'brand' }], group: 'general' },
-    { name: 'category', title: 'Catégorie', type: 'reference', to: [{ type: 'category' }], group: 'general' },
-    { name: 'shortDescription', title: 'Description courte', type: 'localizedString', group: 'general' },
-    { name: 'description', title: 'Description complète', type: 'localizedText', group: 'general' },
+    { name: 'brand', title: 'العلامة التجارية', type: 'reference', to: [{ type: 'brand' }], group: 'general' },
+    { name: 'category', title: 'الفئة', type: 'reference', to: [{ type: 'category' }], group: 'general' },
+    { name: 'shortDescription', title: 'وصف مختصر', type: 'localizedString', group: 'general' },
+    { name: 'description', title: 'وصف كامل', type: 'localizedText', group: 'general' },
 
-    // === MEDIA ===
-    { name: 'mainImage', title: 'Image principale', type: 'image', options: { hotspot: true }, group: 'media' },
+    // === الصور ===
+    { name: 'mainImage', title: 'الصورة الرئيسية', type: 'image', options: { hotspot: true }, group: 'media' },
     {
       name: 'gallery',
-      title: 'Galerie photos',
+      title: 'معرض الصور',
       type: 'array',
       of: [{ type: 'image', options: { hotspot: true } }],
       group: 'media',
     },
 
-    // === PRICING ===
-    { name: 'price', title: 'Prix (€)', type: 'number', group: 'pricing' },
-    { name: 'compareAtPrice', title: 'Ancien prix barré (€)', type: 'number', group: 'pricing', description: 'Laisser vide si pas en promotion' },
-    { name: 'isOnSale', title: 'En promotion', type: 'boolean', initialValue: false, group: 'pricing' },
-    { name: 'isAvailable', title: 'Disponible à la vente', type: 'boolean', initialValue: true, group: 'pricing' },
-    { name: 'isFeatured', title: 'Mis en avant (page d\'accueil)', type: 'boolean', initialValue: false, group: 'pricing' },
-    { name: 'isNew', title: 'Nouveau produit', type: 'boolean', initialValue: false, group: 'pricing' },
-    { name: 'sortOrder', title: 'Ordre d\'affichage', type: 'number', initialValue: 0, group: 'pricing' },
+    // === السعر ===
+    { name: 'price', title: 'السعر (€)', type: 'number', group: 'pricing' },
+    { name: 'compareAtPrice', title: 'السعر القديم المشطوب (€)', type: 'number', group: 'pricing', description: 'اتركه فارغاً إذا لم يكن في تخفيض' },
+    { name: 'isOnSale', title: 'في التخفيض', type: 'boolean', initialValue: false, group: 'pricing' },
+    { name: 'isAvailable', title: 'متاح للبيع', type: 'boolean', initialValue: true, group: 'pricing' },
+    { name: 'isFeatured', title: 'مميز (الصفحة الرئيسية)', type: 'boolean', initialValue: false, group: 'pricing' },
+    { name: 'isNew', title: 'منتج جديد', type: 'boolean', initialValue: false, group: 'pricing' },
+    { name: 'sortOrder', title: 'ترتيب العرض', type: 'number', initialValue: 0, group: 'pricing' },
 
-    // === SPECS ===
+    // === المواصفات ===
     {
       name: 'specifications',
-      title: 'Fiche technique',
+      title: 'المواصفات التقنية',
       type: 'object',
       group: 'specs',
       fields: [
-        { name: 'motor', title: 'Moteur', type: 'string', description: 'Ex: 250W' },
-        { name: 'battery', title: 'Batterie', type: 'string', description: 'Ex: 48V 15.6AH' },
-        { name: 'tireSize', title: 'Taille des pneus', type: 'string', description: 'Ex: 20" x 4.0"' },
-        { name: 'maxLoad', title: 'Charge max (kg)', type: 'number' },
-        { name: 'range', title: 'Autonomie', type: 'string', description: 'Ex: 40-50 km' },
-        { name: 'brakeType', title: 'Type de freins', type: 'string' },
-        { name: 'weight', title: 'Poids net (kg)', type: 'number' },
-        { name: 'grossWeight', title: 'Poids brut (kg)', type: 'number' },
-        { name: 'dimensions', title: 'Dimensions (debout)', type: 'string' },
-        { name: 'packingSize', title: 'Dimensions (emballé)', type: 'string' },
-        { name: 'maxSpeed', title: 'Vitesse max (km/h)', type: 'number' },
-        { name: 'suspension', title: 'Suspension', type: 'string' },
-        { name: 'frame', title: 'Cadre', type: 'string' },
-        { name: 'chargeTime', title: 'Temps de charge (h)', type: 'string' },
-        { name: 'gears', title: 'Vitesses', type: 'string' },
+        { name: 'motor', title: 'المحرك', type: 'string', description: 'مثال: 250W' },
+        { name: 'battery', title: 'البطارية', type: 'string', description: 'مثال: 48V 15.6AH' },
+        { name: 'tireSize', title: 'مقاس الإطارات', type: 'string', description: 'مثال: 20" x 4.0"' },
+        { name: 'maxLoad', title: 'الحمولة القصوى (كغ)', type: 'number' },
+        { name: 'range', title: 'المدى', type: 'string', description: 'مثال: 40-50 كم' },
+        { name: 'brakeType', title: 'نوع الفرامل', type: 'string' },
+        { name: 'weight', title: 'الوزن الصافي (كغ)', type: 'number' },
+        { name: 'grossWeight', title: 'الوزن الإجمالي (كغ)', type: 'number' },
+        { name: 'dimensions', title: 'الأبعاد (مفتوح)', type: 'string' },
+        { name: 'packingSize', title: 'الأبعاد (مغلف)', type: 'string' },
+        { name: 'maxSpeed', title: 'السرعة القصوى (كم/س)', type: 'number' },
+        { name: 'suspension', title: 'نظام التعليق', type: 'string' },
+        { name: 'frame', title: 'الإطار', type: 'string' },
+        { name: 'chargeTime', title: 'وقت الشحن (ساعة)', type: 'string' },
+        { name: 'gears', title: 'السرعات', type: 'string' },
       ],
     },
 
-    // === VARIANTS ===
+    // === الألوان ===
     {
       name: 'variants',
-      title: 'Variantes couleur',
+      title: 'متغيرات اللون',
       type: 'array',
       of: [{ type: 'colorVariant' }],
       group: 'variants',
@@ -85,7 +85,7 @@ export default defineType({
     { name: 'seo', title: 'SEO', type: 'seoFields', group: 'seo' },
     {
       name: 'relatedProducts',
-      title: 'Produits associés',
+      title: 'منتجات مرتبطة',
       type: 'array',
       of: [{ type: 'reference', to: [{ type: 'product' }] }],
       group: 'general',
@@ -95,8 +95,8 @@ export default defineType({
     select: { title: 'name.fr', media: 'mainImage', price: 'price', available: 'isAvailable' },
     prepare({ title, media, price, available }) {
       return {
-        title: title || 'Sans nom',
-        subtitle: `${price ? price + ' €' : 'Prix non défini'} ${available === false ? '— INDISPONIBLE' : ''}`,
+        title: title || 'بدون اسم',
+        subtitle: `${price ? price + ' €' : 'السعر غير محدد'} ${available === false ? '— غير متاح' : ''}`,
         media,
       }
     },

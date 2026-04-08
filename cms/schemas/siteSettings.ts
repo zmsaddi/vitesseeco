@@ -2,37 +2,37 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'siteSettings',
-  title: 'Paramètres du site',
+  title: 'إعدادات الموقع',
   type: 'document',
   icon: () => '⚙️',
   fields: [
-    { name: 'logo', title: 'Logo', type: 'image' },
-    { name: 'siteName', title: 'Nom du site', type: 'string', initialValue: 'Vitesse Eco' },
-    { name: 'tagline', title: 'Slogan', type: 'localizedString' },
+    { name: 'logo', title: 'الشعار', type: 'image' },
+    { name: 'siteName', title: 'اسم الموقع', type: 'string', initialValue: 'Vitesse Eco' },
+    { name: 'tagline', title: 'الشعار النصي', type: 'localizedString' },
     {
       name: 'contactInfo',
-      title: 'Informations de contact',
+      title: 'معلومات الاتصال',
       type: 'object',
       fields: [
-        { name: 'email', title: 'Email', type: 'string' },
-        { name: 'phone', title: 'Téléphone', type: 'string' },
-        { name: 'address', title: 'Adresse', type: 'text', rows: 2 },
-        { name: 'hours', title: 'Horaires', type: 'text', rows: 2 },
+        { name: 'email', title: 'البريد الإلكتروني', type: 'string' },
+        { name: 'phone', title: 'الهاتف', type: 'string' },
+        { name: 'address', title: 'العنوان', type: 'text', rows: 2 },
+        { name: 'hours', title: 'ساعات العمل', type: 'text', rows: 2 },
       ],
     },
     {
       name: 'socialLinks',
-      title: 'Réseaux sociaux',
+      title: 'شبكات التواصل الاجتماعي',
       type: 'object',
       fields: [
-        { name: 'instagram', title: 'Instagram URL', type: 'url' },
-        { name: 'facebook', title: 'Facebook URL', type: 'url' },
-        { name: 'tiktok', title: 'TikTok URL', type: 'url' },
+        { name: 'instagram', title: 'رابط Instagram', type: 'url' },
+        { name: 'facebook', title: 'رابط Facebook', type: 'url' },
+        { name: 'tiktok', title: 'رابط TikTok', type: 'url' },
       ],
     },
-    { name: 'footerText', title: 'Texte du pied de page', type: 'localizedString' },
+    { name: 'footerText', title: 'نص أسفل الصفحة', type: 'localizedString' },
   ],
   preview: {
-    prepare: () => ({ title: 'Paramètres du site' }),
+    prepare: () => ({ title: 'إعدادات الموقع' }),
   },
 })

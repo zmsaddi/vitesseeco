@@ -5,8 +5,8 @@ export default defineType({
   title: 'SEO',
   type: 'object',
   fields: [
-    { name: 'title', title: 'Titre SEO', type: 'string', description: 'Max 60 caractères' },
-    { name: 'description', title: 'Description SEO', type: 'text', rows: 3, description: 'Max 160 caractères' },
-    { name: 'ogImage', title: 'Image partage (OG)', type: 'image' },
+    { name: 'title', title: 'عنوان SEO', type: 'string', description: 'الحد الأقصى 60 حرف' },
+    { name: 'description', title: 'وصف SEO', type: 'text', rows: 3, description: 'الحد الأقصى 160 حرف' },
+    { name: 'ogImage', title: 'صورة المشاركة (OG)', type: 'image' },
   ],
 })

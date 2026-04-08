@@ -2,14 +2,14 @@ import { defineType } from 'sanity'
 
 export default defineType({
   name: 'brand',
-  title: 'Marque',
+  title: 'علامة تجارية',
   type: 'document',
   icon: () => '🏷️',
   fields: [
-    { name: 'name', title: 'Nom de la marque', type: 'string' },
-    { name: 'slug', title: 'URL Slug', type: 'slug', options: { source: 'name', maxLength: 96 } },
-    { name: 'logo', title: 'Logo', type: 'image' },
-    { name: 'description', title: 'Description', type: 'localizedText' },
+    { name: 'name', title: 'اسم العلامة التجارية', type: 'string' },
+    { name: 'slug', title: 'رابط URL', type: 'slug', options: { source: 'name', maxLength: 96 } },
+    { name: 'logo', title: 'الشعار', type: 'image' },
+    { name: 'description', title: 'الوصف', type: 'localizedText' },
   ],
   preview: {
     select: { title: 'name', media: 'logo' },

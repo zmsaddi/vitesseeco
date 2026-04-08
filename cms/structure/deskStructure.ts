@@ -4,50 +4,50 @@ export const deskStructure = (S: StructureBuilder) =>
   S.list()
     .title('Vitesse Eco')
     .items([
-      // Catalogue
+      // الكتالوج
       S.listItem()
-        .title('🚲 Produits')
-        .child(S.documentTypeList('product').title('Produits')),
+        .title('🚲 المنتجات')
+        .child(S.documentTypeList('product').title('المنتجات')),
       S.listItem()
-        .title('📂 Catégories')
-        .child(S.documentTypeList('category').title('Catégories')),
+        .title('📂 الفئات')
+        .child(S.documentTypeList('category').title('الفئات')),
       S.listItem()
-        .title('🏷️ Marques')
-        .child(S.documentTypeList('brand').title('Marques')),
+        .title('🏷️ العلامات التجارية')
+        .child(S.documentTypeList('brand').title('العلامات التجارية')),
 
       S.divider(),
 
-      // Marketing
+      // التسويق
       S.listItem()
-        .title('🎟️ Codes promo')
-        .child(S.documentTypeList('promoCode').title('Codes promo')),
+        .title('🎟️ أكواد الخصم')
+        .child(S.documentTypeList('promoCode').title('أكواد الخصم')),
       S.listItem()
-        .title('⭐ Témoignages')
-        .child(S.documentTypeList('testimonial').title('Témoignages')),
+        .title('⭐ آراء العملاء')
+        .child(S.documentTypeList('testimonial').title('آراء العملاء')),
       S.listItem()
-        .title('🚚 Livraison')
-        .child(S.documentTypeList('shippingMethod').title('Méthodes de livraison')),
+        .title('🚚 طرق الشحن')
+        .child(S.documentTypeList('shippingMethod').title('طرق الشحن')),
 
       S.divider(),
 
-      // Pages (singletons)
+      // الصفحات
       S.listItem()
-        .title('🏠 Page d\'accueil')
+        .title('🏠 الصفحة الرئيسية')
         .child(S.document().schemaType('homePage').documentId('homePage')),
       S.listItem()
-        .title('ℹ️ Page À Propos')
+        .title('ℹ️ من نحن')
         .child(S.document().schemaType('aboutPage').documentId('aboutPage')),
       S.listItem()
-        .title('📞 Page Contact')
+        .title('📞 اتصل بنا')
         .child(S.document().schemaType('contactPage').documentId('contactPage')),
       S.listItem()
-        .title('⚖️ Pages Légales')
+        .title('⚖️ الصفحات القانونية')
         .child(S.document().schemaType('legalPages').documentId('legalPages')),
 
       S.divider(),
 
-      // Settings
+      // الإعدادات
       S.listItem()
-        .title('⚙️ Paramètres du site')
+        .title('⚙️ إعدادات الموقع')
         .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
     ])

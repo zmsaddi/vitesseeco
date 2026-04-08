@@ -6,7 +6,7 @@ import { deskStructure } from './structure/deskStructure'
 
 export default defineConfig({
   name: 'vitesseeco',
-  title: 'Vitesse Eco — CMS',
+  title: 'Vitesse Eco — لوحة التحكم',
   projectId: '2jvnjf0c',
   dataset: 'production',
   plugins: [
