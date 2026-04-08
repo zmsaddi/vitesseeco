@@ -88,6 +88,16 @@ export default defineNuxtConfig({
       meta: [
         { name: 'description', content: 'Vitesse Eco — Votre spécialiste en fatbikes électriques en France. Découvrez notre gamme de vélos électriques premium.' },
         { name: 'theme-color', content: '#0A1628' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: 'Vitesse Eco' },
+        { property: 'og:title', content: 'Vitesse Eco — Fatbikes Électriques Premium' },
+        { property: 'og:description', content: 'Découvrez notre gamme de fatbikes électriques. Livraison gratuite en France. 11 modèles de 999€ à 1899€.' },
+        { property: 'og:image', content: 'https://vitesse-eco.fr/poster.jpeg' },
+        { property: 'og:url', content: 'https://vitesse-eco.fr' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'Vitesse Eco — Fatbikes Électriques' },
+        { name: 'twitter:description', content: 'Fatbikes électriques premium. Livraison gratuite en France.' },
+        { name: 'twitter:image', content: 'https://vitesse-eco.fr/poster.jpeg' },
       ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/logo.png' },

@@ -121,8 +121,15 @@
               <ClientOnly>
                 <TurnstileWidget @verify="t => turnstileToken = t" />
               </ClientOnly>
-              <button type="submit" :disabled="!turnstileToken" class="btn-primary w-full md:w-auto disabled:opacity-50">
-                <span class="flex items-center gap-2">
+              <p v-if="submitSuccess" class="text-accent text-sm flex items-center gap-2 bg-accent/10 p-3 rounded-lg">
+                <Icon name="ph:check-circle" class="w-5 h-5" /> {{ $t('contact.success') }}
+              </p>
+              <p v-if="submitError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{{ submitError }}</p>
+              <button type="submit" :disabled="!turnstileToken || submitting" class="btn-primary w-full md:w-auto disabled:opacity-50">
+                <span v-if="submitting" class="flex items-center gap-2">
+                  <Icon name="ph:spinner" class="w-5 h-5 animate-spin" /> {{ $t('common.loading') }}
+                </span>
+                <span v-else class="flex items-center gap-2">
                   <Icon name="ph:paper-plane-tilt" class="w-5 h-5" />
                   {{ $t('contact.send') }}
                 </span>
@@ -165,11 +172,27 @@ const form = reactive({
   message: '',
 })
 
-function handleSubmit() {
-  alert(t('contact.success'))
-  form.name = ''
-  form.email = ''
-  form.subject = ''
-  form.message = ''
+const submitting = ref(false)
+const submitSuccess = ref(false)
+const submitError = ref('')
+
+async function handleSubmit() {
+  submitting.value = true
+  submitError.value = ''
+  try {
+    await $fetch('/api/contact', {
+      method: 'POST',
+      body: { ...form, turnstileToken: turnstileToken.value },
+    })
+    submitSuccess.value = true
+    form.name = ''
+    form.email = ''
+    form.subject = ''
+    form.message = ''
+  } catch (e: any) {
+    submitError.value = e.data?.message || t('contact.error')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>

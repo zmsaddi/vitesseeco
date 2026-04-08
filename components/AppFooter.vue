@@ -69,14 +69,14 @@
             <Icon name="ph:check-circle" class="w-5 h-5" />
             {{ $t('footer.newsletter_success') }}
           </p>
-          <div class="flex items-center gap-4 mt-6">
-            <a :href="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="text-text-secondary hover:text-accent transition-colors">
+          <div v-if="instagramUrl || facebookUrl || tiktokUrl" class="flex items-center gap-4 mt-6">
+            <a v-if="instagramUrl" :href="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:instagram-logo" class="w-5 h-5" />
             </a>
-            <a :href="facebookUrl" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="text-text-secondary hover:text-accent transition-colors">
+            <a v-if="facebookUrl" :href="facebookUrl" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:facebook-logo" class="w-5 h-5" />
             </a>
-            <a :href="tiktokUrl" target="_blank" rel="noopener noreferrer" aria-label="TikTok" class="text-text-secondary hover:text-accent transition-colors">
+            <a v-if="tiktokUrl" :href="tiktokUrl" target="_blank" rel="noopener noreferrer" aria-label="TikTok" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:tiktok-logo" class="w-5 h-5" />
             </a>
           </div>

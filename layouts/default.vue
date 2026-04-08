@@ -9,6 +9,7 @@
     <AppFooter />
     <ClientOnly>
       <CartDrawer />
+      <CookieConsent />
     </ClientOnly>
   </div>
 </template>

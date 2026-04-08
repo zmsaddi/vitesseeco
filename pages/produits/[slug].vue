@@ -226,12 +226,17 @@ const { data: product, status } = useSanityFetch(
   { slug }
 )
 
-// Show 404 if product not found
-watch([status, product], () => {
-  if (status.value === 'success' && !product.value) {
-    throw createError({ statusCode: 404, message: 'Product not found' })
-  }
-}, { immediate: true })
+// Show 404 if product not found after fetch
+if (import.meta.server && status.value === 'success' && !product.value) {
+  throw createError({ statusCode: 404, message: 'Product not found' })
+}
+if (import.meta.client) {
+  watch([status, product], () => {
+    if (status.value === 'success' && !product.value) {
+      showError({ statusCode: 404, message: 'Product not found' })
+    }
+  })
+}
 
 // Reset UI state when product changes
 watch(() => product.value?._id, () => {
