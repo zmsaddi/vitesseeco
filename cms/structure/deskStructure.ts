@@ -38,6 +38,9 @@ export const deskStructure = (S: StructureBuilder) =>
       S.listItem()
         .title('🚚 طرق الشحن')
         .child(S.documentTypeList('shippingMethod').title('طرق الشحن')),
+      S.listItem()
+        .title('💳 طرق الدفع')
+        .child(S.documentTypeList('paymentMethod').title('طرق الدفع')),
 
       S.divider(),
 
