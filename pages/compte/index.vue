@@ -1,52 +1,178 @@
 <template>
   <div class="py-8 md:py-12">
-    <div class="container-custom max-w-3xl">
+    <div class="container-custom max-w-4xl">
       <div class="flex items-center justify-between mb-8">
         <h1 class="section-title">{{ $t('account.title') }}</h1>
-        <button @click="handleLogout" class="text-text-secondary hover:text-red-400 transition-colors text-sm flex items-center gap-2">
+        <button @click="handleLogout" class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors text-sm flex items-center gap-2 px-4 py-2 rounded-lg border border-red-800/50">
           <Icon name="ph:sign-out" class="w-4 h-4" />
           {{ $t('nav.logout') }}
         </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Profile -->
+      <div class="space-y-6">
+        <!-- Profile Section -->
         <div class="card p-6">
-          <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
-            <Icon name="ph:user" class="w-5 h-5 text-accent" />
-            {{ $t('account.profile') }}
-          </h2>
-          <div class="space-y-2 text-sm">
-            <p class="text-text-secondary">{{ auth.user?.firstName }} {{ auth.user?.lastName }}</p>
-            <p class="text-text-secondary">{{ auth.user?.email }}</p>
-            <p v-if="auth.user?.phone" class="text-text-secondary">{{ auth.user?.phone }}</p>
-            <p v-if="auth.user?.address" class="text-text-secondary">
-              {{ auth.user?.address }}, {{ auth.user?.postalCode }} {{ auth.user?.city }}
-            </p>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold text-white flex items-center gap-2">
+              <Icon name="ph:user-circle" class="w-5 h-5 text-accent" />
+              {{ $t('account.profile') }}
+            </h2>
+            <button @click="editingProfile = !editingProfile" class="text-accent text-sm hover:underline">
+              {{ editingProfile ? $t('common.back') : '✏️' }}
+            </button>
           </div>
+
+          <!-- View Mode -->
+          <div v-if="!editingProfile" class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div>
+              <span class="text-text-secondary block text-xs mb-1">{{ $t('checkout.first_name') }}</span>
+              <span class="text-white">{{ auth.user?.firstName }}</span>
+            </div>
+            <div>
+              <span class="text-text-secondary block text-xs mb-1">{{ $t('checkout.last_name') }}</span>
+              <span class="text-white">{{ auth.user?.lastName }}</span>
+            </div>
+            <div>
+              <span class="text-text-secondary block text-xs mb-1">{{ $t('auth.email') }}</span>
+              <span class="text-white">{{ auth.user?.email }}</span>
+            </div>
+            <div>
+              <span class="text-text-secondary block text-xs mb-1">{{ $t('checkout.phone') }}</span>
+              <span class="text-white">{{ auth.user?.phone || '—' }}</span>
+            </div>
+          </div>
+
+          <!-- Edit Mode -->
+          <form v-else @submit.prevent="saveProfile" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="prof-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
+                <input id="prof-first" name="firstName" v-model="profileForm.firstName" type="text" class="input-field" required />
+              </div>
+              <div>
+                <label for="prof-last" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.last_name') }}</label>
+                <input id="prof-last" name="lastName" v-model="profileForm.lastName" type="text" class="input-field" required />
+              </div>
+            </div>
+            <div>
+              <label for="prof-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
+              <input id="prof-phone" name="phone" v-model="profileForm.phone" type="tel" class="input-field" autocomplete="tel" />
+            </div>
+            <div class="flex gap-3">
+              <button type="submit" :disabled="savingProfile" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">
+                {{ savingProfile ? $t('common.loading') : $t('contact.send') }}
+              </button>
+              <button type="button" @click="editingProfile = false" class="btn-secondary py-2 px-6 text-sm">
+                {{ $t('common.back') }}
+              </button>
+            </div>
+            <p v-if="profileSuccess" class="text-accent text-sm">✅ {{ $t('contact.success') }}</p>
+          </form>
         </div>
 
-        <!-- Orders -->
+        <!-- Addresses Section -->
+        <div class="card p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-display font-semibold text-white flex items-center gap-2">
+              <Icon name="ph:map-pin" class="w-5 h-5 text-accent" />
+              {{ $t('contact.address') }}
+            </h2>
+            <button v-if="!addingAddress && (userAddresses?.length || 0) < 5" @click="addingAddress = true" class="text-accent text-sm hover:underline flex items-center gap-1">
+              <Icon name="ph:plus" class="w-4 h-4" /> {{ $t('common.see_more') }}
+            </button>
+          </div>
+
+          <!-- Address List -->
+          <div v-if="userAddresses?.length" class="space-y-3 mb-4">
+            <div v-for="addr in userAddresses" :key="addr.id" class="bg-dark-tertiary/30 rounded-lg p-4 flex justify-between items-start">
+              <div class="text-sm">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-white font-medium">{{ addr.firstName }} {{ addr.lastName }}</span>
+                  <span v-if="addr.isDefault" class="text-accent text-xs bg-accent/10 px-2 py-0.5 rounded-full">{{ $t('products.sort_newest') || 'Default' }}</span>
+                </div>
+                <p class="text-text-secondary">{{ addr.address }}</p>
+                <p v-if="addr.addressLine2" class="text-text-secondary">{{ addr.addressLine2 }}</p>
+                <p class="text-text-secondary">{{ addr.postalCode }} {{ addr.city }}, {{ addr.country }}</p>
+                <p v-if="addr.phone" class="text-text-secondary">{{ addr.phone }}</p>
+              </div>
+              <button @click="deleteAddress(addr.id)" class="text-text-secondary hover:text-red-400 transition-colors shrink-0">
+                <Icon name="ph:trash" class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          <p v-else-if="!addingAddress" class="text-text-secondary text-sm mb-4">{{ $t('account.no_orders') }}</p>
+
+          <!-- Add Address Form -->
+          <form v-if="addingAddress" @submit.prevent="saveAddress" class="space-y-4 border-t border-dark-tertiary pt-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="addr-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
+                <input id="addr-first" name="firstName" v-model="addressForm.firstName" type="text" class="input-field" required />
+              </div>
+              <div>
+                <label for="addr-last" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.last_name') }}</label>
+                <input id="addr-last" name="lastName" v-model="addressForm.lastName" type="text" class="input-field" required />
+              </div>
+            </div>
+            <div>
+              <label for="addr-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
+              <input id="addr-phone" name="phone" v-model="addressForm.phone" type="tel" class="input-field" />
+            </div>
+            <div>
+              <label for="addr-address" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.address') }}</label>
+              <input id="addr-address" name="address" v-model="addressForm.address" type="text" class="input-field" required autocomplete="street-address" />
+            </div>
+            <div>
+              <label for="addr-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
+              <input id="addr-line2" name="addressLine2" v-model="addressForm.addressLine2" type="text" class="input-field" placeholder="Apt, étage, bâtiment..." />
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <label for="addr-postal" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.postal_code') }}</label>
+                <input id="addr-postal" name="postalCode" v-model="addressForm.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
+              </div>
+              <div>
+                <label for="addr-city" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.city') }}</label>
+                <input id="addr-city" name="city" v-model="addressForm.city" type="text" class="input-field" required autocomplete="address-level2" />
+              </div>
+              <div>
+                <label for="addr-country" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.country') }}</label>
+                <select id="addr-country" name="country" v-model="addressForm.country" class="input-field">
+                  <option value="FR">France</option>
+                  <option value="BE">Belgique</option>
+                  <option value="LU">Luxembourg</option>
+                  <option value="DE">Deutschland</option>
+                  <option value="NL">Nederland</option>
+                  <option value="ES">España</option>
+                  <option value="IT">Italia</option>
+                </select>
+              </div>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
+              <input type="checkbox" v-model="addressForm.isDefault" class="accent-accent" />
+              {{ $t('shipping.standard') || 'Default address' }}
+            </label>
+            <div class="flex gap-3">
+              <button type="submit" :disabled="savingAddress" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">
+                {{ savingAddress ? $t('common.loading') : $t('contact.send') }}
+              </button>
+              <button type="button" @click="addingAddress = false" class="btn-secondary py-2 px-6 text-sm">
+                {{ $t('common.back') }}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Orders Section -->
         <div class="card p-6">
           <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
             <Icon name="ph:package" class="w-5 h-5 text-accent" />
             {{ $t('account.orders') }}
           </h2>
-          <div v-if="!orders?.length" class="text-text-secondary text-sm">
-            <p>{{ $t('account.no_orders') }}</p>
-            <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline mt-2 inline-block">
-              {{ $t('cart.empty_cta') }}
-            </NuxtLink>
-          </div>
-          <div v-else class="space-y-3">
-            <div v-for="order in orders" :key="order.id" class="bg-dark-tertiary/30 rounded-lg p-3">
-              <div class="flex justify-between text-sm">
-                <span class="text-white font-medium">#{{ order.id.slice(0, 8) }}</span>
-                <span class="text-accent">{{ order.total }}{{ $t('common.currency') }}</span>
-              </div>
-              <p class="text-text-secondary text-xs mt-1">{{ $t(`account.order_status.${order.status}`) }}</p>
-            </div>
-          </div>
+          <p class="text-text-secondary text-sm">
+            {{ $t('account.no_orders') }}
+            <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline ml-1">{{ $t('cart.empty_cta') }}</NuxtLink>
+          </p>
         </div>
       </div>
     </div>
@@ -61,11 +187,93 @@ const auth = useAuthStore()
 definePageMeta({ middleware: 'auth' })
 useHead({ title: `${t('account.title')} — Vitesse Eco` })
 
-// Fetch orders (will be populated when orders exist)
-const orders = ref<any[]>([])
+// Profile
+const editingProfile = ref(false)
+const savingProfile = ref(false)
+const profileSuccess = ref(false)
+const profileForm = reactive({
+  firstName: auth.user?.firstName || '',
+  lastName: auth.user?.lastName || '',
+  phone: auth.user?.phone || '',
+})
+
+watch(() => auth.user, (u) => {
+  if (u) {
+    profileForm.firstName = u.firstName
+    profileForm.lastName = u.lastName
+    profileForm.phone = u.phone || ''
+  }
+}, { immediate: true })
+
+async function saveProfile() {
+  savingProfile.value = true
+  profileSuccess.value = false
+  try {
+    const { user } = await $fetch('/api/auth/profile', {
+      method: 'PUT',
+      body: profileForm,
+    })
+    auth.user = user
+    profileSuccess.value = true
+    setTimeout(() => { editingProfile.value = false; profileSuccess.value = false }, 1500)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    savingProfile.value = false
+  }
+}
+
+// Addresses
+const addingAddress = ref(false)
+const savingAddress = ref(false)
+const userAddresses = ref<any[]>([])
+
+const addressForm = reactive({
+  firstName: auth.user?.firstName || '',
+  lastName: auth.user?.lastName || '',
+  phone: '',
+  address: '',
+  addressLine2: '',
+  postalCode: '',
+  city: '',
+  country: 'FR',
+  isDefault: false,
+})
+
+async function fetchAddresses() {
+  try {
+    const { addresses } = await $fetch('/api/addresses')
+    userAddresses.value = addresses
+  } catch {}
+}
+
+async function saveAddress() {
+  savingAddress.value = true
+  try {
+    await $fetch('/api/addresses', { method: 'POST', body: addressForm })
+    addingAddress.value = false
+    addressForm.address = ''
+    addressForm.addressLine2 = ''
+    addressForm.postalCode = ''
+    addressForm.city = ''
+    addressForm.isDefault = false
+    await fetchAddresses()
+  } catch (e: any) {
+    alert(e.data?.message || 'Error')
+  } finally {
+    savingAddress.value = false
+  }
+}
+
+async function deleteAddress(id: string) {
+  await $fetch(`/api/addresses/${id}`, { method: 'DELETE' })
+  await fetchAddresses()
+}
 
 async function handleLogout() {
   await auth.logout()
   navigateTo(localePath('/'))
 }
+
+onMounted(fetchAddresses)
 </script>
