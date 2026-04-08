@@ -101,6 +101,16 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: 'icon', type: 'image/png', href: '/logo.png' },
+        { rel: 'privacy-policy', href: 'https://vitesse-eco.fr/politique-confidentialite' },
+      ],
+      script: [
+        { type: 'application/ld+json', innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'Vitesse Eco',
+          url: 'https://vitesse-eco.fr',
+          potentialAction: { '@type': 'SearchAction', target: 'https://vitesse-eco.fr/produits?q={search_term_string}', 'query-input': 'required name=search_term_string' },
+        }) },
       ],
     },
   },
