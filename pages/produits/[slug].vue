@@ -100,46 +100,54 @@
                 role="radio"
                 :aria-checked="selectedColor === i"
                 :aria-label="l(variant.colorName)"
-                class="w-10 h-10 rounded-full border-2 transition-all"
-                :class="selectedColor === i ? 'border-accent scale-110' : 'border-dark-tertiary'"
+                class="w-10 h-10 rounded-full border-2 transition-all relative"
+                :class="[
+                  selectedColor === i ? 'border-accent scale-110' : 'border-dark-tertiary',
+                  (variant.stock ?? 0) <= 0 ? 'opacity-40' : ''
+                ]"
                 :style="{ backgroundColor: variant.colorHex }"
                 :title="l(variant.colorName)"
               />
             </div>
           </div>
 
-          <!-- Quantity -->
-          <div class="mb-6">
+          <!-- Quantity (hidden when out of stock) -->
+          <div class="mb-6" v-if="currentStock > 0">
             <label for="product-qty" class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
             <div class="flex items-center gap-3">
               <button @click="qty = Math.max(1, qty - 1)" aria-label="Decrease quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:minus" class="w-4 h-4" />
               </button>
-              <input id="product-qty" name="quantity" type="number" v-model.number="qty" min="1" max="10" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
-              <button @click="qty = Math.min(10, qty + 1)" aria-label="Increase quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
+              <input id="product-qty" name="quantity" type="number" v-model.number="qty" :max="Math.min(10, currentStock)" min="1" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
+              <button @click="qty = Math.min(Math.min(10, currentStock), qty + 1)" aria-label="Increase quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:plus" class="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          <!-- Add to Cart -->
+          <!-- Add to Cart / Out of Stock -->
           <button
+            v-if="currentStock > 0"
             @click="addToCart"
-            :disabled="currentStock <= 0"
-            class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3 mb-4"
           >
             <Icon name="ph:shopping-cart" class="w-5 h-5" />
             {{ $t('product.add_to_cart') }}
           </button>
+          <div v-else class="mb-4">
+            <button disabled class="w-full text-lg py-4 flex items-center justify-center gap-3 bg-red-900/30 text-red-400 rounded-lg cursor-not-allowed border border-red-800/50">
+              <Icon name="ph:x-circle" class="w-5 h-5" />
+              {{ $t('product.out_of_stock') }}
+            </button>
+            <NuxtLink :to="localePath('/contact')" class="btn-outline w-full text-center mt-3 block">
+              {{ $t('product.contact_us') }}
+            </NuxtLink>
+          </div>
 
           <p v-if="currentStock > 0" class="text-accent text-sm flex items-center gap-2">
             <Icon name="ph:check-circle" class="w-4 h-4" />
             {{ $t('product.in_stock') }}
             <span v-if="currentStock <= 5" class="text-gold">— {{ $t('product.low_stock', { count: currentStock }) }}</span>
-          </p>
-          <p v-else class="text-red-400 text-sm flex items-center gap-2">
-            <Icon name="ph:x-circle" class="w-4 h-4" />
-            {{ $t('product.out_of_stock') }}
           </p>
 
           <!-- Description -->

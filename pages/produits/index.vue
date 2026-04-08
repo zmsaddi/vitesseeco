@@ -121,7 +121,7 @@ const { data: categories } = useSanityFetch('categories', catQuery)
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
   specifications, category->{ _id },
-  variants[]{ _key, colorHex, colorName, "images": images[]{asset} }
+  variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} }
 }`
 const { data: products } = useSanityFetch('all-products', prodQuery)
 

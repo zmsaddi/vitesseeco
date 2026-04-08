@@ -46,10 +46,14 @@
       <p class="text-text-secondary text-sm mb-2">{{ l(product.shortDescription) }}</p>
       <p class="text-text-secondary text-xs mb-3">{{ product.specifications?.battery }} — {{ product.specifications?.range }}</p>
       <div class="flex items-center justify-between">
-        <div>
+        <div v-if="totalStock > 0">
           <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs mr-2">{{ product.compareAtPrice }}{{ $t('common.currency') }}</span>
           <span class="text-accent font-bold">{{ $t('common.from') }} {{ product.price }}{{ $t('common.currency') }}</span>
         </div>
+        <span v-else class="text-red-400 text-xs font-medium flex items-center gap-1">
+          <Icon name="ph:x-circle" class="w-3 h-3" />
+          {{ $t('product.out_of_stock') }}
+        </span>
         <!-- Color dots that control image -->
         <div class="flex gap-1.5">
           <button
@@ -78,6 +82,11 @@ const props = defineProps<{
 const colorIndex = ref(0)
 const activeIndex = ref(0)
 let slideInterval: ReturnType<typeof setInterval> | null = null
+
+// Total stock across all variants
+const totalStock = computed(() => {
+  return (props.product.variants || []).reduce((sum: number, v: any) => sum + (v.stock ?? 0), 0)
+})
 
 // Collect first image from each variant
 const allImages = computed(() => {
