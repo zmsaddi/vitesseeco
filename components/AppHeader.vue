@@ -58,7 +58,7 @@
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="md:hidden text-text-secondary hover:text-white transition-colors p-2"
-            :aria-label="mobileMenuOpen ? 'X' : '☰'"
+            :aria-label="mobileMenuOpen ? $t('nav.close_menu') : $t('nav.open_menu')"
           >
             <Icon :name="mobileMenuOpen ? 'ph:x' : 'ph:list'" class="w-6 h-6" />
           </button>

@@ -343,6 +343,7 @@ async function saveProfile() {
 // Addresses
 const addingAddress = ref(false)
 const savingAddress = ref(false)
+const addressError = ref('')
 const userAddresses = ref<any[]>([])
 
 const addressForm = reactive({
@@ -482,7 +483,7 @@ async function saveAddress() {
     addressForm.isDefault = false
     await fetchAddresses()
   } catch (e: any) {
-    alert(e.data?.message || 'Error')
+    addressError.value = e.data?.message || t('common.error')
   } finally {
     savingAddress.value = false
   }
@@ -507,7 +508,7 @@ async function executeDeleteAccount() {
     showDeleteModal.value = false
     navigateTo(localePath('/'))
   } catch (e: any) {
-    alert(e.data?.message || 'Error')
+    addressError.value = e.data?.message || t('common.error')
   }
 }
 
