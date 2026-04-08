@@ -1,21 +1,24 @@
-export default defineEventHandler((event) => {
-  const config = useRuntimeConfig()
-  const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NUXT_GOOGLE_CLIENT_ID || config.googleClientId
+import { google } from 'googleapis'
 
-  if (!clientId) throw createError({ statusCode: 500, message: 'Google OAuth not configured' })
+export default defineEventHandler((event) => {
+  const clientId = process.env.NUXT_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
+  const clientSecret = process.env.NUXT_GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET
+
+  if (!clientId || !clientSecret) {
+    throw createError({ statusCode: 500, message: 'Google OAuth not configured' })
+  }
 
   const host = getRequestHeader(event, 'host') || 'localhost:3000'
   const protocol = host.includes('localhost') ? 'http' : 'https'
   const redirectUri = `${protocol}://${host}/api/auth/google/callback`
 
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: 'code',
-    scope: 'openid email profile',
+  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+
+  const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
+    scope: ['openid', 'email', 'profile'],
     prompt: 'select_account',
   })
 
-  return sendRedirect(event, `https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+  return sendRedirect(event, authUrl)
 })
