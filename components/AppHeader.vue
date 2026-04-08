@@ -33,12 +33,14 @@
             class="relative text-text-secondary hover:text-white transition-colors p-2"
           >
             <Icon name="ph:shopping-cart" class="w-5 h-5" />
-            <span
-              v-if="cartCount > 0"
-              class="absolute -top-1 -right-1 bg-accent text-primary text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
-            >
-              {{ cartCount }}
-            </span>
+            <ClientOnly>
+              <span
+                v-if="cartCount > 0"
+                class="absolute -top-1 -right-1 bg-accent text-primary text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+              >
+                {{ cartCount }}
+              </span>
+            </ClientOnly>
           </button>
 
           <NuxtLink

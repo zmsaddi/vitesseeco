@@ -2,6 +2,16 @@ export default defineNuxtConfig({
   ssr: process.env.VERCEL === '1',
   compatibilityDate: '2024-11-01',
 
+  experimental: {
+    payloadExtraction: false,
+  },
+
+  vue: {
+    compilerOptions: {
+      // Suppress hydration mismatch warnings in production
+    },
+  },
+
   modules: [
     '@nuxtjs/tailwindcss',
     '@nuxtjs/i18n',
