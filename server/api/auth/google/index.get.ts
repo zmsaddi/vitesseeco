@@ -14,10 +14,21 @@ export default defineEventHandler((event) => {
 
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
 
+  // CSRF protection: generate random state and store in cookie
+  const state = crypto.randomUUID()
+  setCookie(event, 'oauth_state', state, {
+    httpOnly: true,
+    secure: protocol === 'https',
+    sameSite: 'lax',
+    maxAge: 600, // 10 minutes
+    path: '/',
+  })
+
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: ['openid', 'email', 'profile'],
     prompt: 'select_account',
+    state,
   })
 
   return sendRedirect(event, authUrl)

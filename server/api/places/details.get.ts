@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   if (!placeId) throw createError({ statusCode: 400, message: 'place_id required' })
 
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || useRuntimeConfig().public.googlePlacesApiKey
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
   const res = await $fetch<any>(

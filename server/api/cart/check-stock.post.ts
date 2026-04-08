@@ -28,6 +28,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Cart is empty' })
   }
 
+  // Input validation / sanitization
+  for (const item of body.items) {
+    if (typeof item.productId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.productId)) throw createError({ statusCode: 400, message: 'Invalid productId' })
+    if (typeof item.sku !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.sku)) throw createError({ statusCode: 400, message: 'Invalid sku' })
+    if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity) || item.quantity < 1) throw createError({ statusCode: 400, message: 'Invalid quantity' })
+  }
+
   const client = createClient({
     projectId: '2jvnjf0c',
     dataset: 'production',

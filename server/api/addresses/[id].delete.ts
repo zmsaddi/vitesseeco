@@ -14,9 +14,33 @@ export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
   if (!id) throw createError({ statusCode: 400, message: 'Address ID required' })
 
+  // Check if the address being deleted is the default
+  const [addressToDelete] = await db.select({ isDefault: addresses.isDefault })
+    .from(addresses)
+    .where(and(eq(addresses.id, id), eq(addresses.customerId, session.customerId)))
+    .limit(1)
+
+  if (!addressToDelete) {
+    throw createError({ statusCode: 404, message: 'Address not found' })
+  }
+
   await db.delete(addresses).where(
     and(eq(addresses.id, id), eq(addresses.customerId, session.customerId))
   )
+
+  // If deleted address was default, promote the first remaining address
+  if (addressToDelete.isDefault) {
+    const [firstRemaining] = await db.select({ id: addresses.id })
+      .from(addresses)
+      .where(eq(addresses.customerId, session.customerId))
+      .limit(1)
+
+    if (firstRemaining) {
+      await db.update(addresses)
+        .set({ isDefault: true })
+        .where(eq(addresses.id, firstRemaining.id))
+    }
+  }
 
   return { ok: true }
 })

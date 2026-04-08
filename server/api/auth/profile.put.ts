@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     firstName?: string; lastName?: string; phone?: string
   }>(event)
 
-  const updates: any = { updatedAt: new Date() }
+  const updates: Partial<{ firstName: string; lastName: string; phone: string | null; updatedAt: Date }> = { updatedAt: new Date() }
   if (body.firstName?.trim()) updates.firstName = body.firstName.trim()
   if (body.lastName?.trim()) updates.lastName = body.lastName.trim()
   if (body.phone !== undefined) updates.phone = body.phone?.trim() || null

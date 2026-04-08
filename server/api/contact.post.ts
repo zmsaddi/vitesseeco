@@ -20,11 +20,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Message too long' })
   }
 
-  // Verify Turnstile
-  if (body.turnstileToken) {
-    const valid = await verifyTurnstile(body.turnstileToken)
-    if (!valid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
+  // Verify Turnstile (mandatory)
+  if (!body.turnstileToken) {
+    throw createError({ statusCode: 400, message: 'CAPTCHA token required' })
   }
+  const valid = await verifyTurnstile(body.turnstileToken)
+  if (!valid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
   // For now, store in memory / log. Will send via Resend in Phase 3
   console.log('[CONTACT FORM]', {

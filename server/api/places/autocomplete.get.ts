@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     return { predictions: [] }
   }
 
-  const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.NUXT_PUBLIC_GOOGLE_PLACES_API_KEY
+  const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
   try {

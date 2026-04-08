@@ -1,5 +1,6 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
@@ -17,13 +18,31 @@ export default defineEventHandler(async (event) => {
     }
     promoCode?: string
     notes?: string
+    turnstileToken?: string
   }>(event)
+
+  // Verify Turnstile
+  if (!body?.turnstileToken) {
+    throw createError({ statusCode: 400, message: 'CAPTCHA token required' })
+  }
+  const turnstileValid = await verifyTurnstile(body.turnstileToken)
+  if (!turnstileValid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
   if (!body.shippingCode) throw createError({ statusCode: 400, message: 'Shipping method required' })
   if (!body.paymentCode) throw createError({ statusCode: 400, message: 'Payment method required' })
   if (!body.shippingAddress?.address || !body.shippingAddress?.city) {
     throw createError({ statusCode: 400, message: 'Shipping address required' })
+  }
+
+  // Validate shipping address fields
+  const ALLOWED_COUNTRIES = ['FR', 'BE', 'NL', 'DE', 'ES', 'LU', 'CH', 'AT', 'IT', 'PT']
+  const addr = body.shippingAddress
+  if (!addr.firstName || addr.firstName.length > 100) throw createError({ statusCode: 400, message: 'Invalid first name' })
+  if (!addr.lastName || addr.lastName.length > 100) throw createError({ statusCode: 400, message: 'Invalid last name' })
+  if (!addr.postalCode) throw createError({ statusCode: 400, message: 'Postal code required' })
+  if (!addr.country || !ALLOWED_COUNTRIES.includes(addr.country.toUpperCase())) {
+    throw createError({ statusCode: 400, message: 'Invalid or unsupported country' })
   }
 
   const sanityToken = process.env.SANITY_TOKEN

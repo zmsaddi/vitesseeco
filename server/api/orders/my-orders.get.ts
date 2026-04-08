@@ -2,8 +2,11 @@ import { createClient } from '@sanity/client'
 import { useDB } from '~/server/database/db'
 import { sessions } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
+import { rateLimit } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
+  rateLimit(event, { maxRequests: 30, windowMs: 60_000 })
+
   const token = getCookie(event, 'auth_token')
   if (!token) throw createError({ statusCode: 401, message: 'Not authenticated' })
 

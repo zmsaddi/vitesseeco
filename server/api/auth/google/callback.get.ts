@@ -13,6 +13,15 @@ export default defineEventHandler(async (event) => {
     return sendRedirect(event, `/connexion?error=${encodeURIComponent(error || 'no_code')}`)
   }
 
+  // CSRF protection: verify state parameter
+  const stateFromQuery = query.state as string
+  const stateFromCookie = getCookie(event, 'oauth_state')
+  deleteCookie(event, 'oauth_state', { path: '/' })
+
+  if (!stateFromQuery || !stateFromCookie || stateFromQuery !== stateFromCookie) {
+    return sendRedirect(event, '/connexion?error=invalid_state')
+  }
+
   const clientId = process.env.NUXT_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.NUXT_GOOGLE_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET
   const host = getRequestHeader(event, 'host') || 'localhost:3000'

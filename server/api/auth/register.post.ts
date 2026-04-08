@@ -1,6 +1,5 @@
 import { useDB } from '~/server/database/db'
-import { customers } from '~/server/database/schema'
-import { eq } from 'drizzle-orm'
+import { customers, sessions } from '~/server/database/schema'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
 
@@ -24,26 +23,28 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDB()
-
-  // Check if email exists
-  const existing = await db.select({ id: customers.id }).from(customers).where(eq(customers.email, email)).limit(1)
-  if (existing.length > 0) {
-    throw createError({ statusCode: 409, message: 'Email already registered' })
-  }
-
   const passwordHash = await bcrypt.hash(body.password, 12)
 
-  const [customer] = await db.insert(customers).values({
-    email,
-    passwordHash,
-    firstName: body.firstName.trim(),
-    lastName: body.lastName.trim(),
-    phone: body.phone?.trim() || null,
-  }).returning({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName })
+  let customer: { id: string; email: string; firstName: string; lastName: string }
+  try {
+    const [inserted] = await db.insert(customers).values({
+      email,
+      passwordHash,
+      firstName: body.firstName.trim(),
+      lastName: body.lastName.trim(),
+      phone: body.phone?.trim() || null,
+    }).returning({ id: customers.id, email: customers.email, firstName: customers.firstName, lastName: customers.lastName })
+    customer = inserted
+  } catch (e: any) {
+    // Unique constraint violation (PostgreSQL code 23505)
+    if (e.code === '23505') {
+      throw createError({ statusCode: 409, message: 'Email already registered' })
+    }
+    throw e
+  }
 
   // Create session
   const token = crypto.randomUUID()
-  const { sessions } = await import('~/server/database/schema')
   await db.insert(sessions).values({
     customerId: customer.id,
     token,

@@ -1,6 +1,6 @@
 import { useDB } from '~/server/database/db'
 import { addresses, sessions } from '~/server/database/schema'
-import { eq, and, gt } from 'drizzle-orm'
+import { eq, and, gt, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const token = getCookie(event, 'auth_token')
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
   const result = await db.select().from(addresses)
     .where(eq(addresses.customerId, session.customerId))
-    .orderBy(addresses.isDefault)
+    .orderBy(desc(addresses.isDefault))
 
   return { addresses: result }
 })
