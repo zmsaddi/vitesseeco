@@ -134,7 +134,9 @@
     "order_number": "Order number",
     "order_email_sent": "A confirmation email has been sent to {email}.",
     "back_to_home": "Back to home",
-    "address_line2_placeholder": "Apt, floor, building..."
+    "address_line2_placeholder": "Apt, floor, building...",
+    "billing_address": "Billing address",
+    "same_as_shipping": "Same as shipping address"
   },
   "account": {
     "title": "My Account",

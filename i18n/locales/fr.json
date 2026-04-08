@@ -134,7 +134,9 @@
     "order_number": "Numéro de commande",
     "order_email_sent": "Un email de confirmation a été envoyé à {email}.",
     "back_to_home": "Retour à l'accueil",
-    "address_line2_placeholder": "Apt, étage, bâtiment..."
+    "address_line2_placeholder": "Apt, étage, bâtiment...",
+    "billing_address": "Adresse de facturation",
+    "same_as_shipping": "Identique à l'adresse de livraison"
   },
   "account": {
     "title": "Mon Compte",

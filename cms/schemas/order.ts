@@ -66,6 +66,19 @@ export default defineType({
       ],
     },
     {
+      name: 'billingAddress',
+      title: '🧾 عنوان الفوترة',
+      type: 'object',
+      fields: [
+        { name: 'firstName', title: 'الاسم الأول', type: 'string', readOnly: true },
+        { name: 'lastName', title: 'اسم العائلة', type: 'string', readOnly: true },
+        { name: 'address', title: 'العنوان', type: 'string', readOnly: true },
+        { name: 'city', title: 'المدينة', type: 'string', readOnly: true },
+        { name: 'postalCode', title: 'الرمز البريدي', type: 'string', readOnly: true },
+        { name: 'country', title: 'البلد', type: 'string', readOnly: true },
+      ],
+    },
+    {
       name: 'shippingMethod',
       title: '🚚 طريقة الشحن',
       type: 'string',

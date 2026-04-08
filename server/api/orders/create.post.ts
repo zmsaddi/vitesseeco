@@ -141,6 +141,7 @@ export default defineEventHandler(async (event) => {
       paymentMethod: body.paymentCode,
       customer: customerInfo,
       shippingAddress: body.shippingAddress,
+      billingAddress: body.billingAddress || body.shippingAddress,
       shippingMethod: shippingMethod?.name?.fr || body.shippingCode,
       items: validatedItems,
       subtotal,

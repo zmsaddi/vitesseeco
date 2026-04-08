@@ -142,10 +142,62 @@
             </div>
           </div>
 
-          <!-- 3. Payment -->
-          <div class="card p-6">
+          <!-- 3. Billing Address -->
+          <div v-if="!isPickup" class="card p-6">
             <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
               <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">3</span>
+              {{ $t('checkout.billing_address') }}
+            </h2>
+
+            <label class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors mb-3" :class="billingSameAsShipping ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
+              <input type="checkbox" v-model="billingSameAsShipping" class="accent-accent w-4 h-4" />
+              <span class="text-white text-sm">{{ $t('checkout.same_as_shipping') }}</span>
+            </label>
+
+            <!-- Different billing address -->
+            <div v-if="!billingSameAsShipping" class="space-y-3 mt-4">
+              <div>
+                <label for="bill-country" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.country') }}</label>
+                <select id="bill-country" v-model="billing.country" class="input-field">
+                  <option value="FR">🇫🇷 France</option>
+                  <option value="BE">🇧🇪 Belgique</option>
+                  <option value="LU">🇱🇺 Luxembourg</option>
+                  <option value="DE">🇩🇪 Deutschland</option>
+                  <option value="NL">🇳🇱 Nederland</option>
+                  <option value="ES">🇪🇸 España</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="bill-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
+                  <input id="bill-fn" v-model="billing.firstName" type="text" class="input-field" required />
+                </div>
+                <div>
+                  <label for="bill-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
+                  <input id="bill-ln" v-model="billing.lastName" type="text" class="input-field" required />
+                </div>
+              </div>
+              <div>
+                <label for="bill-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
+                <input id="bill-addr" v-model="billing.address" type="text" class="input-field" required />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label for="bill-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
+                  <input id="bill-zip" v-model="billing.postalCode" type="text" class="input-field" required />
+                </div>
+                <div>
+                  <label for="bill-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
+                  <input id="bill-city" v-model="billing.city" type="text" class="input-field" required />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. Payment -->
+          <div class="card p-6">
+            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
+              <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">{{ isPickup ? '3' : '4' }}</span>
               {{ $t('checkout.payment_method') }}
             </h2>
             <div v-if="paymentMethods?.length" class="space-y-2">
@@ -217,6 +269,8 @@ const saveAddr = ref(true)
 const loadingAddresses = ref(true)
 
 const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: 'FR' })
+const billingSameAsShipping = ref(true)
+const billing = reactive({ firstName: '', lastName: '', address: '', postalCode: '', city: '', country: 'FR' })
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
 
@@ -298,7 +352,15 @@ async function placeOrder() {
     if (!stockCheck.allValid) { orderError.value = stockCheck.messages.join(', '); placing.value = false; return }
     const result = await $fetch<any>('/api/orders/create', {
       method: 'POST',
-      body: { items: cart.items.map(i => ({ productId: i.productId, sku: i.sku, quantity: i.quantity })), shippingCode: selectedShipping.value, paymentCode: selectedPayment.value, shippingAddress, promoCode: cart.promoCode || undefined, turnstileToken: turnstileToken.value },
+      body: {
+        items: cart.items.map(i => ({ productId: i.productId, sku: i.sku, quantity: i.quantity })),
+        shippingCode: selectedShipping.value,
+        paymentCode: selectedPayment.value,
+        shippingAddress,
+        billingAddress: billingSameAsShipping.value || isPickup.value ? shippingAddress : { ...billing },
+        promoCode: cart.promoCode || undefined,
+        turnstileToken: turnstileToken.value,
+      },
     })
     cart.clearCart()
     navigateTo(localePath(`/commande/confirmation?order=${result.orderNumber}`))

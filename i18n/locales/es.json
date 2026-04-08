@@ -134,7 +134,9 @@
     "order_number": "Número de pedido",
     "order_email_sent": "Se ha enviado un email de confirmación a {email}.",
     "back_to_home": "Volver al inicio",
-    "address_line2_placeholder": "Apt, piso, edificio..."
+    "address_line2_placeholder": "Apt, piso, edificio...",
+    "billing_address": "Dirección de facturación",
+    "same_as_shipping": "Igual que la dirección de envío"
   },
   "account": {
     "title": "Mi Cuenta",
