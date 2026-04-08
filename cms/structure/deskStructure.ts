@@ -130,8 +130,6 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem().title('ℹ️ من نحن').child(S.document().schemaType('aboutPage').documentId('aboutPage')),
               S.listItem().title('📞 اتصل بنا').child(S.document().schemaType('contactPage').documentId('contactPage')),
               S.listItem().title('⚖️ القانونية').child(S.document().schemaType('legalPages').documentId('legalPages')),
-              S.divider(),
-              S.listItem().title('⭐ آراء العملاء').schemaType('testimonial').child(S.documentTypeList('testimonial').title('آراء العملاء')),
             ])
         ),
 
