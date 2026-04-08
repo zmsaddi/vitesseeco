@@ -16,7 +16,7 @@
           <div class="card aspect-square flex items-center justify-center bg-dark-tertiary overflow-hidden">
             <NuxtImg
               v-if="currentImage"
-              :src="$sanity.visual.urlFor(currentImage).width(800).height(800).url()"
+              :src="useSanityImageUrl(currentImage, 800, 800)"
               :alt="l(product.name)"
               class="w-full h-full object-cover"
             />
@@ -32,7 +32,7 @@
             >
               <NuxtImg
                 v-if="img?.asset"
-                :src="$sanity.visual.urlFor(img).width(200).height(200).url()"
+                :src="useSanityImageUrl(img, 200, 200)"
                 :alt="l(product.name)"
                 class="w-full h-full object-cover"
               />
@@ -143,7 +143,7 @@
             <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center overflow-hidden">
               <NuxtImg
                 v-if="rp.mainImage?.asset"
-                :src="$sanity.visual.urlFor(rp.mainImage).width(400).height(300).url()"
+                :src="useSanityImageUrl(rp.mainImage, 400, 300)"
                 :alt="l(rp.name)"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"

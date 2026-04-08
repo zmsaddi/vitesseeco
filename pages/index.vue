@@ -61,7 +61,7 @@
             <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center relative overflow-hidden">
               <NuxtImg
                 v-if="product.mainImage?.asset"
-                :src="$sanity.visual.urlFor(product.mainImage).width(600).height(450).url()"
+                :src="useSanityImageUrl(product.mainImage, 600, 450)"
                 :alt="l(product.name)"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />

@@ -92,7 +92,7 @@
               >
                 <NuxtImg
                   v-if="product.mainImage?.asset"
-                  :src="$sanity.visual.urlFor(product.mainImage).width(400).height(300).url()"
+                  :src="useSanityImageUrl(product.mainImage, 400, 300)"
                   :alt="l(product.name)"
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   loading="lazy"
