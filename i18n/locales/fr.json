@@ -149,7 +149,13 @@
     "delete_title": "Supprimer le compte",
     "delete_warning": "Cette action est définitive. Vos données personnelles seront supprimées, mais vos commandes seront conservées de manière anonyme dans nos archives.",
     "delete_button": "Supprimer mon compte",
-    "delete_confirm": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible."
+    "delete_confirm": "Êtes-vous sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
+    "delete_type_prompt": "Tapez « {word} » pour confirmer la suppression",
+    "delete_consequence_1": "Vos données personnelles (nom, email, téléphone) seront définitivement supprimées",
+    "delete_consequence_2": "Vos adresses de livraison enregistrées seront supprimées",
+    "delete_consequence_3": "Vous perdrez l'accès au suivi et à l'historique de vos commandes",
+    "delete_consequence_4": "Vos commandes précédentes seront conservées de manière anonyme dans nos archives",
+    "delete_consequence_5": "Cette action est irréversible et ne peut pas être annulée"
   },
   "auth": {
     "login_title": "Connexion",

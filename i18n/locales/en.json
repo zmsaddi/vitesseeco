@@ -149,7 +149,13 @@
     "delete_title": "Delete Account",
     "delete_warning": "This action is permanent. Your personal data will be deleted but your orders will be kept anonymously for our records.",
     "delete_button": "Delete my account",
-    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone."
+    "delete_confirm": "Are you sure you want to delete your account? This action cannot be undone.",
+    "delete_type_prompt": "Type \"{word}\" to confirm deletion",
+    "delete_consequence_1": "Your personal data (name, email, phone) will be permanently deleted",
+    "delete_consequence_2": "Your saved delivery addresses will be deleted",
+    "delete_consequence_3": "You will lose access to your order tracking and history",
+    "delete_consequence_4": "Your previous orders will be kept anonymously for our business records",
+    "delete_consequence_5": "This action is irreversible and cannot be undone"
   },
   "auth": {
     "login_title": "Log In",

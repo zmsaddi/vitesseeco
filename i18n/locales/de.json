@@ -149,7 +149,13 @@
     "delete_title": "Konto löschen",
     "delete_warning": "Diese Aktion ist endgültig. Ihre persönlichen Daten werden gelöscht, aber Ihre Bestellungen werden anonymisiert in unseren Aufzeichnungen aufbewahrt.",
     "delete_button": "Mein Konto löschen",
-    "delete_confirm": "Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+    "delete_confirm": "Sind Sie sicher, dass Sie Ihr Konto löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "delete_type_prompt": "Geben Sie \u201E{word}\u201C ein, um die L\u00F6schung zu best\u00E4tigen",
+    "delete_consequence_1": "Ihre persönlichen Daten (Name, E-Mail, Telefon) werden dauerhaft gelöscht",
+    "delete_consequence_2": "Ihre gespeicherten Lieferadressen werden gelöscht",
+    "delete_consequence_3": "Sie verlieren den Zugang zu Ihrer Bestellverfolgung und -historie",
+    "delete_consequence_4": "Ihre bisherigen Bestellungen werden anonymisiert in unseren Geschäftsunterlagen aufbewahrt",
+    "delete_consequence_5": "Diese Aktion ist unwiderruflich und kann nicht rückgängig gemacht werden"
   },
   "auth": {
     "login_title": "Anmelden",

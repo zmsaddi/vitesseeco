@@ -187,13 +187,22 @@
           </h2>
           <p class="text-text-secondary text-sm mb-4">{{ $t('account.delete_warning') || 'This action is permanent. Your orders will be kept anonymously.' }}</p>
           <button
-            @click="confirmDeleteAccount"
+            @click="showDeleteModal = true"
             class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors text-sm px-4 py-2 rounded-lg border border-red-800/50"
           >
-            {{ $t('account.delete_button') || 'Delete my account' }}
+            {{ $t('account.delete_button') }}
           </button>
         </div>
       </div>
+
+      <!-- Delete Account Modal -->
+      <ClientOnly>
+        <DeleteAccountModal
+          :visible="showDeleteModal"
+          @close="showDeleteModal = false"
+          @confirm="executeDeleteAccount"
+        />
+      </ClientOnly>
     </div>
   </div>
 </template>
@@ -301,13 +310,13 @@ async function handleLogout() {
   navigateTo(localePath('/'))
 }
 
-async function confirmDeleteAccount() {
-  const confirmed = confirm(t('account.delete_confirm') || 'Are you sure? This cannot be undone.')
-  if (!confirmed) return
+const showDeleteModal = ref(false)
 
+async function executeDeleteAccount() {
   try {
     await $fetch('/api/auth/delete-account', { method: 'POST' })
     auth.user = null
+    showDeleteModal.value = false
     navigateTo(localePath('/'))
   } catch (e: any) {
     alert(e.data?.message || 'Error')

@@ -149,7 +149,13 @@
     "delete_title": "Eliminar cuenta",
     "delete_warning": "Esta acción es permanente. Tus datos personales serán eliminados, pero tus pedidos se conservarán de forma anónima en nuestros registros.",
     "delete_button": "Eliminar mi cuenta",
-    "delete_confirm": "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer."
+    "delete_confirm": "¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.",
+    "delete_type_prompt": "Escribe \"{word}\" para confirmar la eliminación",
+    "delete_consequence_1": "Tus datos personales (nombre, email, teléfono) se eliminarán de forma permanente",
+    "delete_consequence_2": "Tus direcciones de entrega guardadas se eliminarán",
+    "delete_consequence_3": "Perderás el acceso al seguimiento y al historial de tus pedidos",
+    "delete_consequence_4": "Tus pedidos anteriores se conservarán de forma anónima en nuestros registros",
+    "delete_consequence_5": "Esta acción es irreversible y no se puede deshacer"
   },
   "auth": {
     "login_title": "Iniciar Sesión",

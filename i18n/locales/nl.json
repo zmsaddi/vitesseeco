@@ -149,7 +149,13 @@
     "delete_title": "Account verwijderen",
     "delete_warning": "Deze actie is permanent. Je persoonlijke gegevens worden verwijderd, maar je bestellingen worden anoniem bewaard in onze administratie.",
     "delete_button": "Mijn account verwijderen",
-    "delete_confirm": "Weet je zeker dat je je account wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt."
+    "delete_confirm": "Weet je zeker dat je je account wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "delete_type_prompt": "Typ \"{word}\" om de verwijdering te bevestigen",
+    "delete_consequence_1": "Je persoonlijke gegevens (naam, e-mail, telefoon) worden permanent verwijderd",
+    "delete_consequence_2": "Je opgeslagen bezorgadressen worden verwijderd",
+    "delete_consequence_3": "Je verliest de toegang tot het volgen en de geschiedenis van je bestellingen",
+    "delete_consequence_4": "Je eerdere bestellingen worden anoniem bewaard in onze administratie",
+    "delete_consequence_5": "Deze actie is onomkeerbaar en kan niet ongedaan worden gemaakt"
   },
   "auth": {
     "login_title": "Inloggen",
