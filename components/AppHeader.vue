@@ -46,9 +46,9 @@
           <ClientOnly>
             <NuxtLink
               :to="localePath(auth.isLoggedIn ? '/compte' : '/connexion')"
-              class="hidden md:flex text-text-secondary hover:text-white transition-colors p-2"
+              class="text-text-secondary hover:text-white transition-colors p-2"
             >
-              <Icon :name="auth.isLoggedIn ? 'ph:user-circle' : 'ph:user'" class="w-5 h-5" :class="auth.isLoggedIn ? 'text-accent' : ''" />
+              <Icon :name="auth.isLoggedIn ? 'ph:user-circle-fill' : 'ph:user'" class="w-5 h-5" :class="auth.isLoggedIn ? 'text-accent' : ''" />
             </NuxtLink>
           </ClientOnly>
 
@@ -82,17 +82,6 @@
           >
             {{ $t(link.label) }}
           </NuxtLink>
-          <!-- Mobile: Account link -->
-          <ClientOnly>
-            <NuxtLink
-              :to="localePath(auth.isLoggedIn ? '/compte' : '/connexion')"
-              class="flex items-center gap-2 py-3 px-2 text-text-secondary hover:text-accent transition-colors font-medium border-t border-dark-tertiary/30 mt-2 pt-4"
-              @click="mobileMenuOpen = false"
-            >
-              <Icon :name="auth.isLoggedIn ? 'ph:user-circle' : 'ph:sign-in'" class="w-5 h-5" :class="auth.isLoggedIn ? 'text-accent' : ''" />
-              {{ auth.isLoggedIn ? auth.fullName : $t('nav.login') }}
-            </NuxtLink>
-          </ClientOnly>
         </nav>
       </Transition>
     </div>
