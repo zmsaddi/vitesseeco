@@ -111,14 +111,29 @@ export default defineType({
     { name: 'seo', title: '🔍 SEO', type: 'seoFields', group: 'seo' },
   ],
   preview: {
-    select: { title: 'name.fr', price: 'price', available: 'isAvailable', onSale: 'isOnSale' },
-    prepare({ title, price, available, onSale }) {
+    select: {
+      title: 'name.fr', price: 'price', available: 'isAvailable', onSale: 'isOnSale',
+      featured: 'isFeatured', isNew: 'isNew', category: 'category.name.fr',
+      v0: 'variants.0.stock', v1: 'variants.1.stock', v2: 'variants.2.stock',
+      v3: 'variants.3.stock', v4: 'variants.4.stock',
+    },
+    prepare({ title, price, available, onSale, featured, isNew, category, v0, v1, v2, v3, v4 }) {
+      const stocks = [v0, v1, v2, v3, v4].filter(s => s !== undefined)
+      const totalStock = stocks.reduce((a: number, b: number) => a + (b || 0), 0)
+
+      let stockIcon = '🟢'
+      if (totalStock <= 0) stockIcon = '🔴'
+      else if (totalStock <= 5) stockIcon = '🟡'
+
       const badges = []
-      if (available === false) badges.push('❌ مخفي')
-      if (onSale) badges.push('🏷️ تخفيض')
+      if (available === false) badges.push('🚫')
+      if (onSale) badges.push('🏷️')
+      if (featured) badges.push('⭐')
+      if (isNew) badges.push('✨')
+
       return {
-        title: title || 'بدون اسم',
-        subtitle: `${price ? price + '€' : '—'} ${badges.join(' ')}`,
+        title: `${stockIcon} ${title || 'بدون اسم'} ${badges.join('')}`,
+        subtitle: `${price || 0}€ | 📦 ${totalStock} قطعة | ${category || '—'}`,
       }
     },
   },

@@ -155,15 +155,16 @@ export default defineType({
     { title: 'الأقدم أولاً', name: 'createdAtAsc', by: [{ field: 'createdAt', direction: 'asc' }] },
   ],
   preview: {
-    select: { title: 'orderNumber', status: 'status', total: 'total', customer: 'customer.name', date: 'createdAt' },
-    prepare({ title, status, total, customer, date }) {
+    select: { title: 'orderNumber', status: 'status', total: 'total', customer: 'customer.name', date: 'createdAt', payment: 'paymentMethod', shipping: 'shippingMethod' },
+    prepare({ title, status, total, customer, date, payment, shipping }) {
       const statusMap: Record<string, string> = {
-        pending: '⏳', paid: '💳', processing: '📦', shipped: '🚚', delivered: '✅', cancelled: '❌',
+        pending: '🔴 جديد', paid: '💳 مدفوع', processing: '📦 تحضير', shipped: '🚚 شُحن', delivered: '✅ وصل', cancelled: '❌ ملغى',
       }
-      const d = date ? new Date(date).toLocaleDateString('fr-FR') : ''
+      const payMap: Record<string, string> = { in_store: '🏪', stripe: '💳', paypal: '🅿️', bank_transfer: '🏦' }
+      const d = date ? new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
       return {
-        title: `${statusMap[status] || '❓'} ${title || 'طلب جديد'}`,
-        subtitle: `${customer || '—'} | ${total || 0}€ | ${d}`,
+        title: `${statusMap[status] || '❓'} — ${total || 0}€`,
+        subtitle: `${title || ''} | ${customer || 'زائر'} | ${payMap[payment] || ''} ${shipping || ''} | ${d}`,
       }
     },
   },
