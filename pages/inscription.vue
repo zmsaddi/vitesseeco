@@ -19,105 +19,136 @@
 
         <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
 
-        <form @submit.prevent="handleRegister" class="space-y-4">
-          <!-- Personal Info -->
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
-              <input id="reg-first" name="firstName" v-model="form.firstName" type="text" class="input-field" required autocomplete="given-name" />
+        <!-- Steps indicator -->
+        <div class="flex items-center justify-center gap-2 mb-6">
+          <div class="flex items-center gap-2" v-for="(s, i) in steps" :key="i">
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+              :class="currentStep > i ? 'bg-accent text-primary' : currentStep === i ? 'bg-accent/20 text-accent border border-accent' : 'bg-dark-tertiary text-text-secondary'"
+            >
+              <Icon v-if="currentStep > i" name="ph:check" class="w-4 h-4" />
+              <span v-else>{{ i + 1 }}</span>
             </div>
-            <div>
-              <label for="reg-last" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.last_name') }}</label>
-              <input id="reg-last" name="lastName" v-model="form.lastName" type="text" class="input-field" required autocomplete="family-name" />
-            </div>
+            <div v-if="i < steps.length - 1" class="w-8 h-px" :class="currentStep > i ? 'bg-accent' : 'bg-dark-tertiary'" />
           </div>
+        </div>
 
-          <div>
-            <label for="reg-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.email') }}</label>
-            <input id="reg-email" name="email" v-model="form.email" type="email" class="input-field" required autocomplete="email" />
-          </div>
-
-          <div>
-            <label for="reg-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
-            <PhoneInput v-model="form.phone" input-id="reg-phone" :default-country="form.country" />
-          </div>
-
-          <!-- Address (collapsible) -->
-          <div class="border-t border-dark-tertiary pt-4">
-            <button type="button" @click="showAddress = !showAddress" class="flex items-center gap-2 text-sm text-accent hover:underline mb-3">
-              <Icon :name="showAddress ? 'ph:caret-down' : 'ph:caret-right'" class="w-4 h-4" />
-              {{ $t('checkout.shipping_address') }}
-              <span class="text-text-secondary text-xs">({{ $t('common.or') === 'ou' ? 'optionnel' : 'optional' }})</span>
-            </button>
-
-            <div v-if="showAddress" class="space-y-4">
+        <form @submit.prevent="handleSubmit">
+          <!-- Step 1: Personal Info -->
+          <div v-show="currentStep === 0" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
-                <label for="reg-address" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }}</label>
+                <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
+                <input id="reg-first" name="firstName" v-model="form.firstName" type="text" class="input-field" required autocomplete="given-name" />
+              </div>
+              <div>
+                <label for="reg-last" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.last_name') }}</label>
+                <input id="reg-last" name="lastName" v-model="form.lastName" type="text" class="input-field" required autocomplete="family-name" />
+              </div>
+            </div>
+            <div>
+              <label for="reg-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.email') }}</label>
+              <input id="reg-email" name="email" v-model="form.email" type="email" class="input-field" required autocomplete="email" />
+            </div>
+            <div>
+              <label for="reg-phone" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.phone') }}</label>
+              <PhoneInput v-model="form.phone" input-id="reg-phone" :default-country="form.country" />
+            </div>
+            <button type="button" @click="nextStep" class="btn-primary w-full py-3">
+              {{ $t('checkout.step_shipping') }} →
+            </button>
+          </div>
+
+          <!-- Step 2: Address -->
+          <div v-show="currentStep === 1" class="space-y-4">
+            <div>
+              <label for="reg-address" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.address') }}</label>
+              <ClientOnly>
                 <AddressAutocomplete
                   v-model="form.address"
                   input-id="reg-address"
-                  :placeholder="$t('checkout.address')"
+                  :placeholder="addressPlaceholder"
                   @select="onAddressSelect"
                 />
+                <template #fallback>
+                  <input id="reg-address" name="address" v-model="form.address" type="text" class="input-field" :placeholder="addressPlaceholder" />
+                </template>
+              </ClientOnly>
+            </div>
+            <div>
+              <label for="reg-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
+              <input id="reg-line2" name="addressLine2" v-model="form.addressLine2" type="text" class="input-field" placeholder="Apt, étage, bâtiment..." />
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.postal_code') }}</label>
+                <input id="reg-postal" name="postalCode" v-model="form.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
               </div>
               <div>
-                <label for="reg-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
-                <input id="reg-line2" name="addressLine2" v-model="form.addressLine2" type="text" class="input-field" placeholder="Apt, étage, bâtiment..." />
+                <label for="reg-city" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.city') }}</label>
+                <input id="reg-city" name="city" v-model="form.city" type="text" class="input-field" required autocomplete="address-level2" />
               </div>
-              <div class="grid grid-cols-3 gap-3">
-                <div>
-                  <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.postal_code') }}</label>
-                  <input id="reg-postal" name="postalCode" v-model="form.postalCode" type="text" class="input-field" autocomplete="postal-code" />
-                </div>
-                <div>
-                  <label for="reg-city" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.city') }}</label>
-                  <input id="reg-city" name="city" v-model="form.city" type="text" class="input-field" autocomplete="address-level2" />
-                </div>
-                <div>
-                  <label for="reg-country" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.country') }}</label>
-                  <select id="reg-country" name="country" v-model="form.country" class="input-field">
-                    <option value="FR">🇫🇷 France</option>
-                    <option value="BE">🇧🇪 Belgique</option>
-                    <option value="LU">🇱🇺 Luxembourg</option>
-                    <option value="DE">🇩🇪 Deutschland</option>
-                    <option value="NL">🇳🇱 Nederland</option>
-                    <option value="ES">🇪🇸 España</option>
-                  </select>
-                </div>
+              <div>
+                <label for="reg-country" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.country') }}</label>
+                <select id="reg-country" name="country" v-model="form.country" class="input-field">
+                  <option value="FR">🇫🇷 France</option>
+                  <option value="BE">🇧🇪 Belgique</option>
+                  <option value="LU">🇱🇺 Luxembourg</option>
+                  <option value="DE">🇩🇪 Deutschland</option>
+                  <option value="NL">🇳🇱 Nederland</option>
+                  <option value="ES">🇪🇸 España</option>
+                </select>
               </div>
+            </div>
+            <div class="flex gap-3">
+              <button type="button" @click="currentStep = 0" class="btn-secondary flex-1 py-3">
+                ← {{ $t('common.back') }}
+              </button>
+              <button type="button" @click="nextStep" class="btn-primary flex-1 py-3">
+                {{ $t('auth.password') }} →
+              </button>
             </div>
           </div>
 
-          <!-- Password -->
-          <div class="border-t border-dark-tertiary pt-4">
-            <div class="space-y-4">
-              <div>
-                <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
-                <input id="reg-pass" name="password" v-model="form.password" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
-                <p class="text-text-secondary text-xs mt-1">{{ passwordHint }}</p>
+          <!-- Step 3: Password -->
+          <div v-show="currentStep === 2" class="space-y-4">
+            <div>
+              <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
+              <input id="reg-pass" name="password" v-model="form.password" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
+              <div class="flex gap-1 mt-2">
+                <div v-for="i in 4" :key="i" class="h-1 flex-1 rounded-full transition-colors" :class="passwordStrength >= i ? strengthColors[passwordStrength - 1] : 'bg-dark-tertiary'" />
               </div>
-              <div>
-                <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.confirm_password') }}</label>
-                <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
-              </div>
-              <p v-if="passwordMismatch" class="text-red-400 text-sm flex items-center gap-1">
-                <Icon name="ph:x-circle" class="w-4 h-4" />
+              <p class="text-text-secondary text-xs mt-1">{{ passwordHint }}</p>
+            </div>
+            <div>
+              <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.confirm_password') }}</label>
+              <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
+              <p v-if="passwordMismatch" class="text-red-400 text-xs mt-1 flex items-center gap-1">
+                <Icon name="ph:x-circle" class="w-3 h-3" />
                 {{ $t('auth.confirm_password') }} ≠ {{ $t('auth.password') }}
               </p>
+              <p v-else-if="form.confirmPassword && !passwordMismatch" class="text-accent text-xs mt-1 flex items-center gap-1">
+                <Icon name="ph:check-circle" class="w-3 h-3" />
+                ✓
+              </p>
+            </div>
+
+            <ClientOnly>
+              <TurnstileWidget @verify="t => turnstileToken = t" />
+            </ClientOnly>
+
+            <div class="flex gap-3">
+              <button type="button" @click="currentStep = 1" class="btn-secondary flex-1 py-3">
+                ← {{ $t('common.back') }}
+              </button>
+              <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken || !form.password" class="btn-primary flex-1 py-3.5 disabled:opacity-50">
+                <span v-if="auth.loading" class="flex items-center justify-center gap-2">
+                  <Icon name="ph:spinner" class="w-5 h-5 animate-spin" />
+                </span>
+                <span v-else>{{ $t('auth.register_button') }}</span>
+              </button>
             </div>
           </div>
-
-          <ClientOnly>
-            <TurnstileWidget @verify="t => turnstileToken = t" />
-          </ClientOnly>
-
-          <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken" class="btn-primary w-full py-3.5 text-lg disabled:opacity-50">
-            <span v-if="auth.loading" class="flex items-center justify-center gap-2">
-              <Icon name="ph:spinner" class="w-5 h-5 animate-spin" />
-              {{ $t('common.loading') }}
-            </span>
-            <span v-else>{{ $t('auth.register_button') }}</span>
-          </button>
         </form>
 
         <p class="text-text-secondary text-sm text-center mt-6">
@@ -134,9 +165,11 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
 const turnstileToken = ref('')
-const showAddress = ref(false)
+const currentStep = ref(0)
 
 useHead({ title: `${t('auth.register_title')} — Vitesse Eco` })
+
+const steps = ['info', 'address', 'password']
 
 const form = reactive({
   firstName: '', lastName: '', email: '', phone: '',
@@ -145,17 +178,53 @@ const form = reactive({
 })
 
 const passwordMismatch = computed(() => form.password && form.confirmPassword && form.password !== form.confirmPassword)
+
+const passwordStrength = computed(() => {
+  const p = form.password
+  if (!p) return 0
+  let s = 0
+  if (p.length >= 8) s++
+  if (/[A-Z]/.test(p)) s++
+  if (/[0-9]/.test(p)) s++
+  if (/[^A-Za-z0-9]/.test(p)) s++
+  return s
+})
+
+const strengthColors = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-accent']
+
 const passwordHint = computed(() => {
   const hints: Record<string, string> = {
-    fr: 'Minimum 8 caractères',
-    en: 'Minimum 8 characters',
-    es: 'Mínimo 8 caracteres',
-    nl: 'Minimaal 8 tekens',
-    de: 'Mindestens 8 Zeichen',
-    ar: '8 أحرف على الأقل',
+    fr: '8+ caractères, majuscule, chiffre, caractère spécial',
+    en: '8+ characters, uppercase, number, special character',
+    es: '8+ caracteres, mayúscula, número, carácter especial',
+    nl: '8+ tekens, hoofdletter, cijfer, speciaal teken',
+    de: '8+ Zeichen, Großbuchstabe, Zahl, Sonderzeichen',
+    ar: '8+ أحرف، حرف كبير، رقم، رمز خاص',
   }
   return hints[locale.value] || hints.fr
 })
+
+const addressPlaceholder = computed(() => {
+  const p: Record<string, string> = {
+    fr: 'Commencez à taper votre adresse...',
+    en: 'Start typing your address...',
+    es: 'Empieza a escribir tu dirección...',
+    nl: 'Begin je adres te typen...',
+    de: 'Beginnen Sie Ihre Adresse einzugeben...',
+    ar: 'ابدأ بكتابة عنوانك...',
+  }
+  return p[locale.value] || p.fr
+})
+
+function nextStep() {
+  if (currentStep.value === 0) {
+    if (!form.firstName || !form.lastName || !form.email) return
+  }
+  if (currentStep.value === 1) {
+    if (!form.address || !form.city || !form.postalCode) return
+  }
+  currentStep.value++
+}
 
 function onAddressSelect(details: { address: string; city: string; postalCode: string; country: string }) {
   form.address = details.address
@@ -164,8 +233,8 @@ function onAddressSelect(details: { address: string; city: string; postalCode: s
   form.country = details.country
 }
 
-async function handleRegister() {
-  if (passwordMismatch.value) return
+async function handleSubmit() {
+  if (passwordMismatch.value || !form.password) return
 
   const ok = await auth.register({
     email: form.email,
@@ -176,7 +245,6 @@ async function handleRegister() {
   })
 
   if (ok && form.address && form.city && form.postalCode) {
-    // Save address automatically
     try {
       await $fetch('/api/addresses', {
         method: 'POST',

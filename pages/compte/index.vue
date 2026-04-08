@@ -120,12 +120,17 @@
             </div>
             <div>
               <label for="addr-address" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.address') }}</label>
-              <AddressAutocomplete
-                v-model="addressForm.address"
-                input-id="addr-address"
-                :placeholder="$t('checkout.address')"
-                @select="onAddressSelect"
-              />
+              <ClientOnly>
+                <AddressAutocomplete
+                  v-model="addressForm.address"
+                  input-id="addr-address"
+                  :placeholder="$t('checkout.address')"
+                  @select="onAddressSelect"
+                />
+                <template #fallback>
+                  <input id="addr-address" name="address" v-model="addressForm.address" type="text" class="input-field" :placeholder="$t('checkout.address')" />
+                </template>
+              </ClientOnly>
             </div>
             <div>
               <label for="addr-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
