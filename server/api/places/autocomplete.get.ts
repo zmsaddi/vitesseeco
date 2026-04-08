@@ -5,6 +5,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const input = query.input as string
+  const country = (query.country as string || 'fr').toLowerCase().trim()
 
   if (!input || input.length < 3) {
     return { predictions: [] }
@@ -20,8 +21,8 @@ export default defineEventHandler(async (event) => {
           input,
           key: apiKey,
           types: 'address',
-          components: 'country:fr|country:be|country:lu|country:de|country:nl',
-          language: 'fr',
+          components: `country:${country}`,
+          language: country === 'de' ? 'de' : country === 'nl' ? 'nl' : country === 'es' ? 'es' : 'fr',
         },
       }
     )

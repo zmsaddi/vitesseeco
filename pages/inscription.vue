@@ -50,6 +50,20 @@
             </p>
 
             <div class="space-y-3">
+              <!-- Country FIRST -->
+              <div>
+                <label for="reg-country" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.country') }}</label>
+                <select id="reg-country" name="country" v-model="form.country" class="input-field">
+                  <option value="FR">🇫🇷 France</option>
+                  <option value="BE">🇧🇪 Belgique</option>
+                  <option value="LU">🇱🇺 Luxembourg</option>
+                  <option value="DE">🇩🇪 Deutschland</option>
+                  <option value="NL">🇳🇱 Nederland</option>
+                  <option value="ES">🇪🇸 España</option>
+                </select>
+              </div>
+
+              <!-- Address with autocomplete for selected country -->
               <div>
                 <label for="reg-address" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
                 <div class="relative">
@@ -88,7 +102,7 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-3 gap-3">
+              <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
                   <input id="reg-postal" name="postalCode" v-model="form.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
@@ -96,17 +110,6 @@
                 <div>
                   <label for="reg-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
                   <input id="reg-city" name="city" v-model="form.city" type="text" class="input-field" required autocomplete="address-level2" />
-                </div>
-                <div>
-                  <label for="reg-country" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.country') }}</label>
-                  <select id="reg-country" name="country" v-model="form.country" class="input-field text-sm">
-                    <option value="FR">🇫🇷</option>
-                    <option value="BE">🇧🇪</option>
-                    <option value="LU">🇱🇺</option>
-                    <option value="DE">🇩🇪</option>
-                    <option value="NL">🇳🇱</option>
-                    <option value="ES">🇪🇸</option>
-                  </select>
                 </div>
               </div>
             </div>
@@ -205,7 +208,7 @@ function onAddressInput() {
   addressTimer = setTimeout(async () => {
     try {
       const data = await $fetch<any>('/api/places/autocomplete', {
-        query: { input: form.address },
+        query: { input: form.address, country: form.country.toLowerCase() },
       })
       addressSuggestions.value = data.predictions || []
     } catch {
