@@ -111,9 +111,13 @@
         <div class="space-y-3">
           <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{{ orderError }}</p>
 
+          <ClientOnly>
+            <TurnstileWidget @verify="t => turnstileToken = t" />
+          </ClientOnly>
+
           <button
             @click="placeOrder"
-            :disabled="!canOrder || placing"
+            :disabled="!canOrder || placing || !turnstileToken"
             class="btn-primary w-full py-4 text-lg disabled:opacity-50"
           >
             <span v-if="placing" class="flex items-center justify-center gap-2">
@@ -145,6 +149,7 @@ const selectedAddressId = ref('')
 const selectedPayment = ref('')
 const placing = ref(false)
 const orderError = ref('')
+const turnstileToken = ref('')
 
 // Fetch saved addresses
 const savedAddresses = ref<any[]>([])
@@ -209,6 +214,7 @@ async function placeOrder() {
           country: address.country,
         },
         promoCode: cart.promoCode || undefined,
+        turnstileToken: turnstileToken.value,
       },
     })
 
