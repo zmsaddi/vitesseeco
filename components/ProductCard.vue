@@ -15,6 +15,8 @@
           :key="i"
           :src="useSanityImageUrl(img, 400, 300)"
           :alt="l(product.name)"
+          width="400"
+          height="300"
           class="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
           :class="i === activeIndex ? 'opacity-100' : 'opacity-0'"
           loading="lazy"

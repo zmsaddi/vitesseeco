@@ -20,6 +20,8 @@
                 :key="i"
                 :src="useSanityImageUrl(img, 800, 800)"
                 :alt="l(product.name)"
+                width="800"
+                height="800"
                 class="absolute inset-0 w-full h-full object-contain bg-dark-tertiary transition-opacity duration-300"
                 :class="i === selectedImageIndex ? 'opacity-100' : 'opacity-0'"
               />
@@ -65,6 +67,9 @@
               <img
                 :src="useSanityImageUrl(img, 150, 150)"
                 :alt="l(product.name)"
+                width="150"
+                height="150"
+                loading="lazy"
                 class="w-full h-full object-cover"
               />
             </button>
