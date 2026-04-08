@@ -151,7 +151,7 @@
                   <Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" />
                 </div>
                 <div
-                  v-if="addrFocused && addrSuggestions.length > 0"
+                  v-if="addrSuggestions.length > 0"
                   class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto"
                 >
                   <button

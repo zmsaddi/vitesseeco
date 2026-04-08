@@ -85,7 +85,7 @@
                   </div>
                   <!-- Suggestions -->
                   <div
-                    v-if="addressFocused && addressSuggestions.length > 0"
+                    v-if="addressSuggestions.length > 0"
                     class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl overflow-hidden max-h-48 overflow-y-auto"
                   >
                     <button
