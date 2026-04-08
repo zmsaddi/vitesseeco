@@ -202,10 +202,70 @@
             <Icon name="ph:package" class="w-5 h-5 text-accent" />
             {{ $t('account.orders') }}
           </h2>
-          <p class="text-text-secondary text-sm">
-            {{ $t('account.no_orders') }}
-            <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline ml-1">{{ $t('cart.empty_cta') }}</NuxtLink>
-          </p>
+
+          <div v-if="loadingOrders" class="text-center py-4">
+            <Icon name="ph:spinner" class="w-6 h-6 text-accent animate-spin mx-auto" />
+          </div>
+
+          <div v-else-if="myOrders.length" class="space-y-4">
+            <div v-for="order in myOrders" :key="order.orderNumber" class="bg-dark-tertiary/30 rounded-lg p-4">
+              <!-- Order header -->
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <span class="text-white font-medium text-sm">{{ order.orderNumber }}</span>
+                  <span class="text-text-secondary text-xs ml-2">{{ formatDate(order.createdAt) }}</span>
+                </div>
+                <span class="text-xs px-2 py-1 rounded-full" :class="statusClass(order.status)">
+                  {{ $t(`account.order_status.${order.status}`) }}
+                </span>
+              </div>
+
+              <!-- Items -->
+              <div class="space-y-1 mb-3">
+                <div v-for="item in order.items" :key="item.productName + item.color" class="flex justify-between text-xs text-text-secondary">
+                  <span>{{ item.productName }} ({{ item.color }}) × {{ item.quantity }}</span>
+                  <span>{{ item.price * item.quantity }}€</span>
+                </div>
+              </div>
+
+              <!-- Total -->
+              <div class="flex justify-between text-sm border-t border-dark-tertiary pt-2">
+                <span class="text-text-secondary">{{ $t('cart.total') }}</span>
+                <span class="text-accent font-bold">{{ order.total }}€</span>
+              </div>
+
+              <!-- Tracking -->
+              <div v-if="order.trackingNumber" class="mt-3 bg-accent/5 border border-accent/20 rounded-lg p-3">
+                <p class="text-sm text-white flex items-center gap-2 mb-1">
+                  <Icon name="ph:map-trifold" class="w-4 h-4 text-accent" />
+                  {{ $t('shipping.title') }}
+                </p>
+                <p class="text-accent text-sm font-mono">{{ order.trackingNumber }}</p>
+                <a
+                  v-if="getTrackingUrl(order)"
+                  :href="getTrackingUrl(order)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent text-xs hover:underline mt-1 inline-flex items-center gap-1"
+                >
+                  {{ $t('shipping.estimated', { days: '' }).replace('{days}', '') }} →
+                </a>
+              </div>
+
+              <!-- Status: waiting for pickup -->
+              <div v-else-if="order.status === 'processing' || order.status === 'paid'" class="mt-3 bg-gold/5 border border-gold/20 rounded-lg p-3">
+                <p class="text-gold text-xs flex items-center gap-2">
+                  <Icon name="ph:clock" class="w-4 h-4" />
+                  {{ order.paymentMethod === 'in_store' ? 'En cours de préparation — vous recevrez un email' : $t('account.order_status.processing') }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-text-secondary text-sm">
+            <p>{{ $t('account.no_orders') }}</p>
+            <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline mt-2 inline-block">{{ $t('cart.empty_cta') }}</NuxtLink>
+          </div>
         </div>
 
         <!-- Delete Account -->
@@ -296,6 +356,54 @@ const addressForm = reactive({
   country: 'FR',
   isDefault: false,
 })
+
+// Orders
+const myOrders = ref<any[]>([])
+const loadingOrders = ref(true)
+
+async function fetchOrders() {
+  try {
+    const { orders } = await $fetch<any>('/api/orders/my-orders')
+    myOrders.value = orders
+  } catch {} finally { loadingOrders.value = false }
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function statusClass(status: string) {
+  const map: Record<string, string> = {
+    pending: 'bg-gold/20 text-gold',
+    paid: 'bg-blue-500/20 text-blue-400',
+    processing: 'bg-purple-500/20 text-purple-400',
+    shipped: 'bg-accent/20 text-accent',
+    delivered: 'bg-green-500/20 text-green-400',
+    cancelled: 'bg-red-500/20 text-red-400',
+  }
+  return map[status] || 'bg-dark-tertiary text-text-secondary'
+}
+
+function getTrackingUrl(order: any) {
+  if (!order.trackingNumber) return ''
+  // Tracking URLs are stored in Sanity shipping methods — for now use generic
+  const urls: Record<string, string> = {
+    colissimo: 'https://www.laposte.fr/outils/suivre-vos-envois?code=',
+    chronopost: 'https://www.chronopost.fr/tracking-no-edito/suivi-page?liession=a]&langue=fr&id=',
+    mondial_relay: 'https://www.mondialrelay.fr/suivi-de-colis?codeExpedition=',
+    dpd: 'https://trace.dpd.fr/fr/trace/',
+    dhl: 'https://www.dhl.com/fr-fr/home/tracking/tracking-express.html?submit=1&tracking-id=',
+    ups: 'https://www.ups.com/track?tracknum=',
+    gls: 'https://gls-group.com/FR/fr/suivi-colis?match=',
+  }
+  // Try to match shipping method to carrier
+  for (const [carrier, url] of Object.entries(urls)) {
+    if (order.shippingMethod?.toLowerCase().includes(carrier)) {
+      return url + order.trackingNumber
+    }
+  }
+  return ''
+}
 
 // Inline address autocomplete
 const addrInput = ref<HTMLInputElement>()
@@ -403,5 +511,8 @@ async function executeDeleteAccount() {
   }
 }
 
-onMounted(fetchAddresses)
+onMounted(() => {
+  fetchAddresses()
+  fetchOrders()
+})
 </script>
