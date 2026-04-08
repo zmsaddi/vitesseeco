@@ -60,8 +60,8 @@
           >
             <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center relative overflow-hidden">
               <NuxtImg
-                v-if="product.mainImage?.asset"
-                :src="useSanityImageUrl(product.mainImage, 600, 450)"
+                v-if="product.mainImage?.asset || product.fallbackImage?.asset"
+                :src="useSanityImageUrl(product.mainImage || product.fallbackImage, 600, 450)"
                 :alt="l(product.name)"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
@@ -118,6 +118,7 @@ useHead({ title: 'Vitesse Eco — Fatbikes Électriques' })
 
 const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder asc)[0..2] {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, mainImage,
+  "fallbackImage": variants[0].images[0],
   variants[]{ _key, colorHex }
 }`
 const { data: featuredProducts } = useSanityFetch('featured-products', query)

@@ -142,8 +142,8 @@
           >
             <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center overflow-hidden">
               <NuxtImg
-                v-if="rp.mainImage?.asset"
-                :src="useSanityImageUrl(rp.mainImage, 400, 300)"
+                v-if="rp.mainImage?.asset || rp.fallbackImage?.asset"
+                :src="useSanityImageUrl(rp.mainImage || rp.fallbackImage, 400, 300)"
                 :alt="l(rp.name)"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 loading="lazy"
@@ -186,7 +186,7 @@ const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   isOnSale, isNew, isAvailable, mainImage, gallery,
   specifications, category->{ _id, name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
-  relatedProducts[]->{ _id, name, slug, price, mainImage }
+  relatedProducts[]->{ _id, name, slug, price, mainImage, "fallbackImage": variants[0].images[0] }
 }`
 const { data: product } = useSanityFetch(
   () => `product-${slug.value}`,
