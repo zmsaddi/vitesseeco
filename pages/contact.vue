@@ -76,7 +76,7 @@
           <!-- Google Map -->
           <div class="card overflow-hidden">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2770.7!2d0.3434!3d46.5802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47fdbe31a5075ccb%3A0x2a43cf344f2d1b0!2s32%20Rue%20du%20Faubourg%20du%20Pont%20Neuf%2C%2086000%20Poitiers!5e0!3m2!1sfr!2sfr!4v1700000000000!5m2!1sfr!2sfr"
+              :src="mapUrl"
               width="100%"
               height="280"
               style="border: 0"
@@ -135,6 +135,11 @@
 const { t } = useI18n()
 
 useHead({ title: `${t('contact.title')} — Vitesse Eco` })
+
+// Fetch map URL from Sanity (editable by admin)
+const defaultMapUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2770.7!2d0.3434!3d46.5802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47fdbe31a5075ccb%3A0x2a43cf344f2d1b0!2s32%20Rue%20du%20Faubourg%20du%20Pont%20Neuf%2C%2086000%20Poitiers!5e0!3m2!1sfr!2sfr!4v1700000000000!5m2!1sfr!2sfr'
+const { data: contactData } = useSanityFetch('contact-page', groq`*[_type == "contactPage"][0]{ mapUrl }`)
+const mapUrl = computed(() => contactData.value?.mapUrl || defaultMapUrl)
 
 const form = reactive({
   name: '',
