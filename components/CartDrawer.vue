@@ -60,17 +60,28 @@
                 <p class="text-accent font-bold text-sm mt-1">{{ item.price }}{{ $t('common.currency') }}</p>
               </div>
               <div class="flex flex-col items-end gap-2">
-                <button @click="cart.removeItem(item.productId, item.sku)" class="text-text-secondary hover:text-red-400 transition-colors">
+                <button @click="cart.removeItem(item.productId, item.sku)" :aria-label="$t('cart.remove')" class="text-text-secondary hover:text-red-400 transition-colors">
                   <Icon name="ph:trash" class="w-4 h-4" />
                 </button>
                 <div class="flex items-center gap-1">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
+                    aria-label="Decrease"
                     class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
                   >-</button>
-                  <span class="text-white text-sm w-6 text-center">{{ item.quantity }}</span>
+                  <input
+                    type="number"
+                    :id="`cart-qty-${item.sku}`"
+                    :name="`qty-${item.sku}`"
+                    :value="item.quantity"
+                    @change="cart.updateQuantity(item.productId, item.sku, Math.max(1, Math.min(10, Number(($event.target as HTMLInputElement).value))))"
+                    min="1" max="10"
+                    class="text-white text-sm w-8 text-center bg-transparent border-none outline-none"
+                    :aria-label="$t('cart.quantity')"
+                  />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
+                    aria-label="Increase"
                     class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
                   >+</button>
                 </div>

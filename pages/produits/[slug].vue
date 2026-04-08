@@ -57,15 +57,18 @@
 
           <!-- Color Picker -->
           <div class="mb-6" v-if="product.variants?.length">
-            <label class="text-sm font-medium text-text-secondary block mb-3">
+            <p id="color-label" class="text-sm font-medium text-text-secondary block mb-3">
               {{ $t('product.select_color') }}
               <span class="text-white ml-2">{{ l(product.variants[selectedColor]?.colorName) }}</span>
-            </label>
-            <div class="flex gap-3">
+            </p>
+            <div class="flex gap-3" role="radiogroup" aria-labelledby="color-label">
               <button
                 v-for="(variant, i) in product.variants"
                 :key="variant._key"
                 @click="selectedColor = i"
+                role="radio"
+                :aria-checked="selectedColor === i"
+                :aria-label="l(variant.colorName)"
                 class="w-10 h-10 rounded-full border-2 transition-all"
                 :class="selectedColor === i ? 'border-accent scale-110' : 'border-dark-tertiary'"
                 :style="{ backgroundColor: variant.colorHex }"
@@ -76,13 +79,13 @@
 
           <!-- Quantity -->
           <div class="mb-6">
-            <label class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
+            <label for="product-qty" class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
             <div class="flex items-center gap-3">
-              <button @click="qty = Math.max(1, qty - 1)" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
+              <button @click="qty = Math.max(1, qty - 1)" aria-label="Decrease quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:minus" class="w-4 h-4" />
               </button>
-              <span class="w-12 text-center font-semibold text-lg">{{ qty }}</span>
-              <button @click="qty++" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
+              <input id="product-qty" name="quantity" type="number" v-model.number="qty" min="1" max="10" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
+              <button @click="qty = Math.min(10, qty + 1)" aria-label="Increase quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:plus" class="w-4 h-4" />
               </button>
             </div>

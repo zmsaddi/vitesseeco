@@ -42,13 +42,24 @@
                 <div class="flex items-center gap-2">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
+                    aria-label="Decrease"
                     class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
                   >
                     <Icon name="ph:minus" class="w-3 h-3" />
                   </button>
-                  <span class="w-8 text-center font-semibold">{{ item.quantity }}</span>
+                  <label :for="`panier-qty-${item.sku}`" class="sr-only">{{ $t('cart.quantity') }}</label>
+                  <input
+                    :id="`panier-qty-${item.sku}`"
+                    :name="`qty-${item.sku}`"
+                    type="number"
+                    :value="item.quantity"
+                    @change="cart.updateQuantity(item.productId, item.sku, Math.max(1, Math.min(10, Number(($event.target as HTMLInputElement).value))))"
+                    min="1" max="10"
+                    class="w-10 text-center font-semibold bg-transparent border-none outline-none text-white"
+                  />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
+                    aria-label="Increase"
                     class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
                   >
                     <Icon name="ph:plus" class="w-3 h-3" />
