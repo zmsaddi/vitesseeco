@@ -69,6 +69,8 @@ export default defineNuxtConfig({
     resendApiKey: '',
     authSecret: '',
     databaseUrl: '',
+    googleClientId: '',
+    googleClientSecret: '',
     public: {
       sanityProjectId: '2jvnjf0c',
       sanityDataset: 'production',
