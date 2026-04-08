@@ -81,7 +81,8 @@ export default defineEventHandler(async (event) => {
     // Redirect to account page (client will handle locale)
     return sendRedirect(event, '/compte')
   } catch (e: any) {
-    console.error('Google OAuth error:', e.data || e.message)
-    return sendRedirect(event, '/connexion?error=google_failed')
+    const errMsg = e.data?.error_description || e.data?.error || e.message || 'unknown'
+    console.error('Google OAuth error:', errMsg, e.data || '')
+    return sendRedirect(event, `/connexion?error=${encodeURIComponent(errMsg)}`)
   }
 })
