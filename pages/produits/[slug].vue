@@ -13,26 +13,57 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
         <!-- Image Gallery -->
         <div class="space-y-4">
-          <div class="card aspect-square flex items-center justify-center bg-dark-tertiary overflow-hidden">
-            <NuxtImg
-              v-if="currentImage"
-              :src="useSanityImageUrl(currentImage, 800, 800)"
-              :alt="l(product.name)"
-              class="w-full h-full object-cover"
-            />
-            <Icon v-else name="ph:bicycle" class="w-32 h-32 text-dark-tertiary/50" />
+          <div class="card aspect-square bg-dark-tertiary overflow-hidden relative">
+            <template v-if="allImages.length > 0">
+              <img
+                v-for="(img, i) in allImages"
+                :key="i"
+                :src="useSanityImageUrl(img, 800, 800)"
+                :alt="l(product.name)"
+                class="absolute inset-0 w-full h-full object-contain bg-dark-tertiary transition-opacity duration-300"
+                :class="i === selectedImageIndex ? 'opacity-100' : 'opacity-0'"
+              />
+              <!-- Navigation arrows -->
+              <button
+                v-if="allImages.length > 1"
+                @click="selectedImageIndex = (selectedImageIndex - 1 + allImages.length) % allImages.length"
+                class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+              >
+                <Icon name="ph:caret-left" class="w-5 h-5" />
+              </button>
+              <button
+                v-if="allImages.length > 1"
+                @click="selectedImageIndex = (selectedImageIndex + 1) % allImages.length"
+                class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+              >
+                <Icon name="ph:caret-right" class="w-5 h-5" />
+              </button>
+              <!-- Image counter -->
+              <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
+                <button
+                  v-for="(_, i) in allImages"
+                  :key="i"
+                  @click="selectedImageIndex = i"
+                  class="w-2 h-2 rounded-full transition-all"
+                  :class="i === selectedImageIndex ? 'bg-accent w-5' : 'bg-white/50'"
+                />
+              </div>
+            </template>
+            <div v-else class="absolute inset-0 flex items-center justify-center">
+              <Icon name="ph:bicycle" class="w-32 h-32 text-dark-tertiary/50" />
+            </div>
           </div>
-          <div v-if="allImages.length > 1" class="grid grid-cols-4 gap-2">
+          <!-- Thumbnails -->
+          <div v-if="allImages.length > 1" class="grid grid-cols-5 gap-2">
             <button
-              v-for="(img, i) in allImages.slice(0, 4)"
+              v-for="(img, i) in allImages.slice(0, 10)"
               :key="i"
               @click="selectedImageIndex = i"
-              class="card aspect-square flex items-center justify-center bg-dark-tertiary cursor-pointer overflow-hidden"
-              :class="selectedImageIndex === i ? 'border-accent' : 'hover:border-accent/50'"
+              class="card aspect-square bg-dark-tertiary cursor-pointer overflow-hidden border-2 transition-colors"
+              :class="selectedImageIndex === i ? 'border-accent' : 'border-transparent hover:border-accent/30'"
             >
-              <NuxtImg
-                v-if="img?.asset"
-                :src="useSanityImageUrl(img, 200, 200)"
+              <img
+                :src="useSanityImageUrl(img, 150, 150)"
                 :alt="l(product.name)"
                 class="w-full h-full object-cover"
               />
@@ -138,22 +169,8 @@
             v-for="rp in relatedProducts"
             :key="rp._id"
             :to="localePath(`/produits/${rp.slug?.current}`)"
-            class="card group"
           >
-            <div class="aspect-[4/3] bg-dark-tertiary flex items-center justify-center overflow-hidden">
-              <NuxtImg
-                v-if="rp.mainImage?.asset || rp.fallbackImage?.asset"
-                :src="useSanityImageUrl(rp.mainImage || rp.fallbackImage, 400, 300)"
-                :alt="l(rp.name)"
-                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                loading="lazy"
-              />
-              <Icon v-else name="ph:bicycle" class="w-16 h-16 text-dark-tertiary/50" />
-            </div>
-            <div class="p-4">
-              <h3 class="font-display font-semibold text-white group-hover:text-accent transition-colors">{{ l(rp.name) }}</h3>
-              <p class="text-accent font-bold mt-1">{{ $t('common.from') }} {{ rp.price }}{{ $t('common.currency') }}</p>
-            </div>
+            <ProductCard :product="rp" />
           </NuxtLink>
         </div>
       </section>
@@ -183,10 +200,10 @@ const slug = computed(() => route.params.slug as string)
 
 const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,
-  isOnSale, isNew, isAvailable, mainImage, gallery,
+  isOnSale, isNew, isAvailable,
   specifications, category->{ _id, name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
-  relatedProducts[]->{ _id, name, slug, price, mainImage, "fallbackImage": variants[0].images[0] }
+  relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, "images": images[]{asset} } }
 }`
 const { data: product } = useSanityFetch(
   () => `product-${slug.value}`,
@@ -206,18 +223,21 @@ const relatedProducts = computed(() => {
   return product.value?.relatedProducts?.length ? product.value.relatedProducts : []
 })
 
+// All images: selected color first, then other colors
 const allImages = computed(() => {
-  if (!product.value) return []
-  const images = []
-  // Variant-specific images first
-  const variant = product.value.variants?.[selectedColor.value]
-  if (variant?.images?.length) {
-    images.push(...variant.images)
+  if (!product.value?.variants) return []
+  const images: any[] = []
+  // Selected color images first
+  const selected = product.value.variants[selectedColor.value]
+  if (selected?.images?.length) {
+    images.push(...selected.images)
   }
-  // Main image
-  if (product.value.mainImage?.asset) images.push(product.value.mainImage)
-  // Gallery
-  if (product.value.gallery?.length) images.push(...product.value.gallery)
+  // Then other colors (one image each)
+  for (let i = 0; i < product.value.variants.length; i++) {
+    if (i === selectedColor.value) continue
+    const v = product.value.variants[i]
+    if (v?.images?.[0]?.asset) images.push(v.images[0])
+  }
   return images
 })
 

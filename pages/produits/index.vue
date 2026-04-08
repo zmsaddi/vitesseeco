@@ -83,45 +83,8 @@
               v-for="product in filteredProducts"
               :key="product._id"
               :to="localePath(`/produits/${product.slug?.current}`)"
-              class="card group"
-              :class="viewMode === 'list' ? 'flex' : ''"
             >
-              <div
-                :class="viewMode === 'list' ? 'w-48 shrink-0' : 'aspect-[4/3]'"
-                class="bg-dark-tertiary flex items-center justify-center relative overflow-hidden"
-              >
-                <NuxtImg
-                  v-if="product.mainImage?.asset || product.fallbackImage?.asset"
-                  :src="useSanityImageUrl(product.mainImage || product.fallbackImage, 400, 300)"
-                  :alt="l(product.name)"
-                  class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  loading="lazy"
-                />
-                <Icon v-else name="ph:bicycle" class="w-16 h-16 text-dark-tertiary/50" />
-                <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo">PROMO</span>
-                <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new">NEW</span>
-              </div>
-              <div class="p-4 flex-1">
-                <h3 class="font-display font-semibold text-white group-hover:text-accent transition-colors mb-1">
-                  {{ l(product.name) }}
-                </h3>
-                <p class="text-text-secondary text-sm mb-2">{{ l(product.shortDescription) }}</p>
-                <p class="text-text-secondary text-xs mb-3">{{ product.specifications?.battery }} — {{ product.specifications?.range }}</p>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs mr-2">{{ product.compareAtPrice }}{{ $t('common.currency') }}</span>
-                    <span class="text-accent font-bold">{{ $t('common.from') }} {{ product.price }}{{ $t('common.currency') }}</span>
-                  </div>
-                  <div class="flex gap-1">
-                    <span
-                      v-for="variant in (product.variants || []).slice(0, 4)"
-                      :key="variant._key"
-                      class="w-3 h-3 rounded-full border border-white/20"
-                      :style="{ backgroundColor: variant.colorHex }"
-                    />
-                  </div>
-                </div>
-              </div>
+              <ProductCard :product="product" :list-mode="viewMode === 'list'" />
             </NuxtLink>
           </div>
 
@@ -157,8 +120,8 @@ const { data: categories } = useSanityFetch('categories', catQuery)
 // Fetch all products
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
-  mainImage, "fallbackImage": variants[0].images[0], specifications, category->{ _id },
-  variants[]{ _key, colorHex, colorName }
+  specifications, category->{ _id },
+  variants[]{ _key, colorHex, colorName, "images": images[]{asset} }
 }`
 const { data: products } = useSanityFetch('all-products', prodQuery)
 
