@@ -16,6 +16,23 @@ export const customers = pgTable('customers', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 })
 
+// === ADDRESSES ===
+export const addresses = pgTable('addresses', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  customerId: uuid('customer_id').references(() => customers.id).notNull(),
+  label: text('label').notNull().default('home'), // home, work, other
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  phone: text('phone'),
+  address: text('address').notNull(),
+  addressLine2: text('address_line2'),
+  city: text('city').notNull(),
+  postalCode: text('postal_code').notNull(),
+  country: text('country').notNull().default('FR'),
+  isDefault: boolean('is_default').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // === ORDERS ===
 export const orders = pgTable('orders', {
   id: uuid('id').defaultRandom().primaryKey(),
