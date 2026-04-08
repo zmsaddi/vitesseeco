@@ -41,7 +41,7 @@
             </div>
             <div>
               <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.web') }}</h3>
-              <span class="text-text-secondary text-sm">www.vitesse-eco.fr</span>
+              <span class="text-text-secondary text-sm">www.vitesse-eco.com</span>
             </div>
           </div>
 

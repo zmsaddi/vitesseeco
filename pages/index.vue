@@ -7,6 +7,8 @@
           src="/poster.jpeg"
           alt="Vitesse Eco Fatbike"
           class="w-full h-full object-cover"
+          loading="eager"
+          fetchpriority="high"
         />
         <div class="absolute inset-0 bg-gradient-to-r from-primary/90 via-primary/70 to-primary/40" />
       </div>

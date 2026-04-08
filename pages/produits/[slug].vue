@@ -220,11 +220,18 @@ const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, "images": images[]{asset} } }
 }`
-const { data: product } = useSanityFetch(
+const { data: product, status } = useSanityFetch(
   () => `product-${slug.value}`,
   productQuery,
   { slug }
 )
+
+// Show 404 if product not found
+watch([status, product], () => {
+  if (status.value === 'success' && !product.value) {
+    throw createError({ statusCode: 404, message: 'Product not found' })
+  }
+}, { immediate: true })
 
 // Reset UI state when product changes
 watch(() => product.value?._id, () => {

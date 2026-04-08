@@ -158,8 +158,16 @@ async function confirmDelete() {
   emit('confirm')
 }
 
-// Reset when modal opens
+// Reset when modal opens + body scroll lock
 watch(() => props.visible, (v) => {
   if (v) { step.value = 1; userInput.value = ''; deleting.value = false }
+  document.body.style.overflow = v ? 'hidden' : ''
 })
+
+// Close on Escape key
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && props.visible) cancel()
+}
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>

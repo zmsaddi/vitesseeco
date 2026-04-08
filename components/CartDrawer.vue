@@ -11,15 +11,15 @@
       <div class="absolute inset-0 bg-black/60" @click="close" />
       <Transition
         enter-active-class="transition duration-300 ease-out"
-        enter-from-class="translate-x-full"
+        enter-from-class="ltr:translate-x-full rtl:-translate-x-full"
         enter-to-class="translate-x-0"
         leave-active-class="transition duration-200 ease-in"
         leave-from-class="translate-x-0"
-        leave-to-class="translate-x-full"
+        leave-to-class="ltr:translate-x-full rtl:-translate-x-full"
       >
         <div
           v-if="isOpen"
-          class="absolute right-0 top-0 h-full w-full max-w-md bg-primary border-l border-dark-tertiary shadow-2xl flex flex-col"
+          class="absolute ltr:right-0 rtl:left-0 top-0 h-full w-full max-w-md bg-primary border-l border-dark-tertiary shadow-2xl flex flex-col"
         >
           <!-- Header -->
           <div class="flex items-center justify-between p-6 border-b border-dark-tertiary">
@@ -129,4 +129,16 @@ const isOpen = useState('cartOpen', () => false)
 function close() {
   isOpen.value = false
 }
+
+// Body scroll lock when drawer is open
+watch(isOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
+// Close on Escape key
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape' && isOpen.value) close()
+}
+onMounted(() => document.addEventListener('keydown', onKeydown))
+onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 </script>

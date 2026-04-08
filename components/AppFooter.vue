@@ -49,20 +49,26 @@
         <!-- Newsletter -->
         <div>
           <h3 class="font-display font-semibold text-white mb-4">{{ $t('footer.newsletter') }}</h3>
-          <form @submit.prevent class="flex gap-2">
+          <form v-if="!newsletterSubmitted" @submit.prevent="submitNewsletter" class="flex gap-2">
             <label for="newsletter-email" class="sr-only">{{ $t('footer.newsletter') }}</label>
             <input
               id="newsletter-email"
               name="newsletter-email"
               type="email"
+              v-model="newsletterEmail"
               :placeholder="$t('footer.newsletter_placeholder')"
               class="input-field flex-1 text-sm py-2.5"
               autocomplete="email"
+              required
             />
             <button type="submit" class="btn-primary py-2.5 px-4 text-sm">
               {{ $t('footer.newsletter_button') }}
             </button>
           </form>
+          <p v-else class="text-accent text-sm flex items-center gap-2">
+            <Icon name="ph:check-circle" class="w-5 h-5" />
+            {{ $t('footer.newsletter_success') }}
+          </p>
           <div class="flex items-center gap-4 mt-6">
             <a :href="instagramUrl" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:instagram-logo" class="w-5 h-5" />
@@ -107,6 +113,15 @@ const footerDescription = computed(() => {
 const instagramUrl = computed(() => siteSettings.value?.socialLinks?.instagram || '#')
 const facebookUrl = computed(() => siteSettings.value?.socialLinks?.facebook || '#')
 const tiktokUrl = computed(() => siteSettings.value?.socialLinks?.tiktok || '#')
+
+const newsletterEmail = ref('')
+const newsletterSubmitted = ref(false)
+
+function submitNewsletter() {
+  if (!newsletterEmail.value) return
+  newsletterSubmitted.value = true
+  newsletterEmail.value = ''
+}
 
 const quickLinks = [
   { path: '/', label: 'nav.home' },

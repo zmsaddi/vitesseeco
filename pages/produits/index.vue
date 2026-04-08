@@ -8,8 +8,15 @@
       </div>
 
       <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Mobile filter toggle -->
+        <button @click="showFilters = !showFilters" class="lg:hidden btn-secondary flex items-center justify-center gap-2">
+          <Icon name="ph:funnel" class="w-5 h-5" />
+          {{ $t('products.filter') }}
+          <Icon :name="showFilters ? 'ph:caret-up' : 'ph:caret-down'" class="w-4 h-4" />
+        </button>
+
         <!-- Sidebar Filters -->
-        <aside class="lg:w-64 shrink-0">
+        <aside :class="showFilters ? 'block' : 'hidden lg:block'" class="lg:w-64 shrink-0">
           <div class="card p-5 space-y-6 sticky top-24">
             <h3 class="font-display font-semibold text-white flex items-center gap-2">
               <Icon name="ph:funnel" class="w-5 h-5" />
@@ -61,10 +68,10 @@
                 <option value="price_desc">{{ $t('products.sort_price_desc') }}</option>
               </select>
               <div class="hidden md:flex gap-1">
-                <button @click="viewMode = 'grid'" class="p-2 rounded" :class="viewMode === 'grid' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
+                <button @click="viewMode = 'grid'" :aria-label="$t('products.view_grid')" class="p-2 rounded" :class="viewMode === 'grid' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
                   <Icon name="ph:squares-four" class="w-5 h-5" />
                 </button>
-                <button @click="viewMode = 'list'" class="p-2 rounded" :class="viewMode === 'list' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
+                <button @click="viewMode = 'list'" :aria-label="$t('products.view_list')" class="p-2 rounded" :class="viewMode === 'list' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
                   <Icon name="ph:list" class="w-5 h-5" />
                 </button>
               </div>
@@ -110,6 +117,7 @@ const selectedTire = ref('')
 const selectedRange = ref('')
 const sortBy = ref('sortOrder')
 const viewMode = ref<'grid' | 'list'>('grid')
+const showFilters = ref(false)
 
 const tireSizes = ['16"', '20"', '24"', '70/100-17"']
 

@@ -16,7 +16,7 @@
   }
 
   .card {
-    @apply bg-dark-secondary rounded-xl overflow-hidden border border-dark-tertiary/50 hover:border-accent/30 transition-all duration-300;
+    @apply bg-dark-secondary rounded-xl overflow-hidden border border-dark-tertiary/50 transition-all duration-300;
   }
 
   .section-title {
@@ -43,4 +43,14 @@
     content: ' *';
     @apply text-red-400;
   }
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
 }
