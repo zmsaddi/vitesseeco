@@ -43,12 +43,14 @@
             </ClientOnly>
           </button>
 
-          <NuxtLink
-            :to="localePath('/contact')"
-            class="hidden md:flex text-text-secondary hover:text-white transition-colors p-2"
-          >
-            <Icon name="ph:user" class="w-5 h-5" />
-          </NuxtLink>
+          <ClientOnly>
+            <NuxtLink
+              :to="localePath(auth.isLoggedIn ? '/compte' : '/connexion')"
+              class="hidden md:flex text-text-secondary hover:text-white transition-colors p-2"
+            >
+              <Icon :name="auth.isLoggedIn ? 'ph:user-circle' : 'ph:user'" class="w-5 h-5" :class="auth.isLoggedIn ? 'text-accent' : ''" />
+            </NuxtLink>
+          </ClientOnly>
 
           <!-- Mobile Menu Button -->
           <button
@@ -90,6 +92,7 @@
 const localePath = useLocalePath()
 const mobileMenuOpen = ref(false)
 const cart = useCartStore()
+const auth = useAuthStore()
 const cartCount = computed(() => cart.totalItems)
 const cartOpen = useState('cartOpen', () => false)
 
