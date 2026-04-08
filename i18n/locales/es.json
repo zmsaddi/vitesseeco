@@ -213,7 +213,8 @@
     "back": "Volver",
     "see_more": "Ver más",
     "from": "Desde",
-    "currency": "€"
+    "currency": "€",
+    "or": "o"
   },
   "legal": {
     "editor": "Editor del sitio",

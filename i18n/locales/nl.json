@@ -213,7 +213,8 @@
     "back": "Terug",
     "see_more": "Meer bekijken",
     "from": "Vanaf",
-    "currency": "€"
+    "currency": "€",
+    "or": "of"
   },
   "legal": {
     "editor": "Website-uitgever",
