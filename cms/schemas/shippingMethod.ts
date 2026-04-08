@@ -25,7 +25,6 @@ export default defineType({
           { title: 'ألمانيا', value: 'DE' },
           { title: 'هولندا', value: 'NL' },
           { title: 'إسبانيا', value: 'ES' },
-          { title: 'أوروبا (أخرى)', value: 'EU' },
         ],
       },
     },
