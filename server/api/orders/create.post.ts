@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
     subtotal += price * item.quantity
 
     validatedItems.push({
+      _key: `item-${item.sku}-${Date.now()}`,
       productId: item.productId,
       productName: product.name?.fr || '',
       color: variant.colorName?.fr || '',
