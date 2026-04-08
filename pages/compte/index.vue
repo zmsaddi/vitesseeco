@@ -60,7 +60,7 @@
             </div>
             <div class="flex gap-3">
               <button type="submit" :disabled="savingProfile" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">
-                {{ savingProfile ? $t('common.loading') : $t('contact.send') }}
+                {{ savingProfile ? $t('common.loading') : $t('common.save') }}
               </button>
               <button type="button" @click="editingProfile = false" class="btn-secondary py-2 px-6 text-sm">
                 {{ $t('common.back') }}
@@ -144,7 +144,6 @@
                   <option value="DE">Deutschland</option>
                   <option value="NL">Nederland</option>
                   <option value="ES">España</option>
-                  <option value="IT">Italia</option>
                 </select>
               </div>
             </div>
@@ -154,7 +153,7 @@
             </label>
             <div class="flex gap-3">
               <button type="submit" :disabled="savingAddress" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">
-                {{ savingAddress ? $t('common.loading') : $t('contact.send') }}
+                {{ savingAddress ? $t('common.loading') : $t('common.save') }}
               </button>
               <button type="button" @click="addingAddress = false" class="btn-secondary py-2 px-6 text-sm">
                 {{ $t('common.back') }}
