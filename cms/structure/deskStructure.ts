@@ -4,6 +4,17 @@ export const deskStructure = (S: StructureBuilder) =>
   S.list()
     .title('Vitesse Eco')
     .items([
+      // الطلبات (أول شيء!)
+      S.listItem()
+        .title('🛒 الطلبات')
+        .child(
+          S.documentTypeList('order')
+            .title('الطلبات')
+            .defaultOrdering([{ field: 'createdAt', direction: 'desc' }])
+        ),
+
+      S.divider(),
+
       // الكتالوج
       S.listItem()
         .title('🚲 المنتجات')

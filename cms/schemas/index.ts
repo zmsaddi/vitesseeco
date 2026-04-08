@@ -10,6 +10,7 @@ import promoCode from './promoCode'
 import testimonial from './testimonial'
 import siteSettings from './siteSettings'
 import shippingMethod from './shippingMethod'
+import order from './order'
 import localizedString from './localizedString'
 import localizedText from './localizedText'
 import seoFields from './seoFields'
@@ -28,6 +29,7 @@ export const schemaTypes = [
   promoCode,
   testimonial,
   shippingMethod,
+  order,
 
   // Singletons (pages)
   homePage,
