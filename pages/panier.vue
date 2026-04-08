@@ -110,8 +110,19 @@
               <span class="font-display font-bold text-accent text-2xl">{{ cart.total }}{{ $t('common.currency') }}</span>
             </div>
 
-            <button class="btn-primary w-full text-center py-4 text-lg">
-              {{ $t('cart.checkout') }}
+            <!-- Validation error -->
+            <p v-if="cart.validationError" class="text-red-400 text-sm">{{ cart.validationError }}</p>
+
+            <button
+              @click="proceedToCheckout"
+              :disabled="cart.validating"
+              class="btn-primary w-full text-center py-4 text-lg disabled:opacity-50"
+            >
+              <span v-if="cart.validating" class="flex items-center justify-center gap-2">
+                <Icon name="ph:spinner" class="w-5 h-5 animate-spin" />
+                {{ $t('common.loading') }}
+              </span>
+              <span v-else>{{ $t('cart.checkout') }}</span>
             </button>
 
             <NuxtLink :to="localePath('/produits')" class="block text-center text-text-secondary text-sm hover:text-accent transition-colors">
@@ -133,10 +144,17 @@ const promoInput = ref('')
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })
 
-function applyPromo() {
-  // Will validate server-side in Phase 3
-  if (promoInput.value.trim()) {
-    alert(t('cart.promo_invalid'))
+async function applyPromo() {
+  if (!promoInput.value.trim()) return
+  await cart.applyPromoServer(promoInput.value.trim())
+}
+
+async function proceedToCheckout() {
+  // Server validates ALL prices, stock, and promo before allowing checkout
+  const valid = await cart.validateCart()
+  if (valid) {
+    // Will navigate to checkout page in Phase 3
+    alert('Cart validated — checkout coming soon!')
   }
 }
 </script>
