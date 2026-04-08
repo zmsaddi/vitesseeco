@@ -26,11 +26,6 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async fetchUser() {
-      // Only call API if auth cookie likely exists (avoid 401 console error)
-      if (import.meta.client && !document.cookie.includes('auth_token')) {
-        this.user = null
-        return
-      }
       try {
         const { user } = await $fetch('/api/auth/me')
         this.user = user
