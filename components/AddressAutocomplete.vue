@@ -11,8 +11,11 @@
       class="input-field"
       :placeholder="placeholder"
       autocomplete="off"
-      required
     />
+    <!-- Loading -->
+    <div v-if="loading" class="absolute right-3 top-1/2 -translate-y-1/2">
+      <Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" />
+    </div>
     <!-- Suggestions dropdown -->
     <div
       v-if="showSuggestions && suggestions.length > 0"
@@ -21,6 +24,7 @@
       <button
         v-for="s in suggestions"
         :key="s.place_id"
+        type="button"
         @mousedown.prevent="selectSuggestion(s)"
         class="w-full text-left px-4 py-3 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
       >
@@ -47,6 +51,7 @@ const emit = defineEmits<{
 const inputRef = ref<HTMLInputElement>()
 const suggestions = ref<any[]>([])
 const showSuggestions = ref(false)
+const loading = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout>
 
 function onInput(e: Event) {
@@ -56,40 +61,46 @@ function onInput(e: Event) {
   clearTimeout(debounceTimer)
   if (val.length < 3) {
     suggestions.value = []
+    loading.value = false
     return
   }
 
-  debounceTimer = setTimeout(() => fetchSuggestions(val), 300)
+  loading.value = true
+  debounceTimer = setTimeout(() => fetchSuggestions(val), 400)
 }
 
 async function fetchSuggestions(query: string) {
   try {
-    const data = await $fetch('/api/places/autocomplete', {
+    const data = await $fetch<any>('/api/places/autocomplete', {
       query: {
         input: query,
         countries: (props.countries || ['fr', 'be', 'lu', 'de', 'nl', 'es']).join(','),
       },
     })
-    suggestions.value = (data as any).predictions || []
-  } catch {
+    suggestions.value = data.predictions || []
+  } catch (e) {
+    console.error('Places autocomplete error:', e)
     suggestions.value = []
+  } finally {
+    loading.value = false
   }
 }
 
 async function selectSuggestion(s: any) {
   showSuggestions.value = false
+  suggestions.value = []
   emit('update:modelValue', s.structured_formatting?.main_text || s.description)
 
   try {
-    const data = await $fetch('/api/places/details', { query: { place_id: s.place_id } })
-    const result = data as any
-    if (result.address) {
-      emit('select', result)
+    const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
+    if (data.address) {
+      emit('select', data)
     }
-  } catch {}
+  } catch (e) {
+    console.error('Places details error:', e)
+  }
 }
 
-// Close on click outside
 function onClickOutside(e: MouseEvent) {
   if (inputRef.value && !inputRef.value.parentElement?.contains(e.target as Node)) {
     showSuggestions.value = false
