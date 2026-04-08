@@ -90,9 +90,14 @@
             {{ $t('footer.company_line') }}<br class="hidden md:block" />
             {{ $t('footer.address_line') }}
           </p>
-          <p class="text-text-secondary text-sm shrink-0">
-            &copy; {{ new Date().getFullYear() }} Vitesse Eco. {{ $t('footer.rights') }}
-          </p>
+          <div class="text-text-secondary text-sm shrink-0 text-center md:text-right">
+            <p>&copy; {{ new Date().getFullYear() }} Vitesse Eco. {{ $t('footer.rights') }}</p>
+            <div class="flex gap-3 justify-center md:justify-end mt-2 text-xs">
+              <NuxtLink :to="localePath('/politique-confidentialite')" class="hover:text-accent transition-colors">Privacy Policy</NuxtLink>
+              <span>·</span>
+              <NuxtLink :to="localePath('/cgv')" class="hover:text-accent transition-colors">Terms of Service</NuxtLink>
+            </div>
+          </div>
         </div>
       </div>
     </div>
