@@ -21,11 +21,12 @@
         />
         <!-- Dots indicator -->
         <div v-if="allImages.length > 1" class="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5 z-10">
-          <button
+          <span
             v-for="(_, i) in allImages"
             :key="i"
             @click.prevent="activeIndex = i"
-            class="w-2 h-2 rounded-full transition-all"
+            role="presentation"
+            class="w-2 h-2 rounded-full transition-all cursor-pointer"
             :class="i === activeIndex ? 'bg-accent w-4' : 'bg-white/50'"
           />
         </div>
@@ -61,11 +62,12 @@
             v-for="(variant, i) in (product.variants || []).slice(0, 5)"
             :key="variant._key"
             @click.prevent="selectColor(i)"
-            class="w-4 h-4 rounded-full border-2 transition-all hover:scale-125"
+            :aria-label="l(variant.colorName)"
+            class="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 p-0.5"
             :class="colorIndex === i ? 'border-accent scale-110' : 'border-white/30'"
-            :style="{ backgroundColor: variant.colorHex }"
-            :title="l(variant.colorName)"
-          />
+          >
+            <span class="block w-full h-full rounded-full" :style="{ backgroundColor: variant.colorHex }" />
+          </button>
         </div>
       </div>
     </div>

@@ -48,6 +48,7 @@
             <NuxtLink
               :to="localePath(auth.isLoggedIn ? '/compte' : '/connexion')"
               class="text-text-secondary hover:text-white transition-colors p-2"
+              :aria-label="auth.isLoggedIn ? $t('account.title') : $t('nav.login')"
             >
               <Icon :name="auth.isLoggedIn ? 'ph:user-circle-fill' : 'ph:user'" class="w-5 h-5" :class="auth.isLoggedIn ? 'text-accent' : ''" />
             </NuxtLink>
