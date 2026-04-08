@@ -30,7 +30,11 @@
             <input id="login-password" name="password" v-model="form.password" type="password" class="input-field" required autocomplete="current-password" />
           </div>
 
-          <button type="submit" :disabled="auth.loading" class="btn-primary w-full py-3 disabled:opacity-50">
+          <ClientOnly>
+            <TurnstileWidget @verify="t => turnstileToken = t" />
+          </ClientOnly>
+
+          <button type="submit" :disabled="auth.loading || !turnstileToken" class="btn-primary w-full py-3 disabled:opacity-50">
             <span v-if="auth.loading">{{ $t('common.loading') }}</span>
             <span v-else>{{ $t('auth.login_button') }}</span>
           </button>
@@ -51,6 +55,8 @@ const localePath = useLocalePath()
 const auth = useAuthStore()
 
 useHead({ title: `${t('auth.login_title')} — Vitesse Eco` })
+
+const turnstileToken = ref('')
 
 const form = reactive({ email: '', password: '' })
 

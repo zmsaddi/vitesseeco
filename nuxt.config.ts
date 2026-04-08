@@ -71,12 +71,14 @@ export default defineNuxtConfig({
     databaseUrl: '',
     googleClientId: '',
     googleClientSecret: '',
+    turnstileSecretKey: '',
     public: {
       sanityProjectId: '2jvnjf0c',
       sanityDataset: 'production',
       stripePublishableKey: '',
       siteUrl: 'https://vitesse-eco.fr',
       googlePlacesApiKey: '',
+      turnstileSiteKey: '',
     },
   },
 

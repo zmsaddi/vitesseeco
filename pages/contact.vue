@@ -117,7 +117,10 @@
                   required
                 />
               </div>
-              <button type="submit" class="btn-primary w-full md:w-auto">
+              <ClientOnly>
+                <TurnstileWidget @verify="t => turnstileToken = t" />
+              </ClientOnly>
+              <button type="submit" :disabled="!turnstileToken" class="btn-primary w-full md:w-auto disabled:opacity-50">
                 <span class="flex items-center gap-2">
                   <Icon name="ph:paper-plane-tilt" class="w-5 h-5" />
                   {{ $t('contact.send') }}
@@ -151,6 +154,8 @@ const contactEmail = computed(() => contactData.value?.email || 'contact@vitesse
 const contactPhone = computed(() => contactData.value?.phone || '')
 const contactAddress = computed(() => contactData.value?.address ? l(contactData.value.address) : '32 Rue du Faubourg du Pont Neuf\n86000 Poitiers, France')
 const contactHours = computed(() => contactData.value?.hours ? l(contactData.value.hours) : t('contact.hours_text'))
+
+const turnstileToken = ref('')
 
 const form = reactive({
   name: '',

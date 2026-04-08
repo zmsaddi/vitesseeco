@@ -50,7 +50,11 @@
 
           <p v-if="passwordMismatch" class="text-red-400 text-sm">{{ $t('auth.confirm_password') }} ≠ {{ $t('auth.password') }}</p>
 
-          <button type="submit" :disabled="auth.loading || passwordMismatch" class="btn-primary w-full py-3 disabled:opacity-50">
+          <ClientOnly>
+            <TurnstileWidget @verify="t => turnstileToken = t" />
+          </ClientOnly>
+
+          <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken" class="btn-primary w-full py-3 disabled:opacity-50">
             <span v-if="auth.loading">{{ $t('common.loading') }}</span>
             <span v-else>{{ $t('auth.register_button') }}</span>
           </button>
@@ -69,6 +73,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
+const turnstileToken = ref('')
 
 useHead({ title: `${t('auth.register_title')} — Vitesse Eco` })
 
