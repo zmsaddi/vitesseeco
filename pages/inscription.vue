@@ -23,16 +23,16 @@
         <form @submit.prevent="handleRegister" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.first_name') }}</label>
+              <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.first_name') }}</label>
               <input id="reg-first" name="firstName" v-model="form.firstName" type="text" class="input-field" required autocomplete="given-name" />
             </div>
             <div>
-              <label for="reg-last" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.last_name') }}</label>
+              <label for="reg-last" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.last_name') }}</label>
               <input id="reg-last" name="lastName" v-model="form.lastName" type="text" class="input-field" required autocomplete="family-name" />
             </div>
           </div>
           <div>
-            <label for="reg-email" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.email') }}</label>
+            <label for="reg-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.email') }}</label>
             <input id="reg-email" name="email" v-model="form.email" type="email" class="input-field" required autocomplete="email" />
           </div>
           <div>
@@ -40,11 +40,11 @@
             <input id="reg-phone" name="phone" v-model="form.phone" type="tel" class="input-field" autocomplete="tel" />
           </div>
           <div>
-            <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.password') }}</label>
+            <label for="reg-pass" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
             <input id="reg-pass" name="password" v-model="form.password" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
           </div>
           <div>
-            <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.confirm_password') }}</label>
+            <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.confirm_password') }}</label>
             <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
           </div>
 

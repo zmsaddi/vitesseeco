@@ -38,4 +38,9 @@
   .input-field {
     @apply w-full bg-dark-secondary border border-dark-tertiary text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder-text-secondary;
   }
+
+  .required::after {
+    content: ' *';
+    @apply text-red-400;
+  }
 }

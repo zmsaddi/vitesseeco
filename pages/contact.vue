@@ -93,20 +93,20 @@
             <form @submit.prevent="handleSubmit" class="space-y-5">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label for="contact-name" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('contact.name') }}</label>
+                  <label for="contact-name" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('contact.name') }}</label>
                   <input id="contact-name" name="name" v-model="form.name" type="text" :placeholder="$t('contact.name')" class="input-field" required autocomplete="name" />
                 </div>
                 <div>
-                  <label for="contact-email" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('contact.email') }}</label>
+                  <label for="contact-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('contact.email') }}</label>
                   <input id="contact-email" name="email" v-model="form.email" type="email" :placeholder="$t('contact.email')" class="input-field" required autocomplete="email" />
                 </div>
               </div>
               <div>
-                <label for="contact-subject" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('contact.subject') }}</label>
+                <label for="contact-subject" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('contact.subject') }}</label>
                 <input id="contact-subject" name="subject" v-model="form.subject" type="text" :placeholder="$t('contact.subject')" class="input-field" required />
               </div>
               <div>
-                <label for="contact-message" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('contact.message') }}</label>
+                <label for="contact-message" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('contact.message') }}</label>
                 <textarea
                   id="contact-message"
                   name="message"

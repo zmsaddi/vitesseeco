@@ -22,11 +22,11 @@
 
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>
-            <label for="login-email" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.email') }}</label>
+            <label for="login-email" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.email') }}</label>
             <input id="login-email" name="email" v-model="form.email" type="email" class="input-field" required autocomplete="email" />
           </div>
           <div>
-            <label for="login-password" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.password') }}</label>
+            <label for="login-password" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('auth.password') }}</label>
             <input id="login-password" name="password" v-model="form.password" type="password" class="input-field" required autocomplete="current-password" />
           </div>
 
