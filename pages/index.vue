@@ -13,16 +13,16 @@
       <div class="container-custom relative z-10 py-20">
         <div class="max-w-2xl">
           <h1 class="font-display text-4xl md:text-6xl font-bold text-white leading-tight mb-2">
-            {{ $t('home.hero_title') }}
+            {{ heroTitle }}
           </h1>
           <p class="font-display text-2xl md:text-4xl font-bold text-accent mb-6">
-            {{ $t('home.hero_subtitle') }}
+            {{ heroSubtitle }}
           </p>
           <p class="text-text-secondary text-lg md:text-xl mb-8 leading-relaxed">
-            {{ $t('home.hero_description') }}
+            {{ heroDescription }}
           </p>
-          <NuxtLink :to="localePath('/produits')" class="btn-primary text-lg px-8 py-4 inline-block">
-            {{ $t('home.hero_cta') }}
+          <NuxtLink :to="localePath(heroCtaLink)" class="btn-primary text-lg px-8 py-4 inline-block">
+            {{ heroCtaText }}
           </NuxtLink>
         </div>
       </div>
@@ -48,8 +48,8 @@
     <section class="py-16 md:py-24 bg-dark-secondary">
       <div class="container-custom">
         <div class="text-center mb-12">
-          <h2 class="section-title mb-4">{{ $t('home.featured_title') }}</h2>
-          <p class="text-text-secondary text-lg">{{ $t('home.featured_subtitle') }}</p>
+          <h2 class="section-title mb-4">{{ featuredTitle }}</h2>
+          <p class="text-text-secondary text-lg">{{ featuredSubtitle }}</p>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NuxtLink
@@ -83,18 +83,52 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 
-useHead({ title: 'Vitesse Eco — Fatbikes Électriques' })
-
 const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder asc)[0..2] {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew,
   variants[]{ _key, colorHex, colorName, "images": images[]{asset} }
 }`
 const { data: featuredProducts } = useSanityFetch('featured-products', query)
 
-const values = computed(() => [
-  { icon: 'ph:battery-charging', title: t('home.value1_title'), desc: t('home.value1_desc') },
-  { icon: 'ph:shield-check', title: t('home.value2_title'), desc: t('home.value2_desc') },
-  { icon: 'ph:truck', title: t('home.value3_title'), desc: t('home.value3_desc') },
-  { icon: 'ph:headset', title: t('home.value4_title'), desc: t('home.value4_desc') },
-])
+const homeQuery = groq`*[_type == "homePage"][0]{
+  heroBanner, featuredProductsTitle, featuredProductsSubtitle, values, seo
+}`
+const { data: homeData } = useSanityFetch('home-page', homeQuery)
+
+useHead({
+  title: computed(() => homeData.value?.seo?.title || 'Vitesse Eco — Fatbikes Électriques'),
+  meta: [
+    { name: 'description', content: computed(() => homeData.value?.seo?.description || '') },
+  ],
+})
+
+const heroTitle = computed(() => homeData.value?.heroBanner?.title ? l(homeData.value.heroBanner.title) : t('home.hero_title'))
+const heroSubtitle = computed(() => homeData.value?.heroBanner?.subtitle ? l(homeData.value.heroBanner.subtitle) : t('home.hero_subtitle'))
+const heroDescription = computed(() => homeData.value?.heroBanner?.description ? l(homeData.value.heroBanner.description) : t('home.hero_description'))
+const heroCtaText = computed(() => homeData.value?.heroBanner?.ctaText ? l(homeData.value.heroBanner.ctaText) : t('home.hero_cta'))
+const heroCtaLink = computed(() => homeData.value?.heroBanner?.ctaLink || '/produits')
+const featuredTitle = computed(() => homeData.value?.featuredProductsTitle ? l(homeData.value.featuredProductsTitle) : t('home.featured_title'))
+const featuredSubtitle = computed(() => homeData.value?.featuredProductsSubtitle ? l(homeData.value.featuredProductsSubtitle) : t('home.featured_subtitle'))
+
+const iconMap: Record<string, string> = {
+  'battery-charging': 'ph:battery-charging',
+  'shield-check': 'ph:shield-check',
+  'truck': 'ph:truck',
+  'headset': 'ph:headset',
+}
+
+const values = computed(() => {
+  if (homeData.value?.values?.length) {
+    return homeData.value.values.map((v: any) => ({
+      icon: iconMap[v.icon] || `ph:${v.icon}`,
+      title: l(v.title),
+      desc: l(v.description),
+    }))
+  }
+  return [
+    { icon: 'ph:battery-charging', title: t('home.value1_title'), desc: t('home.value1_desc') },
+    { icon: 'ph:shield-check', title: t('home.value2_title'), desc: t('home.value2_desc') },
+    { icon: 'ph:truck', title: t('home.value3_title'), desc: t('home.value3_desc') },
+    { icon: 'ph:headset', title: t('home.value4_title'), desc: t('home.value4_desc') },
+  ]
+})
 </script>

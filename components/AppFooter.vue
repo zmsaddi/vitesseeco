@@ -12,7 +12,7 @@
             </span>
           </NuxtLink>
           <p class="text-text-secondary text-sm leading-relaxed">
-            {{ $t('footer.description') }}
+            {{ footerDescription || $t('footer.description') }}
           </p>
         </div>
 
@@ -64,13 +64,13 @@
             </button>
           </form>
           <div class="flex items-center gap-4 mt-6">
-            <a href="#" class="text-text-secondary hover:text-accent transition-colors">
+            <a :href="instagramUrl" target="_blank" rel="noopener noreferrer" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:instagram-logo" class="w-5 h-5" />
             </a>
-            <a href="#" class="text-text-secondary hover:text-accent transition-colors">
+            <a :href="facebookUrl" target="_blank" rel="noopener noreferrer" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:facebook-logo" class="w-5 h-5" />
             </a>
-            <a href="#" class="text-text-secondary hover:text-accent transition-colors">
+            <a :href="tiktokUrl" target="_blank" rel="noopener noreferrer" class="text-text-secondary hover:text-accent transition-colors">
               <Icon name="ph:tiktok-logo" class="w-5 h-5" />
             </a>
           </div>
@@ -95,6 +95,18 @@
 
 <script setup lang="ts">
 const localePath = useLocalePath()
+const l = useLocalizedField()
+
+// Fetch siteSettings for social links and footer text
+const { data: siteSettings } = useSanityFetch('site-settings', groq`*[_type == "siteSettings"][0]{ socialLinks, footerText, contactInfo }`)
+
+const footerDescription = computed(() => {
+  if (siteSettings.value?.footerText) return l(siteSettings.value.footerText)
+  return null
+})
+const instagramUrl = computed(() => siteSettings.value?.socialLinks?.instagram || '#')
+const facebookUrl = computed(() => siteSettings.value?.socialLinks?.facebook || '#')
+const tiktokUrl = computed(() => siteSettings.value?.socialLinks?.tiktok || '#')
 
 const quickLinks = [
   { path: '/', label: 'nav.home' },

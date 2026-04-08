@@ -3,8 +3,8 @@
     <div class="container-custom">
       <!-- Header -->
       <div class="text-center mb-12">
-        <h1 class="section-title mb-4">{{ $t('about.title') }}</h1>
-        <p class="text-text-secondary text-lg max-w-2xl mx-auto">{{ $t('about.subtitle') }}</p>
+        <h1 class="section-title mb-4">{{ pageTitle }}</h1>
+        <p class="text-text-secondary text-lg max-w-2xl mx-auto">{{ pageSubtitle }}</p>
       </div>
 
       <!-- Brand Story with Image -->
@@ -50,19 +50,42 @@
 const { t } = useI18n()
 const l = useLocalizedField()
 
-useHead({ title: `${t('about.title')} — Vitesse Eco` })
-
-const query = groq`*[_type == "aboutPage"][0] { story }`
+const query = groq`*[_type == "aboutPage"][0]{ title, subtitle, story, values, seo }`
 const { data: aboutData } = useSanityFetch('about-page', query)
+
+useHead({
+  title: computed(() => aboutData.value?.seo?.title || `${t('about.title')} — Vitesse Eco`),
+  meta: [
+    { name: 'description', content: computed(() => aboutData.value?.seo?.description || '') },
+  ],
+})
+
+const pageTitle = computed(() => aboutData.value?.title ? l(aboutData.value.title) : t('about.title'))
+const pageSubtitle = computed(() => aboutData.value?.subtitle ? l(aboutData.value.subtitle) : t('about.subtitle'))
 
 const aboutText = computed(() => {
   if (aboutData.value?.story) return l(aboutData.value.story)
   return t('about.story_text')
 })
 
-const aboutValues = computed(() => [
-  { icon: 'ph:seal-check', title: t('about.value1_title'), desc: t('about.value1_desc') },
-  { icon: 'ph:truck', title: t('about.value2_title'), desc: t('about.value2_desc') },
-  { icon: 'ph:wrench', title: t('about.value3_title'), desc: t('about.value3_desc') },
-])
+const iconMap: Record<string, string> = {
+  'seal-check': 'ph:seal-check',
+  'truck': 'ph:truck',
+  'wrench': 'ph:wrench',
+}
+
+const aboutValues = computed(() => {
+  if (aboutData.value?.values?.length) {
+    return aboutData.value.values.map((v: any) => ({
+      icon: iconMap[v.icon] || `ph:${v.icon}`,
+      title: l(v.title),
+      desc: l(v.description),
+    }))
+  }
+  return [
+    { icon: 'ph:seal-check', title: t('about.value1_title'), desc: t('about.value1_desc') },
+    { icon: 'ph:truck', title: t('about.value2_title'), desc: t('about.value2_desc') },
+    { icon: 'ph:wrench', title: t('about.value3_title'), desc: t('about.value3_desc') },
+  ]
+})
 </script>

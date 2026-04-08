@@ -29,8 +29,8 @@
             </div>
             <div>
               <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.email') }}</h3>
-              <a href="mailto:contact@vitesse-eco.fr" class="text-text-secondary hover:text-accent transition-colors text-sm">
-                contact@vitesse-eco.fr
+              <a :href="`mailto:${contactEmail}`" class="text-text-secondary hover:text-accent transition-colors text-sm">
+                {{ contactEmail }}
               </a>
             </div>
           </div>
@@ -51,7 +51,7 @@
             </div>
             <div>
               <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.hours') }}</h3>
-              <p class="text-text-secondary text-sm">{{ $t('contact.hours_text') }}</p>
+              <p class="text-text-secondary text-sm">{{ contactHours }}</p>
             </div>
           </div>
 
@@ -133,13 +133,24 @@
 
 <script setup lang="ts">
 const { t } = useI18n()
+const l = useLocalizedField()
 
-useHead({ title: `${t('contact.title')} — Vitesse Eco` })
-
-// Fetch map URL from Sanity (editable by admin)
+// Fetch ALL contact page fields from Sanity
 const defaultMapUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2770.7!2d0.3434!3d46.5802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47fdbe31a5075ccb%3A0x2a43cf344f2d1b0!2s32%20Rue%20du%20Faubourg%20du%20Pont%20Neuf%2C%2086000%20Poitiers!5e0!3m2!1sfr!2sfr!4v1700000000000!5m2!1sfr!2sfr'
-const { data: contactData } = useSanityFetch('contact-page', groq`*[_type == "contactPage"][0]{ mapUrl }`)
+const { data: contactData } = useSanityFetch('contact-page', groq`*[_type == "contactPage"][0]{ title, subtitle, email, phone, address, hours, mapUrl, seo }`)
+
+useHead({
+  title: computed(() => contactData.value?.seo?.title || `${t('contact.title')} — Vitesse Eco`),
+  meta: [
+    { name: 'description', content: computed(() => contactData.value?.seo?.description || '') },
+  ],
+})
+
 const mapUrl = computed(() => contactData.value?.mapUrl || defaultMapUrl)
+const contactEmail = computed(() => contactData.value?.email || 'contact@vitesse-eco.fr')
+const contactPhone = computed(() => contactData.value?.phone || '')
+const contactAddress = computed(() => contactData.value?.address ? l(contactData.value.address) : '32 Rue du Faubourg du Pont Neuf\n86000 Poitiers, France')
+const contactHours = computed(() => contactData.value?.hours ? l(contactData.value.hours) : t('contact.hours_text'))
 
 const form = reactive({
   name: '',
