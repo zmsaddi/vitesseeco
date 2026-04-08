@@ -3,7 +3,7 @@
     <div class="container-custom max-w-lg">
       <div class="card p-6 md:p-8">
         <h1 class="font-display text-2xl font-bold text-white text-center mb-2">{{ $t('auth.register_title') }}</h1>
-        <p class="text-text-secondary text-sm text-center mb-6">{{ $t('about.subtitle') }}</p>
+        <p class="text-text-secondary text-sm text-center mb-6">{{ $t('auth.register_subtitle') }}</p>
 
         <!-- Google First -->
         <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-lg bg-white hover:bg-gray-100 transition-colors text-gray-800 font-medium text-sm">
@@ -21,7 +21,7 @@
 
         <form @submit.prevent="handleRegister" class="space-y-4">
           <!-- Personal -->
-          <div class="grid grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label for="reg-first" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
               <input id="reg-first" name="firstName" v-model="form.firstName" type="text" class="input-field" required autocomplete="given-name" />
@@ -127,7 +127,7 @@
             <div>
               <label for="reg-confirm" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('auth.confirm_password') }}</label>
               <input id="reg-confirm" name="confirmPassword" v-model="form.confirmPassword" type="password" class="input-field" required minlength="8" autocomplete="new-password" />
-              <p v-if="passwordMismatch" class="text-red-400 text-xs mt-1">✗ {{ $t('auth.confirm_password') }} ≠ {{ $t('auth.password') }}</p>
+              <p v-if="passwordMismatch" class="text-red-400 text-xs mt-1">{{ $t('auth.password_mismatch') }}</p>
               <p v-else-if="form.confirmPassword && !passwordMismatch" class="text-accent text-xs mt-1">✓</p>
             </div>
           </div>

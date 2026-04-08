@@ -4,9 +4,9 @@
       <!-- Breadcrumb -->
       <nav class="flex items-center gap-2 text-sm text-text-secondary mb-8">
         <NuxtLink :to="localePath('/')" class="hover:text-accent transition-colors">{{ $t('nav.home') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3" />
+        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
         <NuxtLink :to="localePath('/produits')" class="hover:text-accent transition-colors">{{ $t('nav.products') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3" />
+        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
         <span class="text-white">{{ l(product.name) }}</span>
       </nav>
 
@@ -27,14 +27,14 @@
               <button
                 v-if="allImages.length > 1"
                 @click="selectedImageIndex = (selectedImageIndex - 1 + allImages.length) % allImages.length"
-                class="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                class="absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
               >
                 <Icon name="ph:caret-left" class="w-5 h-5" />
               </button>
               <button
                 v-if="allImages.length > 1"
                 @click="selectedImageIndex = (selectedImageIndex + 1) % allImages.length"
-                class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
+                class="absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors z-10"
               >
                 <Icon name="ph:caret-right" class="w-5 h-5" />
               </button>
@@ -100,7 +100,7 @@
                 role="radio"
                 :aria-checked="selectedColor === i"
                 :aria-label="l(variant.colorName)"
-                class="w-10 h-10 rounded-full border-2 transition-all relative"
+                class="w-11 h-11 rounded-full border-2 transition-all relative"
                 :class="[
                   selectedColor === i ? 'border-accent scale-110' : 'border-dark-tertiary',
                   (variant.stock ?? 0) <= 0 ? 'opacity-40' : ''
@@ -115,11 +115,11 @@
           <div class="mb-6" v-if="currentStock > 0">
             <label for="product-qty" class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
             <div class="flex items-center gap-3">
-              <button @click="qty = Math.max(1, qty - 1)" aria-label="Decrease quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
+              <button @click="qty = Math.max(1, qty - 1)" :aria-label="$t('cart.quantity') + ' -'" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:minus" class="w-4 h-4" />
               </button>
               <input id="product-qty" name="quantity" type="number" v-model.number="qty" :max="Math.min(10, currentStock)" min="1" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
-              <button @click="qty = Math.min(Math.min(10, currentStock), qty + 1)" aria-label="Increase quantity" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
+              <button @click="qty = Math.min(Math.min(10, currentStock), qty + 1)" :aria-label="$t('cart.quantity') + ' +'" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors">
                 <Icon name="ph:plus" class="w-4 h-4" />
               </button>
             </div>

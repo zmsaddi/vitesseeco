@@ -13,7 +13,9 @@
     "account": "My Account",
     "login": "Log In",
     "register": "Sign Up",
-    "logout": "Log Out"
+    "logout": "Log Out",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu"
   },
   "home": {
     "hero_title": "All-Terrain Power",
@@ -131,7 +133,8 @@
     "order_confirmed": "Order confirmed!",
     "order_number": "Order number",
     "order_email_sent": "A confirmation email has been sent to {email}.",
-    "back_to_home": "Back to home"
+    "back_to_home": "Back to home",
+    "address_line2_placeholder": "Apt, floor, building..."
   },
   "account": {
     "title": "My Account",
@@ -146,6 +149,11 @@
       "delivered": "Delivered",
       "cancelled": "Cancelled"
     },
+    "add_address": "Add address",
+    "no_addresses": "No saved addresses",
+    "default_address": "Default",
+    "set_default": "Set as default address",
+    "edit_profile": "Edit",
     "delete_title": "Delete Account",
     "delete_warning": "This action is permanent. Your personal data will be deleted but your orders will be kept anonymously for our records.",
     "delete_button": "Delete my account",
@@ -167,7 +175,10 @@
     "register_button": "Create my account",
     "no_account": "Don't have an account?",
     "has_account": "Already have an account?",
-    "forgot_password": "Forgot your password?"
+    "forgot_password": "Forgot your password?",
+    "login_subtitle": "Sign in to your account",
+    "register_subtitle": "Create your account to start shopping",
+    "password_mismatch": "Passwords do not match"
   },
   "about": {
     "title": "About Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "Mon — Sat: 9am — 6pm",
     "legal_info": "Legal Information",
     "send_message": "Send us a message",
-    "web": "Web"
+    "web": "Web",
+    "map_title": "Our location"
   },
   "footer": {
     "description": "Electric fatbike retailer. Power, style and environmental responsibility.",
@@ -225,7 +237,8 @@
     "from": "From",
     "currency": "€",
     "or": "or",
-    "save": "Save"
+    "save": "Save",
+    "continue": "Continue"
   },
   "legal": {
     "editor": "Site editor",

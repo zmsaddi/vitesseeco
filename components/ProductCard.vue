@@ -3,7 +3,7 @@
     <!-- Image with color slideshow -->
     <div
       ref="imageContainer"
-      :class="listMode ? 'w-48 shrink-0' : 'aspect-[4/3]'"
+      :class="listMode ? 'w-32 sm:w-48 shrink-0' : 'aspect-[4/3]'"
       class="bg-dark-tertiary relative overflow-hidden touch-pan-y"
       @mouseenter="startSlide"
       @mouseleave="stopSlide"

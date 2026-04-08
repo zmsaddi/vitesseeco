@@ -13,7 +13,9 @@
     "account": "حسابي",
     "login": "تسجيل الدخول",
     "register": "إنشاء حساب",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "open_menu": "فتح القائمة",
+    "close_menu": "إغلاق القائمة"
   },
   "home": {
     "hero_title": "قوة لكل التضاريس",
@@ -131,7 +133,8 @@
     "order_confirmed": "تم تأكيد الطلب!",
     "order_number": "رقم الطلب",
     "order_email_sent": "تم إرسال بريد التأكيد إلى {email}.",
-    "back_to_home": "العودة للرئيسية"
+    "back_to_home": "العودة للرئيسية",
+    "address_line2_placeholder": "شقة، طابق، مبنى..."
   },
   "account": {
     "title": "حسابي",
@@ -146,6 +149,11 @@
       "delivered": "تم التوصيل",
       "cancelled": "ملغى"
     },
+    "add_address": "إضافة عنوان",
+    "no_addresses": "لا توجد عناوين محفوظة",
+    "default_address": "الافتراضي",
+    "set_default": "تعيين كعنوان افتراضي",
+    "edit_profile": "تعديل",
     "delete_title": "حذف الحساب",
     "delete_warning": "هذا الإجراء نهائي. سيتم حذف بياناتك الشخصية، لكن سيتم الاحتفاظ بطلباتك بشكل مجهول في سجلاتنا.",
     "delete_button": "حذف حسابي",
@@ -167,7 +175,10 @@
     "register_button": "إنشاء حسابي",
     "no_account": "ليس لديك حساب؟",
     "has_account": "لديك حساب بالفعل؟",
-    "forgot_password": "نسيت كلمة المرور؟"
+    "forgot_password": "نسيت كلمة المرور؟",
+    "login_subtitle": "سجّل الدخول إلى حسابك",
+    "register_subtitle": "أنشئ حسابك لبدء التسوق",
+    "password_mismatch": "كلمتا المرور غير متطابقتين"
   },
   "about": {
     "title": "عن Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "الإثنين — السبت: 9 صباحاً — 6 مساءً",
     "legal_info": "معلومات قانونية",
     "send_message": "أرسل لنا رسالة",
-    "web": "ويب"
+    "web": "ويب",
+    "map_title": "موقعنا"
   },
   "footer": {
     "description": "موزع الدراجات الكهربائية الضخمة. قوة وأناقة ومسؤولية بيئية.",
@@ -225,7 +237,8 @@
     "from": "ابتداءً من",
     "currency": "€",
     "or": "أو",
-    "save": "حفظ"
+    "save": "حفظ",
+    "continue": "متابعة"
   },
   "legal": {
     "editor": "ناشر الموقع",

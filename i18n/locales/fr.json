@@ -13,7 +13,9 @@
     "account": "Mon Compte",
     "login": "Connexion",
     "register": "Inscription",
-    "logout": "Déconnexion"
+    "logout": "Déconnexion",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu"
   },
   "home": {
     "hero_title": "Puissance Tout-Terrain",
@@ -131,7 +133,8 @@
     "order_confirmed": "Commande confirmée !",
     "order_number": "Numéro de commande",
     "order_email_sent": "Un email de confirmation a été envoyé à {email}.",
-    "back_to_home": "Retour à l'accueil"
+    "back_to_home": "Retour à l'accueil",
+    "address_line2_placeholder": "Apt, étage, bâtiment..."
   },
   "account": {
     "title": "Mon Compte",
@@ -146,6 +149,11 @@
       "delivered": "Livrée",
       "cancelled": "Annulée"
     },
+    "add_address": "Ajouter une adresse",
+    "no_addresses": "Aucune adresse enregistrée",
+    "default_address": "Par défaut",
+    "set_default": "Définir comme adresse par défaut",
+    "edit_profile": "Modifier",
     "delete_title": "Supprimer le compte",
     "delete_warning": "Cette action est définitive. Vos données personnelles seront supprimées, mais vos commandes seront conservées de manière anonyme dans nos archives.",
     "delete_button": "Supprimer mon compte",
@@ -167,7 +175,10 @@
     "register_button": "Créer mon compte",
     "no_account": "Pas encore de compte ?",
     "has_account": "Déjà un compte ?",
-    "forgot_password": "Mot de passe oublié ?"
+    "forgot_password": "Mot de passe oublié ?",
+    "login_subtitle": "Connectez-vous à votre compte",
+    "register_subtitle": "Créez votre compte pour commencer vos achats",
+    "password_mismatch": "Les mots de passe ne correspondent pas"
   },
   "about": {
     "title": "À Propos de Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "Lun — Sam : 9h — 18h",
     "legal_info": "Informations légales",
     "send_message": "Envoyez-nous un message",
-    "web": "Web"
+    "web": "Web",
+    "map_title": "Notre emplacement"
   },
   "footer": {
     "description": "Détaillant en fatbikes électriques. Puissance, style et respect de l'environnement.",
@@ -225,7 +237,8 @@
     "from": "À partir de",
     "currency": "€",
     "or": "ou",
-    "save": "Enregistrer"
+    "save": "Enregistrer",
+    "continue": "Continuer"
   },
   "legal": {
     "editor": "Éditeur du site",

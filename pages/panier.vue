@@ -42,7 +42,7 @@
                 <div class="flex items-center gap-2">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
-                    aria-label="Decrease"
+                    :aria-label="$t('cart.quantity') + ' -'"
                     class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
                   >
                     <Icon name="ph:minus" class="w-3 h-3" />
@@ -59,7 +59,7 @@
                   />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
-                    aria-label="Increase"
+                    :aria-label="$t('cart.quantity') + ' +'"
                     class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
                   >
                     <Icon name="ph:plus" class="w-3 h-3" />
@@ -223,7 +223,8 @@ async function proceedToCheckout() {
   }
   const valid = await cart.validateCart()
   if (valid) {
-    alert('Cart validated — checkout coming soon!')
+    cart.validationError = ''
+    navigateTo(localePath('/commande'))
   }
 }
 </script>

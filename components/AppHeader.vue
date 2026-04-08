@@ -31,6 +31,7 @@
           <button
             @click="openCart"
             class="relative text-text-secondary hover:text-white transition-colors p-2"
+            :aria-label="$t('cart.title')"
           >
             <Icon name="ph:shopping-cart" class="w-5 h-5" />
             <ClientOnly>
@@ -56,6 +57,7 @@
           <button
             @click="mobileMenuOpen = !mobileMenuOpen"
             class="md:hidden text-text-secondary hover:text-white transition-colors p-2"
+            :aria-label="mobileMenuOpen ? 'X' : '☰'"
           >
             <Icon :name="mobileMenuOpen ? 'ph:x' : 'ph:list'" class="w-6 h-6" />
           </button>

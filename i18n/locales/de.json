@@ -13,7 +13,9 @@
     "account": "Mein Konto",
     "login": "Anmelden",
     "register": "Registrieren",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "open_menu": "Menü öffnen",
+    "close_menu": "Menü schließen"
   },
   "home": {
     "hero_title": "Geländekraft",
@@ -131,7 +133,8 @@
     "order_confirmed": "Bestellung bestätigt!",
     "order_number": "Bestellnummer",
     "order_email_sent": "Eine Bestätigungsmail wurde an {email} gesendet.",
-    "back_to_home": "Zurück zur Startseite"
+    "back_to_home": "Zurück zur Startseite",
+    "address_line2_placeholder": "Whg., Etage, Gebäude..."
   },
   "account": {
     "title": "Mein Konto",
@@ -146,6 +149,11 @@
       "delivered": "Geliefert",
       "cancelled": "Storniert"
     },
+    "add_address": "Adresse hinzufügen",
+    "no_addresses": "Keine gespeicherten Adressen",
+    "default_address": "Standard",
+    "set_default": "Als Standardadresse festlegen",
+    "edit_profile": "Bearbeiten",
     "delete_title": "Konto löschen",
     "delete_warning": "Diese Aktion ist endgültig. Ihre persönlichen Daten werden gelöscht, aber Ihre Bestellungen werden anonymisiert in unseren Aufzeichnungen aufbewahrt.",
     "delete_button": "Mein Konto löschen",
@@ -167,7 +175,10 @@
     "register_button": "Konto erstellen",
     "no_account": "Noch kein Konto?",
     "has_account": "Bereits ein Konto?",
-    "forgot_password": "Passwort vergessen?"
+    "forgot_password": "Passwort vergessen?",
+    "login_subtitle": "Melden Sie sich bei Ihrem Konto an",
+    "register_subtitle": "Erstellen Sie Ihr Konto, um mit dem Einkaufen zu beginnen",
+    "password_mismatch": "Die Passwörter stimmen nicht überein"
   },
   "about": {
     "title": "Über Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "Mo — Sa: 9:00 — 18:00",
     "legal_info": "Rechtliche Informationen",
     "send_message": "Senden Sie uns eine Nachricht",
-    "web": "Web"
+    "web": "Web",
+    "map_title": "Unser Standort"
   },
   "footer": {
     "description": "Händler für elektrische Fatbikes. Kraft, Stil und Umweltbewusstsein.",
@@ -225,7 +237,8 @@
     "from": "Ab",
     "currency": "€",
     "or": "oder",
-    "save": "Speichern"
+    "save": "Speichern",
+    "continue": "Weiter"
   },
   "legal": {
     "editor": "Herausgeber der Website",

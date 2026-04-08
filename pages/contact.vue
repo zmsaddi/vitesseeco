@@ -77,6 +77,7 @@
           <div class="card overflow-hidden">
             <iframe
               :src="mapUrl"
+              :title="$t('contact.map_title')"
               width="100%"
               height="280"
               style="border: 0"

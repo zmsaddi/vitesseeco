@@ -18,7 +18,7 @@
               {{ $t('account.profile') }}
             </h2>
             <button @click="editingProfile = !editingProfile" class="text-accent text-sm hover:underline">
-              {{ editingProfile ? $t('common.back') : '✏️' }}
+              {{ editingProfile ? $t('common.back') : $t('account.edit_profile') }}
             </button>
           </div>
 
@@ -66,7 +66,7 @@
                 {{ $t('common.back') }}
               </button>
             </div>
-            <p v-if="profileSuccess" class="text-accent text-sm">✅ {{ $t('contact.success') }}</p>
+            <p v-if="profileSuccess" class="text-accent text-sm"><Icon name="ph:check-circle" class="w-4 h-4 text-accent inline" /> {{ $t('contact.success') }}</p>
           </form>
         </div>
 
@@ -78,7 +78,7 @@
               {{ $t('contact.address') }}
             </h2>
             <button v-if="!addingAddress && (userAddresses?.length || 0) < 5" @click="addingAddress = true" class="text-accent text-sm hover:underline flex items-center gap-1">
-              <Icon name="ph:plus" class="w-4 h-4" /> {{ $t('common.see_more') }}
+              <Icon name="ph:plus" class="w-4 h-4" /> {{ $t('account.add_address') }}
             </button>
           </div>
 
@@ -88,7 +88,7 @@
               <div class="text-sm">
                 <div class="flex items-center gap-2 mb-1">
                   <span class="text-white font-medium">{{ addr.firstName }} {{ addr.lastName }}</span>
-                  <span v-if="addr.isDefault" class="text-accent text-xs bg-accent/10 px-2 py-0.5 rounded-full">{{ $t('products.sort_newest') || 'Default' }}</span>
+                  <span v-if="addr.isDefault" class="text-accent text-xs bg-accent/10 px-2 py-0.5 rounded-full">{{ $t('account.default_address') }}</span>
                 </div>
                 <p class="text-text-secondary">{{ addr.address }}</p>
                 <p v-if="addr.addressLine2" class="text-text-secondary">{{ addr.addressLine2 }}</p>
@@ -100,7 +100,7 @@
               </button>
             </div>
           </div>
-          <p v-else-if="!addingAddress" class="text-text-secondary text-sm mb-4">{{ $t('account.no_orders') }}</p>
+          <p v-else-if="!addingAddress" class="text-text-secondary text-sm mb-4">{{ $t('account.no_addresses') }}</p>
 
           <!-- Add Address Form -->
           <form v-if="addingAddress" @submit.prevent="saveAddress" class="space-y-4 border-t border-dark-tertiary pt-4">
@@ -134,7 +134,7 @@
             </div>
             <div>
               <label for="addr-line2" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('checkout.address') }} 2</label>
-              <input id="addr-line2" name="addressLine2" v-model="addressForm.addressLine2" type="text" class="input-field" placeholder="Apt, étage, bâtiment..." />
+              <input id="addr-line2" name="addressLine2" v-model="addressForm.addressLine2" type="text" class="input-field" :placeholder="$t('checkout.address_line2_placeholder')" />
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
@@ -159,7 +159,7 @@
             </div>
             <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
               <input type="checkbox" v-model="addressForm.isDefault" class="accent-accent" />
-              {{ $t('shipping.standard') || 'Default address' }}
+              {{ $t('account.set_default') }}
             </label>
             <div class="flex gap-3">
               <button type="submit" :disabled="savingAddress" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">

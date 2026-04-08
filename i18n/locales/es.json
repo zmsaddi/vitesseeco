@@ -13,7 +13,9 @@
     "account": "Mi Cuenta",
     "login": "Iniciar Sesión",
     "register": "Registrarse",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "open_menu": "Abrir menú",
+    "close_menu": "Cerrar menú"
   },
   "home": {
     "hero_title": "Potencia Todo Terreno",
@@ -131,7 +133,8 @@
     "order_confirmed": "¡Pedido confirmado!",
     "order_number": "Número de pedido",
     "order_email_sent": "Se ha enviado un email de confirmación a {email}.",
-    "back_to_home": "Volver al inicio"
+    "back_to_home": "Volver al inicio",
+    "address_line2_placeholder": "Apt, piso, edificio..."
   },
   "account": {
     "title": "Mi Cuenta",
@@ -146,6 +149,11 @@
       "delivered": "Entregado",
       "cancelled": "Cancelado"
     },
+    "add_address": "Añadir dirección",
+    "no_addresses": "No hay direcciones guardadas",
+    "default_address": "Predeterminada",
+    "set_default": "Establecer como dirección predeterminada",
+    "edit_profile": "Editar",
     "delete_title": "Eliminar cuenta",
     "delete_warning": "Esta acción es permanente. Tus datos personales serán eliminados, pero tus pedidos se conservarán de forma anónima en nuestros registros.",
     "delete_button": "Eliminar mi cuenta",
@@ -167,7 +175,10 @@
     "register_button": "Crear mi cuenta",
     "no_account": "¿No tienes cuenta?",
     "has_account": "¿Ya tienes cuenta?",
-    "forgot_password": "¿Olvidaste tu contraseña?"
+    "forgot_password": "¿Olvidaste tu contraseña?",
+    "login_subtitle": "Inicia sesión en tu cuenta",
+    "register_subtitle": "Crea tu cuenta para empezar a comprar",
+    "password_mismatch": "Las contraseñas no coinciden"
   },
   "about": {
     "title": "Sobre Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "Lun — Sáb: 9h — 18h",
     "legal_info": "Información legal",
     "send_message": "Envíanos un mensaje",
-    "web": "Web"
+    "web": "Web",
+    "map_title": "Nuestra ubicación"
   },
   "footer": {
     "description": "Distribuidor de fatbikes eléctricas. Potencia, estilo y respeto por el medio ambiente.",
@@ -225,7 +237,8 @@
     "from": "Desde",
     "currency": "€",
     "or": "o",
-    "save": "Guardar"
+    "save": "Guardar",
+    "continue": "Continuar"
   },
   "legal": {
     "editor": "Editor del sitio",

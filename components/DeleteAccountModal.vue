@@ -47,7 +47,7 @@
                 {{ $t('common.back') }}
               </button>
               <button @click="step = 2" class="flex-1 py-3 rounded-lg bg-red-900/30 border border-red-800/50 text-red-400 font-medium hover:bg-red-900/50 transition-colors">
-                {{ $t('common.see_more') }}
+                {{ $t('common.continue') }}
               </button>
             </div>
           </div>

@@ -13,7 +13,9 @@
     "account": "Mijn Account",
     "login": "Inloggen",
     "register": "Registreren",
-    "logout": "Uitloggen"
+    "logout": "Uitloggen",
+    "open_menu": "Menu openen",
+    "close_menu": "Menu sluiten"
   },
   "home": {
     "hero_title": "All-Terrain Kracht",
@@ -131,7 +133,8 @@
     "order_confirmed": "Bestelling bevestigd!",
     "order_number": "Bestelnummer",
     "order_email_sent": "Een bevestigingsmail is verzonden naar {email}.",
-    "back_to_home": "Terug naar home"
+    "back_to_home": "Terug naar home",
+    "address_line2_placeholder": "Apt, verdieping, gebouw..."
   },
   "account": {
     "title": "Mijn Account",
@@ -146,6 +149,11 @@
       "delivered": "Geleverd",
       "cancelled": "Geannuleerd"
     },
+    "add_address": "Adres toevoegen",
+    "no_addresses": "Geen opgeslagen adressen",
+    "default_address": "Standaard",
+    "set_default": "Instellen als standaardadres",
+    "edit_profile": "Bewerken",
     "delete_title": "Account verwijderen",
     "delete_warning": "Deze actie is permanent. Je persoonlijke gegevens worden verwijderd, maar je bestellingen worden anoniem bewaard in onze administratie.",
     "delete_button": "Mijn account verwijderen",
@@ -167,7 +175,10 @@
     "register_button": "Account aanmaken",
     "no_account": "Nog geen account?",
     "has_account": "Al een account?",
-    "forgot_password": "Wachtwoord vergeten?"
+    "forgot_password": "Wachtwoord vergeten?",
+    "login_subtitle": "Log in op je account",
+    "register_subtitle": "Maak je account aan om te beginnen met winkelen",
+    "password_mismatch": "Wachtwoorden komen niet overeen"
   },
   "about": {
     "title": "Over Vitesse Eco",
@@ -199,7 +210,8 @@
     "hours_text": "Ma — Za: 9:00 — 18:00",
     "legal_info": "Juridische informatie",
     "send_message": "Stuur ons een bericht",
-    "web": "Web"
+    "web": "Web",
+    "map_title": "Onze locatie"
   },
   "footer": {
     "description": "Dealer in elektrische fatbikes. Kracht, stijl en respect voor het milieu.",
@@ -225,7 +237,8 @@
     "from": "Vanaf",
     "currency": "€",
     "or": "of",
-    "save": "Opslaan"
+    "save": "Opslaan",
+    "continue": "Doorgaan"
   },
   "legal": {
     "editor": "Website-uitgever",

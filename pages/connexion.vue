@@ -3,7 +3,7 @@
     <div class="container-custom max-w-md">
       <div class="card p-6 md:p-8">
         <h1 class="font-display text-2xl font-bold text-white text-center mb-2">{{ $t('auth.login_title') }}</h1>
-        <p class="text-text-secondary text-sm text-center mb-6">{{ $t('about.subtitle') }}</p>
+        <p class="text-text-secondary text-sm text-center mb-6">{{ $t('auth.login_subtitle') }}</p>
 
         <!-- Google First -->
         <a href="/api/auth/google" class="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-lg bg-white hover:bg-gray-100 transition-colors text-gray-800 font-medium text-sm">

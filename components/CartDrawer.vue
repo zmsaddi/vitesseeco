@@ -66,7 +66,7 @@
                 <div class="flex items-center gap-1">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
-                    aria-label="Decrease"
+                    :aria-label="$t('cart.quantity') + ' -'"
                     class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
                   >-</button>
                   <input
@@ -81,7 +81,7 @@
                   />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
-                    aria-label="Increase"
+                    :aria-label="$t('cart.quantity') + ' +'"
                     class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
                   >+</button>
                 </div>
