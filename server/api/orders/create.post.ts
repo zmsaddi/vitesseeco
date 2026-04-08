@@ -170,6 +170,8 @@ export default defineEventHandler(async (event) => {
   })
 
   // 8. Decrement stock in Sanity
+  // NOTE: Sanity doesn't support true transactions. We use atomic dec() then verify
+  // stock didn't go negative. If it did, we rollback the decrement.
   if (writeClient) {
     for (const item of validatedItems) {
       const product = productMap.get(item.productId)
@@ -181,6 +183,20 @@ export default defineEventHandler(async (event) => {
         .patch(item.productId)
         .dec({ [`variants[${variantIndex}].stock`]: item.quantity })
         .commit()
+
+      // Re-check stock after decrement to detect race condition
+      const updated = await readClient.fetch(
+        `*[_type == "product" && _id == $id][0].variants[$idx].stock`,
+        { id: item.productId, idx: variantIndex }
+      )
+      if (typeof updated === 'number' && updated < 0) {
+        // Rollback: restore the decremented quantity
+        await writeClient
+          .patch(item.productId)
+          .inc({ [`variants[${variantIndex}].stock`]: item.quantity })
+          .commit()
+        console.error(`[ORDER] Stock race detected for ${item.sku}, rolled back decrement`)
+      }
     }
   }
 

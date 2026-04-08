@@ -5,7 +5,7 @@ export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
 
   const body = await readBody<{
-    name: string; email: string; subject: string; message: string; turnstileToken?: string
+    name: string; email: string; subject: string; message: string; turnstileToken: string
   }>(event)
 
   if (!body?.name || !body?.email || !body?.subject || !body?.message) {
