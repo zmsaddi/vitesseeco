@@ -1,5 +1,4 @@
 export default defineEventHandler((event) => {
-  // Security headers
   setResponseHeaders(event, {
     'X-Frame-Options': 'DENY',
     'X-Content-Type-Options': 'nosniff',
@@ -12,7 +11,7 @@ export default defineEventHandler((event) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' https://cdn.sanity.io data: blob:",
-      "connect-src 'self' https://*.sanity.io https://*.apicdn.sanity.io wss://*.sanity.io https://www.google.com",
+      "connect-src 'self' https://*.sanity.io https://*.apicdn.sanity.io wss://*.sanity.io https://www.google.com https://api.iconify.design",
       "frame-src https://www.google.com https://maps.google.com",
       "object-src 'none'",
       "base-uri 'self'",
