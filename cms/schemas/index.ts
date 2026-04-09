@@ -13,6 +13,8 @@ import shippingMethod from './shippingMethod'
 import order from './order'
 import contactMessage from './contactMessage'
 import paymentMethod from './paymentMethod'
+import faq from './faq'
+import article from './article'
 import localizedString from './localizedString'
 import localizedText from './localizedText'
 import seoFields from './seoFields'
@@ -34,6 +36,8 @@ export const schemaTypes = [
   order,
   paymentMethod,
   contactMessage,
+  faq,
+  article,
 
   // Singletons (pages)
   homePage,

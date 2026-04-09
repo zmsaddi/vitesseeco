@@ -137,6 +137,15 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem().title('ℹ️ من نحن').child(S.document().schemaType('aboutPage').documentId('aboutPage')),
               S.listItem().title('📞 اتصل بنا').child(S.document().schemaType('contactPage').documentId('contactPage')),
               S.listItem().title('⚖️ القانونية').child(S.document().schemaType('legalPages').documentId('legalPages')),
+              S.divider(),
+              S.listItem()
+                .title('❓ الأسئلة الشائعة')
+                .schemaType('faq')
+                .child(S.documentTypeList('faq').title('الأسئلة الشائعة').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem()
+                .title('📰 المقالات')
+                .schemaType('article')
+                .child(S.documentTypeList('article').title('المقالات').defaultOrdering([{ field: 'publishedAt', direction: 'desc' }])),
             ])
         ),
 

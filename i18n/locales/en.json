@@ -15,7 +15,8 @@
     "register": "Sign Up",
     "logout": "Log Out",
     "open_menu": "Open menu",
-    "close_menu": "Close menu"
+    "close_menu": "Close menu",
+    "faq": "FAQ"
   },
   "home": {
     "hero_title": "All-Terrain Power",
@@ -272,5 +273,24 @@
     "fast_delivery": "Fast Delivery in France",
     "warranty": "Manufacturer Warranty",
     "support": "Responsive Customer Service"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Find answers to your questions about our electric fatbikes",
+    "no_results": "No questions in this category",
+    "still_questions": "Didn't find your answer?",
+    "contact_us": "Our team is here to help",
+    "cat_all": "All",
+    "cat_general": "General",
+    "cat_technical": "Technical",
+    "cat_shipping": "Delivery",
+    "cat_payment": "Payment",
+    "cat_maintenance": "Maintenance"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Guides, tips and news about electric fatbikes",
+    "no_articles": "No articles yet",
+    "back_to_blog": "Back to blog"
   }
 }

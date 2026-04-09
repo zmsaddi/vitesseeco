@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   ]
   const now = new Date().toISOString().split('T')[0]
 
-  const staticPages = ['', '/produits', '/a-propos', '/contact', '/mentions-legales', '/politique-confidentialite', '/cgv']
+  const staticPages = ['', '/produits', '/faq', '/a-propos', '/contact', '/mentions-legales', '/politique-confidentialite', '/cgv']
 
   let urls = ''
 

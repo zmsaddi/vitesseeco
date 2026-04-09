@@ -15,7 +15,8 @@
     "register": "Registrieren",
     "logout": "Abmelden",
     "open_menu": "Menü öffnen",
-    "close_menu": "Menü schließen"
+    "close_menu": "Menü schließen",
+    "faq": "FAQ"
   },
   "home": {
     "hero_title": "Geländekraft",
@@ -272,5 +273,24 @@
     "fast_delivery": "Schnelle Lieferung in Frankreich",
     "warranty": "Herstellergarantie",
     "support": "Reaktiver Kundenservice"
+  },
+  "faq": {
+    "title": "Häufig gestellte Fragen",
+    "subtitle": "Finden Sie Antworten auf Ihre Fragen zu unseren elektrischen Fatbikes",
+    "no_results": "Keine Fragen in dieser Kategorie",
+    "still_questions": "Ihre Antwort nicht gefunden?",
+    "contact_us": "Unser Team hilft Ihnen gerne weiter",
+    "cat_all": "Alle",
+    "cat_general": "Allgemein",
+    "cat_technical": "Technisch",
+    "cat_shipping": "Lieferung",
+    "cat_payment": "Zahlung",
+    "cat_maintenance": "Wartung"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Ratgeber, Tipps und Neuigkeiten über elektrische Fatbikes",
+    "no_articles": "Noch keine Artikel",
+    "back_to_blog": "Zurück zum Blog"
   }
 }

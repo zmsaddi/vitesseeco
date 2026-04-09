@@ -15,7 +15,8 @@
     "register": "Registrarse",
     "logout": "Cerrar Sesión",
     "open_menu": "Abrir menú",
-    "close_menu": "Cerrar menú"
+    "close_menu": "Cerrar menú",
+    "faq": "FAQ"
   },
   "home": {
     "hero_title": "Potencia Todo Terreno",
@@ -272,5 +273,24 @@
     "fast_delivery": "Entrega rápida en Francia",
     "warranty": "Garantía del fabricante",
     "support": "Servicio al cliente reactivo"
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "subtitle": "Encuentra las respuestas a tus preguntas sobre nuestras fatbikes eléctricas",
+    "no_results": "No hay preguntas en esta categoría",
+    "still_questions": "¿No encontraste tu respuesta?",
+    "contact_us": "Nuestro equipo está aquí para ayudarte",
+    "cat_all": "Todas",
+    "cat_general": "General",
+    "cat_technical": "Técnico",
+    "cat_shipping": "Envío",
+    "cat_payment": "Pago",
+    "cat_maintenance": "Mantenimiento"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Guías, consejos y noticias sobre fatbikes eléctricas",
+    "no_articles": "No hay artículos por el momento",
+    "back_to_blog": "Volver al blog"
   }
 }

@@ -15,7 +15,8 @@
     "register": "Registreren",
     "logout": "Uitloggen",
     "open_menu": "Menu openen",
-    "close_menu": "Menu sluiten"
+    "close_menu": "Menu sluiten",
+    "faq": "FAQ"
   },
   "home": {
     "hero_title": "All-Terrain Kracht",
@@ -272,5 +273,24 @@
     "fast_delivery": "Snelle levering in Frankrijk",
     "warranty": "Fabrieksgarantie",
     "support": "Reactieve klantenservice"
+  },
+  "faq": {
+    "title": "Veelgestelde vragen",
+    "subtitle": "Vind antwoorden op uw vragen over onze elektrische fatbikes",
+    "no_results": "Geen vragen in deze categorie",
+    "still_questions": "Uw antwoord niet gevonden?",
+    "contact_us": "Ons team staat voor u klaar",
+    "cat_all": "Alle",
+    "cat_general": "Algemeen",
+    "cat_technical": "Technisch",
+    "cat_shipping": "Bezorging",
+    "cat_payment": "Betaling",
+    "cat_maintenance": "Onderhoud"
+  },
+  "blog": {
+    "title": "Blog",
+    "subtitle": "Gidsen, tips en nieuws over elektrische fatbikes",
+    "no_articles": "Nog geen artikelen",
+    "back_to_blog": "Terug naar blog"
   }
 }
