@@ -7,10 +7,16 @@ export default defineType({
   icon: () => '🚚',
   fields: [
     { name: 'name', title: '📝 الاسم', type: 'localizedString' },
-    { name: 'code', title: '🔖 رمز فريد', type: 'string', description: 'مثال: standard, express, pickup' },
+    {
+      name: 'code', title: '🔖 رمز فريد', type: 'string', description: 'مثال: standard, express, pickup',
+      validation: (Rule) => Rule.required().error('الرمز مطلوب'),
+    },
     { name: 'description', title: '📄 الوصف', type: 'localizedString' },
     { name: 'estimatedDays', title: '📅 المدة المقدرة', type: 'string', description: 'مثال: 5-7 أيام' },
-    { name: 'price', title: '💶 السعر (€)', type: 'number', description: '0 = مجاني' },
+    {
+      name: 'price', title: '💶 السعر (€)', type: 'number', description: '0 = مجاني',
+      validation: (Rule) => Rule.required().min(0).error('السعر مطلوب'),
+    },
     { name: 'freeAbove', title: '🆓 مجاني فوق (€)', type: 'number', description: 'شحن مجاني إذا تجاوز المبلغ. اتركه فارغاً إذا دائماً مجاني أو دائماً مدفوع' },
     {
       name: 'zones',
@@ -27,6 +33,7 @@ export default defineType({
           { title: '🇪🇸 إسبانيا', value: 'ES' },
         ],
       },
+      validation: (Rule) => Rule.required().min(1).error('اختر منطقة واحدة على الأقل'),
     },
     { name: 'isActive', title: '✅ نشط', type: 'boolean', initialValue: true, description: 'أوقفه لإخفاء طريقة الشحن' },
     { name: 'sortOrder', title: '🔢 الترتيب', type: 'number', initialValue: 0 },

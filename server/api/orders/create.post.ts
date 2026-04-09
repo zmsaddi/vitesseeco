@@ -16,6 +16,10 @@ export default defineEventHandler(async (event) => {
       firstName: string; lastName: string; phone?: string
       address: string; city: string; postalCode: string; country: string
     }
+    billingAddress?: {
+      firstName: string; lastName: string; phone?: string
+      address: string; city: string; postalCode: string; country: string
+    }
     promoCode?: string
     notes?: string
     turnstileToken?: string

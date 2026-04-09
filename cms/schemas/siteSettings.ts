@@ -14,7 +14,10 @@ export default defineType({
       title: '📞 معلومات الاتصال',
       type: 'object',
       fields: [
-        { name: 'email', title: '📧 البريد الإلكتروني', type: 'string' },
+        {
+          name: 'email', title: '📧 البريد الإلكتروني', type: 'string',
+          validation: (Rule) => Rule.email(),
+        },
         { name: 'phone', title: '📱 الهاتف', type: 'string' },
         { name: 'address', title: '📍 العنوان', type: 'localizedString', description: 'العنوان بكل اللغات' },
         { name: 'hours', title: '🕐 ساعات العمل', type: 'localizedString', description: 'ساعات العمل بكل اللغات' },
@@ -26,9 +29,9 @@ export default defineType({
       type: 'object',
       description: 'اتركه فارغاً لإخفاء الأيقونة من الموقع',
       fields: [
-        { name: 'instagram', title: '📸 Instagram', type: 'url' },
-        { name: 'facebook', title: '📘 Facebook', type: 'url' },
-        { name: 'tiktok', title: '🎵 TikTok', type: 'url' },
+        { name: 'instagram', title: '📸 Instagram', type: 'url', validation: (Rule) => Rule.uri({ scheme: ['https'] }) },
+        { name: 'facebook', title: '📘 Facebook', type: 'url', validation: (Rule) => Rule.uri({ scheme: ['https'] }) },
+        { name: 'tiktok', title: '🎵 TikTok', type: 'url', validation: (Rule) => Rule.uri({ scheme: ['https'] }) },
       ],
     },
     { name: 'footerText', title: '📄 نص أسفل الصفحة', type: 'localizedString' },

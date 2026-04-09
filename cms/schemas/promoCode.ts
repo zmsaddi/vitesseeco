@@ -6,16 +6,39 @@ export default defineType({
   type: 'document',
   icon: () => '🎟️',
   fields: [
-    { name: 'code', title: 'الكود', type: 'string', description: 'مثال: SUMMER20' },
+    {
+      name: 'code', title: 'الكود', type: 'string', description: 'حروف كبيرة وأرقام فقط — مثال: SUMMER20',
+      validation: (Rule) => Rule.required()
+        .regex(/^[A-Z0-9_-]+$/, { name: 'promo code format' })
+        .max(30)
+        .error('الكود يجب أن يحتوي حروف كبيرة وأرقام فقط، بدون مسافات'),
+    },
     {
       name: 'discountType',
       title: 'نوع الخصم',
       type: 'string',
       options: { list: [{ title: 'نسبة مئوية (%)', value: 'percentage' }, { title: 'مبلغ ثابت (€)', value: 'fixed' }] },
+      validation: (Rule) => Rule.required().error('اختر نوع الخصم'),
     },
-    { name: 'discountValue', title: 'قيمة الخصم', type: 'number', description: 'مثال: 20 لـ 20% أو 50 لـ 50€' },
-    { name: 'minOrderAmount', title: 'الحد الأدنى للطلب (€)', type: 'number' },
-    { name: 'maxUses', title: 'الحد الأقصى للاستخدامات', type: 'number' },
+    {
+      name: 'discountValue', title: 'قيمة الخصم', type: 'number',
+      description: 'مثال: 20 لـ 20% أو 50 لـ 50€',
+      validation: (Rule) => Rule.required().min(0).custom((value, context) => {
+        const doc = context.document as any
+        if (doc?.discountType === 'percentage' && typeof value === 'number' && value > 100) {
+          return 'النسبة لا يمكن أن تتجاوز 100%'
+        }
+        return true
+      }),
+    },
+    {
+      name: 'minOrderAmount', title: 'الحد الأدنى للطلب (€)', type: 'number',
+      validation: (Rule) => Rule.min(0),
+    },
+    {
+      name: 'maxUses', title: 'الحد الأقصى للاستخدامات', type: 'number',
+      validation: (Rule) => Rule.min(1),
+    },
     { name: 'currentUses', title: 'الاستخدامات الحالية', type: 'number', initialValue: 0, readOnly: true },
     { name: 'validFrom', title: 'صالح من', type: 'datetime' },
     { name: 'validUntil', title: 'صالح حتى', type: 'datetime' },

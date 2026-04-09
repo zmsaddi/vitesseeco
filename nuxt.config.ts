@@ -27,6 +27,7 @@ export default defineNuxtConfig({
   },
 
   i18n: {
+    baseUrl: 'https://vitesse-eco.fr',
     langDir: 'locales',
     locales: [
       { code: 'fr', language: 'fr-FR', file: 'fr.json', name: 'Français' },
@@ -51,7 +52,7 @@ export default defineNuxtConfig({
   sanity: {
     projectId: '2jvnjf0c',
     dataset: 'production',
-    useCdn: false,
+    useCdn: true,
     apiVersion: '2024-01-01',
   },
 
@@ -100,7 +101,8 @@ export default defineNuxtConfig({
         { name: 'twitter:image', content: 'https://vitesse-eco.fr/poster.jpeg' },
       ],
       link: [
-        { rel: 'icon', type: 'image/png', href: '/logo.png' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
         { rel: 'privacy-policy', href: 'https://vitesse-eco.fr/politique-confidentialite' },
       ],
       script: [
@@ -110,6 +112,26 @@ export default defineNuxtConfig({
           name: 'Vitesse Eco',
           url: 'https://vitesse-eco.fr',
           potentialAction: { '@type': 'SearchAction', target: 'https://vitesse-eco.fr/produits?q={search_term_string}', 'query-input': 'required name=search_term_string' },
+        }) },
+        { type: 'application/ld+json', innerHTML: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Vitesse Eco',
+          url: 'https://vitesse-eco.fr',
+          logo: 'https://vitesse-eco.fr/logo.png',
+          contactPoint: {
+            '@type': 'ContactPoint',
+            email: 'contact@vitesse-eco.fr',
+            contactType: 'customer service',
+            availableLanguage: ['French', 'English', 'Spanish', 'Dutch', 'German', 'Arabic'],
+          },
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: '32 Rue du Faubourg du Pont Neuf',
+            addressLocality: 'Poitiers',
+            postalCode: '86000',
+            addressCountry: 'FR',
+          },
         }) },
       ],
     },

@@ -221,7 +221,7 @@ useSwipe(galleryContainer, {
 const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,
   isOnSale, isNew, isAvailable,
-  specifications, category->{ _id, name },
+  specifications, category->{ _id, name }, brand->{ name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, "images": images[]{asset} } }
 }`
@@ -326,5 +326,52 @@ function addToCart() {
   qty.value = 1
 }
 
-useHead({ title: computed(() => product.value ? `${l(product.value.name)} — Vitesse Eco` : 'Vitesse Eco') })
+useHead({
+  title: computed(() => product.value ? `${l(product.value.name)} — Vitesse Eco` : 'Vitesse Eco'),
+  meta: computed(() => product.value ? [
+    { name: 'description', content: l(product.value.shortDescription) || l(product.value.description)?.slice(0, 160) || '' },
+  ] : []),
+  script: computed(() => {
+    if (!product.value) return []
+    const p = product.value
+    const scripts: any[] = []
+    // Product JSON-LD
+    scripts.push({
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: l(p.name),
+        description: l(p.shortDescription) || l(p.description)?.slice(0, 300),
+        image: allImages.value.slice(0, 5).map(img => useSanityImageUrl(img, 800, 800)),
+        brand: p.brand?.name ? { '@type': 'Brand', name: p.brand.name } : undefined,
+        sku: p.variants?.[0]?.sku,
+        offers: {
+          '@type': 'Offer',
+          price: currentPrice.value,
+          priceCurrency: 'EUR',
+          availability: currentStock.value > 0
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+          url: `https://vitesse-eco.fr/produits/${p.slug?.current}`,
+          seller: { '@type': 'Organization', name: 'Vitesse Eco' },
+        },
+      }),
+    })
+    // BreadcrumbList JSON-LD
+    scripts.push({
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Accueil', item: 'https://vitesse-eco.fr' },
+          { '@type': 'ListItem', position: 2, name: 'Produits', item: 'https://vitesse-eco.fr/produits' },
+          { '@type': 'ListItem', position: 3, name: l(p.name) },
+        ],
+      }),
+    })
+    return scripts
+  }),
+})
 </script>

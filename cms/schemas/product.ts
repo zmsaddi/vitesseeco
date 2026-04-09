@@ -16,13 +16,15 @@ export default defineType({
     // === المعلومات الأساسية ===
     {
       name: 'name', title: '📝 اسم الموديل', type: 'localizedString', group: 'general',
-      description: 'اكتب اسم المنتج بكل اللغات',
+      description: 'اكتب اسم المنتج بكل اللغات — الفرنسية إلزامية',
+      validation: (Rule) => Rule.required().error('اسم المنتج مطلوب'),
     },
     {
       name: 'slug', title: '🔗 رابط المنتج', type: 'slug',
       options: { source: 'name.fr', maxLength: 96 },
       group: 'general',
       description: 'اضغط "Generate" لإنشاء الرابط تلقائياً من الاسم الفرنسي',
+      validation: (Rule) => Rule.required().error('رابط المنتج مطلوب — اضغط Generate'),
     },
     {
       name: 'brand', title: '🏷️ العلامة التجارية', type: 'reference', to: [{ type: 'brand' }], group: 'general',
@@ -30,6 +32,7 @@ export default defineType({
     {
       name: 'category', title: '📂 الفئة', type: 'reference', to: [{ type: 'category' }], group: 'general',
       description: 'اختر: حضري، طرق وعرة، قابل للطي، نسائي، أو مدى طويل',
+      validation: (Rule) => Rule.required().error('الفئة مطلوبة'),
     },
     {
       name: 'shortDescription', title: '📄 وصف مختصر', type: 'localizedString', group: 'general',
@@ -43,17 +46,20 @@ export default defineType({
       name: 'relatedProducts', title: '🔄 منتجات مشابهة', type: 'array',
       of: [{ type: 'reference', to: [{ type: 'product' }] }],
       group: 'general',
-      description: 'اختر 2-3 منتجات تظهر في "قد يعجبك أيضاً"',
+      description: 'اختر 2-4 منتجات تظهر في "قد يعجبك أيضاً"',
+      validation: (Rule) => Rule.max(4).warning('4 منتجات مشابهة كافية'),
     },
 
     // === السعر والحالة ===
     {
       name: 'price', title: '💶 السعر (€)', type: 'number', group: 'pricing',
       description: 'السعر الحالي بالأورو',
+      validation: (Rule) => Rule.required().min(0).error('السعر مطلوب ويجب أن يكون 0 أو أكثر'),
     },
     {
       name: 'compareAtPrice', title: '💶 السعر القديم (€)', type: 'number', group: 'pricing',
       description: 'يظهر مشطوباً بجانب السعر الجديد. اتركه فارغاً إذا لا يوجد تخفيض',
+      validation: (Rule) => Rule.min(0).warning('السعر القديم يجب أن يكون موجباً'),
     },
     {
       name: 'isOnSale', title: '🏷️ في التخفيض؟', type: 'boolean', initialValue: false, group: 'pricing',
@@ -74,6 +80,7 @@ export default defineType({
     {
       name: 'sortOrder', title: '🔢 ترتيب العرض', type: 'number', initialValue: 0, group: 'pricing',
       description: 'رقم أصغر = يظهر أولاً (مثال: 1, 2, 3...)',
+      validation: (Rule) => Rule.min(0),
     },
 
     // === الألوان والصور ===
@@ -82,6 +89,7 @@ export default defineType({
       of: [{ type: 'colorVariant' }],
       group: 'variants',
       description: 'أضف كل لون متاح مع صوره ومخزونه. أول لون = يظهر كلون افتراضي',
+      validation: (Rule) => Rule.required().min(1).error('أضف لون واحد على الأقل مع صوره'),
     },
 
     // === المواصفات التقنية ===
