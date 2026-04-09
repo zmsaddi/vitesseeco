@@ -328,13 +328,25 @@
     "model": "Model",
     "price": "Prijs",
     "need_help": "Persoonlijk advies nodig?",
-    "need_help_desc": "Ons team staat klaar om u te helpen het perfecte model te kiezen"
+    "need_help_desc": "Ons team staat klaar om u te helpen het perfecte model te kiezen",
+    "filters": "Filters",
+    "budget": "Budget",
+    "clear_filters": "Filters wissen",
+    "no_results": "Geen modellen voldoen aan uw criteria",
+    "load_more": "Meer laden",
+    "remaining": "resterend",
+    "sort_price_asc": "Prijs oplopend",
+    "sort_price_desc": "Prijs aflopend",
+    "sort_range": "Bereik",
+    "sort_name": "Naam"
   },
   "compare": {
     "title": "Fatbike vergelijking",
     "subtitle": "Vergelijk alle kenmerken van onze modellen naast elkaar",
     "colors": "Kleuren",
     "stock": "Voorraad",
-    "all_models": "Al onze modellen zijn uitgerust met een 250W motor en hydraulische remmen"
+    "all_models": "Al onze modellen zijn uitgerust met een 250W motor en hydraulische remmen",
+    "search": "Zoek een model...",
+    "all_categories": "Alle categorieën"
   }
 }

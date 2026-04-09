@@ -328,13 +328,25 @@
     "model": "Modell",
     "price": "Preis",
     "need_help": "Persönliche Beratung gewünscht?",
-    "need_help_desc": "Unser Team hilft Ihnen gerne bei der Wahl des perfekten Modells"
+    "need_help_desc": "Unser Team hilft Ihnen gerne bei der Wahl des perfekten Modells",
+    "filters": "Filter",
+    "budget": "Budget",
+    "clear_filters": "Filter löschen",
+    "no_results": "Keine Modelle entsprechen Ihren Kriterien",
+    "load_more": "Mehr laden",
+    "remaining": "verbleibend",
+    "sort_price_asc": "Preis aufsteigend",
+    "sort_price_desc": "Preis absteigend",
+    "sort_range": "Reichweite",
+    "sort_name": "Name"
   },
   "compare": {
     "title": "Fatbike-Vergleich",
     "subtitle": "Vergleichen Sie alle Eigenschaften unserer Modelle nebeneinander",
     "colors": "Farben",
     "stock": "Bestand",
-    "all_models": "Alle unsere Modelle sind mit einem 250W-Motor und hydraulischen Bremsen ausgestattet"
+    "all_models": "Alle unsere Modelle sind mit einem 250W-Motor und hydraulischen Bremsen ausgestattet",
+    "search": "Modell suchen...",
+    "all_categories": "Alle Kategorien"
   }
 }

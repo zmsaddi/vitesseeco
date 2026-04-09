@@ -328,13 +328,25 @@
     "model": "Model",
     "price": "Price",
     "need_help": "Need personalised advice?",
-    "need_help_desc": "Our team is available to help you choose the perfect model"
+    "need_help_desc": "Our team is available to help you choose the perfect model",
+    "filters": "Filters",
+    "budget": "Budget",
+    "clear_filters": "Clear filters",
+    "no_results": "No models match your criteria",
+    "load_more": "Load more",
+    "remaining": "remaining",
+    "sort_price_asc": "Price: low to high",
+    "sort_price_desc": "Price: high to low",
+    "sort_range": "Range",
+    "sort_name": "Name"
   },
   "compare": {
     "title": "Fatbike Comparison",
     "subtitle": "Compare all features of our models side by side to find your ideal bike",
     "colors": "Colours",
     "stock": "Stock",
-    "all_models": "All our models feature a 250W motor and hydraulic brakes"
+    "all_models": "All our models feature a 250W motor and hydraulic brakes",
+    "search": "Search a model...",
+    "all_categories": "All categories"
   }
 }
