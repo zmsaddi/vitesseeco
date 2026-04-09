@@ -5,7 +5,7 @@
   },
   "nav": {
     "home": "Startseite",
-    "products": "Unsere Fahrräder",
+    "products": "Unsere Produkte",
     "about": "Über Uns",
     "contact": "Kontakt",
     "blog": "Blog",
@@ -16,7 +16,16 @@
     "logout": "Abmelden",
     "open_menu": "Menü öffnen",
     "close_menu": "Menü schließen",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "all_products": "Alle Produkte",
+    "type_bikes": "Elektrofahrräder",
+    "type_bikes_desc": "Fatbikes und Pedelecs",
+    "type_accessories": "Zubehör",
+    "type_accessories_desc": "Helme, Taschen, Beleuchtung und mehr",
+    "type_parts": "Ersatzteile",
+    "type_parts_desc": "Akkus, Reifen, Bremsen und Komponenten",
+    "type_kids": "Kinderfahrzeuge",
+    "type_kids_desc": "Elektroautos für Kinder"
   },
   "home": {
     "hero_title": "Geländekraft",

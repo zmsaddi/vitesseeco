@@ -5,7 +5,7 @@
   },
   "nav": {
     "home": "Home",
-    "products": "Our Bikes",
+    "products": "Our Products",
     "about": "About Us",
     "contact": "Contact",
     "blog": "Blog",
@@ -16,7 +16,16 @@
     "logout": "Log Out",
     "open_menu": "Open menu",
     "close_menu": "Close menu",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "all_products": "All products",
+    "type_bikes": "Electric Bikes",
+    "type_bikes_desc": "Fatbikes and pedal-assist electric bikes",
+    "type_accessories": "Accessories",
+    "type_accessories_desc": "Helmets, bags, lights and more",
+    "type_parts": "Spare Parts",
+    "type_parts_desc": "Batteries, tyres, brakes and components",
+    "type_kids": "Kids' Vehicles",
+    "type_kids_desc": "Electric cars for children"
   },
   "home": {
     "hero_title": "All-Terrain Power",

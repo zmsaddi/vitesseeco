@@ -7,6 +7,26 @@
         <p class="text-text-secondary text-lg">{{ $t('products.subtitle') }}</p>
       </div>
 
+      <!-- Product type tabs -->
+      <div class="flex flex-wrap gap-2 justify-center mb-8">
+        <button
+          @click="selectedType = ''"
+          class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          :class="!selectedType ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'"
+        >
+          {{ $t('nav.all_products') }}
+        </button>
+        <button
+          v-for="type in typeFilters"
+          :key="type.value"
+          @click="selectedType = type.value"
+          class="px-4 py-2 rounded-full text-sm font-medium transition-colors"
+          :class="selectedType === type.value ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'"
+        >
+          {{ type.icon }} {{ type.label }}
+        </button>
+      </div>
+
       <div class="flex flex-col lg:flex-row gap-8">
         <!-- Mobile filter toggle -->
         <button @click="showFilters = !showFilters" class="lg:hidden btn-secondary flex items-center justify-center gap-2">
@@ -120,12 +140,24 @@ useHead({
   ],
 })
 
+const route = useRoute()
 const selectedCategory = ref('')
 const selectedTire = ref('')
 const selectedRange = ref('')
+const selectedType = ref((route.query.type as string) || '')
 const sortBy = ref('sortOrder')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showFilters = ref(false)
+
+// Watch URL query for type filter (from header dropdown)
+watch(() => route.query.type, (val) => { selectedType.value = (val as string) || '' })
+
+const typeFilters = computed(() => [
+  { value: 'bike', icon: '🚲', label: t('nav.type_bikes') },
+  { value: 'accessory', icon: '🎒', label: t('nav.type_accessories') },
+  { value: 'spare_part', icon: '🔧', label: t('nav.type_parts') },
+  { value: 'kids_car', icon: '🚗', label: t('nav.type_kids') },
+])
 
 const tireSizes = ['16"', '20"', '24"', '70/100-17"']
 
@@ -136,7 +168,7 @@ const { data: categories } = useSanityFetch('categories', catQuery)
 // Fetch all products
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
-  specifications, category->{ _id },
+  productType, specifications, category->{ _id },
   variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} }
 }`
 const { data: products } = useSanityFetch('all-products', prodQuery)
@@ -144,6 +176,11 @@ const { data: products } = useSanityFetch('all-products', prodQuery)
 const filteredProducts = computed(() => {
   if (!products.value) return []
   let result = [...products.value]
+
+  // Product type filter (from URL query or dropdown)
+  if (selectedType.value) {
+    result = result.filter((p: any) => p.productType === selectedType.value)
+  }
 
   if (selectedCategory.value) {
     result = result.filter((p: any) => p.category?._id === selectedCategory.value)

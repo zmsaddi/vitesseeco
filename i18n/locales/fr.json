@@ -5,7 +5,7 @@
   },
   "nav": {
     "home": "Accueil",
-    "products": "Nos Vélos",
+    "products": "Nos Produits",
     "about": "À Propos",
     "contact": "Contact",
     "blog": "Blog",
@@ -16,7 +16,16 @@
     "logout": "Déconnexion",
     "open_menu": "Ouvrir le menu",
     "close_menu": "Fermer le menu",
-    "faq": "FAQ"
+    "faq": "FAQ",
+    "all_products": "Tous les produits",
+    "type_bikes": "Vélos Électriques",
+    "type_bikes_desc": "Fatbikes et vélos à assistance électrique",
+    "type_accessories": "Accessoires",
+    "type_accessories_desc": "Casques, sacs, éclairages et plus",
+    "type_parts": "Pièces Détachées",
+    "type_parts_desc": "Batteries, pneus, freins et composants",
+    "type_kids": "Véhicules Enfants",
+    "type_kids_desc": "Voitures électriques pour enfants"
   },
   "home": {
     "hero_title": "Puissance Tout-Terrain",
