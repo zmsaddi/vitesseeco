@@ -35,13 +35,25 @@
             </div>
           </div>
 
+          <div v-if="contactPhone" class="card p-6 flex items-start gap-4">
+            <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center shrink-0">
+              <Icon name="ph:phone" class="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.phone') }}</h3>
+              <a :href="`tel:${contactPhone.replace(/\s/g, '')}`" class="text-text-secondary hover:text-accent transition-colors text-sm">
+                {{ contactPhone }}
+              </a>
+            </div>
+          </div>
+
           <div class="card p-6 flex items-start gap-4">
             <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center shrink-0">
               <Icon name="ph:globe" class="w-6 h-6 text-accent" />
             </div>
             <div>
               <h3 class="font-display font-semibold text-white mb-1">{{ $t('contact.web') }}</h3>
-              <span class="text-text-secondary text-sm">www.vitesse-eco.com</span>
+              <span class="text-text-secondary text-sm">www.vitesse-eco.fr</span>
             </div>
           </div>
 
@@ -159,7 +171,7 @@ useHead({
 
 const mapUrl = computed(() => contactData.value?.mapUrl || defaultMapUrl)
 const contactEmail = computed(() => contactData.value?.email || 'contact@vitesse-eco.fr')
-const contactPhone = computed(() => contactData.value?.phone || '')
+const contactPhone = computed(() => contactData.value?.phone || '+33 7 45 83 00 49')
 const contactAddress = computed(() => contactData.value?.address ? l(contactData.value.address) : '32 Rue du Faubourg du Pont Neuf\n86000 Poitiers, France')
 const contactHours = computed(() => contactData.value?.hours ? l(contactData.value.hours) : t('contact.hours_text'))
 

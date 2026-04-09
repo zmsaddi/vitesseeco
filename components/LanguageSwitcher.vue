@@ -54,7 +54,7 @@ const currentLabel = computed(() => {
 })
 
 const allLocales = computed(() =>
-  (locales.value as Array<{ code: string; name?: string }>)
+  (locales.value as Array<{ code: string; name?: string }>).filter(l => l.code !== 'ar')
 )
 
 function switchLang(code: string) {
