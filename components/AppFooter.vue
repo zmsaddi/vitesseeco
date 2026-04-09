@@ -131,6 +131,7 @@ function submitNewsletter() {
 const quickLinks = [
   { path: '/produits', label: 'nav.products' },
   { path: '/guide', label: 'guide.title' },
+  { path: '/comparatif', label: 'compare.title' },
   { path: '/blog', label: 'blog.title' },
   { path: '/faq', label: 'nav.faq' },
   { path: '/a-propos', label: 'nav.about' },

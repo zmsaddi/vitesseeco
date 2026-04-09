@@ -15,6 +15,7 @@ import contactMessage from './contactMessage'
 import paymentMethod from './paymentMethod'
 import faq from './faq'
 import article from './article'
+import landingPage from './landingPage'
 import localizedString from './localizedString'
 import localizedText from './localizedText'
 import seoFields from './seoFields'
@@ -38,6 +39,7 @@ export const schemaTypes = [
   contactMessage,
   faq,
   article,
+  landingPage,
 
   // Singletons (pages)
   homePage,

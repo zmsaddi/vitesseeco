@@ -328,5 +328,12 @@
     "price": "Prijs",
     "need_help": "Persoonlijk advies nodig?",
     "need_help_desc": "Ons team staat klaar om u te helpen het perfecte model te kiezen"
+  },
+  "compare": {
+    "title": "Fatbike vergelijking",
+    "subtitle": "Vergelijk alle kenmerken van onze modellen naast elkaar",
+    "colors": "Kleuren",
+    "stock": "Voorraad",
+    "all_models": "Al onze modellen zijn uitgerust met een 250W motor en hydraulische remmen"
   }
 }

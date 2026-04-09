@@ -146,6 +146,10 @@ export const deskStructure = (S: StructureBuilder) =>
                 .title('📰 المقالات')
                 .schemaType('article')
                 .child(S.documentTypeList('article').title('المقالات').defaultOrdering([{ field: 'publishedAt', direction: 'desc' }])),
+              S.listItem()
+                .title('🚀 صفحات الهبوط')
+                .schemaType('landingPage')
+                .child(S.documentTypeList('landingPage').title('صفحات الهبوط')),
             ])
         ),
 

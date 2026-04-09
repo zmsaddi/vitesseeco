@@ -328,5 +328,12 @@
     "price": "Preis",
     "need_help": "Persönliche Beratung gewünscht?",
     "need_help_desc": "Unser Team hilft Ihnen gerne bei der Wahl des perfekten Modells"
+  },
+  "compare": {
+    "title": "Fatbike-Vergleich",
+    "subtitle": "Vergleichen Sie alle Eigenschaften unserer Modelle nebeneinander",
+    "colors": "Farben",
+    "stock": "Bestand",
+    "all_models": "Alle unsere Modelle sind mit einem 250W-Motor und hydraulischen Bremsen ausgestattet"
   }
 }

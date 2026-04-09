@@ -8,7 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "check:langs": "node scripts/check-languages.mjs"
+    "check:langs": "node scripts/check-languages.mjs",
+    "test:e2e": "npx playwright test",
+    "test:e2e:ui": "npx playwright test --ui"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -30,6 +32,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "@types/bcryptjs": "^2.4.6",
     "drizzle-kit": "^0.31.10",
     "franc-min": "^6.2.0",

@@ -328,5 +328,12 @@
     "price": "Prix",
     "need_help": "Besoin de conseils personnalisés ?",
     "need_help_desc": "Notre équipe est à votre disposition pour vous aider à choisir le modèle parfait"
+  },
+  "compare": {
+    "title": "Comparatif des fatbikes",
+    "subtitle": "Comparez toutes les caractéristiques de nos modèles côte à côte pour trouver votre vélo idéal",
+    "colors": "Couleurs",
+    "stock": "Stock",
+    "all_models": "Tous nos modèles sont équipés d'un moteur 250W et de freins hydrauliques"
   }
 }
