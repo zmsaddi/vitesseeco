@@ -1,10 +1,10 @@
 <template>
   <div class="py-8 md:py-12">
     <div class="container-custom">
-      <!-- Header -->
+      <!-- Dynamic Header based on selected type -->
       <div class="text-center mb-10">
-        <h1 class="section-title mb-3">{{ $t('products.title') }}</h1>
-        <p class="text-text-secondary text-lg">{{ $t('products.subtitle') }}</p>
+        <h1 class="section-title mb-3">{{ pageTitle }}</h1>
+        <p class="text-text-secondary text-lg">{{ pageSubtitle }}</p>
       </div>
 
       <!-- Product type tabs -->
@@ -51,23 +51,26 @@
               </select>
             </div>
 
-            <div>
-              <label for="filter-tire" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.tire_size') }}</label>
-              <select id="filter-tire" name="tire-size" v-model="selectedTire" class="input-field text-sm py-2">
-                <option value="">{{ $t('products.all_sizes') }}</option>
-                <option v-for="size in tireSizes" :key="size" :value="size">{{ size }}</option>
-              </select>
-            </div>
+            <!-- Bike-specific filters: only show when type is bike or all -->
+            <template v-if="!selectedType || selectedType === 'bike'">
+              <div>
+                <label for="filter-tire" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.tire_size') }}</label>
+                <select id="filter-tire" name="tire-size" v-model="selectedTire" class="input-field text-sm py-2">
+                  <option value="">{{ $t('products.all_sizes') }}</option>
+                  <option v-for="size in tireSizes" :key="size" :value="size">{{ size }}</option>
+                </select>
+              </div>
 
-            <div>
-              <label for="filter-range" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.range_km') }}</label>
-              <select id="filter-range" name="range" v-model="selectedRange" class="input-field text-sm py-2">
-                <option value="">{{ $t('products.all_sizes') }}</option>
-                <option value="30-50">30-50 km</option>
-                <option value="50-70">50-70 km</option>
-                <option value="70+">70+ km</option>
-              </select>
-            </div>
+              <div>
+                <label for="filter-range" class="text-text-secondary text-sm font-medium block mb-2">{{ $t('products.range_km') }}</label>
+                <select id="filter-range" name="range" v-model="selectedRange" class="input-field text-sm py-2">
+                  <option value="">{{ $t('products.all_sizes') }}</option>
+                  <option value="30-50">30-50 km</option>
+                  <option value="50-70">50-70 km</option>
+                  <option value="70+">70+ km</option>
+                </select>
+              </div>
+            </template>
 
             <button @click="clearFilters" class="text-accent text-sm hover:underline">
               {{ $t('products.clear_filters') }}
@@ -151,6 +154,27 @@ const showFilters = ref(false)
 
 // Watch URL query for type filter (from header dropdown)
 watch(() => route.query.type, (val) => { selectedType.value = (val as string) || '' })
+
+// Dynamic page title & subtitle based on selected product type
+const pageTitle = computed(() => {
+  const titles: Record<string, string> = {
+    bike: t('nav.type_bikes'),
+    accessory: t('nav.type_accessories'),
+    spare_part: t('nav.type_parts'),
+    kids_car: t('nav.type_kids'),
+  }
+  return titles[selectedType.value] || t('products.title')
+})
+
+const pageSubtitle = computed(() => {
+  const subtitles: Record<string, string> = {
+    bike: t('nav.type_bikes_desc'),
+    accessory: t('nav.type_accessories_desc'),
+    spare_part: t('nav.type_parts_desc'),
+    kids_car: t('nav.type_kids_desc'),
+  }
+  return subtitles[selectedType.value] || t('products.subtitle')
+})
 
 const typeFilters = computed(() => [
   { value: 'bike', icon: '🚲', label: t('nav.type_bikes') },
