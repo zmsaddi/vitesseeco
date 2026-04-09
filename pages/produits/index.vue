@@ -110,7 +110,12 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 
-useHead({ title: `${t('products.title')} — Vitesse Eco` })
+useHead({
+  title: `${t('products.title')} — Vitesse Eco`,
+  meta: [
+    { name: 'description', content: t('products.subtitle') },
+  ],
+})
 
 const selectedCategory = ref('')
 const selectedTire = ref('')

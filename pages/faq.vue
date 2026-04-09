@@ -71,7 +71,12 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 
-useHead({ title: `${t('faq.title')} — Vitesse Eco` })
+useHead({
+  title: `${t('faq.title')} — Vitesse Eco`,
+  meta: [
+    { name: 'description', content: t('faq.subtitle') },
+  ],
+})
 
 const { data: faqs } = useSanityFetch(
   'faq-list',

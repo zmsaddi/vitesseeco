@@ -93,9 +93,9 @@
           <div class="text-text-secondary text-sm shrink-0 text-center md:text-right">
             <p>&copy; {{ new Date().getFullYear() }} Vitesse Eco. {{ $t('footer.rights') }}</p>
             <div class="flex gap-3 justify-center md:justify-end mt-2 text-xs">
-              <a href="https://vitesse-eco.fr/politique-confidentialite" class="hover:text-accent transition-colors">Privacy Policy</a>
+              <NuxtLink :to="localePath('/politique-confidentialite')" class="hover:text-accent transition-colors">{{ $t('footer.privacy') }}</NuxtLink>
               <span>·</span>
-              <a href="https://vitesse-eco.fr/cgv" class="hover:text-accent transition-colors">Terms of Service</a>
+              <NuxtLink :to="localePath('/cgv')" class="hover:text-accent transition-colors">{{ $t('footer.cgv') }}</NuxtLink>
             </div>
           </div>
         </div>

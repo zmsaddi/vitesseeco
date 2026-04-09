@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
 
   experimental: {
-    payloadExtraction: false,
+    payloadExtraction: true,
   },
 
   vue: {
