@@ -86,7 +86,11 @@
     "delivery_estimate": "Entrega estimada en 5-7 días hábiles",
     "highlights": "Puntos fuertes",
     "watch_video": "Ver vídeo del producto",
-    "reviews": "Opiniones de clientes"
+    "reviews": "Opiniones de clientes",
+    "max_load": "Carga máxima",
+    "gears": "Velocidades",
+    "gross_weight": "Peso bruto",
+    "packing_size": "Tamaño del paquete"
   },
   "cart": {
     "title": "Tu Carrito",
@@ -345,7 +349,7 @@
     "subtitle": "Compare todas las características de nuestros modelos lado a lado",
     "colors": "Colores",
     "stock": "Stock",
-    "all_models": "Todos nuestros modelos están equipados con motor 250W y frenos hidráulicos",
+    "all_models": "Consulte las especificaciones detalladas en cada ficha de producto",
     "search": "Buscar un modelo...",
     "all_categories": "Todas las categorías"
   }

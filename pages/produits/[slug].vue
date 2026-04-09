@@ -351,22 +351,40 @@ const currentPrice = computed(() => {
 // Helper: get spec value (string or localizedString)
 const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
+// Build spec rows — only shows fields that have data in Sanity
+// When you fill a field in Sanity, it appears automatically on the site
 const specRows = computed(() => {
   const s = product.value?.specifications
   if (!s) return []
-  const rows = []
-  if (s.motor) rows.push({ label: 'product.motor', value: s.motor })
-  if (s.battery) rows.push({ label: 'product.battery', value: s.battery })
-  if (s.tireSize) rows.push({ label: 'product.tire_size', value: s.tireSize })
-  if (s.range) rows.push({ label: 'product.range', value: specVal(s.range) })
-  if (s.brakeType) rows.push({ label: 'product.brake_type', value: specVal(s.brakeType) })
-  if (s.maxSpeed) rows.push({ label: 'product.max_speed', value: `${s.maxSpeed} km/h` })
-  if (s.weight) rows.push({ label: 'product.weight', value: `${s.weight} kg` })
-  if (s.suspension) rows.push({ label: 'product.suspension', value: specVal(s.suspension) })
-  if (s.frame) rows.push({ label: 'product.frame', value: specVal(s.frame) })
-  if (s.chargeTime) rows.push({ label: 'product.charge_time', value: specVal(s.chargeTime) })
-  if (s.dimensions) rows.push({ label: 'product.dimensions', value: s.dimensions })
-  return rows
+  const all = [
+    { key: 'motor', label: 'product.motor' },
+    { key: 'battery', label: 'product.battery' },
+    { key: 'tireSize', label: 'product.tire_size' },
+    { key: 'range', label: 'product.range' },
+    { key: 'brakeType', label: 'product.brake_type' },
+    { key: 'maxSpeed', label: 'product.max_speed', suffix: ' km/h' },
+    { key: 'weight', label: 'product.weight', suffix: ' kg' },
+    { key: 'maxLoad', label: 'product.max_load', suffix: ' kg' },
+    { key: 'suspension', label: 'product.suspension' },
+    { key: 'frame', label: 'product.frame' },
+    { key: 'gears', label: 'product.gears' },
+    { key: 'chargeTime', label: 'product.charge_time' },
+    { key: 'dimensions', label: 'product.dimensions' },
+    { key: 'grossWeight', label: 'product.gross_weight', suffix: ' kg' },
+    { key: 'packingSize', label: 'product.packing_size' },
+  ]
+  return all
+    .filter(spec => {
+      const val = s[spec.key]
+      if (val === null || val === undefined || val === '' || val === 0) return false
+      if (typeof val === 'object') return !!specVal(val) // localizedString: check if translated value exists
+      return true
+    })
+    .map(spec => {
+      const raw = s[spec.key]
+      const val = specVal(raw)
+      return { label: spec.label, value: spec.suffix ? `${val}${spec.suffix}` : val }
+    })
 })
 
 // Reset selected image when color changes
@@ -411,7 +429,7 @@ const seoDescription = computed(() => {
 useHead({
   title: computed(() => {
     if (!product.value) return 'Vitesse Eco'
-    return product.value.seo?.title || `${l(product.value.name)} — Fatbike Électrique | Vitesse Eco`
+    return product.value.seo?.title || `${l(product.value.name)} | Vitesse Eco`
   }),
   meta: computed(() => product.value ? [
     { name: 'description', content: seoDescription.value },

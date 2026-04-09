@@ -86,7 +86,11 @@
     "delivery_estimate": "Geschätzte Lieferung innerhalb von 5-7 Werktagen",
     "highlights": "Highlights",
     "watch_video": "Produktvideo ansehen",
-    "reviews": "Kundenbewertungen"
+    "reviews": "Kundenbewertungen",
+    "max_load": "Max. Belastung",
+    "gears": "Gänge",
+    "gross_weight": "Bruttogewicht",
+    "packing_size": "Paketgröße"
   },
   "cart": {
     "title": "Ihr Warenkorb",
@@ -345,7 +349,7 @@
     "subtitle": "Vergleichen Sie alle Eigenschaften unserer Modelle nebeneinander",
     "colors": "Farben",
     "stock": "Bestand",
-    "all_models": "Alle unsere Modelle sind mit einem 250W-Motor und hydraulischen Bremsen ausgestattet",
+    "all_models": "Siehe detaillierte Spezifikationen auf jeder Produktseite",
     "search": "Modell suchen...",
     "all_categories": "Alle Kategorien"
   }

@@ -86,7 +86,11 @@
     "delivery_estimate": "Estimated delivery within 5-7 business days",
     "highlights": "Key Features",
     "watch_video": "Watch product video",
-    "reviews": "Customer Reviews"
+    "reviews": "Customer Reviews",
+    "max_load": "Max load",
+    "gears": "Gears",
+    "gross_weight": "Gross weight",
+    "packing_size": "Package size"
   },
   "cart": {
     "title": "Your Cart",
@@ -345,7 +349,7 @@
     "subtitle": "Compare all features of our models side by side to find your ideal bike",
     "colors": "Colours",
     "stock": "Stock",
-    "all_models": "All our models feature a 250W motor and hydraulic brakes",
+    "all_models": "See detailed specifications on each product page",
     "search": "Search a model...",
     "all_categories": "All categories"
   }

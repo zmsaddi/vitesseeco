@@ -86,7 +86,11 @@
     "delivery_estimate": "Livraison estimée sous 5-7 jours ouvrés",
     "highlights": "Points forts",
     "watch_video": "Voir la vidéo du produit",
-    "reviews": "Avis clients"
+    "reviews": "Avis clients",
+    "max_load": "Charge maximale",
+    "gears": "Vitesses",
+    "gross_weight": "Poids brut",
+    "packing_size": "Taille du colis"
   },
   "cart": {
     "title": "Votre Panier",
@@ -345,7 +349,7 @@
     "subtitle": "Comparez toutes les caractéristiques de nos modèles côte à côte pour trouver votre vélo idéal",
     "colors": "Couleurs",
     "stock": "Stock",
-    "all_models": "Tous nos modèles sont équipés d'un moteur 250W et de freins hydrauliques",
+    "all_models": "Consultez les spécifications détaillées sur chaque fiche produit",
     "search": "Rechercher un modèle...",
     "all_categories": "Toutes les catégories"
   }

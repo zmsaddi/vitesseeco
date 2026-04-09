@@ -66,7 +66,7 @@
               <td class="text-center text-text-secondary p-3">{{ p.specifications?.tireSize || '—' }}</td>
               <td class="text-center text-text-secondary p-3">{{ p.specifications?.battery || '—' }}</td>
               <td class="text-center text-text-secondary p-3">{{ sv(p.specifications?.range) || '—' }}</td>
-              <td class="text-center text-text-secondary p-3">{{ p.specifications?.motor || '250W' }}</td>
+              <td class="text-center text-text-secondary p-3">{{ p.specifications?.motor || '—' }}</td>
               <td class="text-center text-text-secondary p-3">{{ sv(p.specifications?.brakeType) || '—' }}</td>
               <td class="text-center p-3">
                 <div class="flex justify-center gap-1">

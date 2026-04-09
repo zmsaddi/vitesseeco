@@ -86,7 +86,11 @@
     "delivery_estimate": "Geschatte levering binnen 5-7 werkdagen",
     "highlights": "Kenmerken",
     "watch_video": "Bekijk productvideo",
-    "reviews": "Klantbeoordelingen"
+    "reviews": "Klantbeoordelingen",
+    "max_load": "Max belasting",
+    "gears": "Versnellingen",
+    "gross_weight": "Brutogewicht",
+    "packing_size": "Pakketgrootte"
   },
   "cart": {
     "title": "Je Winkelwagen",
@@ -345,7 +349,7 @@
     "subtitle": "Vergelijk alle kenmerken van onze modellen naast elkaar",
     "colors": "Kleuren",
     "stock": "Voorraad",
-    "all_models": "Al onze modellen zijn uitgerust met een 250W motor en hydraulische remmen",
+    "all_models": "Bekijk de gedetailleerde specificaties op elke productpagina",
     "search": "Zoek een model...",
     "all_categories": "Alle categorieën"
   }

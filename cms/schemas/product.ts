@@ -15,6 +15,22 @@ export default defineType({
   fields: [
     // === المعلومات الأساسية ===
     {
+      name: 'productType', title: '🏷️ نوع المنتج', type: 'string', group: 'general',
+      description: 'اختر نوع المنتج — يؤثر على الفلاتر والعرض في الموقع',
+      options: {
+        list: [
+          { title: '🚲 دراجة كهربائية', value: 'bike' },
+          { title: '🔧 قطعة غيار', value: 'spare_part' },
+          { title: '🎒 إكسسوار', value: 'accessory' },
+          { title: '🚗 سيارة أطفال كهربائية', value: 'kids_car' },
+          { title: '📦 أخرى', value: 'other' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'bike',
+      validation: (Rule) => Rule.required().error('نوع المنتج مطلوب'),
+    },
+    {
       name: 'name', title: '📝 اسم الموديل', type: 'localizedString', group: 'general',
       description: 'اكتب اسم المنتج بكل اللغات — الفرنسية إلزامية',
       validation: (Rule) => Rule.required().error('اسم المنتج مطلوب'),
