@@ -142,7 +142,7 @@ export default defineNuxtConfig({
           url: 'https://vitesse-eco.fr',
           logo: 'https://vitesse-eco.fr/logo.webp',
           image: 'https://vitesse-eco.fr/poster.webp',
-          telephone: '',
+          telephone: '+33745830049',
           email: 'contact@vitesse-eco.fr',
           address: {
             '@type': 'PostalAddress',
