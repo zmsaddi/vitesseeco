@@ -48,7 +48,7 @@
         {{ l(product.name) }}
       </h3>
       <p class="text-text-secondary text-sm mb-2">{{ l(product.shortDescription) }}</p>
-      <p class="text-text-secondary text-xs mb-3">{{ product.specifications?.battery }} — {{ product.specifications?.range }}</p>
+      <p class="text-text-secondary text-xs mb-3">{{ product.specifications?.battery }} — {{ sv(product.specifications?.range) }}</p>
       <div class="flex items-center justify-between">
         <div v-if="totalStock > 0">
           <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs mr-2">{{ product.compareAtPrice }}{{ $t('common.currency') }}</span>
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 const l = useLocalizedField()
+const sv = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
 const props = defineProps<{
   product: any
