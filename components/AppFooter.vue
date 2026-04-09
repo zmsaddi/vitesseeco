@@ -129,8 +129,9 @@ function submitNewsletter() {
 }
 
 const quickLinks = [
-  { path: '/', label: 'nav.home' },
   { path: '/produits', label: 'nav.products' },
+  { path: '/blog', label: 'blog.title' },
+  { path: '/faq', label: 'nav.faq' },
   { path: '/a-propos', label: 'nav.about' },
   { path: '/contact', label: 'nav.contact' },
 ]

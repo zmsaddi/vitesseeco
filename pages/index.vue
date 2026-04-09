@@ -89,6 +89,44 @@
       </div>
     </section>
 
+    <!-- Latest Blog Articles -->
+    <section v-if="latestArticles?.length" class="py-16 md:py-24 bg-primary">
+      <div class="container-custom">
+        <div class="flex items-center justify-between mb-10">
+          <h2 class="section-title">{{ $t('blog.title') }}</h2>
+          <NuxtLink :to="localePath('/blog')" class="text-accent hover:underline text-sm font-medium flex items-center gap-1">
+            {{ $t('common.see_more') }} <Icon name="ph:arrow-right" class="w-4 h-4 rtl:rotate-180" />
+          </NuxtLink>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NuxtLink
+            v-for="article in latestArticles"
+            :key="article._id"
+            :to="localePath(`/blog/${article.slug?.current}`)"
+            class="card overflow-hidden group hover:border-accent/30 transition-colors"
+          >
+            <div class="aspect-video bg-dark-tertiary overflow-hidden">
+              <img
+                v-if="article.featuredImage?.asset"
+                :src="useSanityImageUrl(article.featuredImage, 400, 225)"
+                :alt="l(article.title)"
+                width="400"
+                height="225"
+                loading="lazy"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            </div>
+            <div class="p-4">
+              <h3 class="font-display font-semibold text-white text-sm mb-1 group-hover:text-accent transition-colors line-clamp-2">
+                {{ l(article.title) }}
+              </h3>
+              <p class="text-text-secondary text-xs line-clamp-2">{{ l(article.excerpt) }}</p>
+            </div>
+          </NuxtLink>
+        </div>
+      </div>
+    </section>
+
     <!-- CTA Section -->
     <section class="py-16 md:py-24 bg-primary">
       <div class="container-custom text-center">
@@ -114,6 +152,12 @@ const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder
   variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} }
 }`
 const { data: featuredProducts } = useSanityFetch('featured-products', query)
+
+// Latest blog articles
+const blogQuery = groq`*[_type == "article" && isPublished == true] | order(publishedAt desc)[0..2] {
+  _id, title, slug, excerpt, featuredImage, publishedAt
+}`
+const { data: latestArticles } = useSanityFetch('latest-articles', blogQuery)
 
 const homeQuery = groq`*[_type == "homePage"][0]{
   heroBanner, featuredProductsTitle, featuredProductsSubtitle, values, seo

@@ -102,7 +102,7 @@ const cartOpen = useState('cartOpen', () => false)
 const navLinks = [
   { path: '/', label: 'nav.home' },
   { path: '/produits', label: 'nav.products' },
-  { path: '/faq', label: 'nav.faq' },
+  { path: '/blog', label: 'blog.title' },
   { path: '/a-propos', label: 'nav.about' },
   { path: '/contact', label: 'nav.contact' },
 ]
