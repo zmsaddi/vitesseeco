@@ -83,7 +83,10 @@
     "on_sale": "In de aanbieding",
     "new": "Nieuw",
     "contact_us": "Neem contact op",
-    "delivery_estimate": "Geschatte levering binnen 5-7 werkdagen"
+    "delivery_estimate": "Geschatte levering binnen 5-7 werkdagen",
+    "highlights": "Kenmerken",
+    "watch_video": "Bekijk productvideo",
+    "reviews": "Klantbeoordelingen"
   },
   "cart": {
     "title": "Je Winkelwagen",
@@ -262,7 +265,8 @@
     "article2": "Artikel 2 — Prijzen",
     "article3": "Artikel 3 — Levering",
     "article4": "Artikel 4 — Herroepingsrecht",
-    "article5": "Artikel 5 — Garantie"
+    "article5": "Artikel 5 — Garantie",
+    "toc": "Inhoudsopgave"
   },
   "error_page": {
     "not_found": "Pagina niet gevonden",
@@ -295,5 +299,34 @@
     "subtitle": "Gidsen, tips en nieuws over elektrische fatbikes",
     "no_articles": "Nog geen artikelen",
     "back_to_blog": "Terug naar blog"
+  },
+  "guide": {
+    "title": "Welke fatbike past bij u?",
+    "subtitle": "Beantwoord 3 eenvoudige vragen en ontdek het ideale model",
+    "usage_question": "Hoe gaat u uw fiets gebruiken?",
+    "urban": "Stedelijk / Stad",
+    "urban_desc": "Dagelijks woon-werkverkeer, stad, wegen",
+    "offroad": "Offroad / Avontuur",
+    "offroad_desc": "Paden, bos, ruw terrein",
+    "foldable": "Compact / Opvouwbaar",
+    "foldable_desc": "Autovervoer, eenvoudige opslag",
+    "lady": "Comfort / Damesontwerp",
+    "lady_desc": "Afneembaar zadel, laag frame, elegant ontwerp",
+    "height_question": "Wat is uw lengte?",
+    "height_short": "Minder dan 165 cm",
+    "height_medium": "165 — 175 cm",
+    "height_tall": "Meer dan 175 cm",
+    "range_question": "Welk bereik past bij u?",
+    "range_short": "30-50 km",
+    "range_medium": "50-70 km",
+    "range_long": "70-100 km",
+    "results_title": "Onze aanbevelingen",
+    "results_subtitle": "{count} model(len) voldoen aan uw criteria",
+    "start_hint": "Selecteer uw criteria om aanbevelingen te zien",
+    "comparison_title": "Volledige vergelijkingstabel",
+    "model": "Model",
+    "price": "Prijs",
+    "need_help": "Persoonlijk advies nodig?",
+    "need_help_desc": "Ons team staat klaar om u te helpen het perfecte model te kiezen"
   }
 }

@@ -2,9 +2,11 @@
   <div class="py-8 md:py-12">
     <div class="container-custom max-w-4xl">
       <h1 class="section-title mb-8">{{ $t('footer.cgv') }}</h1>
-      <div class="card p-6 md:p-8">
-        <div v-if="legalData && l(legalData.cgv)" class="text-text-secondary leading-relaxed whitespace-pre-line">{{ l(legalData.cgv) }}</div>
-        <div v-else class="text-text-secondary leading-relaxed space-y-4">
+      <LegalSections v-if="legalData?.cgvSections?.length" :sections="legalData.cgvSections" />
+
+      <div v-else-if="legalData && l(legalData.cgv)" class="card p-6 md:p-8 text-text-secondary leading-relaxed whitespace-pre-line">{{ l(legalData.cgv) }}</div>
+
+      <div v-else class="card p-6 md:p-8 text-text-secondary leading-relaxed space-y-4">
           <h2 class="text-white font-display text-xl font-semibold">{{ $t('legal.article1') }}</h2>
           <p>{{ texts.article1 }}</p>
           <h2 class="text-white font-display text-xl font-semibold">{{ $t('legal.article2') }}</h2>
@@ -16,7 +18,6 @@
           <h2 class="text-white font-display text-xl font-semibold">{{ $t('legal.article5') }}</h2>
           <p>{{ texts.article5 }}</p>
         </div>
-      </div>
     </div>
   </div>
 </template>
@@ -24,8 +25,11 @@
 <script setup lang="ts">
 const { t, locale } = useI18n()
 const l = useLocalizedField()
-useHead({ title: `${t('footer.cgv')} — Vitesse Eco` })
-const { data: legalData } = useSanityFetch('legal-pages', groq`*[_type == "legalPages"][0]`)
+useHead({
+  title: `${t('footer.cgv')} — Vitesse Eco`,
+  meta: [{ name: 'description', content: `${t('footer.cgv')} — Vitesse Eco` }],
+})
+const { data: legalData } = useSanityFetch('legal-pages', groq`*[_type == "legalPages"][0]{ cgv, cgvSections }`)
 
 const allTexts: Record<string, Record<string, string>> = {
   fr: {

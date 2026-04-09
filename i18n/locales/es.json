@@ -83,7 +83,10 @@
     "on_sale": "En oferta",
     "new": "Nuevo",
     "contact_us": "Contáctanos",
-    "delivery_estimate": "Entrega estimada en 5-7 días hábiles"
+    "delivery_estimate": "Entrega estimada en 5-7 días hábiles",
+    "highlights": "Puntos fuertes",
+    "watch_video": "Ver vídeo del producto",
+    "reviews": "Opiniones de clientes"
   },
   "cart": {
     "title": "Tu Carrito",
@@ -262,7 +265,8 @@
     "article2": "Artículo 2 — Precios",
     "article3": "Artículo 3 — Entrega",
     "article4": "Artículo 4 — Derecho de desistimiento",
-    "article5": "Artículo 5 — Garantía"
+    "article5": "Artículo 5 — Garantía",
+    "toc": "Índice"
   },
   "error_page": {
     "not_found": "Página no encontrada",
@@ -295,5 +299,34 @@
     "subtitle": "Guías, consejos y noticias sobre fatbikes eléctricas",
     "no_articles": "No hay artículos por el momento",
     "back_to_blog": "Volver al blog"
+  },
+  "guide": {
+    "title": "¿Qué fatbike es para ti?",
+    "subtitle": "Responde 3 preguntas simples y descubre el modelo ideal",
+    "usage_question": "¿Cómo usarás tu bicicleta?",
+    "urban": "Urbano / Ciudad",
+    "urban_desc": "Trayectos diarios, ciudad, carreteras",
+    "offroad": "Todo terreno / Aventura",
+    "offroad_desc": "Senderos, bosque, terreno accidentado",
+    "foldable": "Compacta / Plegable",
+    "foldable_desc": "Transporte en coche, fácil almacenamiento",
+    "lady": "Confort / Diseño femenino",
+    "lady_desc": "Sillín extraíble, cuadro bajo, diseño elegante",
+    "height_question": "¿Cuál es tu estatura?",
+    "height_short": "Menos de 165 cm",
+    "height_medium": "165 — 175 cm",
+    "height_tall": "Más de 175 cm",
+    "range_question": "¿Qué autonomía necesitas?",
+    "range_short": "30-50 km",
+    "range_medium": "50-70 km",
+    "range_long": "70-100 km",
+    "results_title": "Nuestras recomendaciones",
+    "results_subtitle": "{count} modelo(s) corresponden a tus criterios",
+    "start_hint": "Selecciona tus criterios para ver las recomendaciones",
+    "comparison_title": "Tabla comparativa completa",
+    "model": "Modelo",
+    "price": "Precio",
+    "need_help": "¿Necesitas asesoramiento personalizado?",
+    "need_help_desc": "Nuestro equipo está disponible para ayudarte"
   }
 }

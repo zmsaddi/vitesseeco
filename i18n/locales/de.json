@@ -83,7 +83,10 @@
     "on_sale": "Im Angebot",
     "new": "Neu",
     "contact_us": "Kontaktieren Sie uns",
-    "delivery_estimate": "Geschätzte Lieferung innerhalb von 5-7 Werktagen"
+    "delivery_estimate": "Geschätzte Lieferung innerhalb von 5-7 Werktagen",
+    "highlights": "Highlights",
+    "watch_video": "Produktvideo ansehen",
+    "reviews": "Kundenbewertungen"
   },
   "cart": {
     "title": "Ihr Warenkorb",
@@ -262,7 +265,8 @@
     "article2": "Artikel 2 — Preise",
     "article3": "Artikel 3 — Lieferung",
     "article4": "Artikel 4 — Widerrufsrecht",
-    "article5": "Artikel 5 — Garantie"
+    "article5": "Artikel 5 — Garantie",
+    "toc": "Inhaltsverzeichnis"
   },
   "error_page": {
     "not_found": "Seite nicht gefunden",
@@ -295,5 +299,34 @@
     "subtitle": "Ratgeber, Tipps und Neuigkeiten über elektrische Fatbikes",
     "no_articles": "Noch keine Artikel",
     "back_to_blog": "Zurück zum Blog"
+  },
+  "guide": {
+    "title": "Welches Fatbike passt zu Ihnen?",
+    "subtitle": "Beantworten Sie 3 einfache Fragen und entdecken Sie das ideale Modell",
+    "usage_question": "Wie werden Sie Ihr Fahrrad nutzen?",
+    "urban": "Stadt / Urban",
+    "urban_desc": "Tägliches Pendeln, Stadt, Straßen",
+    "offroad": "Gelände / Abenteuer",
+    "offroad_desc": "Wege, Wald, unwegsames Gelände",
+    "foldable": "Kompakt / Klappbar",
+    "foldable_desc": "Autotransport, einfache Lagerung",
+    "lady": "Komfort / Damen-Design",
+    "lady_desc": "Abnehmbarer Sattel, tiefer Rahmen, elegantes Design",
+    "height_question": "Wie groß sind Sie?",
+    "height_short": "Unter 165 cm",
+    "height_medium": "165 — 175 cm",
+    "height_tall": "Über 175 cm",
+    "range_question": "Welche Reichweite passt zu Ihnen?",
+    "range_short": "30-50 km",
+    "range_medium": "50-70 km",
+    "range_long": "70-100 km",
+    "results_title": "Unsere Empfehlungen",
+    "results_subtitle": "{count} Modell(e) entsprechen Ihren Kriterien",
+    "start_hint": "Wählen Sie Ihre Kriterien, um Empfehlungen zu sehen",
+    "comparison_title": "Vollständige Vergleichstabelle",
+    "model": "Modell",
+    "price": "Preis",
+    "need_help": "Persönliche Beratung gewünscht?",
+    "need_help_desc": "Unser Team hilft Ihnen gerne bei der Wahl des perfekten Modells"
   }
 }

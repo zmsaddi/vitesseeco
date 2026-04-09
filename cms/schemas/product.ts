@@ -43,6 +43,20 @@ export default defineType({
       description: 'الوصف الكامل الذي يظهر في صفحة المنتج',
     },
     {
+      name: 'warranty', title: '🛡️ الضمان', type: 'localizedString', group: 'general',
+      description: 'مثال: ضمان سنتين على الإطار والمحرك',
+    },
+    {
+      name: 'highlights', title: '✨ نقاط البيع الرئيسية', type: 'array', group: 'general',
+      of: [{ type: 'localizedString' }],
+      description: 'أضف 3-5 نقاط قوة تميز هذا المنتج (مثال: بطارية مزدوجة، تصميم قابل للطي...)',
+      validation: (Rule) => Rule.max(6).warning('6 نقاط كحد أقصى'),
+    },
+    {
+      name: 'videoUrl', title: '🎬 رابط فيديو', type: 'url', group: 'general',
+      description: 'رابط فيديو YouTube أو Vimeo للمنتج (اختياري)',
+    },
+    {
       name: 'relatedProducts', title: '🔄 منتجات مشابهة', type: 'array',
       of: [{ type: 'reference', to: [{ type: 'product' }] }],
       group: 'general',

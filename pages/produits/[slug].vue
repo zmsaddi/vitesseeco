@@ -161,6 +161,31 @@
             <span>{{ $t('product.delivery_estimate') }}</span>
           </div>
 
+          <!-- Warranty -->
+          <div v-if="l(product.warranty)" class="mt-2 flex items-center gap-2 text-text-secondary text-sm">
+            <Icon name="ph:shield-check" class="w-4 h-4 text-accent" />
+            <span>{{ l(product.warranty) }}</span>
+          </div>
+
+          <!-- Highlights -->
+          <div v-if="product.highlights?.length" class="mt-6">
+            <h2 class="font-display text-lg font-semibold text-white mb-3">{{ $t('product.highlights') }}</h2>
+            <ul class="space-y-2">
+              <li v-for="(h, i) in product.highlights" :key="i" class="flex items-start gap-2 text-text-secondary text-sm">
+                <Icon name="ph:check-circle" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <span>{{ l(h) }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Video -->
+          <div v-if="product.videoUrl" class="mt-6">
+            <a :href="product.videoUrl" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-accent hover:underline text-sm">
+              <Icon name="ph:play-circle" class="w-5 h-5" />
+              {{ $t('product.watch_video') }}
+            </a>
+          </div>
+
           <!-- Description -->
           <div class="mt-8" v-if="l(product.description)">
             <h2 class="font-display text-xl font-semibold text-white mb-3">{{ $t('product.description') }}</h2>
@@ -179,6 +204,30 @@
           </div>
         </div>
       </div>
+
+      <!-- Testimonials -->
+      <section class="mt-16" v-if="testimonials?.length">
+        <h2 class="section-title mb-8">{{ $t('product.reviews') }}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div v-for="review in testimonials" :key="review._id" class="card p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div v-if="review.photo?.asset" class="w-10 h-10 rounded-full overflow-hidden bg-dark-tertiary">
+                <img :src="useSanityImageUrl(review.photo, 80, 80)" :alt="review.customerName" class="w-full h-full object-cover" />
+              </div>
+              <div v-else class="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                <Icon name="ph:user" class="w-5 h-5 text-accent" />
+              </div>
+              <div>
+                <p class="text-white font-medium text-sm">{{ review.customerName }}</p>
+                <div class="flex gap-0.5">
+                  <Icon v-for="s in 5" :key="s" name="ph:star-fill" class="w-3.5 h-3.5" :class="s <= (review.rating || 5) ? 'text-gold' : 'text-dark-tertiary'" />
+                </div>
+              </div>
+            </div>
+            <p class="text-text-secondary text-sm leading-relaxed">{{ l(review.text) }}</p>
+          </div>
+        </div>
+      </section>
 
       <!-- Related Products -->
       <section class="mt-16" v-if="relatedProducts?.length">
@@ -226,11 +275,20 @@ useSwipe(galleryContainer, {
 
 const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,
-  isOnSale, isNew, isAvailable,
+  isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
   specifications, category->{ _id, name }, brand->{ name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, "images": images[]{asset} } }
 }`
+
+// Fetch testimonials for this product
+const { data: testimonials } = useSanityFetch(
+  () => `testimonials-${slug.value}`,
+  groq`*[_type == "testimonial" && product->slug.current == $slug] | order(rating desc)[0..4] {
+    _id, customerName, rating, text, photo
+  }`,
+  { slug }
+)
 const { data: product, status } = useSanityFetch(
   () => `product-${slug.value}`,
   productQuery,

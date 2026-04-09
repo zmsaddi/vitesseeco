@@ -83,7 +83,10 @@
     "on_sale": "En promotion",
     "new": "Nouveau",
     "contact_us": "Nous contacter",
-    "delivery_estimate": "Livraison estimée sous 5-7 jours ouvrés"
+    "delivery_estimate": "Livraison estimée sous 5-7 jours ouvrés",
+    "highlights": "Points forts",
+    "watch_video": "Voir la vidéo du produit",
+    "reviews": "Avis clients"
   },
   "cart": {
     "title": "Votre Panier",
@@ -262,7 +265,8 @@
     "article2": "Article 2 — Prix",
     "article3": "Article 3 — Livraison",
     "article4": "Article 4 — Droit de rétractation",
-    "article5": "Article 5 — Garantie"
+    "article5": "Article 5 — Garantie",
+    "toc": "Sommaire"
   },
   "error_page": {
     "not_found": "Page non trouvée",
@@ -295,5 +299,34 @@
     "subtitle": "Guides, conseils et actualités sur les fatbikes électriques",
     "no_articles": "Aucun article pour le moment",
     "back_to_blog": "Retour au blog"
+  },
+  "guide": {
+    "title": "Quel fatbike est fait pour vous ?",
+    "subtitle": "Répondez à 3 questions simples et découvrez le modèle idéal selon votre utilisation, votre taille et vos besoins",
+    "usage_question": "Comment allez-vous utiliser votre vélo ?",
+    "urban": "Urbain / Ville",
+    "urban_desc": "Trajets quotidiens, ville, routes",
+    "offroad": "Tout-terrain / Aventure",
+    "offroad_desc": "Chemins, forêt, terrain accidenté",
+    "foldable": "Compact / Pliable",
+    "foldable_desc": "Transport en voiture, rangement facile",
+    "lady": "Confort / Design féminin",
+    "lady_desc": "Selle amovible, cadre bas, design élégant",
+    "height_question": "Quelle est votre taille ?",
+    "height_short": "Moins de 165 cm",
+    "height_medium": "165 — 175 cm",
+    "height_tall": "Plus de 175 cm",
+    "range_question": "Quelle autonomie vous convient ?",
+    "range_short": "30-50 km",
+    "range_medium": "50-70 km",
+    "range_long": "70-100 km",
+    "results_title": "Nos recommandations",
+    "results_subtitle": "{count} modèle(s) correspondent à vos critères",
+    "start_hint": "Sélectionnez vos critères ci-dessus pour voir les recommandations",
+    "comparison_title": "Tableau comparatif complet",
+    "model": "Modèle",
+    "price": "Prix",
+    "need_help": "Besoin de conseils personnalisés ?",
+    "need_help_desc": "Notre équipe est à votre disposition pour vous aider à choisir le modèle parfait"
   }
 }
