@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
+Allow: /api/sitemap.xml
 Disallow: /api/
 Disallow: /compte/
 
-Sitemap: https://vitesse-eco.fr/sitemap.xml
+Sitemap: https://vitesse-eco.fr/api/sitemap.xml
