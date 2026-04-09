@@ -102,7 +102,7 @@
                 </td>
                 <td class="text-center text-text-secondary p-3">{{ p.specifications?.tireSize || '—' }}</td>
                 <td class="text-center text-text-secondary p-3">{{ p.specifications?.battery || '—' }}</td>
-                <td class="text-center text-text-secondary p-3">{{ p.specifications?.range || '—' }}</td>
+                <td class="text-center text-text-secondary p-3">{{ sv(p.specifications?.range) || '—' }}</td>
                 <td class="text-center text-white font-medium p-3">{{ p.price }}€</td>
               </tr>
             </tbody>
@@ -124,6 +124,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
+const sv = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
 useHead({
   title: `${t('guide.title')} — Vitesse Eco`,

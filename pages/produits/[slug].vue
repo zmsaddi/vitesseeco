@@ -348,6 +348,9 @@ const currentPrice = computed(() => {
   return variant?.priceOverride || product.value?.price || 0
 })
 
+// Helper: get spec value (string or localizedString)
+const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
+
 const specRows = computed(() => {
   const s = product.value?.specifications
   if (!s) return []
@@ -355,13 +358,13 @@ const specRows = computed(() => {
   if (s.motor) rows.push({ label: 'product.motor', value: s.motor })
   if (s.battery) rows.push({ label: 'product.battery', value: s.battery })
   if (s.tireSize) rows.push({ label: 'product.tire_size', value: s.tireSize })
-  if (s.range) rows.push({ label: 'product.range', value: s.range })
-  if (s.brakeType) rows.push({ label: 'product.brake_type', value: s.brakeType })
+  if (s.range) rows.push({ label: 'product.range', value: specVal(s.range) })
+  if (s.brakeType) rows.push({ label: 'product.brake_type', value: specVal(s.brakeType) })
   if (s.maxSpeed) rows.push({ label: 'product.max_speed', value: `${s.maxSpeed} km/h` })
   if (s.weight) rows.push({ label: 'product.weight', value: `${s.weight} kg` })
-  if (s.suspension) rows.push({ label: 'product.suspension', value: s.suspension })
-  if (s.frame) rows.push({ label: 'product.frame', value: s.frame })
-  if (s.chargeTime) rows.push({ label: 'product.charge_time', value: `${s.chargeTime}h` })
+  if (s.suspension) rows.push({ label: 'product.suspension', value: specVal(s.suspension) })
+  if (s.frame) rows.push({ label: 'product.frame', value: specVal(s.frame) })
+  if (s.chargeTime) rows.push({ label: 'product.charge_time', value: specVal(s.chargeTime) })
   if (s.dimensions) rows.push({ label: 'product.dimensions', value: s.dimensions })
   return rows
 })
