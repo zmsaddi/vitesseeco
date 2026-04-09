@@ -81,7 +81,8 @@
     "charge_time": "Tiempo de carga",
     "on_sale": "En oferta",
     "new": "Nuevo",
-    "contact_us": "Contáctanos"
+    "contact_us": "Contáctanos",
+    "delivery_estimate": "Entrega estimada en 5-7 días hábiles"
   },
   "cart": {
     "title": "Tu Carrito",
@@ -112,7 +113,9 @@
     "estimated": "Entrega estimada: {days} días laborables",
     "zone_fr": "Francia",
     "zone_eu": "Europa",
-    "not_available": "Entrega no disponible para tu zona"
+    "not_available": "Entrega no disponible para tu zona",
+    "remaining_free": "más para envío gratuito",
+    "free_unlocked": "¡Envío gratuito desbloqueado!"
   },
   "checkout": {
     "title": "Finalizar pedido",
@@ -263,5 +266,11 @@
     "not_found_desc": "La página que buscas no existe o ha sido movida.",
     "server_error_desc": "Ha ocurrido un error. Por favor, inténtalo de nuevo.",
     "back_home": "Volver al inicio"
+  },
+  "trust": {
+    "secure_payment": "Pago 100% seguro",
+    "fast_delivery": "Entrega rápida en Francia",
+    "warranty": "Garantía del fabricante",
+    "support": "Servicio al cliente reactivo"
   }
 }

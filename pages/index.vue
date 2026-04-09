@@ -30,6 +30,30 @@
       </div>
     </section>
 
+    <!-- Trust Badges -->
+    <section class="py-4 bg-dark-secondary border-y border-dark-tertiary/50">
+      <div class="container-custom">
+        <div class="flex flex-wrap items-center justify-center gap-6 md:gap-12">
+          <div class="flex items-center gap-2 text-sm text-text-secondary">
+            <Icon name="ph:lock-simple" class="w-5 h-5 text-accent" />
+            <span>{{ $t('trust.secure_payment') }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-text-secondary">
+            <Icon name="ph:truck" class="w-5 h-5 text-accent" />
+            <span>{{ $t('trust.fast_delivery') }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-text-secondary">
+            <Icon name="ph:shield-check" class="w-5 h-5 text-accent" />
+            <span>{{ $t('trust.warranty') }}</span>
+          </div>
+          <div class="flex items-center gap-2 text-sm text-text-secondary">
+            <Icon name="ph:headset" class="w-5 h-5 text-accent" />
+            <span>{{ $t('trust.support') }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Brand Values -->
     <section class="py-16 md:py-24 bg-primary">
       <div class="container-custom">

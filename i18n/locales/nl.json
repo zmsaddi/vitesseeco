@@ -81,7 +81,8 @@
     "charge_time": "Oplaadtijd",
     "on_sale": "In de aanbieding",
     "new": "Nieuw",
-    "contact_us": "Neem contact op"
+    "contact_us": "Neem contact op",
+    "delivery_estimate": "Geschatte levering binnen 5-7 werkdagen"
   },
   "cart": {
     "title": "Je Winkelwagen",
@@ -112,7 +113,9 @@
     "estimated": "Geschatte levering: {days} werkdagen",
     "zone_fr": "Frankrijk",
     "zone_eu": "Europa",
-    "not_available": "Levering niet beschikbaar voor jouw zone"
+    "not_available": "Levering niet beschikbaar voor jouw zone",
+    "remaining_free": "meer voor gratis verzending",
+    "free_unlocked": "U komt in aanmerking voor gratis verzending!"
   },
   "checkout": {
     "title": "Bestelling afronden",
@@ -263,5 +266,11 @@
     "not_found_desc": "De pagina die je zoekt bestaat niet of is verplaatst.",
     "server_error_desc": "Er is een fout opgetreden. Probeer het opnieuw.",
     "back_home": "Terug naar home"
+  },
+  "trust": {
+    "secure_payment": "100% veilige betaling",
+    "fast_delivery": "Snelle levering in Frankrijk",
+    "warranty": "Fabrieksgarantie",
+    "support": "Reactieve klantenservice"
   }
 }

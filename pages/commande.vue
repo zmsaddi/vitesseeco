@@ -1,7 +1,22 @@
 <template>
   <div class="py-8 md:py-12">
     <div class="container-custom max-w-4xl">
-      <h1 class="section-title mb-8">{{ $t('checkout.title') }}</h1>
+      <h1 class="section-title mb-6">{{ $t('checkout.title') }}</h1>
+
+      <!-- Progress Stepper -->
+      <div v-if="!cart.isEmpty" class="flex items-center justify-between mb-8 max-w-xl mx-auto">
+        <template v-for="(step, i) in checkoutSteps" :key="i">
+          <div class="flex flex-col items-center gap-1.5">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+              :class="currentStep > i ? 'bg-accent text-primary' : currentStep === i ? 'bg-accent/20 text-accent border-2 border-accent' : 'bg-dark-tertiary text-text-secondary'">
+              <Icon v-if="currentStep > i" name="ph:check-bold" class="w-4 h-4" />
+              <span v-else>{{ i + 1 }}</span>
+            </div>
+            <span class="text-xs font-medium hidden sm:block" :class="currentStep >= i ? 'text-accent' : 'text-text-secondary'">{{ step }}</span>
+          </div>
+          <div v-if="i < checkoutSteps.length - 1" class="flex-1 h-0.5 mx-2 transition-colors" :class="currentStep > i ? 'bg-accent' : 'bg-dark-tertiary'" />
+        </template>
+      </div>
 
       <!-- Empty cart -->
       <div v-if="cart.isEmpty" class="text-center py-20">
@@ -242,6 +257,11 @@
               <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-5 h-5 animate-spin" /></span>
               <span v-else>{{ $t('checkout.place_order') }}</span>
             </button>
+            <!-- Trust badges -->
+            <div class="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-dark-tertiary mt-3">
+              <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:lock-simple" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.secure_payment') }}</span>
+              <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:shield-check" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.warranty') }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -273,6 +293,23 @@ const billingSameAsShipping = ref(true)
 const billing = reactive({ firstName: '', lastName: '', address: '', postalCode: '', city: '', country: 'FR' })
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
+
+// Checkout stepper
+const checkoutSteps = computed(() => isPickup.value
+  ? [t('shipping.title'), t('checkout.shipping_address'), t('checkout.payment_method'), t('checkout.step_review')]
+  : [t('shipping.title'), t('checkout.shipping_address'), t('checkout.billing_address'), t('checkout.payment_method')]
+)
+const currentStep = computed(() => {
+  if (!selectedShipping.value) return 0
+  if (isPickup.value) {
+    if (!selectedPayment.value) return 2
+    return 3
+  }
+  const hasAddr = (selectedAddressId.value && !showNewForm.value) || (showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
+  if (!hasAddr) return 1
+  if (!selectedPayment.value) return isPickup.value ? 2 : 3
+  return 4
+})
 
 // Shipping
 const { data: shippingData } = useFetch('/api/shipping/methods', { query: { zone: 'FR' } })

@@ -81,7 +81,8 @@
     "charge_time": "Temps de charge",
     "on_sale": "En promotion",
     "new": "Nouveau",
-    "contact_us": "Nous contacter"
+    "contact_us": "Nous contacter",
+    "delivery_estimate": "Livraison estimée sous 5-7 jours ouvrés"
   },
   "cart": {
     "title": "Votre Panier",
@@ -112,7 +113,9 @@
     "estimated": "Livraison estimée : {days} jours ouvrés",
     "zone_fr": "France",
     "zone_eu": "Europe",
-    "not_available": "Livraison non disponible pour votre zone"
+    "not_available": "Livraison non disponible pour votre zone",
+    "remaining_free": "de plus pour la livraison gratuite",
+    "free_unlocked": "Vous bénéficiez de la livraison gratuite !"
   },
   "checkout": {
     "title": "Finaliser la commande",
@@ -263,5 +266,11 @@
     "not_found_desc": "La page que vous recherchez n'existe pas ou a été déplacée.",
     "server_error_desc": "Une erreur est survenue. Veuillez réessayer.",
     "back_home": "Retour à l'accueil"
+  },
+  "trust": {
+    "secure_payment": "Paiement 100% sécurisé",
+    "fast_delivery": "Livraison rapide en France",
+    "warranty": "Garantie constructeur",
+    "support": "Service client réactif"
   }
 }

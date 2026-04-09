@@ -136,7 +136,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 6. Create order in Sanity
+  // 6. Create order in Sanity (primary source — dashboard uses this)
   if (writeClient) {
     await writeClient.create({
       _type: 'order',
@@ -158,22 +158,27 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // 7. Create order in Postgres too
-  const db = useDB()
-  await db.insert(orders).values({
-    customerId: customerInfo.customerId || null,
-    guestEmail: customerInfo.email || null,
-    status: 'pending',
-    items: validatedItems,
-    subtotal: String(subtotal),
-    shippingCost: String(shippingCost),
-    discount: String(discount),
-    total: String(total),
-    promoCode: body.promoCode || null,
-    shippingMethod: body.shippingCode,
-    shippingAddress: body.shippingAddress,
-    stripePaymentId: null,
-  })
+  // 7. Create order in Postgres too (secondary — for relational queries)
+  try {
+    const db = useDB()
+    await db.insert(orders).values({
+      customerId: customerInfo.customerId || null,
+      guestEmail: customerInfo.email || null,
+      status: 'pending',
+      items: validatedItems,
+      subtotal: String(subtotal),
+      shippingCost: String(shippingCost),
+      discount: String(discount),
+      total: String(total),
+      promoCode: body.promoCode || null,
+      shippingMethod: body.shippingCode,
+      shippingAddress: body.shippingAddress,
+      stripePaymentId: null,
+    })
+  } catch (pgError) {
+    // Log but don't fail — Sanity order exists and is the dashboard source
+    console.error(`[ORDER] PostgreSQL write failed for ${orderNumber}:`, pgError)
+  }
 
   // 8. Decrement stock in Sanity
   // NOTE: Sanity doesn't support true transactions. We use atomic dec() then verify

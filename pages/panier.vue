@@ -163,6 +163,20 @@
               <span class="text-white font-medium">{{ cart.shippingCost === 0 ? $t('shipping.free') : cart.shippingCost + $t('common.currency') }}</span>
             </div>
 
+            <!-- Free shipping progress -->
+            <div v-if="freeShippingThreshold > 0 && cart.subtotal < freeShippingThreshold" class="bg-accent/5 border border-accent/20 rounded-lg p-3">
+              <p class="text-sm text-text-secondary mb-2">
+                {{ $t('trust.fast_delivery') }} — {{ $t('shipping.free_above', { amount: freeShippingThreshold }) }}
+              </p>
+              <div class="w-full bg-dark-tertiary rounded-full h-2">
+                <div class="bg-accent h-2 rounded-full transition-all" :style="{ width: Math.min(100, (cart.subtotal / freeShippingThreshold) * 100) + '%' }" />
+              </div>
+              <p class="text-xs text-accent mt-1.5">{{ Math.ceil(freeShippingThreshold - cart.subtotal) }}{{ $t('common.currency') }} {{ $t('shipping.remaining_free') }}</p>
+            </div>
+            <div v-else-if="freeShippingThreshold > 0 && cart.subtotal >= freeShippingThreshold" class="flex items-center gap-2 text-accent text-sm bg-accent/5 border border-accent/20 rounded-lg p-3">
+              <Icon name="ph:check-circle" class="w-5 h-5" /> {{ $t('shipping.free_unlocked') }}
+            </div>
+
             <!-- Total -->
             <div class="border-t border-dark-tertiary pt-4 flex justify-between">
               <span class="font-display font-semibold text-white text-lg">{{ $t('cart.total') }}</span>
@@ -183,6 +197,12 @@
               </span>
               <span v-else>{{ $t('cart.checkout') }}</span>
             </button>
+
+            <!-- Trust badges -->
+            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:lock-simple" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.secure_payment') }}</span>
+              <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:shield-check" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.warranty') }}</span>
+            </div>
 
             <NuxtLink :to="localePath('/produits')" class="block text-center text-text-secondary text-sm hover:text-accent transition-colors">
               {{ $t('cart.continue_shopping') }}
@@ -221,6 +241,11 @@ const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping
   key: `shipping-${cart.shippingZone}`,
 })
 const shippingMethods = computed(() => shippingData.value?.methods || [])
+
+const freeShippingThreshold = computed(() => {
+  const thresholds = shippingMethods.value.filter((m: any) => m.freeAbove).map((m: any) => m.freeAbove)
+  return thresholds.length ? Math.min(...thresholds) : 0
+})
 
 function getShippingPrice(method: any) {
   if (method.freeAbove && cart.subtotal >= method.freeAbove) return 0

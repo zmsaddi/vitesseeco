@@ -155,6 +155,12 @@
             <span v-if="currentStock <= 5" class="text-gold">— {{ $t('product.low_stock', { count: currentStock }) }}</span>
           </p>
 
+          <!-- Delivery estimate -->
+          <div v-if="currentStock > 0" class="mt-3 flex items-center gap-2 text-text-secondary text-sm">
+            <Icon name="ph:truck" class="w-4 h-4 text-accent" />
+            <span>{{ $t('product.delivery_estimate') }}</span>
+          </div>
+
           <!-- Description -->
           <div class="mt-8" v-if="l(product.description)">
             <h2 class="font-display text-xl font-semibold text-white mb-3">{{ $t('product.description') }}</h2>

@@ -81,7 +81,8 @@
     "charge_time": "Charge time",
     "on_sale": "On sale",
     "new": "New",
-    "contact_us": "Contact us"
+    "contact_us": "Contact us",
+    "delivery_estimate": "Estimated delivery within 5-7 business days"
   },
   "cart": {
     "title": "Your Cart",
@@ -112,7 +113,9 @@
     "estimated": "Estimated delivery: {days} business days",
     "zone_fr": "France",
     "zone_eu": "Europe",
-    "not_available": "Delivery not available for your zone"
+    "not_available": "Delivery not available for your zone",
+    "remaining_free": "more for free delivery",
+    "free_unlocked": "You qualify for free delivery!"
   },
   "checkout": {
     "title": "Checkout",
@@ -263,5 +266,11 @@
     "not_found_desc": "The page you're looking for doesn't exist or has been moved.",
     "server_error_desc": "An error occurred. Please try again.",
     "back_home": "Back to home"
+  },
+  "trust": {
+    "secure_payment": "100% Secure Payment",
+    "fast_delivery": "Fast Delivery in France",
+    "warranty": "Manufacturer Warranty",
+    "support": "Responsive Customer Service"
   }
 }
