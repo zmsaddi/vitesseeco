@@ -111,9 +111,12 @@ const localePath = useLocalePath()
 const l = useLocalizedField()
 
 useHead({
-  title: `${t('products.title')} — Vitesse Eco`,
+  title: `${t('products.title')} — Fatbikes Électriques | Vitesse Eco`,
   meta: [
-    { name: 'description', content: t('products.subtitle') },
+    { name: 'description', content: `${t('products.subtitle')} — 11 modèles de 999€ à 1899€. Moteur 250W, freins hydrauliques. Livraison gratuite en France.` },
+    { property: 'og:title', content: `${t('products.title')} — Vitesse Eco` },
+    { property: 'og:description', content: t('products.subtitle') },
+    { property: 'og:image', content: 'https://vitesse-eco.fr/poster.webp' },
   ],
 })
 

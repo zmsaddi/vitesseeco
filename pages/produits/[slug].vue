@@ -275,7 +275,7 @@ useSwipe(galleryContainer, {
 
 const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
   _id, name, slug, shortDescription, description, price, compareAtPrice,
-  isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
+  isOnSale, isNew, isAvailable, warranty, highlights, videoUrl, seo,
   specifications, category->{ _id, name }, brand->{ name },
   variants[]{ _key, colorName, colorHex, sku, stock, priceOverride, images },
   relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, "images": images[]{asset} } }
@@ -393,10 +393,33 @@ function addToCart() {
   qty.value = 1
 }
 
+// Build SEO meta description with price + specs
+const seoDescription = computed(() => {
+  if (!product.value) return ''
+  const p = product.value
+  // Use Sanity SEO field first
+  if (p.seo?.description) return p.seo.description
+  // Auto-generate: Name + price + key specs
+  const name = l(p.name) || ''
+  const price = currentPrice.value
+  const range = specVal(p.specifications?.range) || ''
+  const battery = p.specifications?.battery || ''
+  const desc = l(p.shortDescription) || ''
+  return `${name} — ${price}€. ${desc}${range ? ` Autonomie: ${range}.` : ''}${battery ? ` Batterie: ${battery}.` : ''} Livraison gratuite en France.`.slice(0, 160)
+})
+
 useHead({
-  title: computed(() => product.value ? `${l(product.value.name)} — Vitesse Eco` : 'Vitesse Eco'),
+  title: computed(() => {
+    if (!product.value) return 'Vitesse Eco'
+    return product.value.seo?.title || `${l(product.value.name)} — Fatbike Électrique | Vitesse Eco`
+  }),
   meta: computed(() => product.value ? [
-    { name: 'description', content: l(product.value.shortDescription) || l(product.value.description)?.slice(0, 160) || '' },
+    { name: 'description', content: seoDescription.value },
+    { property: 'og:title', content: `${l(product.value.name)} — Vitesse Eco` },
+    { property: 'og:description', content: seoDescription.value },
+    { property: 'og:image', content: allImages.value[0] ? useSanityImageUrl(allImages.value[0], 1200, 630) : 'https://vitesse-eco.fr/poster.webp' },
+    { property: 'og:url', content: `https://vitesse-eco.fr/produits/${product.value.slug?.current}` },
+    { property: 'og:type', content: 'product' },
   ] : []),
   script: computed(() => {
     if (!product.value) return []
