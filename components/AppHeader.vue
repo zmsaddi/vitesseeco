@@ -189,7 +189,7 @@ const productTypes = computed(() => [
     label: t('nav.type_parts'), desc: t('nav.type_parts_desc'),
   },
   {
-    value: 'kids_car', icon: '🚗', path: '/produits?type=kids_car',
+    value: 'kids_car', icon: '🧸', path: '/produits?type=kids_car',
     label: t('nav.type_kids'), desc: t('nav.type_kids_desc'),
   },
 ])

@@ -180,7 +180,7 @@ const typeFilters = computed(() => [
   { value: 'bike', icon: '🚲', label: t('nav.type_bikes') },
   { value: 'accessory', icon: '🎒', label: t('nav.type_accessories') },
   { value: 'spare_part', icon: '🔧', label: t('nav.type_parts') },
-  { value: 'kids_car', icon: '🚗', label: t('nav.type_kids') },
+  { value: 'kids_car', icon: '🧸', label: t('nav.type_kids') },
 ])
 
 const tireSizes = ['16"', '20"', '24"', '70/100-17"']
