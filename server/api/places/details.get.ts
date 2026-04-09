@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
-  const res = await $fetch<any>(
+  const res: any = await $fetch(
     `https://maps.googleapis.com/maps/api/place/details/json`, {
       query: {
         place_id: placeId,
@@ -26,10 +26,10 @@ export default defineEventHandler(async (event) => {
     return { address: null }
   }
 
-  const components = res.result.address_components
-  const get = (type: string) => components.find((c: any) => c.types.includes(type))
+  const components: any[] = res.result.address_components
+  const get = (type: string): any => components.find((c: any) => c.types.includes(type))
 
-  const streetNumber = get('street_number')?.long_name || ''
+  const streetNumber: string = get('street_number')?.long_name || ''
   const route = get('route')?.long_name || ''
   const city = get('locality')?.long_name || get('administrative_area_level_2')?.long_name || ''
   const postalCode = get('postal_code')?.long_name || ''

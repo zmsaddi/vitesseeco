@@ -193,7 +193,7 @@ export const useCartStore = defineStore('cart', {
         this.serverTotal = result.total
         this.promoDiscount = result.discount
         this.shippingCost = result.shippingCost || 0
-        this.shippingMethod = result.shippingMethod || null
+        this.shippingMethod = (result as any).shippingMethod || null
 
         if (!result.promoValid && this.promoCode) {
           this.promoCode = null

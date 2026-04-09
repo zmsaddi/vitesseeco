@@ -330,7 +330,7 @@ async function saveProfile() {
       method: 'PUT',
       body: profileForm,
     })
-    auth.user = user
+    auth.user = user as any
     profileSuccess.value = true
     setTimeout(() => { editingProfile.value = false; profileSuccess.value = false }, 1500)
   } catch (e) {

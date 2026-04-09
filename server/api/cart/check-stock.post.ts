@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     { ids: productIds }
   )
 
-  const productMap = new Map(products.map((p: any) => [p._id, p]))
+  const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
   const results: StockResult[] = []
   let hasChanges = false
 

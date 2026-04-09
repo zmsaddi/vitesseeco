@@ -61,7 +61,7 @@ export default defineEventHandler(async (event) => {
     `*[_type == "product" && _id in $ids]{ _id, name, price, isAvailable, variants[]{ sku, stock, priceOverride, colorName } }`,
     { ids: productIds }
   )
-  const productMap = new Map(products.map((p: any) => [p._id, p]))
+  const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
 
   const validatedItems: any[] = []
   let subtotal = 0

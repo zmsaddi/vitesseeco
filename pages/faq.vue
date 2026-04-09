@@ -24,7 +24,7 @@
       <div v-if="filteredFaqs?.length" class="space-y-3">
         <div v-for="(faq, i) in filteredFaqs" :key="faq._id || i" class="card overflow-hidden">
           <button
-            @click="toggleFaq(i)"
+            @click="toggleFaq(Number(i))"
             class="w-full flex items-center justify-between p-5 text-left hover:bg-dark-secondary/50 transition-colors"
           >
             <span class="font-medium text-white pr-4">{{ l(faq.question) }}</span>

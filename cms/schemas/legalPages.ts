@@ -1,6 +1,6 @@
 import { defineType } from 'sanity'
 
-const legalSection = {
+const legalSection: any = {
   type: 'object',
   fields: [
     {

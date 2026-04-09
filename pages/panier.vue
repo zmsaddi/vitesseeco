@@ -240,7 +240,7 @@ const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping
   query: { zone: cart.shippingZone },
   key: `shipping-${cart.shippingZone}`,
 })
-const shippingMethods = computed(() => shippingData.value?.methods || [])
+const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
 
 const freeShippingThreshold = computed(() => {
   const thresholds = shippingMethods.value.filter((m: any) => m.freeAbove).map((m: any) => m.freeAbove)

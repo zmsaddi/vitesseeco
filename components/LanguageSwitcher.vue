@@ -56,7 +56,7 @@ const visibleLocales = computed(() =>
 )
 
 function switchLang(code: string) {
-  setLocale(code)
+  setLocale(code as 'fr' | 'es' | 'nl' | 'de')
   open.value = false
 }
 

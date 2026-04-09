@@ -101,7 +101,7 @@
               <button
                 v-for="(variant, i) in product.variants"
                 :key="variant._key"
-                @click="selectedColor = i"
+                @click="selectedColor = Number(i)"
                 role="radio"
                 :aria-checked="selectedColor === i"
                 :aria-label="l(variant.colorName)"

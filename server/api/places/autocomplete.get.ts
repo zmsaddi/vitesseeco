@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
   try {
-    const res = await $fetch<any>(
+    const res: any = await $fetch(
       'https://maps.googleapis.com/maps/api/place/autocomplete/json', {
         query: {
           input,

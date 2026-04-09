@@ -63,7 +63,7 @@
           <button
             v-for="(variant, i) in (product.variants || []).slice(0, 5)"
             :key="variant._key"
-            @click.prevent="selectColor(i)"
+            @click.prevent="selectColor(Number(i))"
             :aria-label="l(variant.colorName)"
             class="w-6 h-6 rounded-full border-2 transition-all hover:scale-110 p-0.5"
             :class="colorIndex === i ? 'border-accent scale-110' : 'border-white/30'"
