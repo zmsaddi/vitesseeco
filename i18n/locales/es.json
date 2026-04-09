@@ -298,7 +298,8 @@
     "title": "Blog",
     "subtitle": "Guías, consejos y noticias sobre fatbikes eléctricas",
     "no_articles": "No hay artículos por el momento",
-    "back_to_blog": "Volver al blog"
+    "back_to_blog": "Volver al blog",
+    "see_all_articles": "Ver todos los artículos"
   },
   "guide": {
     "title": "¿Qué fatbike es para ti?",

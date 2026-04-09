@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between h-16 md:h-20">
         <!-- Logo -->
         <NuxtLink :to="localePath('/')" class="flex items-center gap-3 shrink-0">
-          <img src="/logo.png" alt="Vitesse Eco" class="h-10 md:h-12 w-auto" />
+          <img src="/logo.webp" alt="Vitesse Eco" width="48" height="48" class="h-10 md:h-12 w-auto" />
           <span class="font-display font-bold text-lg md:text-xl hidden sm:block">
             <span class="text-white">Vitesse</span>
             <span class="text-accent"> Eco</span>

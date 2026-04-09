@@ -5,7 +5,7 @@
         <!-- Brand -->
         <div class="lg:col-span-1">
           <NuxtLink :to="localePath('/')" class="flex items-center gap-3 mb-4">
-            <img src="/logo.png" alt="Vitesse Eco" class="h-10 w-auto" />
+            <img src="/logo.webp" alt="Vitesse Eco" width="40" height="40" class="h-10 w-auto" />
             <span class="font-display font-bold text-lg">
               <span class="text-white">Vitesse</span>
               <span class="text-accent"> Eco</span>

@@ -4,8 +4,10 @@
     <section class="relative min-h-[80vh] flex items-center">
       <div class="absolute inset-0">
         <img
-          src="/poster.jpeg"
+          src="/poster.webp"
           alt="Vitesse Eco Fatbike"
+          width="1200"
+          height="630"
           class="w-full h-full object-cover"
           loading="eager"
           fetchpriority="high"
@@ -95,7 +97,7 @@
         <div class="flex items-center justify-between mb-10">
           <h2 class="section-title">{{ $t('blog.title') }}</h2>
           <NuxtLink :to="localePath('/blog')" class="text-accent hover:underline text-sm font-medium flex items-center gap-1">
-            {{ $t('common.see_more') }} <Icon name="ph:arrow-right" class="w-4 h-4 rtl:rotate-180" />
+            {{ $t('blog.see_all_articles') }} <Icon name="ph:arrow-right" class="w-4 h-4 rtl:rotate-180" />
           </NuxtLink>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
