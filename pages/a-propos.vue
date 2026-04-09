@@ -10,7 +10,7 @@
       <!-- Brand Story with Image -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-16">
         <div class="card overflow-hidden">
-          <img src="/poster.jpeg" alt="Vitesse Eco" class="w-full h-full object-cover" />
+          <img src="/poster.webp" alt="Vitesse Eco" width="1200" height="630" class="w-full h-full object-cover" />
         </div>
         <div class="flex flex-col justify-center">
           <h2 class="font-display text-2xl md:text-3xl font-bold text-white mb-6">{{ $t('about.our_story') }}</h2>

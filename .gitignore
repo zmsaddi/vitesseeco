@@ -26,4 +26,12 @@ logs
 # Local
 *.local
 
+# Vercel
 .vercel
+
+# Claude Code
+.claude/
+
+# Playwright
+test-results/
+playwright-report/

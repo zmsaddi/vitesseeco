@@ -36,6 +36,6 @@
     "@types/bcryptjs": "^2.4.6",
     "drizzle-kit": "^0.31.10",
     "franc-min": "^6.2.0",
-    "sanity": "^5.20.0"
+"sanity": "^5.20.0"
   }
 }
