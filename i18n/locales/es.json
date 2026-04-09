@@ -140,7 +140,10 @@
     "back_to_home": "Volver al inicio",
     "address_line2_placeholder": "Apt, piso, edificio...",
     "billing_address": "Dirección de facturación",
-    "same_as_shipping": "Igual que la dirección de envío"
+    "same_as_shipping": "Igual que la dirección de envío",
+    "thank_you": "¡Gracias por tu pedido!",
+    "email_confirmation": "Recibirás un email de confirmación próximamente",
+    "next_steps": "Próximos pasos"
   },
   "account": {
     "title": "Mi Cuenta",

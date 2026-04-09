@@ -140,7 +140,10 @@
     "back_to_home": "Back to home",
     "address_line2_placeholder": "Apt, floor, building...",
     "billing_address": "Billing address",
-    "same_as_shipping": "Same as shipping address"
+    "same_as_shipping": "Same as shipping address",
+    "thank_you": "Thank you for your order!",
+    "email_confirmation": "A confirmation email will be sent to you shortly",
+    "next_steps": "Next steps"
   },
   "account": {
     "title": "My Account",

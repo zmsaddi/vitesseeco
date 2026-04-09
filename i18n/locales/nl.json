@@ -140,7 +140,10 @@
     "back_to_home": "Terug naar home",
     "address_line2_placeholder": "Apt, verdieping, gebouw...",
     "billing_address": "Factuuradres",
-    "same_as_shipping": "Hetzelfde als het verzendadres"
+    "same_as_shipping": "Hetzelfde als het verzendadres",
+    "thank_you": "Bedankt voor uw bestelling!",
+    "email_confirmation": "U ontvangt binnenkort een bevestigingsmail",
+    "next_steps": "Volgende stappen"
   },
   "account": {
     "title": "Mijn Account",

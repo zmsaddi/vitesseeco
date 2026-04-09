@@ -140,7 +140,10 @@
     "back_to_home": "Zurück zur Startseite",
     "address_line2_placeholder": "Whg., Etage, Gebäude...",
     "billing_address": "Rechnungsadresse",
-    "same_as_shipping": "Identisch mit der Lieferadresse"
+    "same_as_shipping": "Identisch mit der Lieferadresse",
+    "thank_you": "Vielen Dank für Ihre Bestellung!",
+    "email_confirmation": "Eine Bestätigungs-E-Mail wird Ihnen in Kürze zugesandt",
+    "next_steps": "Nächste Schritte"
   },
   "account": {
     "title": "Mein Konto",

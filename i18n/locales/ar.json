@@ -140,7 +140,10 @@
     "back_to_home": "العودة للرئيسية",
     "address_line2_placeholder": "شقة، طابق، مبنى...",
     "billing_address": "عنوان الفاتورة",
-    "same_as_shipping": "نفس عنوان الشحن"
+    "same_as_shipping": "نفس عنوان الشحن",
+    "thank_you": "شكراً لطلبك!",
+    "email_confirmation": "سيتم إرسال بريد تأكيد إليك قريباً",
+    "next_steps": "الخطوات التالية"
   },
   "account": {
     "title": "حسابي",
