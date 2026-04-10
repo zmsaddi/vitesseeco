@@ -54,15 +54,6 @@
               </select>
             </div>
 
-            <!-- Category -->
-            <div>
-              <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.all_categories') }}</label>
-              <select v-model="selectedCategory" class="input-field text-sm py-2">
-                <option value="">{{ $t('products.all_categories') }}</option>
-                <option v-for="cat in categories" :key="cat._id" :value="cat._id">{{ l(cat.name) }}</option>
-              </select>
-            </div>
-
             <!-- Price range -->
             <div>
               <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.price_range') }}</label>
@@ -179,7 +170,6 @@ useHead({
 
 // State
 const selectedType = ref((route.query.type as string) || '')
-const selectedCategory = ref('')
 const selectedBrand = ref('')
 const selectedPrice = ref('')
 const selectedTire = ref('')
@@ -194,20 +184,18 @@ const showCount = ref(pageSize)
 watch(() => route.query.type, (val) => { selectedType.value = (val as string) || '' })
 
 // Reset pagination on any filter change
-watch([selectedType, selectedCategory, selectedBrand, selectedPrice, selectedTire, selectedRange, searchQuery, sortBy], () => {
+watch([selectedType, selectedBrand, selectedPrice, selectedTire, selectedRange, searchQuery, sortBy], () => {
   showCount.value = pageSize
 })
 
 function setType(type: string) {
   selectedType.value = type
-  selectedCategory.value = ''
   selectedBrand.value = ''
   selectedTire.value = ''
   selectedRange.value = ''
 }
 
 function clearFilters() {
-  selectedCategory.value = ''
   selectedBrand.value = ''
   selectedPrice.value = ''
   selectedTire.value = ''
@@ -222,7 +210,6 @@ function clearAll() {
 
 const activeFilterCount = computed(() => {
   let count = 0
-  if (selectedCategory.value) count++
   if (selectedBrand.value) count++
   if (selectedPrice.value) count++
   if (selectedTire.value) count++
@@ -250,9 +237,6 @@ const typeFilters = computed(() => [
 const tireSizes = ['16"', '20"', '24"', '70/100-17"']
 
 // Data
-const catQuery = groq`*[_type == "category"] | order(sortOrder asc) { _id, name, slug }`
-const { data: categories } = useSanityFetch('categories', catQuery)
-
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
   productType, specifications, category->{ _id }, brand->{ name },
@@ -307,9 +291,6 @@ const filteredProducts = computed(() => {
 
   // Brand
   if (selectedBrand.value) result = result.filter(p => p.brand?.name === selectedBrand.value)
-
-  // Category
-  if (selectedCategory.value) result = result.filter(p => p.category?._id === selectedCategory.value)
 
   // Price
   if (selectedPrice.value) {
