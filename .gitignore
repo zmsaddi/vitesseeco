@@ -36,3 +36,4 @@ logs
 test-results/
 playwright-report/
 competitor-research/
+import-data/
