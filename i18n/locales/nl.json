@@ -30,14 +30,14 @@
   "home": {
     "hero_title": "All-Terrain Kracht",
     "hero_subtitle": "Duurzame Prestaties",
-    "hero_description": "Ontdek ons assortiment elektrische fatbikes die kracht, stijl en respect voor het milieu combineren.",
-    "hero_cta": "Ontdek onze fietsen",
+    "hero_description": "Ontdek ons assortiment elektrische producten die kracht, stijl en respect voor het milieu combineren.",
+    "hero_cta": "Ontdek onze producten",
     "featured_title": "Onze Topmodellen",
     "featured_subtitle": "Elektrische fietsen ontworpen voor elk terrein en elke stijl.",
     "values_title": "Waarom Vitesse Eco?",
     "testimonials_title": "Wat onze klanten zeggen",
     "cta_title": "Klaar om te rijden?",
-    "cta_description": "Vind de perfecte elektrische fatbike voor jou.",
+    "cta_description": "Vind het perfecte product voor u.",
     "cta_button": "Bekijk al onze modellen",
     "value1_title": "Bereik",
     "value1_desc": "Tot 100 km bereik met onze accu's met hoge capaciteit.",
@@ -49,8 +49,8 @@
     "value4_desc": "Technische ondersteuning 6 dagen per week beschikbaar per telefoon en email."
   },
   "products": {
-    "title": "Onze Elektrische Fietsen",
-    "subtitle": "Vind de perfecte fatbike voor jouw avonturen.",
+    "title": "Onze Producten",
+    "subtitle": "Vind het perfecte product voor uw behoeften.",
     "filter": "Filteren",
     "sort": "Sorteren op",
     "sort_price_asc": "Prijs oplopend",
@@ -296,7 +296,7 @@
   },
   "faq": {
     "title": "Veelgestelde vragen",
-    "subtitle": "Vind antwoorden op uw vragen over onze elektrische fatbikes",
+    "subtitle": "Vind antwoorden op uw vragen over onze producten",
     "no_results": "Geen vragen in deze categorie",
     "still_questions": "Uw antwoord niet gevonden?",
     "contact_us": "Ons team staat voor u klaar",
@@ -309,7 +309,7 @@
   },
   "blog": {
     "title": "Blog",
-    "subtitle": "Gidsen, tips en nieuws over elektrische fatbikes",
+    "subtitle": "Gidsen, tips en nieuws over elektrische mobiliteit",
     "no_articles": "Nog geen artikelen",
     "back_to_blog": "Terug naar blog",
     "see_all_articles": "Alle artikelen bekijken"

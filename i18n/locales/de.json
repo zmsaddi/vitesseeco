@@ -30,14 +30,14 @@
   "home": {
     "hero_title": "Geländekraft",
     "hero_subtitle": "Nachhaltige Leistung",
-    "hero_description": "Entdecken Sie unser Sortiment an elektrischen Fatbikes, die Kraft, Stil und Umweltbewusstsein vereinen.",
-    "hero_cta": "Unsere Fahrräder entdecken",
+    "hero_description": "Entdecken Sie unser Sortiment an Elektroprodukten, die Kraft, Stil und Umweltbewusstsein vereinen.",
+    "hero_cta": "Unsere Produkte entdecken",
     "featured_title": "Unsere Top-Modelle",
     "featured_subtitle": "Elektrofahrräder für jedes Gelände und jeden Stil.",
     "values_title": "Warum Vitesse Eco?",
     "testimonials_title": "Was unsere Kunden sagen",
     "cta_title": "Bereit zum Fahren?",
-    "cta_description": "Finden Sie das perfekte elektrische Fatbike für Sie.",
+    "cta_description": "Finden Sie das perfekte Produkt für Sie.",
     "cta_button": "Alle Modelle ansehen",
     "value1_title": "Reichweite",
     "value1_desc": "Bis zu 100 km Reichweite mit unseren Hochleistungs-Akkus.",
@@ -49,8 +49,8 @@
     "value4_desc": "Technischer Support 6 Tage die Woche per Telefon und E-Mail erreichbar."
   },
   "products": {
-    "title": "Unsere Elektrofahrräder",
-    "subtitle": "Finden Sie das perfekte Fatbike für Ihre Abenteuer.",
+    "title": "Unsere Produkte",
+    "subtitle": "Finden Sie das perfekte Produkt für Ihre Bedürfnisse.",
     "filter": "Filtern",
     "sort": "Sortieren nach",
     "sort_price_asc": "Preis aufsteigend",
@@ -296,7 +296,7 @@
   },
   "faq": {
     "title": "Häufig gestellte Fragen",
-    "subtitle": "Finden Sie Antworten auf Ihre Fragen zu unseren elektrischen Fatbikes",
+    "subtitle": "Finden Sie Antworten auf Ihre Fragen zu unseren Produkten",
     "no_results": "Keine Fragen in dieser Kategorie",
     "still_questions": "Ihre Antwort nicht gefunden?",
     "contact_us": "Unser Team hilft Ihnen gerne weiter",
@@ -309,7 +309,7 @@
   },
   "blog": {
     "title": "Blog",
-    "subtitle": "Ratgeber, Tipps und Neuigkeiten über elektrische Fatbikes",
+    "subtitle": "Ratgeber, Tipps und Neuigkeiten über Elektromobilität",
     "no_articles": "Noch keine Artikel",
     "back_to_blog": "Zurück zum Blog",
     "see_all_articles": "Alle Artikel ansehen"

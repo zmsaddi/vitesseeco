@@ -30,14 +30,14 @@
   "home": {
     "hero_title": "All-Terrain Power",
     "hero_subtitle": "Sustainable Performance",
-    "hero_description": "Discover our range of electric fatbikes combining power, style and environmental responsibility.",
-    "hero_cta": "Discover our bikes",
+    "hero_description": "Discover our range of electric products combining power, style and sustainability.",
+    "hero_cta": "Discover our products",
     "featured_title": "Our Featured Models",
     "featured_subtitle": "Electric bikes designed for every terrain and every style.",
     "values_title": "Why Vitesse Eco?",
     "testimonials_title": "What our customers say",
     "cta_title": "Ready to ride?",
-    "cta_description": "Find the perfect electric fatbike for you.",
+    "cta_description": "Find the perfect product for you.",
     "cta_button": "View all our models",
     "value1_title": "Range",
     "value1_desc": "Up to 100 km range with our high-capacity batteries.",
@@ -49,8 +49,8 @@
     "value4_desc": "Technical support available 6 days a week by phone and email."
   },
   "products": {
-    "title": "Our Electric Bikes",
-    "subtitle": "Find the perfect fatbike for your adventures.",
+    "title": "Our Products",
+    "subtitle": "Find the perfect product for your needs.",
     "filter": "Filter",
     "sort": "Sort by",
     "sort_price_asc": "Price: Low to High",
@@ -296,7 +296,7 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "Find answers to your questions about our electric fatbikes",
+    "subtitle": "Find answers to your questions about our products",
     "no_results": "No questions in this category",
     "still_questions": "Didn't find your answer?",
     "contact_us": "Our team is here to help",
@@ -309,7 +309,7 @@
   },
   "blog": {
     "title": "Blog",
-    "subtitle": "Guides, tips and news about electric fatbikes",
+    "subtitle": "Guides, tips and news about electric mobility",
     "no_articles": "No articles yet",
     "back_to_blog": "Back to blog",
     "see_all_articles": "View all articles"
@@ -355,7 +355,7 @@
   },
   "compare": {
     "title": "Fatbike Comparison",
-    "subtitle": "Compare all features of our models side by side to find your ideal bike",
+    "subtitle": "Compare all features of our models side by side to find your ideal product",
     "colors": "Colours",
     "stock": "Stock",
     "all_models": "See detailed specifications on each product page",

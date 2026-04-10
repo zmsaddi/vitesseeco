@@ -30,14 +30,14 @@
   "home": {
     "hero_title": "Potencia Todo Terreno",
     "hero_subtitle": "Rendimiento Duradero",
-    "hero_description": "Descubre nuestra gama de fatbikes eléctricas que combinan potencia, estilo y respeto por el medio ambiente.",
-    "hero_cta": "Descubrir nuestras bicicletas",
+    "hero_description": "Descubre nuestra gama de productos eléctricos que combinan potencia, estilo y respeto por el medio ambiente.",
+    "hero_cta": "Descubrir nuestros productos",
     "featured_title": "Nuestros Modelos Destacados",
     "featured_subtitle": "Bicicletas eléctricas diseñadas para todos los terrenos y estilos.",
     "values_title": "¿Por qué Vitesse Eco?",
     "testimonials_title": "Lo que dicen nuestros clientes",
     "cta_title": "¿Listo para rodar?",
-    "cta_description": "Encuentra la fatbike eléctrica perfecta para ti.",
+    "cta_description": "Encuentra el producto perfecto para ti.",
     "cta_button": "Ver todos nuestros modelos",
     "value1_title": "Autonomía",
     "value1_desc": "Hasta 100 km de autonomía con nuestras baterías de alta capacidad.",
@@ -49,8 +49,8 @@
     "value4_desc": "Asistencia técnica disponible 6 días a la semana por teléfono y email."
   },
   "products": {
-    "title": "Nuestras Bicicletas Eléctricas",
-    "subtitle": "Encuentra la fatbike perfecta para tus aventuras.",
+    "title": "Nuestros Productos",
+    "subtitle": "Encuentra el producto perfecto para tus necesidades.",
     "filter": "Filtrar",
     "sort": "Ordenar por",
     "sort_price_asc": "Precio ascendente",
@@ -296,7 +296,7 @@
   },
   "faq": {
     "title": "Preguntas frecuentes",
-    "subtitle": "Encuentra las respuestas a tus preguntas sobre nuestras fatbikes eléctricas",
+    "subtitle": "Encuentra las respuestas a tus preguntas sobre nuestros productos",
     "no_results": "No hay preguntas en esta categoría",
     "still_questions": "¿No encontraste tu respuesta?",
     "contact_us": "Nuestro equipo está aquí para ayudarte",
@@ -309,7 +309,7 @@
   },
   "blog": {
     "title": "Blog",
-    "subtitle": "Guías, consejos y noticias sobre fatbikes eléctricas",
+    "subtitle": "Guías, consejos y noticias sobre la movilidad eléctrica",
     "no_articles": "No hay artículos por el momento",
     "back_to_blog": "Volver al blog",
     "see_all_articles": "Ver todos los artículos"

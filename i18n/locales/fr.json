@@ -30,14 +30,14 @@
   "home": {
     "hero_title": "Puissance Tout-Terrain",
     "hero_subtitle": "Performance Durable",
-    "hero_description": "Découvrez notre gamme de fatbikes électriques alliant puissance, style et respect de l'environnement.",
-    "hero_cta": "Découvrir nos vélos",
+    "hero_description": "Découvrez notre gamme de produits électriques alliant puissance, style et respect de l'environnement.",
+    "hero_cta": "Découvrir nos produits",
     "featured_title": "Nos Modèles Phares",
     "featured_subtitle": "Des vélos électriques conçus pour tous les terrains et tous les styles.",
     "values_title": "Pourquoi Vitesse Eco ?",
     "testimonials_title": "Ce que disent nos clients",
     "cta_title": "Prêt à rouler ?",
-    "cta_description": "Trouvez le fatbike électrique parfait pour vous.",
+    "cta_description": "Trouvez le produit parfait pour vous.",
     "cta_button": "Voir tous nos modèles",
     "value1_title": "Autonomie",
     "value1_desc": "Jusqu'à 100 km d'autonomie avec nos batteries haute capacité.",
@@ -49,8 +49,8 @@
     "value4_desc": "Assistance technique disponible 6 jours sur 7 par téléphone et email."
   },
   "products": {
-    "title": "Nos Vélos Électriques",
-    "subtitle": "Trouvez le fatbike parfait pour vos aventures.",
+    "title": "Nos Produits",
+    "subtitle": "Trouvez le produit parfait pour vos besoins.",
     "filter": "Filtrer",
     "sort": "Trier par",
     "sort_price_asc": "Prix croissant",
@@ -296,7 +296,7 @@
   },
   "faq": {
     "title": "Questions fréquentes",
-    "subtitle": "Trouvez les réponses à vos questions sur nos fatbikes électriques",
+    "subtitle": "Trouvez les réponses à vos questions sur nos produits",
     "no_results": "Aucune question dans cette catégorie",
     "still_questions": "Vous n'avez pas trouvé votre réponse ?",
     "contact_us": "Notre équipe est là pour vous aider",
@@ -309,7 +309,7 @@
   },
   "blog": {
     "title": "Blog",
-    "subtitle": "Guides, conseils et actualités sur les fatbikes électriques",
+    "subtitle": "Guides, conseils et actualités sur la mobilité électrique",
     "no_articles": "Aucun article pour le moment",
     "back_to_blog": "Retour au blog",
     "see_all_articles": "Voir tous les articles"
@@ -355,7 +355,7 @@
   },
   "compare": {
     "title": "Comparatif des fatbikes",
-    "subtitle": "Comparez toutes les caractéristiques de nos modèles côte à côte pour trouver votre vélo idéal",
+    "subtitle": "Comparez toutes les caractéristiques de nos modèles côte à côte pour trouver votre produit idéal",
     "colors": "Couleurs",
     "stock": "Stock",
     "all_models": "Consultez les spécifications détaillées sur chaque fiche produit",
