@@ -142,7 +142,7 @@
 
           <!-- Back to top -->
           <div v-if="paginatedProducts.length > 12" class="text-center mt-6">
-            <button @click="window.scrollTo({ top: 0, behavior: 'smooth' })" class="text-text-secondary text-xs hover:text-accent flex items-center justify-center gap-1 mx-auto">
+            <button @click="scrollToTop" class="text-text-secondary text-xs hover:text-accent flex items-center justify-center gap-1 mx-auto">
               <Icon name="ph:arrow-up" class="w-3 h-3" /> {{ $t('products.back_to_top') }}
             </button>
           </div>
@@ -324,4 +324,8 @@ const filteredProducts = computed(() => {
 })
 
 const paginatedProducts = computed(() => filteredProducts.value.slice(0, showCount.value))
+
+function scrollToTop() {
+  if (import.meta.client) window.scrollTo({ top: 0, behavior: 'smooth' })
+}
 </script>
