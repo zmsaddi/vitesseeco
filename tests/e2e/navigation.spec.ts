@@ -47,10 +47,12 @@ test.describe('Site Navigation', () => {
 
 test.describe('Product Pages', () => {
   test('product detail page loads with JSON-LD', async ({ page }) => {
-    await page.goto('/produits', { waitUntil: 'networkidle', timeout: 30_000 })
+    await page.goto('/produits', { waitUntil: 'domcontentloaded', timeout: 30_000 })
+    // Wait for products to load (skeleton disappears, real product links appear)
     const firstProduct = page.locator('a[href*="/produits/"]').first()
-    await firstProduct.waitFor({ state: 'visible', timeout: 30_000 })
-    await firstProduct.click()
+    await firstProduct.waitFor({ state: 'attached', timeout: 45_000 })
+    await firstProduct.scrollIntoViewIfNeeded()
+    await firstProduct.click({ timeout: 10_000 })
     await expect(page.locator('h1')).toBeVisible({ timeout: 20_000 })
     const jsonLd = page.locator('script[type="application/ld+json"]')
     await expect(jsonLd.first()).toBeAttached()
