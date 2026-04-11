@@ -19,7 +19,7 @@
                 v-for="(img, i) in product.images"
                 :key="i"
                 :src="useSanityImageUrl(img, 800, 800)"
-                :alt="l(product.name)"
+                :alt="img.altText || l(product.name)"
                 width="800" height="800"
                 class="absolute inset-0 w-full h-full object-contain bg-dark-tertiary transition-opacity duration-300"
                 :class="i === selectedImage ? 'opacity-100' : 'opacity-0'"
@@ -259,7 +259,7 @@ const productQuery = groq`{
     isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
     productType, color, colorHex, stock, modelFamily, seo,
     specifications, brand->{ name },
-    "images": images[]{asset}
+    "images": images[]{asset, altText}
   },
   "otherColors": *[_type == "product" && modelFamily == *[_type == "product" && slug.current == $slug][0].modelFamily && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
     _id, name, slug, price, color, colorHex, stock, brand->{ name },

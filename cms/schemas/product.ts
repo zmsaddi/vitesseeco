@@ -94,9 +94,20 @@ export default defineType({
     // ══════ TAB 2: الصور ══════
     {
       name: 'images', title: 'صور المنتج', type: 'array', group: 'media',
-      of: [{ type: 'image', options: { hotspot: true } }],
+      of: [{
+        type: 'image',
+        options: { hotspot: true },
+        fields: [
+          {
+            name: 'altText',
+            title: 'نص بديل (Alt)',
+            type: 'string',
+            description: 'وصف الصورة للـ SEO وإمكانية الوصول — مثال: V20 Pro fatbike vue de face',
+          },
+        ],
+      }],
       options: { layout: 'grid' },
-      description: 'الصورة الأولى = الرئيسية. اسحب لإعادة الترتيب.',
+      description: 'الصورة الأولى = الرئيسية. اسحب لإعادة الترتيب. أضف نصًا بديلًا لكل صورة.',
       validation: (Rule) => Rule.min(1).error('صورة واحدة على الأقل'),
     },
 
