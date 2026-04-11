@@ -47,9 +47,10 @@
           <!-- Thumbnails -->
           <div v-if="product.images?.length > 1" class="grid grid-cols-5 gap-2">
             <button v-for="(img, i) in product.images?.slice(0, 10)" :key="i" @click="selectedImage = Number(i)"
+              :aria-label="$t('product.image_number', { n: Number(i) + 1 })"
               class="card aspect-square bg-dark-tertiary cursor-pointer overflow-hidden border-2 transition-colors"
               :class="selectedImage === i ? 'border-accent' : 'border-transparent hover:border-accent/30'">
-              <img :src="useSanityImageUrl(img, 150, 150)" :alt="l(product.name)" width="150" height="150" loading="lazy" class="w-full h-full object-cover" />
+              <img :src="useSanityImageUrl(img, 150, 150)" :alt="img.altText || l(product.name)" width="150" height="150" loading="lazy" class="w-full h-full object-cover" />
             </button>
           </div>
         </div>
