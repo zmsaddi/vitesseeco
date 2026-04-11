@@ -9,10 +9,13 @@
     "deploy": "sanity deploy"
   },
   "dependencies": {
+    "@sanity/assist": "^6.0.4",
+    "@sanity/language-filter": "^5.0.1",
     "@sanity/vision": "^5.20.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "sanity": "^5.20.0",
+    "sanity-plugin-media": "^4.1.1",
     "styled-components": "^6.4.0"
   },
   "devDependencies": {
