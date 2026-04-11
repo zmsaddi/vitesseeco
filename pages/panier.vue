@@ -155,6 +155,10 @@
                   {{ $t('cart.apply') }}
                 </button>
               </div>
+              <p v-if="promoFeedback" class="text-xs mt-2 flex items-center gap-1" :class="promoFeedback.type === 'success' ? 'text-accent' : 'text-red-400'">
+                <Icon :name="promoFeedback.type === 'success' ? 'ph:check-circle' : 'ph:x-circle'" class="w-3.5 h-3.5" />
+                {{ promoFeedback.message }}
+              </p>
             </div>
 
             <!-- Summary line: shipping -->
@@ -220,6 +224,7 @@ const localePath = useLocalePath()
 const l = useLocalizedField()
 const cart = useCartStore()
 const promoInput = ref('')
+const promoFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })
 
@@ -258,7 +263,13 @@ async function selectShipping(code: string) {
 
 async function applyPromo() {
   if (!promoInput.value.trim()) return
-  await cart.applyPromoServer(promoInput.value.trim())
+  promoFeedback.value = null
+  const valid = await cart.applyPromoServer(promoInput.value.trim())
+  if (valid && cart.promoDiscount > 0) {
+    promoFeedback.value = { type: 'success', message: t('cart.promo_applied') }
+  } else {
+    promoFeedback.value = { type: 'error', message: t('cart.promo_invalid') }
+  }
 }
 
 async function proceedToCheckout() {

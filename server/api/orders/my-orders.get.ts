@@ -22,14 +22,24 @@ export default defineEventHandler(async (event) => {
     useCdn: false,
   })
 
+  const query = getQuery(event)
+  const page = Math.max(1, parseInt(query.page as string) || 1)
+  const limit = Math.min(50, Math.max(1, parseInt(query.limit as string) || 10))
+  const offset = (page - 1) * limit
+
   const orders = await client.fetch(
-    `*[_type == "order" && customer.customerId == $customerId] | order(createdAt desc) {
+    `*[_type == "order" && customer.customerId == $customerId] | order(createdAt desc) [$offset...$end] {
       orderNumber, status, paymentMethod, total, shippingMethod, trackingNumber,
       items[]{ productName, color, quantity, price },
       createdAt
     }`,
+    { customerId: session.customerId, offset, end: offset + limit }
+  )
+
+  const total = await client.fetch(
+    `count(*[_type == "order" && customer.customerId == $customerId])`,
     { customerId: session.customerId }
   )
 
-  return { orders }
+  return { orders, total, page, limit, totalPages: Math.ceil(total / limit) }
 })

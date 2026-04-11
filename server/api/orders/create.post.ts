@@ -184,24 +184,46 @@ export default defineEventHandler(async (event) => {
   }
 
   // 8. Decrement stock in Sanity (System B: direct product.stock)
+  // Uses ifRevisionId for optimistic locking to prevent race conditions
   if (writeClient) {
     for (const item of validatedItems) {
-      await writeClient
-        .patch(item.productId)
-        .dec({ stock: item.quantity })
-        .commit()
-
-      // Re-check stock after decrement to detect race condition
-      const updated = await readClient.fetch(
-        `*[_type == "product" && _id == $id][0].stock`,
+      // Get current revision for optimistic lock
+      const current = await readClient.fetch(
+        `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
         { id: item.productId }
       )
-      if (typeof updated === 'number' && updated < 0) {
+
+      if (!current || (current.stock ?? 0) < item.quantity) {
+        console.error(`[ORDER] Stock insufficient for ${item.sku} at decrement time (have: ${current?.stock}, need: ${item.quantity})`)
+        continue // Skip decrement — order is already created, handle via support
+      }
+
+      try {
         await writeClient
           .patch(item.productId)
-          .inc({ stock: item.quantity })
+          .ifRevisionId(current._rev) // Optimistic lock — fails if document changed
+          .dec({ stock: item.quantity })
           .commit()
-        console.error(`[ORDER] Stock race detected for ${item.sku}, rolled back`)
+      } catch (patchError: unknown) {
+        // Revision conflict — another request modified this product simultaneously
+        // Retry once with fresh revision
+        try {
+          const fresh = await readClient.fetch(
+            `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
+            { id: item.productId }
+          )
+          if (fresh && (fresh.stock ?? 0) >= item.quantity) {
+            await writeClient
+              .patch(item.productId)
+              .ifRevisionId(fresh._rev)
+              .dec({ stock: item.quantity })
+              .commit()
+          } else {
+            console.error(`[ORDER] Stock race confirmed for ${item.sku}, insufficient after retry`)
+          }
+        } catch (retryError) {
+          console.error(`[ORDER] Stock decrement failed for ${item.sku} after retry:`, retryError)
+        }
       }
     }
   }

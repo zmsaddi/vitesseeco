@@ -253,7 +253,19 @@
             </div>
             <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{{ orderError }}</p>
             <ClientOnly><TurnstileWidget @verify="t => turnstileToken = t" /></ClientOnly>
-            <button @click="placeOrder" :disabled="!canOrder || placing" class="btn-primary w-full py-4 text-lg disabled:opacity-50">
+            <!-- Confirmation overlay -->
+            <div v-if="showConfirmation" class="bg-accent/5 border border-accent/30 rounded-lg p-4 space-y-3">
+              <p class="text-white text-sm font-medium">{{ $t('checkout.step_review') }}</p>
+              <p class="text-text-secondary text-xs">{{ cart.items.length }} {{ $t('products.results') }} — {{ orderTotal }}{{ $t('common.currency') }}</p>
+              <div class="flex gap-2">
+                <button @click="placeOrder" :disabled="placing" class="btn-primary flex-1 py-3 text-sm disabled:opacity-50">
+                  <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-4 h-4 animate-spin" /></span>
+                  <span v-else>{{ $t('checkout.place_order') }}</span>
+                </button>
+                <button @click="showConfirmation = false" class="btn-secondary px-4 py-3 text-sm">{{ $t('common.back') }}</button>
+              </div>
+            </div>
+            <button v-else @click="requestConfirmation" :disabled="!canOrder || placing" class="btn-primary w-full py-4 text-lg disabled:opacity-50">
               <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-5 h-5 animate-spin" /></span>
               <span v-else>{{ $t('checkout.place_order') }}</span>
             </button>
@@ -284,6 +296,7 @@ const selectedPayment = ref('')
 const placing = ref(false)
 const orderError = ref('')
 const turnstileToken = ref('')
+const showConfirmation = ref(false)
 const showNewForm = ref(false)
 const saveAddr = ref(true)
 const loadingAddresses = ref(true)
@@ -365,9 +378,17 @@ const canOrder = computed(() => {
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
 
+// Confirmation step before placing order
+function requestConfirmation() {
+  if (!canOrder.value) return
+  orderError.value = ''
+  showConfirmation.value = true
+}
+
 // Place order
 async function placeOrder() {
   if (!canOrder.value) return
+  showConfirmation.value = false
   placing.value = true; orderError.value = ''
 
   let shippingAddress: any

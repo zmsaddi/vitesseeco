@@ -11,7 +11,7 @@
 
       <div class="space-y-6">
         <!-- Profile Section -->
-        <div class="card p-6">
+        <div id="profile" class="card p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="font-display font-semibold text-white flex items-center gap-2">
               <Icon name="ph:user-circle" class="w-5 h-5 text-accent" />
@@ -71,7 +71,7 @@
         </div>
 
         <!-- Addresses Section -->
-        <div class="card p-6">
+        <div id="addresses" class="card p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="font-display font-semibold text-white flex items-center gap-2">
               <Icon name="ph:map-pin" class="w-5 h-5 text-accent" />
@@ -197,7 +197,7 @@
         </div>
 
         <!-- Orders Section -->
-        <div class="card p-6">
+        <div id="orders" class="card p-6">
           <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
             <Icon name="ph:package" class="w-5 h-5 text-accent" />
             {{ $t('account.orders') }}
@@ -300,9 +300,24 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
+const route = useRoute()
 
 definePageMeta({ middleware: 'auth' })
 useHead({ title: `${t('account.title')} — Vitesse Eco` })
+
+// Hash routing — scroll to section on mount/hash change
+function scrollToHash() {
+  if (!import.meta.client) return
+  const hash = route.hash
+  if (hash) {
+    nextTick(() => {
+      const el = document.querySelector(hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+}
+onMounted(scrollToHash)
+watch(() => route.hash, scrollToHash)
 
 // Profile
 const editingProfile = ref(false)
@@ -369,8 +384,10 @@ async function fetchOrders() {
   } catch {} finally { loadingOrders.value = false }
 }
 
+const { locale } = useI18n()
 function formatDate(d: string) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const localeMap: Record<string, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', nl: 'nl-NL', de: 'de-DE', ar: 'ar-SA' }
+  return new Date(d).toLocaleDateString(localeMap[locale.value] || 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 function statusClass(status: string) {

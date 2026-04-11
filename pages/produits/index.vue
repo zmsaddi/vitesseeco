@@ -151,20 +151,56 @@ useHead({
   ],
 })
 
+const router = useRouter()
+
+// URL-synced filter state
 const selectedType = ref((route.query.type as string) || '')
-const selectedBrand = ref('')
-const selectedColor = ref('')
-const selectedPrice = ref('')
-const selectedTire = ref('')
-const searchQuery = ref('')
-const sortBy = ref('sortOrder')
+const selectedBrand = ref((route.query.brand as string) || '')
+const selectedColor = ref((route.query.color as string) || '')
+const selectedPrice = ref((route.query.price as string) || '')
+const selectedTire = ref((route.query.tire as string) || '')
+const searchQuery = ref((route.query.q as string) || '')
+const sortBy = ref((route.query.sort as string) || 'sortOrder')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showFilters = ref(false)
 const pageSize = 24
 const showCount = ref(pageSize)
 
-watch(() => route.query.type, (val) => { selectedType.value = (val as string) || '' })
-watch([selectedType, selectedBrand, selectedColor, selectedPrice, selectedTire, searchQuery, sortBy], () => { showCount.value = pageSize })
+// Debounced search
+let searchTimer: ReturnType<typeof setTimeout>
+const debouncedSearch = ref(searchQuery.value)
+watch(searchQuery, (val) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { debouncedSearch.value = val }, 300)
+})
+
+// Sync filters → URL
+function updateUrl() {
+  const query: Record<string, string> = {}
+  if (selectedType.value) query.type = selectedType.value
+  if (selectedBrand.value) query.brand = selectedBrand.value
+  if (selectedColor.value) query.color = selectedColor.value
+  if (selectedPrice.value) query.price = selectedPrice.value
+  if (selectedTire.value) query.tire = selectedTire.value
+  if (searchQuery.value) query.q = searchQuery.value
+  if (sortBy.value && sortBy.value !== 'sortOrder') query.sort = sortBy.value
+  router.replace({ query })
+}
+
+watch([selectedType, selectedBrand, selectedColor, selectedPrice, selectedTire, sortBy], () => { showCount.value = pageSize; updateUrl() })
+watch(searchQuery, () => { showCount.value = pageSize; updateUrl() })
+
+// Restore from URL on navigation
+watch(() => route.query, (q) => {
+  selectedType.value = (q.type as string) || ''
+  selectedBrand.value = (q.brand as string) || ''
+  selectedColor.value = (q.color as string) || ''
+  selectedPrice.value = (q.price as string) || ''
+  selectedTire.value = (q.tire as string) || ''
+  searchQuery.value = (q.q as string) || ''
+  debouncedSearch.value = (q.q as string) || ''
+  sortBy.value = (q.sort as string) || 'sortOrder'
+})
 
 function setType(type: string) { selectedType.value = type; selectedBrand.value = ''; selectedColor.value = ''; selectedTire.value = '' }
 function clearFilters() { selectedBrand.value = ''; selectedColor.value = ''; selectedPrice.value = ''; selectedTire.value = '' }
@@ -226,8 +262,8 @@ const filteredProducts = computed(() => {
 
   if (selectedType.value) result = result.filter(p => p.productType === selectedType.value)
 
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase()
+  if (debouncedSearch.value.trim()) {
+    const q = debouncedSearch.value.toLowerCase()
     result = result.filter(p => {
       const name = (l(p.name) || '').toLowerCase()
       const brand = (p.brand?.name || '').toLowerCase()

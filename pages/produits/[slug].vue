@@ -191,6 +191,21 @@
     <div v-else class="container-custom py-20 text-center">
       <Icon name="ph:spinner" class="w-8 h-8 text-accent animate-spin mx-auto" />
     </div>
+
+    <!-- Toast: Added to cart -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="translate-y-4 opacity-0"
+      enter-to-class="translate-y-0 opacity-100"
+      leave-active-class="transition duration-200 ease-in"
+      leave-from-class="translate-y-0 opacity-100"
+      leave-to-class="translate-y-4 opacity-0"
+    >
+      <div v-if="showAddedToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-accent text-primary px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
+        <Icon name="ph:check-circle-fill" class="w-5 h-5" />
+        {{ $t('product.add_to_cart') }} ✓
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -206,6 +221,7 @@ const selectedImage = ref(0)
 const qty = ref(1)
 const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
+const showAddedToast = ref(false)
 
 if (import.meta.client) {
   useSwipe(galleryContainer, {
@@ -292,6 +308,8 @@ function addToCart() {
   }, qty.value)
   cartOpen.value = true
   qty.value = 1
+  showAddedToast.value = true
+  setTimeout(() => { showAddedToast.value = false }, 3000)
 }
 
 // SEO
