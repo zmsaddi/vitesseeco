@@ -76,7 +76,7 @@
     "view_list": "Liste",
     "count": "{count} vélos",
     "all_sizes": "Toutes les tailles",
-    "show_out_of_stock": "Afficher les produits épuisés"
+    "show_out_of_stock": "Inclure les produits épuisés"
   },
   "product": {
     "add_to_cart": "Ajouter au panier",

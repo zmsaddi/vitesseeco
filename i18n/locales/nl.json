@@ -76,7 +76,7 @@
     "view_list": "Lijst",
     "count": "{count} fietsen",
     "all_sizes": "Alle maten",
-    "show_out_of_stock": "Uitverkochte producten tonen"
+    "show_out_of_stock": "Inclusief uitverkochte artikelen"
   },
   "product": {
     "add_to_cart": "In winkelwagen",

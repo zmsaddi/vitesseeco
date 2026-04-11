@@ -76,7 +76,7 @@
     "view_list": "قائمة",
     "count": "{count} دراجات",
     "all_sizes": "جميع الأحجام",
-    "show_out_of_stock": "عرض المنتجات النافدة"
+    "show_out_of_stock": "تضمين المنتجات غير المتوفرة"
   },
   "product": {
     "add_to_cart": "أضف إلى السلة",

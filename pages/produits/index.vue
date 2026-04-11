@@ -9,7 +9,7 @@
       <!-- Type tabs -->
       <div class="flex flex-wrap gap-2 justify-center mb-6">
         <button @click="setType('')" class="px-4 py-2 rounded-full text-sm font-medium transition-colors" :class="!selectedType ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'">
-          {{ $t('nav.all_products') }} ({{ products?.length || 0 }})
+          {{ $t('nav.all_products') }} ({{ stockFilteredProducts.length }})
         </button>
         <button v-for="t in typeFilters" :key="t.value" @click="setType(t.value)" class="px-4 py-2 rounded-full text-sm font-medium transition-colors" :class="selectedType === t.value ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'">
           {{ t.icon }} {{ t.label }} ({{ typeCounts[t.value] || 0 }})
@@ -252,24 +252,28 @@ const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stoc
 }`
 const { data: products } = useSanityFetch('all-products-v3', prodQuery)
 
+// Counts respect stock filter — show only in-stock counts when filter is active
+const stockFilteredProducts = computed(() => {
+  if (!products.value) return []
+  if (showOutOfStock.value) return products.value as any[]
+  return (products.value as any[]).filter(p => p.stock > 0)
+})
+
 const typeCounts = computed(() => {
-  if (!products.value) return {}
   const c: Record<string, number> = {}
-  products.value.forEach((p: any) => { c[p.productType] = (c[p.productType] || 0) + 1 })
+  stockFilteredProducts.value.forEach((p: any) => { c[p.productType] = (c[p.productType] || 0) + 1 })
   return c
 })
 
 const availableBrands = computed(() => {
-  if (!products.value) return []
-  let list = products.value as any[]
-  if (selectedType.value) list = list.filter(p => p.productType === selectedType.value)
-  return [...new Set(list.map(p => p.brand?.name).filter(Boolean))].sort()
+  let list = stockFilteredProducts.value
+  if (selectedType.value) list = list.filter((p: any) => p.productType === selectedType.value)
+  return [...new Set(list.map((p: any) => p.brand?.name).filter(Boolean))].sort()
 })
 
 const availableColors = computed(() => {
-  if (!products.value) return []
-  let list = products.value as any[]
-  if (selectedType.value) list = list.filter(p => p.productType === selectedType.value)
+  let list = stockFilteredProducts.value
+  if (selectedType.value) list = list.filter((p: any) => p.productType === selectedType.value)
   const colorMap = new Map<string, string>()
   list.forEach(p => { if (p.colorHex) colorMap.set(p.colorHex, l(p.color) || p.colorHex) })
   return [...colorMap.entries()].map(([hex, name]) => ({ hex, name })).slice(0, 12)
