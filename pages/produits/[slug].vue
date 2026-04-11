@@ -24,11 +24,11 @@
                 class="absolute inset-0 w-full h-full object-contain bg-dark-tertiary transition-opacity duration-300"
                 :class="i === selectedImage ? 'opacity-100' : 'opacity-0'"
               />
-              <button v-if="product.images.length > 1" @click="selectedImage = (selectedImage - 1 + product.images.length) % product.images.length"
+              <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage - 1 + product.images?.length) % product.images?.length"
                 class="absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-left" class="w-5 h-5" />
               </button>
-              <button v-if="product.images.length > 1" @click="selectedImage = (selectedImage + 1) % product.images.length"
+              <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage + 1) % product.images?.length"
                 class="absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-right" class="w-5 h-5" />
               </button>
@@ -43,7 +43,7 @@
           </div>
           <!-- Thumbnails -->
           <div v-if="product.images?.length > 1" class="grid grid-cols-5 gap-2">
-            <button v-for="(img, i) in product.images.slice(0, 10)" :key="i" @click="selectedImage = i"
+            <button v-for="(img, i) in product.images?.slice(0, 10)" :key="i" @click="selectedImage = i"
               class="card aspect-square bg-dark-tertiary cursor-pointer overflow-hidden border-2 transition-colors"
               :class="selectedImage === i ? 'border-accent' : 'border-transparent hover:border-accent/30'">
               <img :src="useSanityImageUrl(img, 150, 150)" :alt="l(product.name)" width="150" height="150" loading="lazy" class="w-full h-full object-cover" />
