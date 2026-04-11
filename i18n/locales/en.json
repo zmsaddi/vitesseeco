@@ -75,7 +75,8 @@
     "view_grid": "Grid",
     "view_list": "List",
     "count": "{count} bikes",
-    "all_sizes": "All sizes"
+    "all_sizes": "All sizes",
+    "show_out_of_stock": "Show out of stock products"
   },
   "product": {
     "add_to_cart": "Add to cart",

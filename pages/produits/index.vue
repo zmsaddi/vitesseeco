@@ -74,6 +74,14 @@
               </select>
             </div>
 
+            <!-- Show out of stock toggle -->
+            <div>
+              <label class="flex items-center gap-2 cursor-pointer text-text-secondary text-xs">
+                <input type="checkbox" v-model="showOutOfStock" class="accent-accent w-3.5 h-3.5" />
+                {{ $t('products.show_out_of_stock') }}
+              </label>
+            </div>
+
             <!-- Bike-specific -->
             <template v-if="!selectedType || selectedType === 'bike'">
               <div>
@@ -169,6 +177,7 @@ const selectedPrice = ref((route.query.price as string) || '')
 const selectedTire = ref((route.query.tire as string) || '')
 const searchQuery = ref((route.query.q as string) || '')
 const sortBy = ref((route.query.sort as string) || 'sortOrder')
+const showOutOfStock = ref(route.query.oos === '1')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showFilters = ref(false)
 const pageSize = 24
@@ -192,10 +201,11 @@ function updateUrl() {
   if (selectedTire.value) query.tire = selectedTire.value
   if (searchQuery.value) query.q = searchQuery.value
   if (sortBy.value && sortBy.value !== 'sortOrder') query.sort = sortBy.value
+  if (showOutOfStock.value) query.oos = '1'
   router.replace({ query })
 }
 
-watch([selectedType, selectedBrand, selectedColor, selectedPrice, selectedTire, sortBy], () => { showCount.value = pageSize; updateUrl() })
+watch([selectedType, selectedBrand, selectedColor, selectedPrice, selectedTire, sortBy, showOutOfStock], () => { showCount.value = pageSize; updateUrl() })
 watch(searchQuery, () => { showCount.value = pageSize; updateUrl() })
 
 // Restore from URL on navigation
@@ -208,13 +218,14 @@ watch(() => route.query, (q) => {
   searchQuery.value = (q.q as string) || ''
   debouncedSearch.value = (q.q as string) || ''
   sortBy.value = (q.sort as string) || 'sortOrder'
+  showOutOfStock.value = q.oos === '1'
 })
 
 function setType(type: string) { selectedType.value = type; selectedBrand.value = ''; selectedColor.value = ''; selectedTire.value = '' }
-function clearFilters() { selectedBrand.value = ''; selectedColor.value = ''; selectedPrice.value = ''; selectedTire.value = '' }
+function clearFilters() { selectedBrand.value = ''; selectedColor.value = ''; selectedPrice.value = ''; selectedTire.value = ''; showOutOfStock.value = false }
 function clearAll() { clearFilters(); selectedType.value = ''; searchQuery.value = '' }
 
-const activeFilterCount = computed(() => [selectedBrand.value, selectedColor.value, selectedPrice.value, selectedTire.value].filter(Boolean).length)
+const activeFilterCount = computed(() => [selectedBrand.value, selectedColor.value, selectedPrice.value, selectedTire.value, showOutOfStock.value ? '1' : ''].filter(Boolean).length)
 
 const pageTitle = computed(() => {
   const m: Record<string, string> = { bike: t('nav.type_bikes'), accessory: t('nav.type_accessories'), spare_part: t('nav.type_parts'), kids_car: t('nav.type_kids') }
@@ -234,12 +245,12 @@ const typeFilters = computed(() => [
 
 const tireSizes = ['16"', '20"', '24"', '70/100-17"']
 
-const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
+const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stock desc, sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
   productType, color, colorHex, stock, modelFamily, specifications,
   brand->{ name }, "images": images[]{asset}
 }`
-const { data: products } = useSanityFetch('all-products-v2', prodQuery)
+const { data: products } = useSanityFetch('all-products-v3', prodQuery)
 
 const typeCounts = computed(() => {
   if (!products.value) return {}
@@ -292,9 +303,22 @@ const filteredProducts = computed(() => {
 
   if (selectedTire.value) result = result.filter(p => p.specifications?.tireSize === selectedTire.value)
 
+  // Hide out-of-stock unless toggle is on
+  if (!showOutOfStock.value) {
+    result = result.filter(p => p.stock > 0)
+  }
+
+  // Sort: in-stock first, then by selected sort
   if (sortBy.value === 'name') result.sort((a, b) => (l(a.name) || '').localeCompare(l(b.name) || ''))
   else if (sortBy.value === 'price_asc') result.sort((a, b) => (a.price || 0) - (b.price || 0))
   else if (sortBy.value === 'price_desc') result.sort((a, b) => (b.price || 0) - (a.price || 0))
+
+  // Always push out-of-stock to bottom regardless of sort
+  result.sort((a, b) => {
+    const aInStock = (a.stock || 0) > 0 ? 1 : 0
+    const bInStock = (b.stock || 0) > 0 ? 1 : 0
+    return bInStock - aInStock
+  })
 
   return result
 })

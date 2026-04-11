@@ -75,7 +75,8 @@
     "view_grid": "شبكة",
     "view_list": "قائمة",
     "count": "{count} دراجات",
-    "all_sizes": "جميع الأحجام"
+    "all_sizes": "جميع الأحجام",
+    "show_out_of_stock": "عرض المنتجات النافدة"
   },
   "product": {
     "add_to_cart": "أضف إلى السلة",

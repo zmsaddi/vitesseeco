@@ -75,7 +75,8 @@
     "view_grid": "Raster",
     "view_list": "Liste",
     "count": "{count} Fahrräder",
-    "all_sizes": "Alle Größen"
+    "all_sizes": "Alle Größen",
+    "show_out_of_stock": "Ausverkaufte Produkte anzeigen"
   },
   "product": {
     "add_to_cart": "In den Warenkorb",

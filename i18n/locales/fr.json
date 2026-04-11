@@ -75,7 +75,8 @@
     "view_grid": "Grille",
     "view_list": "Liste",
     "count": "{count} vélos",
-    "all_sizes": "Toutes les tailles"
+    "all_sizes": "Toutes les tailles",
+    "show_out_of_stock": "Afficher les produits épuisés"
   },
   "product": {
     "add_to_cart": "Ajouter au panier",

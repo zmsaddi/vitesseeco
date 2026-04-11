@@ -75,7 +75,8 @@
     "view_grid": "Cuadrícula",
     "view_list": "Lista",
     "count": "{count} bicicletas",
-    "all_sizes": "Todos los tamaños"
+    "all_sizes": "Todos los tamaños",
+    "show_out_of_stock": "Mostrar productos agotados"
   },
   "product": {
     "add_to_cart": "Añadir al carrito",
