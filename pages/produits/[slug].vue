@@ -188,8 +188,28 @@
       </section>
     </div>
 
-    <div v-else class="container-custom py-20 text-center">
-      <Icon name="ph:spinner" class="w-8 h-8 text-accent animate-spin mx-auto" />
+    <!-- Loading Skeleton -->
+    <div v-else class="container-custom py-8 animate-pulse">
+      <div class="h-4 bg-dark-tertiary rounded w-48 mb-8" />
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+        <div class="space-y-4">
+          <div class="aspect-square bg-dark-tertiary rounded-xl" />
+          <div class="grid grid-cols-5 gap-2">
+            <div v-for="i in 5" :key="i" class="aspect-square bg-dark-tertiary rounded-lg" />
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="h-3 bg-dark-tertiary rounded w-24" />
+          <div class="h-8 bg-dark-tertiary rounded w-3/4" />
+          <div class="h-7 bg-dark-tertiary rounded w-32" />
+          <div class="h-14 bg-dark-tertiary rounded-lg w-full" />
+          <div class="space-y-3 mt-8">
+            <div class="h-4 bg-dark-tertiary rounded w-full" />
+            <div class="h-4 bg-dark-tertiary rounded w-5/6" />
+            <div class="h-4 bg-dark-tertiary rounded w-2/3" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Toast: Added to cart -->

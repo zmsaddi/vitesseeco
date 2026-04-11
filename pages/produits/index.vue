@@ -111,8 +111,16 @@
             </div>
           </div>
 
-          <div v-if="!products" class="text-center py-16">
-            <Icon name="ph:spinner" class="w-8 h-8 text-accent animate-spin mx-auto" />
+          <!-- Loading Skeleton -->
+          <div v-if="!products" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div v-for="i in 8" :key="i" class="card animate-pulse">
+              <div class="aspect-[4/3] bg-dark-tertiary" />
+              <div class="p-4 space-y-3">
+                <div class="h-3 bg-dark-tertiary rounded w-1/3" />
+                <div class="h-4 bg-dark-tertiary rounded w-3/4" />
+                <div class="h-5 bg-dark-tertiary rounded w-1/4" />
+              </div>
+            </div>
           </div>
 
           <div v-else-if="filteredProducts.length" :class="viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-3'">

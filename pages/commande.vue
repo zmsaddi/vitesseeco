@@ -116,11 +116,12 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
-                    <input id="co-fn" v-model="addr.firstName" type="text" class="input-field" required />
+                    <input id="co-fn" v-model="addr.firstName" @blur="touch('firstName')" type="text" class="input-field" :class="fieldError('firstName', addr.firstName) ? 'border-red-500' : ''" required />
+                    <p v-if="fieldError('firstName', addr.firstName)" class="text-red-400 text-xs mt-1">{{ $t('checkout.first_name') }} {{ $t('common.error') }}</p>
                   </div>
                   <div>
                     <label for="co-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
-                    <input id="co-ln" v-model="addr.lastName" type="text" class="input-field" required />
+                    <input id="co-ln" v-model="addr.lastName" @blur="touch('lastName')" type="text" class="input-field" :class="fieldError('lastName', addr.lastName) ? 'border-red-500' : ''" required />
                   </div>
                 </div>
                 <div>
@@ -130,7 +131,7 @@
                 <div>
                   <label for="co-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
                   <div class="relative">
-                    <input id="co-addr" ref="coInput" v-model="addr.address" @input="onCoInput" type="text" class="input-field" autocomplete="off" required />
+                    <input id="co-addr" ref="coInput" v-model="addr.address" @input="onCoInput" @blur="touch('address')" type="text" class="input-field" :class="fieldError('address', addr.address) ? 'border-red-500' : ''" autocomplete="off" required />
                     <div v-if="coLoading" class="absolute right-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
                     <div v-if="coSuggestions.length" class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto">
                       <button v-for="s in coSuggestions" :key="s.place_id" type="button" @mousedown.prevent="pickCo(s)" class="w-full text-left px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white flex items-start gap-2">
@@ -142,11 +143,12 @@
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label for="co-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                    <input id="co-zip" v-model="addr.postalCode" type="text" class="input-field" required />
+                    <input id="co-zip" v-model="addr.postalCode" @blur="touch('postalCode')" type="text" class="input-field" :class="fieldError('postalCode', addr.postalCode) ? 'border-red-500' : ''" required />
+                    <p v-if="fieldError('postalCode', addr.postalCode)" class="text-red-400 text-xs mt-1">{{ $t('checkout.postal_code') }} {{ $t('common.error') }}</p>
                   </div>
                   <div>
                     <label for="co-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
-                    <input id="co-city" v-model="addr.city" type="text" class="input-field" required />
+                    <input id="co-city" v-model="addr.city" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
                   </div>
                 </div>
                 <label v-if="auth.isLoggedIn" class="flex items-center gap-2 text-text-secondary text-xs cursor-pointer">
@@ -302,6 +304,13 @@ const saveAddr = ref(true)
 const loadingAddresses = ref(true)
 
 const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: 'FR' })
+const touched = reactive<Record<string, boolean>>({})
+function touch(field: string) { touched[field] = true }
+function fieldError(field: string, value: string): string {
+  if (!touched[field]) return ''
+  if (!value?.trim()) return t('common.error')
+  return ''
+}
 const billingSameAsShipping = ref(true)
 const billing = reactive({ firstName: '', lastName: '', address: '', postalCode: '', city: '', country: 'FR' })
 
