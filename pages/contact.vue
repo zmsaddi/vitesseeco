@@ -85,19 +85,26 @@
 
         <!-- Contact Form + Map -->
         <div class="lg:col-span-2 space-y-6">
-          <!-- Google Map -->
+          <!-- Google Map (lazy loaded) -->
           <div class="card overflow-hidden">
-            <iframe
-              :src="mapUrl"
-              :title="$t('contact.map_title')"
-              width="100%"
-              height="280"
-              style="border: 0"
-              allowfullscreen
-              loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade"
-              class="w-full"
-            />
+            <ClientOnly>
+              <iframe
+                :src="mapUrl"
+                :title="$t('contact.map_title')"
+                width="100%"
+                height="280"
+                style="border: 0"
+                allowfullscreen
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+                class="w-full"
+              />
+              <template #fallback>
+                <div class="w-full h-[280px] bg-dark-tertiary flex items-center justify-center">
+                  <Icon name="ph:map-pin" class="w-8 h-8 text-text-secondary animate-pulse" />
+                </div>
+              </template>
+            </ClientOnly>
           </div>
 
           <!-- Contact Form -->

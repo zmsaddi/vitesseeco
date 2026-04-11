@@ -127,7 +127,7 @@
         leave-from-class="opacity-100 translate-y-0"
         leave-to-class="opacity-0 -translate-y-2"
       >
-        <nav v-if="mobileMenuOpen" class="md:hidden pb-4 border-t border-dark-tertiary/50 mt-2 pt-4">
+        <nav v-if="mobileMenuOpen" :aria-label="$t('nav.open_menu')" class="md:hidden pb-4 border-t border-dark-tertiary/50 mt-2 pt-4">
           <NuxtLink :to="localePath('/')" class="block py-3 px-2 text-text-secondary hover:text-accent transition-colors font-medium" @click="mobileMenuOpen = false">
             {{ $t('nav.home') }}
           </NuxtLink>
@@ -139,7 +139,7 @@
               v-for="type in productTypes"
               :key="type.value"
               :to="localePath(type.path)"
-              class="block py-2.5 px-4 text-text-secondary hover:text-accent transition-colors text-sm flex items-center gap-2"
+              class="flex items-center gap-2 py-2.5 px-4 text-text-secondary hover:text-accent transition-colors text-sm"
               @click="mobileMenuOpen = false"
             >
               <span>{{ type.icon }}</span> {{ type.label }}
