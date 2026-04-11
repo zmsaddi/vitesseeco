@@ -151,7 +151,7 @@ const l = useLocalizedField()
 
 const query = groq`*[_type == "product" && isFeatured == true] | order(sortOrder asc)[0..2] {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew,
-  variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} }
+  color, colorHex, stock, "images": images[]{asset}
 }`
 const { data: featuredProducts } = useSanityFetch('featured-products', query)
 

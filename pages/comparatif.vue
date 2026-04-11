@@ -70,13 +70,12 @@
               <td class="text-center text-text-secondary p-3">{{ sv(p.specifications?.brakeType) || '—' }}</td>
               <td class="text-center p-3">
                 <div class="flex justify-center gap-1">
-                  <span v-for="v in (p.variants || []).slice(0, 5)" :key="v._key" class="w-4 h-4 rounded-full border border-dark-tertiary" :style="{ backgroundColor: v.colorHex }" :title="l(v.colorName)" />
-                  <span v-if="(p.variants || []).length > 5" class="text-text-secondary text-xs">+{{ p.variants.length - 5 }}</span>
+                  <span v-if="p.colorHex" class="w-4 h-4 rounded-full border border-dark-tertiary" :style="{ backgroundColor: p.colorHex }" :title="l(p.color)" />
                 </div>
               </td>
               <td class="text-center p-3">
-                <span v-if="totalStock(p) > 5" class="text-accent text-xs">✅</span>
-                <span v-else-if="totalStock(p) > 0" class="text-gold text-xs">{{ totalStock(p) }}</span>
+                <span v-if="(p.stock || 0) > 5" class="text-accent text-xs">✅</span>
+                <span v-else-if="(p.stock || 0) > 0" class="text-gold text-xs">{{ p.stock }}</span>
                 <span v-else class="text-red-400 text-xs">❌</span>
               </td>
               <td class="p-3">
@@ -126,9 +125,9 @@ useHead({
 
 const { data: products } = useSanityFetch(
   'all-products-compare',
-  groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
-    _id, name, slug, price, compareAtPrice, specifications, category->{ _id, name },
-    variants[]{ _key, colorHex, colorName, stock }
+  groq`*[_type == "product" && isAvailable == true && productType == "bike"] | order(sortOrder asc) {
+    _id, name, slug, price, compareAtPrice, specifications, color, colorHex, stock,
+    brand->{ name }
   }`
 )
 
@@ -155,9 +154,8 @@ function getRangeNum(specs: any): number {
   return match ? parseInt(match[1]) : 0
 }
 
-function totalStock(p: any) {
-  return (p.variants || []).reduce((sum: number, v: any) => sum + (v.stock || 0), 0)
-}
+// System B: stock is directly on product
+
 
 const filtered = computed(() => {
   if (!products.value?.length) return []

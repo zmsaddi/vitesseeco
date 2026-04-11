@@ -143,7 +143,7 @@ const { data: allProducts } = useSanityFetch(
   'all-products-guide',
   groq`*[_type == "product" && isAvailable == true] | order(sortOrder asc) {
     _id, name, slug, price, shortDescription, specifications, category->{ _id, name, slug },
-    variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} }
+    color, colorHex, stock, "images": images[]{asset}
   }`
 )
 

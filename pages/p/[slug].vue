@@ -94,7 +94,7 @@ const { data: page, status } = useSanityFetch(
     sections[] {
       _type, _key, title, subtitle, description, content, image, ctaText, ctaLink,
       buttonText, buttonLink,
-      products[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} } },
+      products[]->{ _id, name, slug, price, color, colorHex, stock, "images": images[]{asset} },
       testimonials[]->{ _id, customerName, rating, text }
     }
   }`,

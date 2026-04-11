@@ -55,10 +55,10 @@ export default defineEventHandler(async (event) => {
     ? createClient({ projectId: '2jvnjf0c', dataset: 'production', apiVersion: '2024-01-01', useCdn: false, token: sanityToken })
     : null
 
-  // 1. Validate all items + get server prices
+  // 1. Validate all items + get server prices (System B: no variants)
   const productIds = [...new Set(body.items.map(i => i.productId))]
   const products = await readClient.fetch(
-    `*[_type == "product" && _id in $ids]{ _id, name, price, isAvailable, variants[]{ sku, stock, priceOverride, colorName } }`,
+    `*[_type == "product" && _id in $ids]{ _id, name, price, stock, isAvailable, color, slug }`,
     { ids: productIds }
   )
   const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
@@ -70,22 +70,19 @@ export default defineEventHandler(async (event) => {
     const product = productMap.get(item.productId)
     if (!product?.isAvailable) throw createError({ statusCode: 400, message: `Product ${item.productId} unavailable` })
 
-    const variant = product.variants?.find((v: any) => v.sku === item.sku)
-    if (!variant) throw createError({ statusCode: 400, message: `Variant ${item.sku} not found` })
-
-    if ((variant.stock ?? 0) < item.quantity) {
-      throw createError({ statusCode: 400, message: `${product.name?.fr} (${variant.colorName?.fr}) — only ${variant.stock} left` })
+    if ((product.stock ?? 0) < item.quantity) {
+      throw createError({ statusCode: 400, message: `${product.name?.fr} — only ${product.stock} left` })
     }
 
-    const price = variant.priceOverride || product.price
+    const price = product.price
     subtotal += price * item.quantity
 
     validatedItems.push({
-      _key: `item-${item.sku}-${Date.now()}`,
+      _key: `item-${(product.slug?.current || item.productId).slice(0, 20)}-${Date.now()}`,
       productId: item.productId,
       productName: product.name?.fr || '',
-      color: variant.colorName?.fr || '',
-      sku: item.sku,
+      color: product.color?.fr || '',
+      sku: product.slug?.current || item.productId,
       quantity: item.quantity,
       price,
     })
@@ -180,33 +177,25 @@ export default defineEventHandler(async (event) => {
     console.error(`[ORDER] PostgreSQL write failed for ${orderNumber}:`, pgError)
   }
 
-  // 8. Decrement stock in Sanity
-  // NOTE: Sanity doesn't support true transactions. We use atomic dec() then verify
-  // stock didn't go negative. If it did, we rollback the decrement.
+  // 8. Decrement stock in Sanity (System B: direct product.stock)
   if (writeClient) {
     for (const item of validatedItems) {
-      const product = productMap.get(item.productId)
-      if (!product) continue
-      const variantIndex = product.variants?.findIndex((v: any) => v.sku === item.sku)
-      if (variantIndex === undefined || variantIndex < 0) continue
-
       await writeClient
         .patch(item.productId)
-        .dec({ [`variants[${variantIndex}].stock`]: item.quantity })
+        .dec({ stock: item.quantity })
         .commit()
 
       // Re-check stock after decrement to detect race condition
       const updated = await readClient.fetch(
-        `*[_type == "product" && _id == $id][0].variants[$idx].stock`,
-        { id: item.productId, idx: variantIndex }
+        `*[_type == "product" && _id == $id][0].stock`,
+        { id: item.productId }
       )
       if (typeof updated === 'number' && updated < 0) {
-        // Rollback: restore the decremented quantity
         await writeClient
           .patch(item.productId)
-          .inc({ [`variants[${variantIndex}].stock`]: item.quantity })
+          .inc({ stock: item.quantity })
           .commit()
-        console.error(`[ORDER] Stock race detected for ${item.sku}, rolled back decrement`)
+        console.error(`[ORDER] Stock race detected for ${item.sku}, rolled back`)
       }
     }
   }

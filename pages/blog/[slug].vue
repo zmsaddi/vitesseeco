@@ -82,7 +82,7 @@ const { data: article, status } = useSanityFetch(
   () => `article-${slug.value}`,
   groq`*[_type == "article" && slug.current == $slug && isPublished == true][0] {
     _id, title, slug, excerpt, content, featuredImage, author, publishedAt, seo,
-    relatedProducts[]->{ _id, name, slug, price, variants[]{ _key, colorHex, colorName, stock, "images": images[]{asset} } }
+    relatedProducts[]->{ _id, name, slug, price, color, colorHex, stock, "images": images[]{asset} }
   }`,
   { slug }
 )
