@@ -58,6 +58,11 @@ const allLocales = computed(() =>
 )
 
 function switchLang(code: string) {
+  // Save choice so LanguageBanner never shows again + detect-language respects it
+  if (import.meta.client) {
+    localStorage.setItem('ve_lang_choice', code)
+    localStorage.removeItem('ve_lang_detected')
+  }
   setLocale(code as any)
   open.value = false
 }
