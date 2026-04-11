@@ -9,7 +9,7 @@ setInterval(() => {
 }, 5 * 60 * 1000)
 
 export function rateLimit(
-  event: any,
+  event: Parameters<typeof getRequestHeader>[0] & { path: string },
   opts: { maxRequests?: number; windowMs?: number } = {}
 ) {
   const { maxRequests = 30, windowMs = 60_000 } = opts

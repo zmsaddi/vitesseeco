@@ -79,7 +79,7 @@ async function fetchSuggestions(query: string) {
     })
     suggestions.value = data.predictions || []
   } catch (e) {
-    console.error('Places autocomplete error:', e)
+    // Silently fail — user can still type manually
     suggestions.value = []
   } finally {
     loading.value = false
@@ -97,7 +97,7 @@ async function selectSuggestion(s: any) {
       emit('select', data)
     }
   } catch (e) {
-    console.error('Places details error:', e)
+    // Silently fail — address fields remain editable
   }
 }
 

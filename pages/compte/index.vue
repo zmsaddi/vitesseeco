@@ -348,8 +348,8 @@ async function saveProfile() {
     auth.user = user as any
     profileSuccess.value = true
     setTimeout(() => { editingProfile.value = false; profileSuccess.value = false }, 1500)
-  } catch (e) {
-    console.error(e)
+  } catch {
+    // Profile save failed — user can retry
   } finally {
     savingProfile.value = false
   }

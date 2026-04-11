@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!apiKey) throw createError({ statusCode: 500, message: 'Places API not configured' })
 
   try {
-    const res: any = await $fetch(
+    const res = await $fetch<{ predictions?: Array<{ place_id: string; description: string; structured_formatting?: { main_text: string } }> }>(
       'https://maps.googleapis.com/maps/api/place/autocomplete/json', {
         query: {
           input,
@@ -28,8 +28,7 @@ export default defineEventHandler(async (event) => {
     )
 
     return { predictions: res.predictions || [] }
-  } catch (e: any) {
-    console.error('Places API error:', e.message)
+  } catch {
     return { predictions: [] }
   }
 })
