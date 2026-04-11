@@ -203,42 +203,37 @@ const qty = ref(1)
 const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
 
-useSwipe(galleryContainer, {
-  onLeft: () => { if (product.value?.images?.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
-  onRight: () => { if (product.value?.images?.length > 1) selectedImage.value = (selectedImage.value - 1 + product.value.images.length) % product.value.images.length },
-})
+if (import.meta.client) {
+  useSwipe(galleryContainer, {
+    onLeft: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
+    onRight: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value - 1 + product.value.images.length) % product.value.images.length },
+  })
+}
 
 const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
-const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
-  _id, name, slug, shortDescription, description, price, compareAtPrice,
-  isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
-  productType, color, colorHex, stock, modelFamily, seo,
-  specifications, brand->{ name },
-  "images": images[]{asset}
+// Single query: product + other colors + testimonials
+const productQuery = groq`{
+  "product": *[_type == "product" && slug.current == $slug][0] {
+    _id, name, slug, shortDescription, description, price, compareAtPrice,
+    isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
+    productType, color, colorHex, stock, modelFamily, seo,
+    specifications, brand->{ name },
+    "images": images[]{asset}
+  },
+  "otherColors": *[_type == "product" && modelFamily == *[_type == "product" && slug.current == $slug][0].modelFamily && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
+    _id, name, slug, price, color, colorHex, stock, brand->{ name },
+    "images": images[0..0]{asset}
+  },
+  "testimonials": *[_type == "testimonial"] | order(rating desc)[0..4] {
+    _id, customerName, rating, text
+  }
 }`
-const { data: product, status } = useSanityFetch(() => `product-${slug.value}`, productQuery, { slug })
+const { data: pageData, status } = useSanityFetch(() => `product-page-${slug.value}`, productQuery, { slug })
 
-// Other colors — auto from modelFamily
-const otherColorsQuery = groq`*[_type == "product" && modelFamily == $family && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
-  _id, name, slug, price, color, colorHex, stock, brand->{ name },
-  "images": images[0..0]{asset}
-}`
-const otherColorsParams = computed(() => ({
-  family: product.value?.modelFamily || '__none__',
-  slug: slug.value,
-}))
-const { data: otherColors } = useSanityFetch(
-  () => product.value?.modelFamily ? `colors-${slug.value}` : `colors-none`,
-  otherColorsQuery,
-  otherColorsParams,
-)
-
-// Testimonials
-const { data: testimonials } = useSanityFetch(
-  () => `reviews-${slug.value}`,
-  groq`*[_type == "testimonial"] | order(rating desc)[0..4] { _id, customerName, rating, text }`
-)
+const product = computed(() => pageData.value?.product || null)
+const otherColors = computed(() => pageData.value?.otherColors || [])
+const testimonials = computed(() => pageData.value?.testimonials || [])
 
 // 404
 if (import.meta.server && status.value === 'success' && !product.value) throw createError({ statusCode: 404 })
