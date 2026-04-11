@@ -6,172 +6,141 @@ export default defineType({
   type: 'document',
   icon: () => '🚲',
   groups: [
-    { name: 'general', title: '📋 المعلومات الأساسية', default: true },
-    { name: 'pricing', title: '💰 السعر والحالة' },
+    { name: 'main', title: '📋 المنتج', default: true },
     { name: 'variants', title: '🎨 الألوان والصور' },
-    { name: 'specs', title: '⚙️ المواصفات التقنية' },
-    { name: 'seo', title: '🔍 SEO' },
+    { name: 'details', title: '⚙️ التفاصيل' },
   ],
   fields: [
-    // === المعلومات الأساسية ===
+    // ══════ TAB 1: المنتج (الأهم — كل شيء في صفحة واحدة) ══════
     {
-      name: 'productType', title: '🏷️ نوع المنتج', type: 'string', group: 'general',
-      description: 'اختر نوع المنتج — يؤثر على الفلاتر والعرض في الموقع',
+      name: 'productType', title: 'النوع', type: 'string', group: 'main',
       options: {
         list: [
-          { title: '🚲 دراجة كهربائية', value: 'bike' },
+          { title: '🚲 دراجة', value: 'bike' },
           { title: '🔧 قطعة غيار', value: 'spare_part' },
           { title: '🎒 إكسسوار', value: 'accessory' },
-          { title: '🚗 سيارة أطفال كهربائية', value: 'kids_car' },
+          { title: '🧸 أطفال', value: 'kids_car' },
           { title: '📦 أخرى', value: 'other' },
         ],
         layout: 'radio',
+        direction: 'horizontal',
       },
       initialValue: 'bike',
-      validation: (Rule) => Rule.required().error('نوع المنتج مطلوب'),
+      validation: (Rule) => Rule.required(),
     },
     {
-      name: 'name', title: '📝 اسم الموديل', type: 'localizedString', group: 'general',
-      description: 'اكتب اسم المنتج بكل اللغات — الفرنسية إلزامية',
-      validation: (Rule) => Rule.required().error('اسم المنتج مطلوب'),
+      name: 'name', title: 'الاسم', type: 'localizedString', group: 'main',
+      validation: (Rule) => Rule.required(),
     },
     {
-      name: 'slug', title: '🔗 رابط المنتج', type: 'slug',
+      name: 'slug', title: 'الرابط', type: 'slug',
       options: { source: 'name.fr', maxLength: 96 },
-      group: 'general',
-      description: 'اضغط "Generate" لإنشاء الرابط تلقائياً من الاسم الفرنسي',
-      validation: (Rule) => Rule.required().error('رابط المنتج مطلوب — اضغط Generate'),
+      group: 'main',
+      validation: (Rule) => Rule.required(),
     },
     {
-      name: 'brand', title: '🏷️ العلامة التجارية', type: 'reference', to: [{ type: 'brand' }], group: 'general',
+      name: 'price', title: 'السعر €', type: 'number', group: 'main',
+      validation: (Rule) => Rule.required().min(0),
     },
     {
-      name: 'category', title: '📂 الفئة', type: 'reference', to: [{ type: 'category' }], group: 'general',
-      description: 'اختر: حضري، طرق وعرة، قابل للطي، نسائي، أو مدى طويل',
-      validation: (Rule) => Rule.required().error('الفئة مطلوبة'),
+      name: 'compareAtPrice', title: 'السعر القديم €', type: 'number', group: 'main',
+      description: 'اتركه فارغاً إذا لا يوجد تخفيض',
     },
     {
-      name: 'shortDescription', title: '📄 وصف مختصر', type: 'localizedString', group: 'general',
-      description: 'سطر واحد يظهر في بطاقة المنتج',
+      name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
     },
     {
-      name: 'description', title: '📃 وصف تفصيلي', type: 'localizedText', group: 'general',
-      description: 'الوصف الكامل الذي يظهر في صفحة المنتج',
+      name: 'category', title: 'الفئة', type: 'reference', to: [{ type: 'category' }], group: 'main',
     },
     {
-      name: 'warranty', title: '🛡️ الضمان', type: 'localizedString', group: 'general',
-      description: 'مثال: ضمان سنتين على الإطار والمحرك',
+      name: 'shortDescription', title: 'وصف مختصر', type: 'localizedString', group: 'main',
+    },
+    // Status toggles — inline row
+    {
+      name: 'isAvailable', title: '✅ متاح', type: 'boolean', initialValue: true, group: 'main',
     },
     {
-      name: 'highlights', title: '✨ نقاط البيع الرئيسية', type: 'array', group: 'general',
-      of: [{ type: 'localizedString' }],
-      description: 'أضف 3-5 نقاط قوة تميز هذا المنتج (مثال: بطارية مزدوجة، تصميم قابل للطي...)',
-      validation: (Rule) => Rule.max(6).warning('6 نقاط كحد أقصى'),
+      name: 'isOnSale', title: '🏷️ تخفيض', type: 'boolean', initialValue: false, group: 'main',
     },
     {
-      name: 'videoUrl', title: '🎬 رابط فيديو', type: 'url', group: 'general',
-      description: 'رابط فيديو YouTube أو Vimeo للمنتج (اختياري)',
+      name: 'isNew', title: '✨ جديد', type: 'boolean', initialValue: false, group: 'main',
     },
     {
-      name: 'relatedProducts', title: '🔄 منتجات مشابهة', type: 'array',
-      of: [{ type: 'reference', to: [{ type: 'product' }] }],
-      group: 'general',
-      description: 'اختر 2-4 منتجات تظهر في "قد يعجبك أيضاً"',
-      validation: (Rule) => Rule.max(4).warning('4 منتجات مشابهة كافية'),
+      name: 'isFeatured', title: '⭐ مميز', type: 'boolean', initialValue: false, group: 'main',
     },
 
-    // === السعر والحالة ===
+    // ══════ TAB 2: الألوان والصور (الأهم بصرياً) ══════
     {
-      name: 'price', title: '💶 السعر (€)', type: 'number', group: 'pricing',
-      description: 'السعر الحالي بالأورو',
-      validation: (Rule) => Rule.required().min(0).error('السعر مطلوب ويجب أن يكون 0 أو أكثر'),
-    },
-    {
-      name: 'compareAtPrice', title: '💶 السعر القديم (€)', type: 'number', group: 'pricing',
-      description: 'يظهر مشطوباً بجانب السعر الجديد. اتركه فارغاً إذا لا يوجد تخفيض',
-      validation: (Rule) => Rule.min(0).warning('السعر القديم يجب أن يكون موجباً'),
-    },
-    {
-      name: 'isOnSale', title: '🏷️ في التخفيض؟', type: 'boolean', initialValue: false, group: 'pricing',
-      description: 'فعّله لعرض علامة "تخفيض" على المنتج',
-    },
-    {
-      name: 'isNew', title: '✨ منتج جديد؟', type: 'boolean', initialValue: false, group: 'pricing',
-      description: 'فعّله لعرض علامة "جديد" على المنتج',
-    },
-    {
-      name: 'isFeatured', title: '⭐ عرض في الصفحة الرئيسية؟', type: 'boolean', initialValue: false, group: 'pricing',
-      description: 'فعّله ليظهر المنتج في قسم "موديلاتنا المميزة"',
-    },
-    {
-      name: 'isAvailable', title: '✅ متاح للبيع؟', type: 'boolean', initialValue: true, group: 'pricing',
-      description: 'أوقفه لإخفاء المنتج من الموقع',
-    },
-    {
-      name: 'sortOrder', title: '🔢 ترتيب العرض', type: 'number', initialValue: 0, group: 'pricing',
-      description: 'رقم أصغر = يظهر أولاً (مثال: 1, 2, 3...)',
-      validation: (Rule) => Rule.min(0),
-    },
-
-    // === الألوان والصور ===
-    {
-      name: 'variants', title: '🎨 الألوان المتاحة', type: 'array',
+      name: 'variants', title: 'الألوان', type: 'array',
       of: [{ type: 'colorVariant' }],
       group: 'variants',
-      description: 'أضف كل لون متاح مع صوره ومخزونه. أول لون = يظهر كلون افتراضي',
-      validation: (Rule) => Rule.required().min(1).error('أضف لون واحد على الأقل مع صوره'),
+      validation: (Rule) => Rule.required().min(1),
     },
 
-    // === المواصفات التقنية ===
+    // ══════ TAB 3: التفاصيل (وصف + مواصفات + SEO) ══════
     {
-      name: 'specifications', title: '⚙️ المواصفات', type: 'object', group: 'specs',
-      description: 'املأ المواصفات التقنية — تظهر في جدول المواصفات بصفحة المنتج',
+      name: 'description', title: 'الوصف الكامل', type: 'localizedText', group: 'details',
+    },
+    {
+      name: 'warranty', title: 'الضمان', type: 'localizedString', group: 'details',
+    },
+    {
+      name: 'highlights', title: 'نقاط القوة', type: 'array', group: 'details',
+      of: [{ type: 'localizedString' }],
+      validation: (Rule) => Rule.max(6),
+    },
+    {
+      name: 'specifications', title: 'المواصفات', type: 'object', group: 'details',
+      options: { collapsible: true, collapsed: false },
       fields: [
-        { name: 'motor', title: 'المحرك', type: 'string', description: 'مثال: 250W — قيمة تقنية لا تحتاج ترجمة' },
-        { name: 'battery', title: 'البطارية', type: 'string', description: 'مثال: 48V 15.6AH' },
-        { name: 'tireSize', title: 'مقاس الإطارات', type: 'string', description: 'مثال: 20"' },
-        { name: 'range', title: 'المدى', type: 'localizedString', description: 'مثال: 40-50 كم / 40-50 km' },
-        { name: 'brakeType', title: 'الفرامل', type: 'localizedString', description: 'مثال: فرامل هيدروليكية / Hydraulic disc brakes' },
-        { name: 'maxSpeed', title: 'السرعة القصوى (كم/س)', type: 'number' },
+        { name: 'motor', title: 'المحرك', type: 'string' },
+        { name: 'battery', title: 'البطارية', type: 'string' },
+        { name: 'tireSize', title: 'الإطارات', type: 'string' },
+        { name: 'range', title: 'المدى', type: 'localizedString' },
+        { name: 'brakeType', title: 'الفرامل', type: 'localizedString' },
+        { name: 'maxSpeed', title: 'السرعة القصوى', type: 'number' },
         { name: 'weight', title: 'الوزن (كغ)', type: 'number' },
-        { name: 'chargeTime', title: 'وقت الشحن', type: 'localizedString', description: 'مثال: 4-6 ساعات / 4-6 hours' },
-        { name: 'maxLoad', title: 'الحمولة القصوى (كغ)', type: 'number' },
+        { name: 'chargeTime', title: 'وقت الشحن', type: 'localizedString' },
+        { name: 'maxLoad', title: 'الحمولة (كغ)', type: 'number' },
         { name: 'dimensions', title: 'الأبعاد', type: 'string' },
-        { name: 'suspension', title: 'نظام التعليق', type: 'localizedString', description: 'مثال: أمامي / Front suspension' },
-        { name: 'frame', title: 'الهيكل', type: 'localizedString', description: 'مثال: ألمنيوم / Aluminum' },
-        { name: 'gears', title: 'السرعات', type: 'localizedString', description: 'مثال: 7 سرعات / 7 speeds' },
-        { name: 'grossWeight', title: 'الوزن مع التغليف (كغ)', type: 'number' },
+        { name: 'suspension', title: 'التعليق', type: 'localizedString' },
+        { name: 'frame', title: 'الهيكل', type: 'localizedString' },
+        { name: 'gears', title: 'السرعات', type: 'localizedString' },
+        { name: 'grossWeight', title: 'وزن التغليف', type: 'number' },
         { name: 'packingSize', title: 'حجم الصندوق', type: 'string' },
       ],
     },
-
-    // === SEO ===
-    { name: 'seo', title: '🔍 SEO', type: 'seoFields', group: 'seo' },
+    {
+      name: 'videoUrl', title: 'رابط فيديو', type: 'url', group: 'details',
+    },
+    {
+      name: 'relatedProducts', title: 'منتجات مشابهة', type: 'array', group: 'details',
+      of: [{ type: 'reference', to: [{ type: 'product' }] }],
+      validation: (Rule) => Rule.max(4),
+    },
+    {
+      name: 'sortOrder', title: 'الترتيب', type: 'number', initialValue: 0, group: 'details',
+    },
+    { name: 'seo', title: 'SEO', type: 'seoFields', group: 'details' },
   ],
   preview: {
     select: {
       title: 'name.fr', price: 'price', available: 'isAvailable', onSale: 'isOnSale',
-      featured: 'isFeatured', isNew: 'isNew', category: 'category.name.fr',
+      isNew: 'isNew', type: 'productType', img: 'variants.0.images.0',
       v0: 'variants.0.stock', v1: 'variants.1.stock', v2: 'variants.2.stock',
       v3: 'variants.3.stock', v4: 'variants.4.stock',
     },
-    prepare({ title, price, available, onSale, featured, isNew, category, v0, v1, v2, v3, v4 }) {
+    prepare({ title, price, available, onSale, isNew, type, img, v0, v1, v2, v3, v4 }) {
       const stocks = [v0, v1, v2, v3, v4].filter(s => s !== undefined)
       const totalStock = stocks.reduce((a: number, b: number) => a + (b || 0), 0)
-
-      let stockIcon = '🟢'
-      if (totalStock <= 0) stockIcon = '🔴'
-      else if (totalStock <= 5) stockIcon = '🟡'
-
-      const badges = []
-      if (available === false) badges.push('🚫')
-      if (onSale) badges.push('🏷️')
-      if (featured) badges.push('⭐')
-      if (isNew) badges.push('✨')
+      const stockIcon = totalStock <= 0 ? '🔴' : totalStock <= 5 ? '🟡' : '🟢'
+      const typeIcon: Record<string, string> = { bike: '🚲', spare_part: '🔧', accessory: '🎒', kids_car: '🧸' }
+      const badges = [available === false ? '🚫' : '', onSale ? '🏷️' : '', isNew ? '✨' : ''].filter(Boolean).join('')
 
       return {
-        title: `${stockIcon} ${title || 'بدون اسم'} ${badges.join('')}`,
-        subtitle: `${price || 0}€ | 📦 ${totalStock} قطعة | ${category || '—'}`,
+        title: `${stockIcon} ${title || '—'} ${badges}`,
+        subtitle: `${typeIcon[type || ''] || '📦'} ${price || 0}€ | 📦 ${totalStock}`,
+        media: img,
       }
     },
   },

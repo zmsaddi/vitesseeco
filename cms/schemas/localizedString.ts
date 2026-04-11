@@ -4,12 +4,19 @@ export default defineType({
   name: 'localizedString',
   title: 'نص مترجم',
   type: 'object',
+  options: { collapsible: true, collapsed: true },
   fields: [
-    { name: 'fr', title: '🇫🇷 الفرنسية', type: 'string' },
-    { name: 'en', title: '🇬🇧 الإنجليزية', type: 'string' },
-    { name: 'es', title: '🇪🇸 الإسبانية', type: 'string' },
-    { name: 'nl', title: '🇳🇱 الهولندية', type: 'string' },
-    { name: 'de', title: '🇩🇪 الألمانية', type: 'string' },
-    { name: 'ar', title: '🇸🇦 العربية', type: 'string' },
+    { name: 'fr', title: '🇫🇷 FR', type: 'string' },
+    { name: 'en', title: '🇬🇧 EN', type: 'string' },
+    { name: 'es', title: '🇪🇸 ES', type: 'string' },
+    { name: 'nl', title: '🇳🇱 NL', type: 'string' },
+    { name: 'de', title: '🇩🇪 DE', type: 'string' },
+    { name: 'ar', title: '🇸🇦 AR', type: 'string' },
   ],
+  preview: {
+    select: { fr: 'fr', en: 'en' },
+    prepare({ fr, en }) {
+      return { title: fr || en || '(فارغ)' }
+    },
+  },
 })
