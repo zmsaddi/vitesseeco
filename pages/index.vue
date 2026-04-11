@@ -79,7 +79,18 @@
           <h2 class="section-title mb-4">{{ featuredTitle }}</h2>
           <p class="text-text-secondary text-lg">{{ featuredSubtitle }}</p>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Skeleton while loading -->
+        <div v-if="!featuredProducts" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div v-for="i in 3" :key="i" class="card animate-pulse">
+            <div class="aspect-[4/3] bg-dark-tertiary" />
+            <div class="p-4 space-y-3">
+              <div class="h-3 bg-dark-tertiary rounded w-1/3" />
+              <div class="h-4 bg-dark-tertiary rounded w-3/4" />
+              <div class="h-5 bg-dark-tertiary rounded w-1/4" />
+            </div>
+          </div>
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NuxtLink
             v-for="product in featuredProducts"
             :key="product._id"

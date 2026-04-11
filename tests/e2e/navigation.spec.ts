@@ -47,15 +47,13 @@ test.describe('Site Navigation', () => {
 
 test.describe('Product Pages', () => {
   test('product detail page loads with JSON-LD', async ({ page }) => {
-    await page.goto('/produits')
+    await page.goto('/produits', { waitUntil: 'networkidle' })
     const firstProduct = page.locator('a[href*="/produits/"]').first()
-    await firstProduct.waitFor({ state: 'visible', timeout: 10_000 })
-    if (await firstProduct.isVisible()) {
-      await firstProduct.click()
-      await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
-      const jsonLd = page.locator('script[type="application/ld+json"]')
-      await expect(jsonLd.first()).toBeAttached()
-    }
+    await firstProduct.waitFor({ state: 'visible', timeout: 20_000 })
+    await firstProduct.click()
+    await expect(page.locator('h1')).toBeVisible({ timeout: 15_000 })
+    const jsonLd = page.locator('script[type="application/ld+json"]')
+    await expect(jsonLd.first()).toBeAttached()
   })
 })
 

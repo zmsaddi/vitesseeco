@@ -50,7 +50,7 @@
             </div>
           </div>
 
-          <!-- Step 2: Confirm with checkbox (simpler, works on all devices) -->
+          <!-- Step 2: Confirm with password + checkboxes -->
           <div v-if="step === 2" class="p-6 md:p-8">
             <div class="w-16 h-16 bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-5">
               <Icon name="ph:shield-warning-fill" class="w-8 h-8 text-red-400" />
@@ -60,7 +60,14 @@
               {{ $t('account.delete_confirm') }}
             </h2>
 
-            <!-- Confirmation checkboxes — more reliable than typing -->
+            <!-- Password confirmation -->
+            <div class="mb-4">
+              <label for="delete-password" class="text-sm font-medium text-text-secondary block mb-2">{{ $t('auth.password') }}</label>
+              <input id="delete-password" v-model="password" type="password" class="input-field" :placeholder="$t('auth.password')" autocomplete="current-password" />
+              <p v-if="deleteError" class="text-red-400 text-xs mt-1">{{ deleteError }}</p>
+            </div>
+
+            <!-- Confirmation checkboxes -->
             <div class="space-y-3 mb-6">
               <label class="flex items-start gap-3 cursor-pointer bg-red-900/10 border border-red-800/30 rounded-lg p-3">
                 <input type="checkbox" v-model="check1" class="mt-1 accent-red-500 w-4 h-4" />
@@ -104,15 +111,17 @@
 const { t } = useI18n()
 
 const props = defineProps<{ visible: boolean }>()
-const emit = defineEmits<{ 'close': []; 'confirm': [] }>()
+const emit = defineEmits<{ 'close': []; 'confirm': [password: string] }>()
 
 const step = ref(1)
 const check1 = ref(false)
 const check2 = ref(false)
 const check3 = ref(false)
 const deleting = ref(false)
+const password = ref('')
+const deleteError = ref('')
 
-const allChecked = computed(() => check1.value && check2.value && check3.value)
+const allChecked = computed(() => check1.value && check2.value && check3.value && password.value.length >= 1)
 
 const consequences = computed(() => [
   { icon: 'ph:x-circle', color: 'text-red-400', text: t('account.delete_consequence_1') },
@@ -127,17 +136,20 @@ function cancel() {
   check1.value = false
   check2.value = false
   check3.value = false
+  password.value = ''
+  deleteError.value = ''
   emit('close')
 }
 
 async function confirmDelete() {
   if (!allChecked.value) return
+  deleteError.value = ''
   deleting.value = true
-  emit('confirm')
+  emit('confirm', password.value)
 }
 
 watch(() => props.visible, (v) => {
-  if (v) { step.value = 1; check1.value = false; check2.value = false; check3.value = false; deleting.value = false }
+  if (v) { step.value = 1; check1.value = false; check2.value = false; check3.value = false; deleting.value = false; password.value = ''; deleteError.value = '' }
 })
 
 // Escape key + body scroll lock

@@ -518,13 +518,14 @@ async function handleLogout() {
 
 const showDeleteModal = ref(false)
 
-async function executeDeleteAccount() {
+async function executeDeleteAccount(password: string) {
   try {
-    await $fetch('/api/auth/delete-account', { method: 'POST' })
+    await $fetch('/api/auth/delete-account', { method: 'POST', body: { password } })
     auth.user = null
     showDeleteModal.value = false
     navigateTo(localePath('/'))
   } catch (e: any) {
+    showDeleteModal.value = false
     addressError.value = e.data?.message || t('common.error')
   }
 }
