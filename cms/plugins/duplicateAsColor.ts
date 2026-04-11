@@ -1,3 +1,4 @@
+// @ts-nocheck — Sanity Studio types incompatible with Nuxt typecheck
 /**
  * Document Action: "Duplicate as New Color"
  * Creates a copy of a product with color-specific fields cleared.
