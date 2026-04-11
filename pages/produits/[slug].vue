@@ -220,13 +220,18 @@ const productQuery = groq`*[_type == "product" && slug.current == $slug][0] {
 const { data: product, status } = useSanityFetch(() => `product-${slug.value}`, productQuery, { slug })
 
 // Other colors — auto from modelFamily
+const otherColorsQuery = groq`*[_type == "product" && modelFamily == $family && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
+  _id, name, slug, price, color, colorHex, stock, brand->{ name },
+  "images": images[0..0]{asset}
+}`
+const otherColorsParams = computed(() => ({
+  family: product.value?.modelFamily || '__none__',
+  slug: slug.value,
+}))
 const { data: otherColors } = useSanityFetch(
-  () => `colors-${slug.value}`,
-  groq`*[_type == "product" && modelFamily == $family && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
-    _id, name, slug, price, color, colorHex, stock, brand->{ name },
-    "images": images[0..0]{asset}
-  }`,
-  computed(() => ({ family: product.value?.modelFamily || '', slug: slug.value }))
+  () => product.value?.modelFamily ? `colors-${slug.value}` : `colors-none`,
+  otherColorsQuery,
+  otherColorsParams,
 )
 
 // Testimonials
