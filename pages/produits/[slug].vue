@@ -33,7 +33,7 @@
                 <Icon name="ph:caret-right" class="w-5 h-5" />
               </button>
               <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
-                <button v-for="(_, i) in product.images" :key="i" @click="selectedImage = i"
+                <button v-for="(_, i) in product.images" :key="i" @click="selectedImage = Number(i)"
                   class="w-2 h-2 rounded-full transition-all" :class="i === selectedImage ? 'bg-accent w-5' : 'bg-white/50'" />
               </div>
             </template>
@@ -43,7 +43,7 @@
           </div>
           <!-- Thumbnails -->
           <div v-if="product.images?.length > 1" class="grid grid-cols-5 gap-2">
-            <button v-for="(img, i) in product.images?.slice(0, 10)" :key="i" @click="selectedImage = i"
+            <button v-for="(img, i) in product.images?.slice(0, 10)" :key="i" @click="selectedImage = Number(i)"
               class="card aspect-square bg-dark-tertiary cursor-pointer overflow-hidden border-2 transition-colors"
               :class="selectedImage === i ? 'border-accent' : 'border-transparent hover:border-accent/30'">
               <img :src="useSanityImageUrl(img, 150, 150)" :alt="l(product.name)" width="150" height="150" loading="lazy" class="w-full h-full object-cover" />

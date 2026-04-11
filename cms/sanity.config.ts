@@ -1,9 +1,14 @@
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
+// @ts-ignore
 import { visionTool } from '@sanity/vision'
+// @ts-ignore
 import { media } from 'sanity-plugin-media'
+// @ts-ignore
 import { languageFilter } from '@sanity/language-filter'
+// @ts-ignore
 import { assist } from '@sanity/assist'
+// @ts-ignore
 import { colorInput } from '@sanity/color-input'
 import { schemaTypes } from './schemas'
 import { deskStructure } from './structure/deskStructure'
@@ -24,46 +29,23 @@ export default defineConfig({
   dataset: 'production',
 
   plugins: [
-    structureTool({
-      structure: deskStructure,
-    }),
-
-    // Language filter — show only selected language fields
+    structureTool({ structure: deskStructure }),
     languageFilter({
       supportedLanguages: LANGUAGES,
       defaultLanguages: ['fr'],
       documentTypes: ['product', 'faq', 'article', 'landingPage', 'homePage', 'aboutPage', 'contactPage', 'legalPages', 'siteSettings', 'testimonial', 'category', 'shippingMethod'],
-      filterField: (enclosingType, member, selectedLanguageIds) => {
-        // Filter localizedString and localizedText fields
-        if (
-          enclosingType.name === 'localizedString' ||
-          enclosingType.name === 'localizedText'
-        ) {
+      filterField: (enclosingType: any, member: any, selectedLanguageIds: any) => {
+        if (enclosingType.name === 'localizedString' || enclosingType.name === 'localizedText') {
           return selectedLanguageIds.includes(member.name)
         }
         return true
       },
     }),
-
-    // Media library — visual image management
-    media(),
-
-    // Color picker for variants
     colorInput(),
-
-    // AI Assist — helps write content
+    media(),
     assist(),
-
-    // GROQ playground
     visionTool(),
   ],
 
-  schema: {
-    types: schemaTypes,
-  },
-
-  // Studio theme
-  studio: {
-    components: {},
-  },
+  schema: { types: schemaTypes },
 })
