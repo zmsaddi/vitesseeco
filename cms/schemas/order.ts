@@ -23,6 +23,8 @@ export default defineType({
           { title: '📦 قيد التحضير', value: 'processing' },
           { title: '🚚 تم الشحن', value: 'shipped' },
           { title: '✅ تم التوصيل', value: 'delivered' },
+          { title: '🔄 مرتجع', value: 'returned' },
+          { title: '💸 مسترد', value: 'refunded' },
           { title: '❌ ملغى', value: 'cancelled' },
         ],
         layout: 'radio',
@@ -135,6 +137,28 @@ export default defineType({
       title: '🎟️ كود الخصم',
       type: 'string',
       readOnly: true,
+    },
+    {
+      name: 'statusHistory',
+      title: '📜 سجل الحالات',
+      type: 'array',
+      readOnly: true,
+      of: [{
+        type: 'object',
+        fields: [
+          { name: 'status', title: 'الحالة', type: 'string' },
+          { name: 'changedAt', title: 'التاريخ', type: 'datetime' },
+          { name: 'note', title: 'ملاحظة', type: 'string' },
+        ],
+        preview: {
+          select: { status: 'status', date: 'changedAt', note: 'note' },
+          prepare({ status, date, note }) {
+            const statusMap: Record<string, string> = { pending: '⏳', paid: '💳', processing: '📦', shipped: '🚚', delivered: '✅', cancelled: '❌' }
+            const d = date ? new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''
+            return { title: `${statusMap[status] || '❓'} ${status}`, subtitle: `${d} ${note || ''}` }
+          },
+        },
+      }],
     },
     {
       name: 'trackingNumber',

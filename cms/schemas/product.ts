@@ -36,8 +36,13 @@ export default defineType({
     {
       name: 'slug', title: 'الرابط', type: 'slug', group: 'main',
       options: { source: 'name.fr', maxLength: 96 },
-      description: 'اضغط Generate — يُنشئ الرابط + SKU تلقائياً',
+      description: 'اضغط Generate — يُنشئ الرابط تلقائياً',
       validation: (Rule) => Rule.required(),
+    },
+    {
+      name: 'sku', title: '🏷️ SKU', type: 'string', group: 'main',
+      description: 'رمز المنتج الفريد — حروف كبيرة وأرقام وشرطات (مثال: V20-PRO-NOIR)',
+      validation: (Rule) => Rule.regex(/^[A-Z0-9-]+$/, { name: 'SKU format' }).error('حروف كبيرة وأرقام وشرطات فقط'),
     },
     {
       name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
@@ -110,6 +115,15 @@ export default defineType({
     {
       name: 'specifications', title: 'المواصفات', type: 'object', group: 'details',
       options: { collapsible: true, collapsed: false },
+      validation: (Rule) => Rule.custom((value, context) => {
+        const doc = context.document as Record<string, unknown> | undefined
+        if (doc?.productType === 'bike' && value) {
+          const specs = value as Record<string, unknown>
+          if (!specs.motor) return 'المحرك مطلوب للدراجات'
+          if (!specs.battery) return 'البطارية مطلوبة للدراجات'
+        }
+        return true
+      }),
       fields: [
         { name: 'motor', title: 'المحرك', type: 'string' },
         { name: 'battery', title: 'البطارية', type: 'string' },

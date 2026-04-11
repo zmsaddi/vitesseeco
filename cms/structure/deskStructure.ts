@@ -5,77 +5,56 @@ export const deskStructure = (S: StructureBuilder) =>
     .title('Vitesse Eco')
     .items([
 
-      // ━━━━━━ QUICK ACCESS ━━━━━━
+      // ━━━━━━ TODAY'S DASHBOARD ━━━━━━
       S.listItem()
-        .title('🔴 عاجل')
+        .title('⚡ لوحة اليوم')
         .child(
           S.list()
-            .title('🔴 يحتاج انتباهك')
+            .title('⚡ يحتاج انتباهك')
             .items([
               S.listItem()
-                .title('طلبات جديدة')
+                .title('🔔 طلبات جديدة')
                 .child(S.documentList().title('طلبات في الانتظار').filter('_type == "order" && status == "pending"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.listItem()
-                .title('رسائل غير مقروءة')
-                .child(S.documentList().title('رسائل جديدة').filter('_type == "contactMessage" && isRead != true').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+                .title('💰 مدفوعة (تحتاج تجهيز)')
+                .child(S.documentList().title('مدفوعة').filter('_type == "order" && status == "paid"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.listItem()
-                .title('نفد من المخزون')
+                .title('💬 رسائل غير مقروءة')
+                .child(S.documentList().title('رسائل جديدة').filter('_type == "contactMessage" && isRead != true').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.divider(),
+              S.listItem()
+                .title('🚫 نفد من المخزون')
                 .child(S.documentList().title('نفد').filter('_type == "product" && isAvailable == true && stock <= 0').defaultOrdering([{ field: 'name.fr', direction: 'asc' }])),
               S.listItem()
-                .title('مخزون منخفض')
+                .title('⚠️ مخزون منخفض (≤ 5)')
                 .child(S.documentList().title('أقل من 5').filter('_type == "product" && isAvailable == true && stock > 0 && stock <= 5').defaultOrdering([{ field: 'stock', direction: 'asc' }])),
             ])
         ),
 
       S.divider(),
 
-      // ━━━━━━ PRODUCTS BY TYPE ━━━━━━
+      // ━━━━━━ PRODUCTS ━━━━━━
       S.listItem()
-        .title('🚲 الدراجات الكهربائية')
+        .title('📦 المنتجات')
         .child(
-          S.documentList()
-            .title('الدراجات')
-            .filter('_type == "product" && productType == "bike"')
-            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+          S.list()
+            .title('إدارة المنتجات')
+            .items([
+              S.listItem().title('📦 كل المنتجات').schemaType('product').child(S.documentTypeList('product').title('كل المنتجات')),
+              S.divider(),
+              S.listItem().title('🚲 الدراجات').child(S.documentList().title('الدراجات').filter('_type == "product" && productType == "bike"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem().title('🔧 قطع الغيار').child(S.documentList().title('قطع الغيار').filter('_type == "product" && productType == "spare_part"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem().title('🎒 الإكسسوارات').child(S.documentList().title('الإكسسوارات').filter('_type == "product" && productType == "accessory"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem().title('🧸 الأطفال').child(S.documentList().title('منتجات الأطفال').filter('_type == "product" && productType == "kids_car"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.divider(),
+              S.listItem().title('⭐ منتجات مميزة').child(S.documentList().title('مميزة').filter('_type == "product" && isFeatured == true').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem().title('🏷️ تخفيضات').child(S.documentList().title('تخفيضات').filter('_type == "product" && isOnSale == true').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+            ])
         ),
-
-      S.listItem()
-        .title('🔧 قطع الغيار')
-        .child(
-          S.documentList()
-            .title('قطع الغيار')
-            .filter('_type == "product" && productType == "spare_part"')
-            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
-        ),
-
-      S.listItem()
-        .title('🎒 الإكسسوارات')
-        .child(
-          S.documentList()
-            .title('الإكسسوارات')
-            .filter('_type == "product" && productType == "accessory"')
-            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
-        ),
-
-      S.listItem()
-        .title('🧸 الأطفال')
-        .child(
-          S.documentList()
-            .title('منتجات الأطفال')
-            .filter('_type == "product" && productType == "kids_car"')
-            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
-        ),
-
-      S.listItem()
-        .title('📦 كل المنتجات')
-        .schemaType('product')
-        .child(S.documentTypeList('product').title('كل المنتجات')),
-
-      S.divider(),
 
       // ━━━━━━ ORDERS ━━━━━━
       S.listItem()
-        .title('📋 الطلبات')
+        .title('🛒 الطلبات')
         .child(
           S.list()
             .title('إدارة الطلبات')
@@ -85,22 +64,32 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem().title('📦 قيد التحضير').child(S.documentList().title('قيد التحضير').filter('_type == "order" && status == "processing"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.listItem().title('🚚 تم الشحن').child(S.documentList().title('تم الشحن').filter('_type == "order" && status == "shipped"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.listItem().title('✅ تم التوصيل').child(S.documentList().title('تم التوصيل').filter('_type == "order" && status == "delivered"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.divider(),
+              S.listItem().title('🔄 مرتجعات').child(S.documentList().title('مرتجعات').filter('_type == "order" && status == "returned"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.listItem().title('💸 مستردة').child(S.documentList().title('مستردة').filter('_type == "order" && status == "refunded"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.listItem().title('❌ ملغاة').child(S.documentList().title('ملغاة').filter('_type == "order" && status == "cancelled"').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
               S.divider(),
               S.listItem().title('📋 كل الطلبات').child(S.documentTypeList('order').title('كل الطلبات').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
             ])
         ),
 
-      // ━━━━━━ MESSAGES ━━━━━━
+      // ━━━━━━ CUSTOMER SERVICE ━━━━━━
       S.listItem()
-        .title('✉️ الرسائل')
-        .child(S.documentTypeList('contactMessage').title('الرسائل').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+        .title('💬 خدمة العملاء')
+        .child(
+          S.list()
+            .title('خدمة العملاء')
+            .items([
+              S.listItem().title('📩 رسائل غير مقروءة').child(S.documentList().title('غير مقروءة').filter('_type == "contactMessage" && isRead != true').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+              S.listItem().title('✉️ كل الرسائل').child(S.documentTypeList('contactMessage').title('كل الرسائل').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
+            ])
+        ),
 
       S.divider(),
 
       // ━━━━━━ CONTENT ━━━━━━
       S.listItem()
-        .title('📄 المحتوى')
+        .title('📝 المحتوى')
         .child(
           S.list()
             .title('تعديل المحتوى')
@@ -117,35 +106,21 @@ export const deskStructure = (S: StructureBuilder) =>
             ])
         ),
 
-      // ━━━━━━ CATALOGUE MANAGEMENT ━━━━━━
+      // ━━━━━━ SETTINGS ━━━━━━
       S.listItem()
-        .title('🏷️ التصنيفات')
+        .title('⚙️ الإعدادات')
         .child(
           S.list()
-            .title('إدارة التصنيفات')
+            .title('الإعدادات')
             .items([
+              S.listItem().title('🌐 إعدادات الموقع').child(S.document().schemaType('siteSettings').documentId('siteSettings')),
+              S.divider(),
               S.listItem().title('📂 الفئات').schemaType('category').child(S.documentTypeList('category').title('الفئات')),
               S.listItem().title('🏷️ العلامات التجارية').schemaType('brand').child(S.documentTypeList('brand').title('العلامات')),
-            ])
-        ),
-
-      // ━━━━━━ SHIPPING & PAYMENT ━━━━━━
-      S.listItem()
-        .title('💰 الشحن والدفع')
-        .child(
-          S.list()
-            .title('إدارة الشحن والدفع')
-            .items([
+              S.divider(),
               S.listItem().title('🚚 طرق الشحن').schemaType('shippingMethod').child(S.documentTypeList('shippingMethod').title('طرق الشحن')),
               S.listItem().title('💳 طرق الدفع').schemaType('paymentMethod').child(S.documentTypeList('paymentMethod').title('طرق الدفع')),
               S.listItem().title('🎟️ أكواد الخصم').schemaType('promoCode').child(S.documentTypeList('promoCode').title('أكواد الخصم')),
             ])
         ),
-
-      S.divider(),
-
-      // ━━━━━━ SETTINGS ━━━━━━
-      S.listItem()
-        .title('⚙️ الإعدادات')
-        .child(S.document().schemaType('siteSettings').documentId('siteSettings')),
     ])

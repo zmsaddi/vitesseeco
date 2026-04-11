@@ -12,6 +12,7 @@ import { assist } from '@sanity/assist'
 import { colorInput } from '@sanity/color-input'
 import { schemaTypes } from './schemas'
 import { deskStructure } from './structure/deskStructure'
+import { duplicateAsColorAction } from './plugins/duplicateAsColor'
 
 const LANGUAGES = [
   { id: 'fr', title: '🇫🇷 Français' },
@@ -48,4 +49,13 @@ export default defineConfig({
   ],
 
   schema: { types: schemaTypes },
+
+  document: {
+    actions: (prev, context) => {
+      if (context.schemaType === 'product') {
+        return [...prev, duplicateAsColorAction]
+      }
+      return prev
+    },
+  },
 })
