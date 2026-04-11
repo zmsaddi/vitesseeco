@@ -25,15 +25,18 @@
                 :class="i === selectedImage ? 'opacity-100' : 'opacity-0'"
               />
               <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage - 1 + product.images?.length) % product.images?.length"
+                :aria-label="$t('product.previous_image')"
                 class="absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-left" class="w-5 h-5" />
               </button>
               <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage + 1) % product.images?.length"
+                :aria-label="$t('product.next_image')"
                 class="absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-right" class="w-5 h-5" />
               </button>
               <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
                 <button v-for="(_, i) in product.images" :key="i" @click="selectedImage = Number(i)"
+                  :aria-label="$t('product.image_number', { n: Number(i) + 1 })" :aria-current="i === selectedImage ? 'true' : undefined"
                   class="w-2 h-2 rounded-full transition-all" :class="i === selectedImage ? 'bg-accent w-5' : 'bg-white/50'" />
               </div>
             </template>
@@ -72,9 +75,10 @@
             <div class="flex gap-3">
               <!-- Current color -->
               <span class="w-11 h-11 rounded-full border-2 border-accent scale-110"
-                :style="{ backgroundColor: product.colorHex }" :title="l(product.color)" />
+                :style="{ backgroundColor: product.colorHex }" :title="l(product.color)" role="img" :aria-label="$t('product.current_color', { color: l(product.color) })" />
               <!-- Other colors as links -->
               <NuxtLink v-for="c in otherColors" :key="c._id" :to="localePath(`/produits/${c.slug?.current}`)"
+                :aria-label="$t('product.switch_color', { color: l(c.color) })"
                 class="w-11 h-11 rounded-full border-2 border-dark-tertiary hover:border-accent transition-all hover:scale-110"
                 :style="{ backgroundColor: c.colorHex }" :title="l(c.color)" />
             </div>
@@ -84,11 +88,11 @@
           <div v-if="product.stock > 0" class="mb-6">
             <label for="product-qty" class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
             <div class="flex items-center gap-3">
-              <button @click="qty = Math.max(1, qty - 1)" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
+              <button @click="qty = Math.max(1, qty - 1)" :aria-label="$t('cart.decrease_quantity')" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
                 <Icon name="ph:minus" class="w-4 h-4" />
               </button>
-              <input id="product-qty" type="number" v-model.number="qty" :max="Math.min(10, product.stock)" min="1" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
-              <button @click="qty = Math.min(Math.min(10, product.stock), qty + 1)" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
+              <input id="product-qty" type="number" v-model.number="qty" :max="Math.min(10, product.stock)" min="1" :aria-label="$t('cart.quantity')" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
+              <button @click="qty = Math.min(Math.min(10, product.stock), qty + 1)" :aria-label="$t('cart.increase_quantity')" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
                 <Icon name="ph:plus" class="w-4 h-4" />
               </button>
             </div>

@@ -109,7 +109,12 @@
     "gears": "Gears",
     "gross_weight": "Gross weight",
     "packing_size": "Package size",
-    "other_colors": "Other available colours"
+    "other_colors": "Other available colours",
+    "previous_image": "Previous image",
+    "next_image": "Next image",
+    "image_number": "Image {n}",
+    "current_color": "Current colour: {color}",
+    "switch_color": "View in {color}"
   },
   "cart": {
     "title": "Your Cart",
@@ -127,7 +132,9 @@
     "checkout": "Checkout",
     "continue_shopping": "Continue shopping",
     "remove": "Remove",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "decrease_quantity": "Decrease quantity",
+    "increase_quantity": "Increase quantity"
   },
   "shipping": {
     "title": "Shipping",
@@ -284,6 +291,7 @@
     "data_use": "Data use",
     "your_rights": "Your rights",
     "cookies": "Cookies",
+    "cookie_notice": "This site uses technical cookies necessary for its operation and language preference cookies.",
     "article1": "Article 1 — Purpose",
     "article2": "Article 2 — Prices",
     "article3": "Article 3 — Delivery",

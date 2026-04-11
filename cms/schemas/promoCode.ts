@@ -41,7 +41,18 @@ export default defineType({
     },
     { name: 'currentUses', title: 'الاستخدامات الحالية', type: 'number', initialValue: 0, readOnly: true },
     { name: 'validFrom', title: 'صالح من', type: 'datetime' },
-    { name: 'validUntil', title: 'صالح حتى', type: 'datetime' },
+    {
+      name: 'validUntil', title: 'صالح حتى', type: 'datetime',
+      validation: (Rule) => Rule.custom((value, context) => {
+        if (!value) return true
+        const doc = context.document as Record<string, unknown> | undefined
+        const validFrom = doc?.validFrom as string | undefined
+        if (validFrom && new Date(value as string) <= new Date(validFrom)) {
+          return 'تاريخ الانتهاء يجب أن يكون بعد تاريخ البدء'
+        }
+        return true
+      }),
+    },
     { name: 'isActive', title: 'نشط', type: 'boolean', initialValue: true },
     {
       name: 'applicableProducts',

@@ -109,7 +109,12 @@
     "gears": "السرعات",
     "gross_weight": "الوزن الإجمالي",
     "packing_size": "حجم العبوة",
-    "other_colors": "ألوان أخرى متوفرة"
+    "other_colors": "ألوان أخرى متوفرة",
+    "previous_image": "الصورة السابقة",
+    "next_image": "الصورة التالية",
+    "image_number": "صورة {n}",
+    "current_color": "اللون الحالي: {color}",
+    "switch_color": "عرض بلون {color}"
   },
   "cart": {
     "title": "سلتك",
@@ -127,7 +132,9 @@
     "checkout": "إتمام الطلب",
     "continue_shopping": "متابعة التسوق",
     "remove": "حذف",
-    "quantity": "الكمية"
+    "quantity": "الكمية",
+    "decrease_quantity": "تقليل الكمية",
+    "increase_quantity": "زيادة الكمية"
   },
   "shipping": {
     "title": "الشحن",
@@ -284,6 +291,7 @@
     "data_use": "استخدام البيانات",
     "your_rights": "حقوقك",
     "cookies": "ملفات تعريف الارتباط",
+    "cookie_notice": "يستخدم هذا الموقع ملفات تعريف ارتباط تقنية ضرورية لعمله وملفات تفضيل اللغة.",
     "article1": "المادة 1 — الغرض",
     "article2": "المادة 2 — الأسعار",
     "article3": "المادة 3 — التوصيل",

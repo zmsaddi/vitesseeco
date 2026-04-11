@@ -11,9 +11,9 @@
       <div class="container-custom">
         <div class="bg-dark-secondary border border-dark-tertiary rounded-xl p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 shadow-2xl">
           <div class="flex-1">
-            <p class="text-white text-sm font-medium mb-1">🍪 Cookies</p>
+            <p class="text-white text-sm font-medium mb-1">🍪 {{ $t('legal.cookies') }}</p>
             <p class="text-text-secondary text-xs leading-relaxed">
-              {{ cookieText }}
+              {{ $t('legal.cookie_notice') }}
               <NuxtLink :to="localePath('/politique-confidentialite')" class="text-accent hover:underline">{{ $t('footer.privacy') }}</NuxtLink>
             </p>
           </div>
@@ -27,19 +27,8 @@
 </template>
 
 <script setup lang="ts">
-const { locale } = useI18n()
 const localePath = useLocalePath()
 const show = ref(false)
-
-const texts: Record<string, string> = {
-  fr: 'Ce site utilise des cookies techniques nécessaires à son fonctionnement et des cookies de préférence linguistique.',
-  en: 'This site uses technical cookies necessary for its operation and language preference cookies.',
-  es: 'Este sitio utiliza cookies técnicas necesarias para su funcionamiento y cookies de preferencia de idioma.',
-  nl: 'Deze site gebruikt technische cookies die nodig zijn voor de werking en taalvoorkeurcookies.',
-  de: 'Diese Website verwendet technische Cookies, die für ihren Betrieb erforderlich sind, sowie Sprachpräferenz-Cookies.',
-  ar: 'يستخدم هذا الموقع ملفات تعريف ارتباط تقنية ضرورية لعمله وملفات تفضيل اللغة.',
-}
-const cookieText = computed(() => texts[locale.value] || texts.fr)
 
 function accept() {
   show.value = false

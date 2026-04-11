@@ -109,7 +109,12 @@
     "gears": "Gänge",
     "gross_weight": "Bruttogewicht",
     "packing_size": "Paketgröße",
-    "other_colors": "Andere verfügbare Farben"
+    "other_colors": "Andere verfügbare Farben",
+    "previous_image": "Vorheriges Bild",
+    "next_image": "Nächstes Bild",
+    "image_number": "Bild {n}",
+    "current_color": "Aktuelle Farbe: {color}",
+    "switch_color": "In {color} anzeigen"
   },
   "cart": {
     "title": "Ihr Warenkorb",
@@ -127,7 +132,9 @@
     "checkout": "Bestellung aufgeben",
     "continue_shopping": "Weiter einkaufen",
     "remove": "Entfernen",
-    "quantity": "Menge"
+    "quantity": "Menge",
+    "decrease_quantity": "Menge verringern",
+    "increase_quantity": "Menge erhöhen"
   },
   "shipping": {
     "title": "Versand",
@@ -284,6 +291,7 @@
     "data_use": "Datenverwendung",
     "your_rights": "Ihre Rechte",
     "cookies": "Cookies",
+    "cookie_notice": "Diese Website verwendet technische Cookies, die für ihren Betrieb erforderlich sind, sowie Sprachpräferenz-Cookies.",
     "article1": "Artikel 1 — Gegenstand",
     "article2": "Artikel 2 — Preise",
     "article3": "Artikel 3 — Lieferung",

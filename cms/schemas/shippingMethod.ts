@@ -63,7 +63,7 @@ export default defineType({
           },
           initialValue: 'manual',
         },
-        { name: 'apiKey', title: 'مفتاح API', type: 'string', description: 'مفتاح API من شركة الشحن (اختياري)' },
+        { name: 'apiKey', title: 'مفتاح API', type: 'string', description: 'مفتاح API من شركة الشحن (اختياري)', hidden: true },
         { name: 'trackingUrl', title: 'رابط التتبع', type: 'string', description: 'رابط تتبع الشحنة — استخدم {tracking} كمتغير. مثال: https://www.laposte.fr/outils/suivre-vos-envois?code={tracking}' },
       ],
     },

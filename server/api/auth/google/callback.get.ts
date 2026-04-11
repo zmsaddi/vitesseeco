@@ -3,8 +3,10 @@ import { useDB } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
+import { rateLimit } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
+  rateLimit(event, { maxRequests: 10, windowMs: 60_000 })
   const query = getQuery(event)
   const code = query.code as string
   const error = query.error as string

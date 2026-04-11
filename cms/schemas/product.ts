@@ -48,6 +48,16 @@ export default defineType({
     },
     {
       name: 'compareAtPrice', title: 'السعر القديم €', type: 'number', group: 'main',
+      description: 'يجب أن يكون أكبر من أو يساوي السعر الحالي',
+      validation: (Rule) => Rule.custom((value, context) => {
+        if (typeof value !== 'number') return true
+        const doc = context.document as Record<string, unknown> | undefined
+        const price = doc?.price as number | undefined
+        if (typeof price === 'number' && value < price) {
+          return 'السعر القديم يجب أن يكون أكبر من أو يساوي السعر الحالي'
+        }
+        return true
+      }),
     },
     {
       name: 'color', title: '🎨 اللون', type: 'localizedString', group: 'main',
@@ -64,7 +74,8 @@ export default defineType({
     },
     {
       name: 'modelFamily', title: '🔗 عائلة الموديل', type: 'string', group: 'main',
-      description: 'يربط نفس الموديل بألوان مختلفة — مثال: v20-pro (كل ألوان V20 Pro نفس القيمة)',
+      description: 'يربط نفس الموديل بألوان مختلفة — مثال: v20-pro (حروف صغيرة وأرقام وشرطات فقط)',
+      validation: (Rule) => Rule.regex(/^[a-z0-9-]+$/, { name: 'model family format' }).error('استخدم حروف صغيرة وأرقام وشرطات فقط — مثال: v20-pro'),
     },
     {
       name: 'shortDescription', title: 'وصف مختصر', type: 'localizedString', group: 'main',

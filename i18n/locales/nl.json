@@ -109,7 +109,12 @@
     "gears": "Versnellingen",
     "gross_weight": "Brutogewicht",
     "packing_size": "Pakketgrootte",
-    "other_colors": "Andere beschikbare kleuren"
+    "other_colors": "Andere beschikbare kleuren",
+    "previous_image": "Vorige afbeelding",
+    "next_image": "Volgende afbeelding",
+    "image_number": "Afbeelding {n}",
+    "current_color": "Huidige kleur: {color}",
+    "switch_color": "Bekijk in {color}"
   },
   "cart": {
     "title": "Je Winkelwagen",
@@ -127,7 +132,9 @@
     "checkout": "Bestelling plaatsen",
     "continue_shopping": "Verder winkelen",
     "remove": "Verwijderen",
-    "quantity": "Aantal"
+    "quantity": "Aantal",
+    "decrease_quantity": "Aantal verminderen",
+    "increase_quantity": "Aantal verhogen"
   },
   "shipping": {
     "title": "Verzending",
@@ -284,6 +291,7 @@
     "data_use": "Gebruik van gegevens",
     "your_rights": "Je rechten",
     "cookies": "Cookies",
+    "cookie_notice": "Deze site gebruikt technische cookies die nodig zijn voor de werking en taalvoorkeurcookies.",
     "article1": "Artikel 1 — Doel",
     "article2": "Artikel 2 — Prijzen",
     "article3": "Artikel 3 — Levering",
