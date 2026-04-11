@@ -1,18 +1,17 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
-
-interface CartItemInput { productId: string; sku: string; quantity: number }
-interface ValidatedItem { productId: string; sku: string; name: Record<string, string>; price: number; quantity: number; maxStock: number; colorHex: string; colorName: Record<string, string>; valid: boolean; error?: string }
+import { isValidProductId, LIMITS } from '~/server/utils/validation'
+import type { SanityProductForCart, ValidatedCartItem, SanityShippingMethod } from '~/server/utils/types'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 20, windowMs: 60_000 })
 
-  const body = await readBody<{ items: CartItemInput[]; promoCode?: string; shippingCode?: string; zone?: string }>(event)
+  const body = await readBody<{ items: Array<{ productId: string; sku: string; quantity: number }>; promoCode?: string; shippingCode?: string; zone?: string }>(event)
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
-  if (body.items.length > 20) throw createError({ statusCode: 400, message: 'Too many items' })
+  if (body.items.length > LIMITS.MAX_CART_ITEMS) throw createError({ statusCode: 400, message: 'Too many items' })
 
   for (const item of body.items) {
-    if (typeof item.productId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.productId)) throw createError({ statusCode: 400, message: 'Invalid product ID' })
+    if (!isValidProductId(item.productId)) throw createError({ statusCode: 400, message: 'Invalid product ID' })
     if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity)) throw createError({ statusCode: 400, message: 'Invalid quantity' })
   }
 
@@ -25,13 +24,13 @@ export default defineEventHandler(async (event) => {
     { ids: productIds }
   )
 
-  const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
-  const validatedItems: ValidatedItem[] = []
+  const productMap = new Map<string, SanityProductForCart>(products.map((p: SanityProductForCart) => [p._id, p]))
+  const validatedItems: ValidatedCartItem[] = []
   let subtotal = 0
 
   for (const item of body.items) {
     const quantity = Math.floor(Number(item.quantity))
-    if (!quantity || quantity < 1 || quantity > 10) {
+    if (!quantity || quantity < 1 || quantity > LIMITS.MAX_QUANTITY_PER_ITEM) {
       validatedItems.push({ productId: item.productId, sku: item.sku, name: {}, price: 0, quantity: 0, maxStock: 0, colorHex: '', colorName: {}, valid: false, error: 'Invalid quantity (1-10)' })
       continue
     }
@@ -75,7 +74,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Shipping
-  let shippingCost = 0, shippingMethod = null as any
+  let shippingCost = 0, shippingMethod = null as SanityShippingMethod | null
   if (body.shippingCode) {
     const m = await client.fetch(`*[_type == "shippingMethod" && code == $code && isActive == true && $zone in zones][0]{ code, name, description, estimatedDays, price, freeAbove }`, { code: body.shippingCode, zone: body.zone || 'FR' })
     if (m) { shippingMethod = m; shippingCost = (m.freeAbove && subtotal >= m.freeAbove) ? 0 : (m.price || 0) }

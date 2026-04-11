@@ -23,7 +23,7 @@ export const useCartStore = defineStore('cart', {
     shippingCode: null as string | null,
     shippingZone: 'FR',
     shippingCost: 0,
-    shippingMethod: null as any,
+    shippingMethod: null as { code: string; name: Record<string, string>; price: number; freeAbove?: number } | null,
     // Server-validated totals (authoritative)
     serverSubtotal: null as number | null,
     serverTotal: null as number | null,
@@ -105,7 +105,7 @@ export const useCartStore = defineStore('cart', {
       if (this.items.length === 0) return { allValid: false, hasChanges: false, messages: [] }
 
       try {
-        const result = await $fetch<any>('/api/cart/check-stock', {
+        const result = await $fetch<{ items: Array<{ productId: string; sku: string; valid: boolean; message?: string; availableStock: number; productName: string; colorName: string; price: number }>; allValid: boolean; hasChanges: boolean }>('/api/cart/check-stock', {
           method: 'POST',
           body: {
             items: this.items.map(i => ({
@@ -193,7 +193,7 @@ export const useCartStore = defineStore('cart', {
         this.serverTotal = result.total
         this.promoDiscount = result.discount
         this.shippingCost = result.shippingCost || 0
-        this.shippingMethod = (result as any).shippingMethod || null
+        this.shippingMethod = result.shippingMethod || null
 
         if (!result.promoValid && this.promoCode) {
           this.promoCode = null

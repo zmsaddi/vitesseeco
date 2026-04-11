@@ -1,23 +1,7 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
-
-interface CartItem {
-  productId: string
-  sku: string
-  quantity: number
-}
-
-interface StockResult {
-  productId: string
-  sku: string
-  requestedQty: number
-  availableStock: number
-  productName: string
-  colorName: string
-  price: number
-  valid: boolean
-  message?: string
-}
+import { isValidProductId } from '~/server/utils/validation'
+import type { StockCheckResult, SanityProductForCart } from '~/server/utils/types'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 20, windowMs: 60_000 })
@@ -26,7 +10,7 @@ export default defineEventHandler(async (event) => {
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
 
   for (const item of body.items) {
-    if (typeof item.productId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(item.productId)) throw createError({ statusCode: 400, message: 'Invalid productId' })
+    if (!isValidProductId(item.productId)) throw createError({ statusCode: 400, message: 'Invalid productId' })
     if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity) || item.quantity < 1) throw createError({ statusCode: 400, message: 'Invalid quantity' })
   }
 
@@ -38,8 +22,8 @@ export default defineEventHandler(async (event) => {
     { ids: productIds }
   )
 
-  const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
-  const results: StockResult[] = []
+  const productMap = new Map<string, SanityProductForCart>(products.map((p: SanityProductForCart) => [p._id, p]))
+  const results: StockCheckResult[] = []
   let hasChanges = false
 
   for (const item of body.items) {

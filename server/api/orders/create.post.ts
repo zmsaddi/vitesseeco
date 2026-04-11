@@ -1,6 +1,8 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
+import { LIMITS, isValidName, isAllowedCountry, isValidProductId } from '~/server/utils/validation'
+import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/server/utils/types'
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
@@ -38,14 +40,16 @@ export default defineEventHandler(async (event) => {
   if (!body.shippingAddress?.address || !body.shippingAddress?.city) {
     throw createError({ statusCode: 400, message: 'Shipping address required' })
   }
+  if (body.notes && body.notes.length > LIMITS.MAX_NOTE_LENGTH) {
+    throw createError({ statusCode: 400, message: 'Notes too long' })
+  }
 
   // Validate shipping address fields
-  const ALLOWED_COUNTRIES = ['FR', 'BE', 'NL', 'DE', 'ES', 'LU', 'CH', 'AT', 'IT', 'PT']
   const addr = body.shippingAddress
-  if (!addr.firstName || addr.firstName.length > 100) throw createError({ statusCode: 400, message: 'Invalid first name' })
-  if (!addr.lastName || addr.lastName.length > 100) throw createError({ statusCode: 400, message: 'Invalid last name' })
+  if (!isValidName(addr.firstName)) throw createError({ statusCode: 400, message: 'Invalid first name' })
+  if (!isValidName(addr.lastName)) throw createError({ statusCode: 400, message: 'Invalid last name' })
   if (!addr.postalCode) throw createError({ statusCode: 400, message: 'Postal code required' })
-  if (!addr.country || !ALLOWED_COUNTRIES.includes(addr.country.toUpperCase())) {
+  if (!addr.country || !isAllowedCountry(addr.country)) {
     throw createError({ statusCode: 400, message: 'Invalid or unsupported country' })
   }
 
@@ -56,14 +60,16 @@ export default defineEventHandler(async (event) => {
     : null
 
   // 1. Validate all items + get server prices (System B: no variants)
-  const productIds = [...new Set(body.items.map(i => i.productId))]
-  const products = await readClient.fetch(
+  const productIds = [...new Set(body.items.filter(i => isValidProductId(i.productId)).map(i => i.productId))]
+  if (productIds.length === 0) throw createError({ statusCode: 400, message: 'No valid product IDs' })
+
+  const products: SanityProductForCart[] = await readClient.fetch(
     `*[_type == "product" && _id in $ids]{ _id, name, price, stock, isAvailable, color, slug }`,
     { ids: productIds }
   )
-  const productMap = new Map<string, any>(products.map((p: any) => [p._id, p]))
+  const productMap = new Map<string, SanityProductForCart>(products.map((p) => [p._id, p]))
 
-  const validatedItems: any[] = []
+  const validatedItems: OrderItem[] = []
   let subtotal = 0
 
   for (const item of body.items) {
@@ -78,11 +84,11 @@ export default defineEventHandler(async (event) => {
     subtotal += price * item.quantity
 
     validatedItems.push({
-      _key: `item-${(product.slug?.current || item.productId).slice(0, 20)}-${Date.now()}`,
+      _key: `item-${((product as any).slug?.current || item.productId).slice(0, 20)}-${Date.now()}`,
       productId: item.productId,
       productName: product.name?.fr || '',
       color: product.color?.fr || '',
-      sku: product.slug?.current || item.productId,
+      sku: (product as any).slug?.current || item.productId,
       quantity: item.quantity,
       price,
     })
@@ -119,7 +125,7 @@ export default defineEventHandler(async (event) => {
   const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`
 
   // 5. Get customer info
-  let customerInfo = { name: `${body.shippingAddress.firstName} ${body.shippingAddress.lastName}`, email: '', phone: body.shippingAddress.phone || '', customerId: '' }
+  let customerInfo: OrderCustomerInfo = { name: `${body.shippingAddress.firstName} ${body.shippingAddress.lastName}`, email: '', phone: body.shippingAddress.phone || '', customerId: '' }
   const token = getCookie(event, 'auth_token')
   if (token) {
     const db = useDB()

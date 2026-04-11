@@ -27,8 +27,8 @@ export const useAuthStore = defineStore('auth', {
   actions: {
     async fetchUser() {
       try {
-        const { user } = await $fetch('/api/auth/me')
-        this.user = user as any
+        const { user } = await $fetch<{ user: User }>('/api/auth/me')
+        this.user = user
       } catch {
         this.user = null
       }
