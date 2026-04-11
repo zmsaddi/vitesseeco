@@ -244,12 +244,10 @@ const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
 const showAddedToast = ref(false)
 
-if (import.meta.client) {
-  useSwipe(galleryContainer, {
-    onLeft: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
-    onRight: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value - 1 + product.value.images.length) % product.value.images.length },
-  })
-}
+useSwipe(galleryContainer, {
+  onLeft: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
+  onRight: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value - 1 + product.value.images.length) % product.value.images.length },
+})
 
 const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
