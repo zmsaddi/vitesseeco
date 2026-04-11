@@ -108,7 +108,8 @@
     "max_load": "Max load",
     "gears": "Gears",
     "gross_weight": "Gross weight",
-    "packing_size": "Package size"
+    "packing_size": "Package size",
+    "other_colors": "Other available colours"
   },
   "cart": {
     "title": "Your Cart",

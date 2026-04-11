@@ -108,7 +108,8 @@
     "max_load": "الحمولة القصوى",
     "gears": "السرعات",
     "gross_weight": "الوزن الإجمالي",
-    "packing_size": "حجم العبوة"
+    "packing_size": "حجم العبوة",
+    "other_colors": "ألوان أخرى متوفرة"
   },
   "cart": {
     "title": "سلتك",

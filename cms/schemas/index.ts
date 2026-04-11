@@ -1,7 +1,6 @@
 import product from './product'
 import category from './category'
 import brand from './brand'
-import colorVariant from './colorVariant'
 import homePage from './homePage'
 import aboutPage from './aboutPage'
 import contactPage from './contactPage'
@@ -25,7 +24,6 @@ export const schemaTypes = [
   localizedString,
   localizedText,
   seoFields,
-  colorVariant,
 
   // Documents
   product,

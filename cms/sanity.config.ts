@@ -4,6 +4,7 @@ import { visionTool } from '@sanity/vision'
 import { media } from 'sanity-plugin-media'
 import { languageFilter } from '@sanity/language-filter'
 import { assist } from '@sanity/assist'
+import { colorInput } from '@sanity/color-input'
 import { schemaTypes } from './schemas'
 import { deskStructure } from './structure/deskStructure'
 
@@ -46,6 +47,9 @@ export default defineConfig({
 
     // Media library — visual image management
     media(),
+
+    // Color picker for variants
+    colorInput(),
 
     // AI Assist — helps write content
     assist(),

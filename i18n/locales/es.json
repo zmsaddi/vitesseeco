@@ -108,7 +108,8 @@
     "max_load": "Carga máxima",
     "gears": "Velocidades",
     "gross_weight": "Peso bruto",
-    "packing_size": "Tamaño del paquete"
+    "packing_size": "Tamaño del paquete",
+    "other_colors": "Otros colores disponibles"
   },
   "cart": {
     "title": "Tu Carrito",

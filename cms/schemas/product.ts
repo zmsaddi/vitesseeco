@@ -4,14 +4,14 @@ export default defineType({
   name: 'product',
   title: 'منتج',
   type: 'document',
-  icon: () => '🚲',
+  icon: () => '📦',
   groups: [
     { name: 'main', title: '📋 المنتج', default: true },
-    { name: 'variants', title: '🎨 الألوان والصور' },
+    { name: 'media', title: '📸 الصور' },
     { name: 'details', title: '⚙️ التفاصيل' },
   ],
   fields: [
-    // ══════ TAB 1: المنتج (الأهم — كل شيء في صفحة واحدة) ══════
+    // ══════ TAB 1: المنتج ══════
     {
       name: 'productType', title: 'النوع', type: 'string', group: 'main',
       options: {
@@ -30,13 +30,17 @@ export default defineType({
     },
     {
       name: 'name', title: 'الاسم', type: 'localizedString', group: 'main',
+      description: 'مثال: V20 Pro — Noir',
       validation: (Rule) => Rule.required(),
     },
     {
-      name: 'slug', title: 'الرابط', type: 'slug',
+      name: 'slug', title: 'الرابط', type: 'slug', group: 'main',
       options: { source: 'name.fr', maxLength: 96 },
-      group: 'main',
+      description: 'اضغط Generate — يُنشئ الرابط + SKU تلقائياً',
       validation: (Rule) => Rule.required(),
+    },
+    {
+      name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
     },
     {
       name: 'price', title: 'السعر €', type: 'number', group: 'main',
@@ -44,40 +48,43 @@ export default defineType({
     },
     {
       name: 'compareAtPrice', title: 'السعر القديم €', type: 'number', group: 'main',
-      description: 'اتركه فارغاً إذا لا يوجد تخفيض',
     },
     {
-      name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
+      name: 'color', title: '🎨 اللون', type: 'localizedString', group: 'main',
+      description: 'مثال: Noir / Black / Negro / Zwart / Schwarz / أسود',
     },
     {
-      name: 'category', title: 'الفئة', type: 'reference', to: [{ type: 'category' }], group: 'main',
+      name: 'colorHex', title: 'رمز اللون', type: 'string', group: 'main',
+      description: '#000000 = أسود، #FFFFFF = أبيض، #8E8E8E = رمادي',
+      validation: (Rule) => Rule.regex(/^#[0-9A-Fa-f]{6}$/, { name: 'hex' }).error('#RRGGBB'),
+    },
+    {
+      name: 'stock', title: '📦 المخزون', type: 'number', initialValue: 0, group: 'main',
+      validation: (Rule) => Rule.required().min(0),
+    },
+    {
+      name: 'modelFamily', title: '🔗 عائلة الموديل', type: 'string', group: 'main',
+      description: 'يربط نفس الموديل بألوان مختلفة — مثال: v20-pro (كل ألوان V20 Pro نفس القيمة)',
     },
     {
       name: 'shortDescription', title: 'وصف مختصر', type: 'localizedString', group: 'main',
     },
-    // Status toggles — inline row
+    // Status
+    { name: 'isAvailable', title: '✅ متاح', type: 'boolean', initialValue: true, group: 'main' },
+    { name: 'isOnSale', title: '🏷️ تخفيض', type: 'boolean', initialValue: false, group: 'main' },
+    { name: 'isNew', title: '✨ جديد', type: 'boolean', initialValue: false, group: 'main' },
+    { name: 'isFeatured', title: '⭐ مميز', type: 'boolean', initialValue: false, group: 'main' },
+
+    // ══════ TAB 2: الصور ══════
     {
-      name: 'isAvailable', title: '✅ متاح', type: 'boolean', initialValue: true, group: 'main',
-    },
-    {
-      name: 'isOnSale', title: '🏷️ تخفيض', type: 'boolean', initialValue: false, group: 'main',
-    },
-    {
-      name: 'isNew', title: '✨ جديد', type: 'boolean', initialValue: false, group: 'main',
-    },
-    {
-      name: 'isFeatured', title: '⭐ مميز', type: 'boolean', initialValue: false, group: 'main',
+      name: 'images', title: 'صور المنتج', type: 'array', group: 'media',
+      of: [{ type: 'image', options: { hotspot: true } }],
+      options: { layout: 'grid' },
+      description: 'الصورة الأولى = الرئيسية. اسحب لإعادة الترتيب.',
+      validation: (Rule) => Rule.min(1).error('صورة واحدة على الأقل'),
     },
 
-    // ══════ TAB 2: الألوان والصور (الأهم بصرياً) ══════
-    {
-      name: 'variants', title: 'الألوان', type: 'array',
-      of: [{ type: 'colorVariant' }],
-      group: 'variants',
-      validation: (Rule) => Rule.required().min(1),
-    },
-
-    // ══════ TAB 3: التفاصيل (وصف + مواصفات + SEO) ══════
+    // ══════ TAB 3: التفاصيل ══════
     {
       name: 'description', title: 'الوصف الكامل', type: 'localizedText', group: 'details',
     },
@@ -111,12 +118,10 @@ export default defineType({
       ],
     },
     {
-      name: 'videoUrl', title: 'رابط فيديو', type: 'url', group: 'details',
+      name: 'category', title: 'الفئة', type: 'reference', to: [{ type: 'category' }], group: 'details',
     },
     {
-      name: 'relatedProducts', title: 'منتجات مشابهة', type: 'array', group: 'details',
-      of: [{ type: 'reference', to: [{ type: 'product' }] }],
-      validation: (Rule) => Rule.max(4),
+      name: 'videoUrl', title: 'رابط فيديو', type: 'url', group: 'details',
     },
     {
       name: 'sortOrder', title: 'الترتيب', type: 'number', initialValue: 0, group: 'details',
@@ -126,22 +131,25 @@ export default defineType({
   preview: {
     select: {
       title: 'name.fr', price: 'price', available: 'isAvailable', onSale: 'isOnSale',
-      isNew: 'isNew', type: 'productType', img: 'variants.0.images.0',
-      v0: 'variants.0.stock', v1: 'variants.1.stock', v2: 'variants.2.stock',
-      v3: 'variants.3.stock', v4: 'variants.4.stock',
+      isNew: 'isNew', type: 'productType', stock: 'stock', hex: 'colorHex',
+      img: 'images.0', brand: 'brand.name',
     },
-    prepare({ title, price, available, onSale, isNew, type, img, v0, v1, v2, v3, v4 }) {
-      const stocks = [v0, v1, v2, v3, v4].filter(s => s !== undefined)
-      const totalStock = stocks.reduce((a: number, b: number) => a + (b || 0), 0)
-      const stockIcon = totalStock <= 0 ? '🔴' : totalStock <= 5 ? '🟡' : '🟢'
+    prepare({ title, price, available, onSale, isNew, type, stock, hex, img, brand }) {
+      const stockIcon = !stock || stock <= 0 ? '🔴' : stock <= 5 ? '🟡' : '🟢'
       const typeIcon: Record<string, string> = { bike: '🚲', spare_part: '🔧', accessory: '🎒', kids_car: '🧸' }
       const badges = [available === false ? '🚫' : '', onSale ? '🏷️' : '', isNew ? '✨' : ''].filter(Boolean).join('')
 
       return {
         title: `${stockIcon} ${title || '—'} ${badges}`,
-        subtitle: `${typeIcon[type || ''] || '📦'} ${price || 0}€ | 📦 ${totalStock}`,
+        subtitle: `${typeIcon[type || ''] || '📦'} ${brand || ''} | ${price || 0}€ | 📦 ${stock || 0}`,
         media: img,
       }
     },
   },
+  orderings: [
+    { title: 'الاسم', name: 'name', by: [{ field: 'name.fr', direction: 'asc' }] },
+    { title: 'السعر ↑', name: 'priceAsc', by: [{ field: 'price', direction: 'asc' }] },
+    { title: 'السعر ↓', name: 'priceDesc', by: [{ field: 'price', direction: 'desc' }] },
+    { title: 'المخزون', name: 'stock', by: [{ field: 'stock', direction: 'asc' }] },
+  ],
 })

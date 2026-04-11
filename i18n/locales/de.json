@@ -108,7 +108,8 @@
     "max_load": "Max. Belastung",
     "gears": "Gänge",
     "gross_weight": "Bruttogewicht",
-    "packing_size": "Paketgröße"
+    "packing_size": "Paketgröße",
+    "other_colors": "Andere verfügbare Farben"
   },
   "cart": {
     "title": "Ihr Warenkorb",

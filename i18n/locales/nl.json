@@ -108,7 +108,8 @@
     "max_load": "Max belasting",
     "gears": "Versnellingen",
     "gross_weight": "Brutogewicht",
-    "packing_size": "Pakketgrootte"
+    "packing_size": "Pakketgrootte",
+    "other_colors": "Andere beschikbare kleuren"
   },
   "cart": {
     "title": "Je Winkelwagen",
