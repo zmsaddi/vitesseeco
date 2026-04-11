@@ -37,3 +37,5 @@ test-results/
 playwright-report/
 competitor-research/
 import-data/
+cms/dist/
+cms/.sanity/

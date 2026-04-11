@@ -1,150 +1,205 @@
-# Vitesse Eco - Complete Project Documentation
-> **START HERE:** This file contains everything needed to build the project from scratch.
+# Vitesse Eco — Project Documentation
+> **Last updated:** 2026-04-11
+> **System:** B (product per color, no variants)
 
 ## Project Overview
-- **Business:** Vitesse Eco - French electric fatbike retailer
-- **Domain:** vitesse-eco.com (owned)
-- **Contact:** contact@vitesse-eco.fr / www.vitesse-eco.com
-- **Working directory:** `D:\vitesseeco`
-- **Communication with user:** Arabic only
-- **Website languages:** French (primary) + Spanish, Dutch, German
-- **GitHub:** https://github.com/zmsaddi/vitesseeco (user: zmsaddi, logged in via gh CLI)
-- **Vercel:** https://vitesseeco.vercel.app (account: zakariyas-projects-1c97d142)
-- **Sanity:** Project ID: `2jvnjf0c`, Dataset: `production`, Org: `oWtjsSGlJ`
-- **Sanity auth token:** Use `SANITY_TOKEN` env var or Sanity CLI auth
+| Field | Value |
+|-------|-------|
+| **Business** | Vitesse Eco — Electric mobility retailer (bikes, parts, accessories, kids) |
+| **Domain** | vitesse-eco.fr |
+| **Contact** | contact@vitesse-eco.fr / +33 7 45 83 00 49 |
+| **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France |
+| **Company** | VITESSE ECO SAS — SIREN 100 732 247 |
+| **Working directory** | `D:\vitesseeco` |
+| **Communication** | Arabic only |
+| **Website languages** | French (primary) + English, Spanish, Dutch, German, Arabic |
+| **GitHub** | github.com/zmsaddi/vitesseeco |
+| **Vercel** | vitesseeco.vercel.app |
+| **Sanity** | Project: `2jvnjf0c`, Dataset: `production` + `staging` |
+| **Node.js** | v24.14.1 |
 
-## CRITICAL RULES (from previous failed attempt)
-1. **DO NOT use Nuxt 4** — IPC connection closed bug on Windows (Node 22+/24+)
-2. **Use `ssr: false` locally** — fixes IPC bug. Use `ssr: process.env.VERCEL === '1'` for Vercel SSR
-3. **Standard Nuxt 3 structure** — files in ROOT, NOT in `app/` directory. No `srcDir`.
-4. **i18n locales path:** files in `i18n/locales/`, config: `langDir: 'locales'` (module adds `i18n/` prefix automatically)
-5. **Sanity Studio (`cms/`) must be in `.vercelignore`** — Vercel crashes trying to resolve sanity imports
-6. **Add `sanity` as devDependency in root package.json** — `@nuxtjs/sanity` module tries to load `cms/sanity.config.ts`
-7. **Test BOTH locally (npm run dev → 200) AND on Vercel before moving to next phase**
+## Critical Rules
+1. **DO NOT use Nuxt 4** — IPC bug on Windows
+2. **`ssr: process.env.VERCEL === '1'`** — SSR on Vercel, SPA locally
+3. **Standard Nuxt 3 structure** — files in ROOT, no `app/` directory
+4. **i18n:** `langDir: 'locales'`, `baseUrl: 'https://vitesse-eco.fr'`
+5. **Sanity Studio** in `cms/` — excluded from Vercel via `.vercelignore`
+6. **`sanity`** as devDependency in root — required by `@nuxtjs/sanity`
+7. **Always answer user in Arabic**
 8. **Run `npm run check:langs` before every commit**
-9. **Node version on this machine:** v24.14.1
-10. **Always answer user in Arabic**
+9. **System B:** Each color = separate product. No `variants[]`. Products linked via `modelFamily`
 
-## Accounts & Services (all logged in)
-| Service | Status | Details |
-|---------|--------|---------|
-| GitHub | Logged in | `gh auth status` — user: zmsaddi |
-| Vercel | Logged in | `npx vercel` works |
-| Sanity | Logged in | Via Sanity CLI auth (`npx sanity login`) |
-| gh CLI | Installed | `C:/Program Files/GitHub CLI/gh.exe` — add to PATH: `export PATH="/c/Program Files/GitHub CLI:$PATH"` |
+## Tech Stack
+| Layer | Package | Version |
+|-------|---------|---------|
+| Framework | nuxt | ^3.17.5 |
+| CSS | @nuxtjs/tailwindcss | ^6.14.0 |
+| i18n | @nuxtjs/i18n | ^10.2.4 |
+| State | @pinia/nuxt | ^0.11.3 |
+| Persist | pinia-plugin-persistedstate | ^4.7.1 |
+| CMS | @nuxtjs/sanity | ^2.3.0 |
+| CMS Studio | sanity | ^5.20.0 |
+| Icons | @nuxt/icon | ^1.15.0 |
+| Images | @nuxt/image | ^2.0.0 |
+| Fonts | @nuxt/fonts | ^0.14.0 |
+| Database | Neon PostgreSQL + Drizzle ORM |
+| Auth | Custom JWT + Google OAuth |
+| CAPTCHA | Cloudflare Turnstile |
+| Tests | Playwright |
+| CI/CD | GitHub Actions |
 
-## Brand Identity
-| Element | Value |
-|---------|-------|
-| Logo | Golden deer head with gear (assets-reference/logo.png, 277 KB) |
-| Poster | Fatbike promo image (assets-reference/poster.jpeg, 151 KB) |
-| Primary (dark navy) | #0A1628 |
-| Secondary dark | #1E293B |
-| Tertiary dark | #334155 |
-| Accent green (buttons/highlights) | #4ADE80 |
-| Gold (luxury details) | #D4A843 |
-| Text primary | #FFFFFF |
-| Text secondary | #94A3B8 |
-| Body font | Inter (Google) |
-| Heading font | Montserrat (Google) |
-| Style | Luxury + sporty + eco-friendly, dark theme, mobile-first |
+## Product System (System B)
+Each product is a **single color**. No `variants[]` array.
 
-## Tech Stack (to install)
-| Layer | Package | Notes |
-|-------|---------|-------|
-| Framework | nuxt ^3.17.5 | NOT v4 |
-| CSS | @nuxtjs/tailwindcss ^6.14.0 | With custom main.css |
-| i18n | @nuxtjs/i18n ^10.2.4 | FR/ES/NL/DE + browser auto-detect |
-| State | @pinia/nuxt ^0.11.3 | Cart persistence |
-| State persist | pinia-plugin-persistedstate ^4.7.1 | localStorage |
-| CMS | @nuxtjs/sanity ^2.3.0 | Project 2jvnjf0c |
-| Icons | @nuxt/icon ^1.15.0 | v1.x (v2 needs Nuxt 4) |
-| Images | @nuxt/image ^2.0.0 | Lazy loading |
-| Fonts | @nuxt/fonts ^0.14.0 | Inter + Montserrat |
-| Vue | vue ^3.5.31 | |
-| Router | vue-router ^4.5.0 | NOT v5 |
-| **Dev deps** | | |
-| Lang check | franc-min ^6.2.0 | Language detection |
-| Sanity | sanity ^5.19.0 | Required for @nuxtjs/sanity to resolve cms/sanity.config.ts |
-
-## nuxt.config.ts Key Settings
-```ts
-ssr: process.env.VERCEL === '1',        // SSR on Vercel, SPA on Windows
-compatibilityDate: '2024-11-01',         // Nuxt 3 mode
-// NO srcDir — standard root structure
-// NO future.compatibilityVersion: 4
-tailwindcss: { cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }] }
-i18n: { langDir: 'locales', ... }        // Module adds i18n/ prefix → reads from i18n/locales/
-sanity: { projectId: '2jvnjf0c', dataset: 'production' }
+```
+Product document:
+  ├── name (localizedString) — "V20 Pro — Noir"
+  ├── slug — "v20-pro-noir"
+  ├── productType — bike | spare_part | accessory | kids_car | other
+  ├── brand (reference → brand)
+  ├── color (localizedString) — "Noir" / "Black" / etc.
+  ├── colorHex — "#000000"
+  ├── stock (number) — direct on product
+  ├── images[] (array of image) — direct on product
+  ├── modelFamily (string) — "v20-pro" (links same model different colors)
+  ├── price, compareAtPrice
+  ├── specifications { motor, battery, range, ... }
+  └── description, warranty, highlights, seo
 ```
 
-## Project Structure (standard Nuxt 3 — all in ROOT)
+**Adding a new product:**
+1. Create product → fill details
+2. Duplicate → change name, slug, color, colorHex, images
+3. Keep same `modelFamily` → auto-linked as "other colors"
+4. SKU = slug (auto)
+
+**"Other colors" auto-display:**
+- Product detail page queries: `*[modelFamily == $family && slug != $current]`
+- Shows color dots linking to sibling products
+
+## Project Structure
 ```
-D:\vitesseeco\
-├── app.vue                    ← NuxtLayout + NuxtPage
-├── nuxt.config.ts             ← All modules config
-├── tailwind.config.ts         ← Brand colors + fonts
-├── package.json               ← Dependencies
-├── .env                       ← SANITY_PROJECT_ID=2jvnjf0c
-├── .env.example
-├── .gitignore
-├── .vercelignore              ← cms/ excluded
-├── CLAUDE.md                  ← This file
-├── PROJECT_PLAN.md            ← Full step-by-step plan
-├── scripts/check-languages.mjs
+vitesseeco/
+├── app.vue                     ← Root + hreflang + canonical
+├── nuxt.config.ts              ← Config + JSON-LD (WebSite, Org, LocalBusiness)
+├── .github/workflows/ci.yml    ← CI: build + typecheck + e2e
+├── playwright.config.ts
 │
-├── pages/                     ← All pages in ROOT/pages/
-├── components/                ← All components in ROOT/components/
-├── layouts/                   ← default.vue
-├── composables/
-├── stores/
-├── middleware/
-├── plugins/
-├── assets/css/main.css
-├── i18n/locales/              ← fr.json, es.json, nl.json, de.json
-├── public/                    ← logo.png, poster.jpeg
-├── server/api/                ← API routes (later phases)
+├── pages/ (18 pages)
+│   ├── index.vue               ← Homepage + trust badges + featured + blog
+│   ├── produits/index.vue      ← Products listing (type/brand/color/price filters)
+│   ├── produits/[slug].vue     ← Product detail + auto other colors
+│   ├── blog/index.vue + [slug] ← Blog with Article JSON-LD
+│   ├── faq.vue                 ← FAQ with FAQPage JSON-LD
+│   ├── guide.vue               ← Buying guide (filters + sort)
+│   ├── comparatif.vue          ← Comparison table
+│   ├── panier.vue              ← Cart + free shipping bar
+│   ├── commande.vue            ← Checkout + stepper
+│   ├── commande/confirmation   ← Order confirmation
+│   ├── contact.vue             ← Contact + map + Turnstile
+│   ├── connexion/inscription   ← Auth (email + Google OAuth)
+│   ├── compte/                 ← Account + orders
+│   ├── p/[slug].vue            ← Landing pages (from Sanity)
+│   └── legal pages (3)         ← Mentions, Privacy, CGV
 │
-└── cms/                       ← Sanity Studio (SEPARATE, in .vercelignore)
-    ├── package.json
-    ├── sanity.config.ts
-    └── schemas/
+├── components/ (10)
+│   ├── AppHeader.vue           ← Mega-dropdown products nav
+│   ├── AppFooter.vue
+│   ├── ProductCard.vue         ← Single color + brand + price
+│   ├── LanguageSwitcher.vue    ← 5 langs (AR hidden)
+│   ├── CartDrawer.vue
+│   ├── LegalSections.vue       ← Structured legal with TOC
+│   ├── TurnstileWidget.vue
+│   ├── CookieConsent.vue
+│   └── DeleteAccountModal.vue
+│
+├── cms/ (Sanity Studio v5.20.0)
+│   ├── schemas/ (16 schemas — no colorVariant)
+│   │   ├── product.ts          ← System B: color/images/stock direct
+│   │   ├── category.ts, brand.ts
+│   │   ├── faq.ts, article.ts, landingPage.ts
+│   │   ├── order.ts, contactMessage.ts
+│   │   ├── promoCode.ts, testimonial.ts
+│   │   ├── shippingMethod.ts, paymentMethod.ts
+│   │   ├── homePage.ts, aboutPage.ts, contactPage.ts
+│   │   ├── legalPages.ts
+│   │   └── siteSettings.ts
+│   ├── sanity.config.ts        ← Plugins: languageFilter, media, assist, colorInput
+│   └── structure/deskStructure ← Products by type + brand filters
+│
+├── server/
+│   ├── api/auth/               ← login, register, google OAuth, me
+│   ├── api/cart/               ← check-stock, validate (System B: no variants)
+│   ├── api/orders/             ← create (System B: direct product.stock)
+│   ├── api/contact.post.ts
+│   ├── api/shipping/ + payment/
+│   ├── api/places/             ← Google autocomplete
+│   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang
+│   ├── middleware/security.ts  ← CSP headers
+│   └── utils/                  ← rateLimit, verifyTurnstile
+│
+├── stores/auth.ts + cart.ts    ← Pinia + localStorage persist
+├── i18n/locales/               ← 6 files × 327 keys
+├── scripts/check-languages.mjs ← CI language check
+├── public/                     ← favicon.ico, logo.webp, poster.webp, robots.txt
+├── assets-reference/           ← QMWheel catalogue PDF
+├── tests/e2e/                  ← Playwright tests
+├── import-data/                ← Migration scripts (gitignored)
+└── competitor-research/        ← Internal study (gitignored)
 ```
 
-## Products from Catalogue (QMWHEEL)
-All 250W motor, hydraulic brakes:
+## Sanity CMS Content
+| Type | Count |
+|------|-------|
+| Products | 147 (System B: per color) |
+| Brands | 10 |
+| Categories | 11 |
+| FAQ | 22 |
+| Blog Articles | 6 |
+| Datasets | production + staging |
 
-| # | Model | Tire | Battery | Range | Feature | Colors |
-|---|-------|------|---------|-------|---------|--------|
-| 1 | V20Mini | 16" | 36V 13AH | 30-40km | Teenagers | Rose gold, Purple, Black, Green, Nardo Grey |
-| 2 | V20Pro | 20" | 48V 15.6AH | 40-50km | Bestseller, expandable seats | Black, Nardo gray, Dark gray |
-| 3 | V20Limited | 20" | 48V 18.2AH | 50-60km | Long seat | Black, Nardo gray, Dark gray, Brown |
-| 4 | S20Pro | 20" | 48V 18.2AH | 50-60km | Unique design seat | Black, Nardo gray, Dark gray |
-| 5 | V20Cross | 70/100-17" | 48V 22AH | 60-70km | Offroad + bluetooth speaker | — |
-| 6 | Q30 | 20" | 48V 15.6AH | 40-50km | FOLDABLE | Black, Nardo gray, White |
-| 7 | D50 | 20" | 48V 18.2AH | 50-60km | Lady friendly, removable saddle | Black, Green, Beige, Dark gray, Purple |
-| 8 | C28 | 20" | 48V 15.6AH | 40-50km | Lady friendly | Black, Rose gold, Green, Purple |
-| 9 | EB30 | 20" | 15.6AH x2 | 90-100km | Dual battery, basket | — |
-| 10 | V20Max | 24" | 48V 18.2AH | 50-60km | Tall riders (175cm+) | — |
-| 11 | V20Limited Pro | 20" | 48V 15.6AH x2 | 100km | Double battery, longest range | — |
+## SEO
+- Hreflang (6 langs) in HTML head ✅
+- Canonical URLs ✅
+- Product JSON-LD + BreadcrumbList ✅
+- FAQPage JSON-LD ✅
+- Article JSON-LD ✅
+- Organization + LocalBusiness JSON-LD ✅
+- WebSite JSON-LD ✅
+- Dynamic sitemap with hreflang ✅
+- Google Search Console indexed ✅
 
-Owner has additional products from other brands.
+## Security
+- CSP headers (no unsafe-eval)
+- Rate limiting per IP
+- Turnstile CAPTCHA (contact + checkout)
+- bcrypt 12 rounds
+- httpOnly cookies
+- Server-side price validation
+- 35 Sanity validation rules
+
+## Pending (needs external accounts)
+| Service | Purpose | Cost |
+|---------|---------|------|
+| GTM + GA4 | Analytics | Free |
+| Resend | Order confirmation emails | Free (100/day) |
+| Sentry | Error monitoring | Free (5000/month) |
+| Stripe | Online payments | Commission only |
+| Trustpilot | Customer reviews | Free (basic) |
+| Hotjar | Session recording | Free (1000/month) |
 
 ## Environment Variables
 ```
 SANITY_PROJECT_ID=2jvnjf0c
 SANITY_DATASET=production
-SANITY_TOKEN=                  ← For write operations (get from sanity.io manage)
-STRIPE_SECRET_KEY=             ← Phase 3
-NUXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
-DATABASE_URL=                  ← Phase 2 (Neon Postgres)
-RESEND_API_KEY=                ← Phase 3
-AUTH_SECRET=                   ← Phase 2
-NUXT_PUBLIC_SITE_URL=https://vitesse-eco.com
+SANITY_TOKEN=                  ← For write operations
+DATABASE_URL=                  ← Neon PostgreSQL
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_PLACES_API_KEY=
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+STRIPE_SECRET_KEY=             ← When ready
+RESEND_API_KEY=                ← When ready
+NUXT_PUBLIC_SITE_URL=https://vitesse-eco.fr
 ```
-
-## Reference Files in This Folder
-- `assets-reference/` — logo.png, poster.jpeg, catalouge.pdf (22 pages)
-- `i18n-reference/` — Complete translation files (146 keys each, all 4 languages, validated)
-- `sanity-schemas-reference/` — All 14 Sanity schemas (product, category, brand, promoCode, testimonial, siteSettings, homePage, aboutPage, contactPage, legalPages, localizedString, localizedText, colorVariant, seoFields)
