@@ -1,4 +1,4 @@
 {
   "extends": "./.nuxt/tsconfig.json",
-  "exclude": ["cms/dist", "cms/node_modules", "cms/.sanity"]
+  "exclude": ["cms/dist", "cms/node_modules", "cms/.sanity", "cms/plugins"]
 }
