@@ -39,14 +39,7 @@ export default defineNuxtConfig({
     ],
     defaultLocale: 'fr',
     strategy: 'prefix_except_default',
-    detectBrowserLanguage: {
-      useCookie: true,
-      cookieKey: 'i18n_redirected',
-      cookieSecure: process.env.NODE_ENV === 'production',
-      alwaysRedirect: false,
-      fallbackLocale: 'fr',
-      redirectOn: 'root',
-    },
+    detectBrowserLanguage: false, // Handled by custom LanguageBanner component
   },
 
   sanity: {

@@ -8,6 +8,7 @@
     </main>
     <AppFooter />
     <ClientOnly>
+      <LanguageBanner />
       <CartDrawer />
       <CookieConsent />
     </ClientOnly>

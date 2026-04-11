@@ -1,59 +1,67 @@
-export default defineNuxtPlugin((nuxtApp) => {
-  nuxtApp.hook('app:mounted', () => {
-    const cookie = useCookie('i18n_redirected')
+/**
+ * Smart language detection plugin.
+ * - Detects user's preferred language from browser/timezone
+ * - Stores detection in localStorage (NOT cookie — no redirect)
+ * - The LanguageBanner component reads this to show/hide the suggestion
+ * - Users in France (fr language or Paris timezone) → never prompted
+ */
+export default defineNuxtPlugin(() => {
+  // Already detected in this browser? Skip
+  if (localStorage.getItem('ve_lang_choice')) return
+  if (localStorage.getItem('ve_lang_detected')) return
 
-    // Only detect on first visit (no cookie set yet)
-    if (cookie.value) return
+  const supportedLocales = ['fr', 'en', 'es', 'nl', 'de', 'ar']
 
-    // Only on root path
-    if (window.location.pathname !== '/') return
+  // 1. Browser languages
+  const browserLangs = navigator.languages
+    ? [...navigator.languages]
+    : [navigator.language]
 
-    const supportedLocales = ['fr', 'en', 'es', 'nl', 'de', 'ar']
-
-    // 1. Device language (navigator.language / navigator.languages)
-    const browserLangs = navigator.languages
-      ? [...navigator.languages]
-      : [navigator.language]
-
-    let detectedLocale: string | null = null
-
-    for (const lang of browserLangs) {
-      const code = lang.split('-')[0].toLowerCase()
-      if (supportedLocales.includes(code)) {
-        detectedLocale = code
-        break
-      }
+  let detectedLocale: string | null = null
+  for (const lang of browserLangs) {
+    const code = lang.split('-')[0].toLowerCase()
+    if (supportedLocales.includes(code)) {
+      detectedLocale = code
+      break
     }
+  }
 
-    // 2. If no match from browser languages, try geolocation via timezone
-    if (!detectedLocale) {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
-      if (tz.startsWith('Europe/Madrid') || tz.startsWith('America/')) {
-        detectedLocale = 'es'
-      } else if (tz.startsWith('Europe/Amsterdam') || tz.startsWith('Europe/Brussels')) {
-        detectedLocale = 'nl'
-      } else if (tz.startsWith('Europe/Berlin') || tz.startsWith('Europe/Vienna') || tz.startsWith('Europe/Zurich')) {
-        detectedLocale = 'de'
-      } else if (tz.startsWith('Europe/London') || tz.startsWith('Australia') || tz.startsWith('Pacific/Auckland')) {
-        detectedLocale = 'en'
-      } else if (tz.startsWith('Asia/Riyadh') || tz.startsWith('Asia/Dubai') || tz.startsWith('Africa/Cairo') || tz.startsWith('Africa/Casablanca') || tz.startsWith('Asia/Baghdad') || tz.startsWith('Asia/Beirut')) {
-        detectedLocale = 'ar'
-      }
+  // 2. Timezone fallback
+  if (!detectedLocale) {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+    const tzMap: Record<string, string> = {
+      'Europe/Madrid': 'es',
+      'Europe/Amsterdam': 'nl', 'Europe/Brussels': 'nl',
+      'Europe/Berlin': 'de', 'Europe/Vienna': 'de', 'Europe/Zurich': 'de',
+      'Europe/London': 'en',
+      'Asia/Riyadh': 'ar', 'Asia/Dubai': 'ar', 'Africa/Cairo': 'ar', 'Africa/Casablanca': 'ar',
     }
-
-    // 3. Default to French
-    if (!detectedLocale) {
-      detectedLocale = 'fr'
+    for (const [tzPrefix, locale] of Object.entries(tzMap)) {
+      if (tz.startsWith(tzPrefix)) { detectedLocale = locale; break }
     }
+  }
 
-    // Set cookie first
-    cookie.value = detectedLocale
+  // 3. Default to French
+  if (!detectedLocale) detectedLocale = 'fr'
 
-    // Navigate to detected locale after hydration is fully complete
-    if (detectedLocale !== 'fr') {
-      setTimeout(() => {
-        navigateTo(`/${detectedLocale}`, { replace: true })
-      }, 100)
-    }
-  })
+  // If French → user is in target audience, no banner needed
+  if (detectedLocale === 'fr') {
+    localStorage.setItem('ve_lang_choice', 'fr')
+    return
+  }
+
+  // Check if user is likely in France despite non-FR browser language
+  // (e.g., expat with English browser in France)
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''
+  const isFranceTimezone = tz === 'Europe/Paris'
+  const hasFrInBrowserLangs = browserLangs.some(l => l.split('-')[0].toLowerCase() === 'fr')
+
+  if (isFranceTimezone && hasFrInBrowserLangs) {
+    // French speaker in France — no banner
+    localStorage.setItem('ve_lang_choice', 'fr')
+    return
+  }
+
+  // Store detected locale — LanguageBanner will show suggestion
+  localStorage.setItem('ve_lang_detected', detectedLocale)
 })
