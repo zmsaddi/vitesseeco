@@ -4,6 +4,7 @@ import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { LIMITS, isValidName, isAllowedCountry, isValidProductId } from '~/server/utils/validation'
 import { reservePromoUse, releasePromoUse } from '~/server/utils/promo'
 import { verify as verifyPriceLock, type SignedPriceSnapshot } from '~/server/utils/priceLock'
+import { getPaymentAdapter } from '~/server/payments/registry'
 import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/server/utils/types'
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
@@ -44,6 +45,16 @@ export default defineEventHandler(async (event) => {
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
   if (!body.shippingCode) throw createError({ statusCode: 400, message: 'Shipping method required' })
   if (!body.paymentCode) throw createError({ statusCode: 400, message: 'Payment method required' })
+
+  // P4-05: resolve the payment adapter before doing any DB work. An unknown or
+  // disabled code fails fast here instead of leaking through to inconsistent
+  // state. The adapter is consulted again later for validate() / prepareCheckout().
+  let paymentAdapter
+  try {
+    paymentAdapter = getPaymentAdapter(body.paymentCode)
+  } catch (err) {
+    throw createError({ statusCode: 400, message: (err as Error).message })
+  }
 
   // P3-05: verify price lock if provided. The lock is REQUIRED for non-trivial
   // orders — a missing lock indicates the client never went through

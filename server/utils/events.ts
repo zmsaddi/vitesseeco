@@ -36,6 +36,7 @@ export type EventType =
   | 'auth_password_reset_completed'
   | 'contact_form_submitted'
   | 'turnstile_failed'
+  | 'web_vital'
 
 export interface EventEntry {
   type: EventType
