@@ -93,7 +93,7 @@
                       :key="s.place_id"
                       type="button"
                       @mousedown.prevent="pickAddress(s)"
-                      class="w-full text-left px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
+                      class="w-full text-start px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
                     >
                       <Icon name="ph:map-pin" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" />
                       <span>{{ s.description }}</span>

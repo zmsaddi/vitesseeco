@@ -19,7 +19,7 @@
               <div class="space-y-2">
                 <button v-for="opt in usageOptions" :key="opt.value"
                   @click="usage = usage === opt.value ? '' : opt.value"
-                  class="w-full p-3 rounded-lg border text-left transition-colors flex items-center gap-2 text-sm"
+                  class="w-full p-3 rounded-lg border text-start transition-colors flex items-center gap-2 text-sm"
                   :class="usage === opt.value ? 'border-accent bg-accent/5 text-accent' : 'border-dark-tertiary text-text-secondary hover:border-dark-tertiary/80'">
                   <Icon :name="opt.icon" class="w-5 h-5 shrink-0" />
                   {{ opt.label }}
@@ -33,7 +33,7 @@
               <div class="space-y-2">
                 <button v-for="opt in budgetOptions" :key="opt.value"
                   @click="budget = budget === opt.value ? '' : opt.value"
-                  class="w-full p-2.5 rounded-lg border text-left transition-colors text-sm"
+                  class="w-full p-2.5 rounded-lg border text-start transition-colors text-sm"
                   :class="budget === opt.value ? 'border-accent bg-accent/5 text-accent' : 'border-dark-tertiary text-text-secondary'">
                   {{ opt.label }}
                 </button>
@@ -46,7 +46,7 @@
               <div class="space-y-2">
                 <button v-for="opt in heightOptions" :key="opt.value"
                   @click="height = height === opt.value ? '' : opt.value"
-                  class="w-full p-2.5 rounded-lg border text-left transition-colors text-sm"
+                  class="w-full p-2.5 rounded-lg border text-start transition-colors text-sm"
                   :class="height === opt.value ? 'border-accent bg-accent/5 text-accent' : 'border-dark-tertiary text-text-secondary'">
                   {{ opt.label }}
                 </button>
@@ -59,7 +59,7 @@
               <div class="space-y-2">
                 <button v-for="opt in rangeOptions" :key="opt.value"
                   @click="range = range === opt.value ? '' : opt.value"
-                  class="w-full p-2.5 rounded-lg border text-left transition-colors text-sm"
+                  class="w-full p-2.5 rounded-lg border text-start transition-colors text-sm"
                   :class="range === opt.value ? 'border-accent bg-accent/5 text-accent' : 'border-dark-tertiary text-text-secondary'">
                   {{ opt.label }}
                 </button>

@@ -26,7 +26,7 @@
         :key="s.place_id"
         type="button"
         @mousedown.prevent="selectSuggestion(s)"
-        class="w-full text-left px-4 py-3 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
+        class="w-full text-start px-4 py-3 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white transition-colors flex items-start gap-2"
       >
         <Icon name="ph:map-pin" class="w-4 h-4 shrink-0 mt-0.5 text-accent" />
         <span>{{ s.description }}</span>

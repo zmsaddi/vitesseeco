@@ -86,11 +86,11 @@
       <!-- Company Info + Copyright -->
       <div class="border-t border-dark-tertiary/50 mt-10 pt-6">
         <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-          <p class="text-text-secondary text-xs leading-relaxed text-center md:text-left">
+          <p class="text-text-secondary text-xs leading-relaxed text-center md:text-start">
             {{ $t('footer.company_line') }}<br class="hidden md:block" />
             {{ $t('footer.address_line') }}
           </p>
-          <div class="text-text-secondary text-sm shrink-0 text-center md:text-right">
+          <div class="text-text-secondary text-sm shrink-0 text-center md:text-end">
             <p>&copy; {{ new Date().getFullYear() }} Vitesse Eco. {{ $t('footer.rights') }}</p>
             <div class="flex gap-3 justify-center md:justify-end mt-2 text-xs">
               <NuxtLink :to="localePath('/politique-confidentialite')" class="hover:text-accent transition-colors">{{ $t('footer.privacy') }}</NuxtLink>

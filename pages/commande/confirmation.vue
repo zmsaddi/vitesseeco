@@ -13,7 +13,7 @@
       </p>
 
       <!-- Order summary card -->
-      <div class="card p-6 mt-6 text-left space-y-4">
+      <div class="card p-6 mt-6 text-start space-y-4">
         <div class="flex items-center gap-3 text-accent">
           <Icon name="ph:envelope-simple" class="w-5 h-5" />
           <span class="text-sm font-medium">{{ $t('checkout.email_confirmation') }}</span>

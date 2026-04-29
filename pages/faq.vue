@@ -25,7 +25,7 @@
         <div v-for="(faq, i) in filteredFaqs" :key="faq._id || i" class="card overflow-hidden">
           <button
             @click="toggleFaq(Number(i))"
-            class="w-full flex items-center justify-between p-5 text-left hover:bg-dark-secondary/50 transition-colors"
+            class="w-full flex items-center justify-between p-5 text-start hover:bg-dark-secondary/50 transition-colors"
           >
             <span class="font-medium text-white pr-4">{{ l(faq.question) }}</span>
             <Icon
@@ -108,11 +108,12 @@ function toggleFaq(index: number) {
   openIndex.value = openIndex.value === index ? null : index
 }
 
-// FAQPage JSON-LD
-useHead({
-  script: computed(() => {
-    if (!faqs.value?.length) return []
-    return [{
+// FAQPage JSON-LD — function-form useHead avoids the @unhead computed-in-array
+// dispose bug that broke /produits hard-refresh (see commit 3771166).
+useHead(() => {
+  if (!faqs.value?.length) return {}
+  return {
+    script: [{
       type: 'application/ld+json',
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -126,7 +127,7 @@ useHead({
           },
         })),
       }),
-    }]
-  }),
+    }],
+  }
 })
 </script>

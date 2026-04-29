@@ -36,7 +36,7 @@
         <table class="w-full text-sm min-w-[900px]">
           <thead>
             <tr class="border-b-2 border-accent/30">
-              <th class="text-left text-white p-3 font-display font-semibold sticky left-0 bg-primary z-10 min-w-[180px]">{{ $t('guide.model') }}</th>
+              <th class="text-start text-white p-3 font-display font-semibold sticky left-0 bg-primary z-10 min-w-[180px]">{{ $t('guide.model') }}</th>
               <th class="text-center text-text-secondary p-3 font-medium cursor-pointer hover:text-white" @click="sortBy = sortBy === 'price-asc' ? 'price-desc' : 'price-asc'">
                 {{ $t('guide.price') }} <Icon name="ph:caret-up-down" class="w-3 h-3 inline" />
               </th>
