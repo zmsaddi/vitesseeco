@@ -210,7 +210,8 @@
     "delete_consequence_2": "Your saved delivery addresses will be deleted",
     "delete_consequence_3": "You will lose access to your order tracking and history",
     "delete_consequence_4": "Your previous orders will be kept anonymously for our business records",
-    "delete_consequence_5": "This action is irreversible and cannot be undone"
+    "delete_consequence_5": "This action is irreversible and cannot be undone",
+    "tracking": "Tracking number"
   },
   "auth": {
     "login_title": "Log In",

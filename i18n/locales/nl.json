@@ -210,7 +210,8 @@
     "delete_consequence_2": "Je opgeslagen bezorgadressen worden verwijderd",
     "delete_consequence_3": "Je verliest de toegang tot het volgen en de geschiedenis van je bestellingen",
     "delete_consequence_4": "Je eerdere bestellingen worden anoniem bewaard in onze administratie",
-    "delete_consequence_5": "Deze actie is onomkeerbaar en kan niet ongedaan worden gemaakt"
+    "delete_consequence_5": "Deze actie is onomkeerbaar en kan niet ongedaan worden gemaakt",
+    "tracking": "Tracking nummer"
   },
   "auth": {
     "login_title": "Inloggen",

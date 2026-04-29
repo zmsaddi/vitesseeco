@@ -210,7 +210,8 @@
     "delete_consequence_2": "Ihre gespeicherten Lieferadressen werden gelöscht",
     "delete_consequence_3": "Sie verlieren den Zugang zu Ihrer Bestellverfolgung und -historie",
     "delete_consequence_4": "Ihre bisherigen Bestellungen werden anonymisiert in unseren Geschäftsunterlagen aufbewahrt",
-    "delete_consequence_5": "Diese Aktion ist unwiderruflich und kann nicht rückgängig gemacht werden"
+    "delete_consequence_5": "Diese Aktion ist unwiderruflich und kann nicht rückgängig gemacht werden",
+    "tracking": "Sendungsverfolgung"
   },
   "auth": {
     "login_title": "Anmelden",

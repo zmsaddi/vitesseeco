@@ -2,6 +2,7 @@ import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { isValidProductId, LIMITS } from '~/server/utils/validation'
 import type { SanityProductForCart, ValidatedCartItem, SanityShippingMethod } from '~/server/utils/types'
+import { sign as signPriceLock } from '~/server/utils/priceLock'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 20, windowMs: 60_000 })
@@ -80,5 +81,35 @@ export default defineEventHandler(async (event) => {
     if (m) { shippingMethod = m; shippingCost = (m.freeAbove && subtotal >= m.freeAbove) ? 0 : (m.price || 0) }
   }
 
-  return { items: validatedItems, subtotal, discount, shippingCost, shippingMethod, total: Math.max(0, subtotal - discount + shippingCost), promoValid, promoMessage, allValid: validatedItems.every(i => i.valid) }
+  const total = Math.max(0, subtotal - discount + shippingCost)
+
+  // P3-05: signed snapshot — orders/create.post.ts will refuse to commit unless
+  // this exact payload (with valid signature, not expired) is presented.
+  const lockableItems = validatedItems
+    .filter((i) => i.valid)
+    .map((i) => ({ productId: i.productId, price: i.price, quantity: i.quantity }))
+  const priceLock = lockableItems.length > 0
+    ? signPriceLock({
+        items: lockableItems,
+        subtotal,
+        shippingCost,
+        discount,
+        total,
+        promoCode: (promoValid && body.promoCode) ? body.promoCode.toUpperCase().trim() : null,
+        shippingCode: body.shippingCode || null,
+      })
+    : null
+
+  return {
+    items: validatedItems,
+    subtotal,
+    discount,
+    shippingCost,
+    shippingMethod,
+    total,
+    promoValid,
+    promoMessage,
+    allValid: validatedItems.every(i => i.valid),
+    priceLock,
+  }
 })

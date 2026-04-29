@@ -210,7 +210,8 @@
     "delete_consequence_2": "Tus direcciones de entrega guardadas se eliminarán",
     "delete_consequence_3": "Perderás el acceso al seguimiento y al historial de tus pedidos",
     "delete_consequence_4": "Tus pedidos anteriores se conservarán de forma anónima en nuestros registros",
-    "delete_consequence_5": "Esta acción es irreversible y no se puede deshacer"
+    "delete_consequence_5": "Esta acción es irreversible y no se puede deshacer",
+    "tracking": "Número de seguimiento"
   },
   "auth": {
     "login_title": "Iniciar Sesión",

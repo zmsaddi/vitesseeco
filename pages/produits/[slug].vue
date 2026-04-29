@@ -228,6 +228,27 @@
         {{ $t('product.add_to_cart') }} ✓
       </div>
     </Transition>
+
+    <!-- P3-02: sticky mobile CTA — keeps add-to-cart reachable while scrolling
+         specs/description. Hidden on lg+ where the sidebar already keeps it
+         visible. Padding-safe-area for iPhones with home indicator. -->
+    <div
+      v-if="product && product.stock > 0"
+      class="lg:hidden fixed bottom-0 left-0 right-0 z-banner bg-primary/95 backdrop-blur-md border-t border-dark-tertiary px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-2xl"
+    >
+      <div class="flex-1 min-w-0">
+        <p class="text-text-secondary text-xs truncate">{{ l(product.name) }}</p>
+        <p class="text-accent font-bold text-base">{{ product.price }}€</p>
+      </div>
+      <button
+        @click="addToCart"
+        class="btn-primary btn-sm shrink-0 flex items-center gap-2"
+        :aria-label="$t('product.add_to_cart')"
+      >
+        <Icon name="ph:shopping-cart" class="w-4 h-4" />
+        {{ $t('product.add_to_cart') }}
+      </button>
+    </div>
   </div>
 </template>
 

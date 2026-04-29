@@ -3,6 +3,7 @@ import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { LIMITS, isValidName, isAllowedCountry, isValidProductId } from '~/server/utils/validation'
 import { reservePromoUse, releasePromoUse } from '~/server/utils/promo'
+import { verify as verifyPriceLock, type SignedPriceSnapshot } from '~/server/utils/priceLock'
 import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/server/utils/types'
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
@@ -30,6 +31,7 @@ export default defineEventHandler(async (event) => {
     promoCode?: string
     notes?: string
     turnstileToken?: string
+    priceLock?: SignedPriceSnapshot
   }>(event)
 
   // Verify Turnstile
@@ -42,6 +44,26 @@ export default defineEventHandler(async (event) => {
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
   if (!body.shippingCode) throw createError({ statusCode: 400, message: 'Shipping method required' })
   if (!body.paymentCode) throw createError({ statusCode: 400, message: 'Payment method required' })
+
+  // P3-05: verify price lock if provided. The lock is REQUIRED for non-trivial
+  // orders — a missing lock indicates the client never went through
+  // cart/validate (which is also where stock + promo are checked). For
+  // backward-compatibility during rollout, missing lock is allowed but logged
+  // so we can monitor adoption before tightening.
+  let lockedPrices: Map<string, number> | null = null
+  if (body.priceLock) {
+    const result = verifyPriceLock(body.priceLock)
+    if (!result.ok) {
+      throw createError({
+        statusCode: 409,
+        message: 'Cart prices have changed. Please refresh your cart and retry.',
+        data: { reason: result.reason },
+      })
+    }
+    lockedPrices = new Map(result.payload.items.map((i) => [i.productId, i.price]))
+  } else {
+    console.warn('[ORDER] no priceLock provided — accepting on backward-compat path')
+  }
   if (!body.shippingAddress?.address || !body.shippingAddress?.city) {
     throw createError({ statusCode: 400, message: 'Shipping address required' })
   }
@@ -85,7 +107,19 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 400, message: `${product.name?.fr} — only ${product.stock} left` })
     }
 
-    const price = product.price
+    // P3-05: prefer the locked price from the validated cart snapshot. This
+    // protects the customer from a catalog price bump between validate and
+    // create, AND protects us from a malicious client that tries to skip
+    // validate to bypass promo / max-quantity rules.
+    const lockedPrice = lockedPrices?.get(item.productId)
+    if (lockedPrices && lockedPrice === undefined) {
+      throw createError({
+        statusCode: 409,
+        message: 'Cart prices have changed. Please refresh your cart and retry.',
+        data: { reason: 'item_not_in_lock', productId: item.productId },
+      })
+    }
+    const price = lockedPrice ?? product.price
     subtotal += price * item.quantity
 
     validatedItems.push({
