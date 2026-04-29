@@ -53,8 +53,11 @@ const currentLabel = computed(() => {
   return data ? `${data.flag} ${data.short}` : '🌐'
 })
 
+// P1-03: Arabic is now exposed in the dropdown so RTL users can pick it
+// without needing to type /ar in the URL. The previous filter that hid it
+// is removed.
 const allLocales = computed(() =>
-  (locales.value as Array<{ code: string; name?: string }>).filter(l => l.code !== 'ar')
+  locales.value as Array<{ code: string; name?: string }>
 )
 
 function switchLang(code: string) {

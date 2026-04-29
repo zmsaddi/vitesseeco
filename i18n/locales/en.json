@@ -177,7 +177,11 @@
     "same_as_shipping": "Same as shipping address",
     "thank_you": "Thank you for your order!",
     "email_confirmation": "A confirmation email will be sent to you shortly",
-    "next_steps": "Next steps"
+    "next_steps": "Next steps",
+    "disabled_no_shipping": "Please select a shipping method",
+    "disabled_no_address": "Please complete your shipping address",
+    "disabled_no_payment": "Please select a payment method",
+    "disabled_no_turnstile": "Please complete the security check"
   },
   "account": {
     "title": "My Account",

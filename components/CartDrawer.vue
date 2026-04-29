@@ -24,7 +24,11 @@
           <!-- Header -->
           <div class="flex items-center justify-between p-6 border-b border-dark-tertiary">
             <h2 class="font-display text-xl font-bold">{{ $t('cart.title') }} ({{ cart.totalItems }})</h2>
-            <button @click="close" class="text-text-secondary hover:text-white transition-colors">
+            <button
+              @click="close"
+              class="text-text-secondary hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2"
+              :aria-label="$t('nav.close_menu')"
+            >
               <Icon name="ph:x" class="w-6 h-6" />
             </button>
           </div>
@@ -56,16 +60,21 @@
                 <p class="text-text-secondary text-xs">{{ l(item.colorName) }}</p>
                 <p class="text-accent font-bold text-sm mt-1">{{ item.price }}{{ $t('common.currency') }}</p>
               </div>
+              <!-- P1-06: every interactive element is now ≥44px hit area on mobile -->
               <div class="flex flex-col items-end gap-2">
-                <button @click="cart.removeItem(item.productId, item.sku)" :aria-label="$t('cart.remove')" class="text-text-secondary hover:text-red-400 transition-colors">
-                  <Icon name="ph:trash" class="w-4 h-4" />
+                <button
+                  @click="cart.removeItem(item.productId, item.sku)"
+                  :aria-label="$t('cart.remove')"
+                  class="text-text-secondary hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                >
+                  <Icon name="ph:trash" class="w-5 h-5" />
                 </button>
                 <div class="flex items-center gap-1">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
-                    :aria-label="$t('cart.quantity') + ' -'"
-                    class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
-                  >-</button>
+                    :aria-label="$t('cart.decrease_quantity')"
+                    class="w-11 h-11 rounded bg-dark-tertiary flex items-center justify-center text-base font-medium hover:bg-accent hover:text-primary transition-colors"
+                  >−</button>
                   <input
                     type="number"
                     :id="`cart-qty-${item.sku}`"
@@ -73,13 +82,13 @@
                     :value="item.quantity"
                     @change="cart.updateQuantity(item.productId, item.sku, Math.max(1, Math.min(10, Number(($event.target as HTMLInputElement).value))))"
                     min="1" max="10"
-                    class="text-white text-sm w-8 text-center bg-transparent border-none outline-none"
+                    class="text-white text-sm w-10 h-11 text-center bg-transparent border-none outline-none"
                     :aria-label="$t('cart.quantity')"
                   />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
-                    :aria-label="$t('cart.quantity') + ' +'"
-                    class="w-6 h-6 rounded bg-dark-tertiary flex items-center justify-center text-xs hover:bg-accent hover:text-primary transition-colors"
+                    :aria-label="$t('cart.increase_quantity')"
+                    class="w-11 h-11 rounded bg-dark-tertiary flex items-center justify-center text-base font-medium hover:bg-accent hover:text-primary transition-colors"
                   >+</button>
                 </div>
               </div>

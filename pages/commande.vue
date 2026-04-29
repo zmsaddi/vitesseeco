@@ -271,6 +271,11 @@
               <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-5 h-5 animate-spin" /></span>
               <span v-else>{{ $t('checkout.place_order') }}</span>
             </button>
+            <!-- P1-08: explicit reason when submit is disabled — never silent. -->
+            <p v-if="disabledReason" class="text-text-secondary text-xs text-center mt-2 flex items-center justify-center gap-1.5" role="status">
+              <Icon name="ph:info" class="w-3.5 h-3.5 shrink-0" />
+              <span>{{ disabledReason }}</span>
+            </p>
             <!-- Trust badges -->
             <div class="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-dark-tertiary mt-3">
               <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:lock-simple" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.secure_payment') }}</span>
@@ -345,6 +350,21 @@ const { data: paymentData } = useFetch('/api/payment/methods')
 const paymentMethods = computed(() => (paymentData.value as any)?.methods || [])
 const selectedPaymentData = computed(() => paymentMethods.value.find((m: any) => m.code === selectedPayment.value))
 
+// P1-01 / P1-02: auto-select when exactly one option is available so the user
+// is never blocked by a hidden default. Only auto-selects if nothing is yet
+// selected (respects manual choice on subsequent renders).
+watch(shippingMethods, (methods) => {
+  if (methods.length === 1 && !selectedShipping.value) {
+    selectedShipping.value = methods[0].code
+  }
+}, { immediate: true })
+
+watch(paymentMethods, (methods) => {
+  if (methods.length === 1 && !selectedPayment.value) {
+    selectedPayment.value = methods[0].code
+  }
+}, { immediate: true })
+
 // Addresses
 const savedAddresses = ref<any[]>([])
 onMounted(async () => {
@@ -385,6 +405,26 @@ const canOrder = computed(() => {
   if (isPickup.value) return true
   if (selectedAddressId.value && !showNewForm.value) return true
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
+})
+
+// P1-08: explicit reason shown to the user when the submit button is disabled.
+// Replaces the previous "silently disabled" UX where the customer could not
+// tell which step was incomplete.
+const disabledReason = computed(() => {
+  if (canOrder.value) return ''
+  if (!selectedShipping.value) return t('checkout.disabled_no_shipping')
+  if (!isPickup.value) {
+    if (showNewForm.value) {
+      const missing = ['firstName', 'lastName', 'address', 'city', 'postalCode']
+        .filter((k) => !(addr as any)[k]?.trim())
+      if (missing.length) return t('checkout.disabled_no_address')
+    } else if (!selectedAddressId.value) {
+      return t('checkout.disabled_no_address')
+    }
+  }
+  if (!selectedPayment.value) return t('checkout.disabled_no_payment')
+  if (!turnstileToken.value) return t('checkout.disabled_no_turnstile')
+  return ''
 })
 
 // Confirmation step before placing order

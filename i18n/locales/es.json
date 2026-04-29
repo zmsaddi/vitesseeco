@@ -177,7 +177,11 @@
     "same_as_shipping": "Igual que la dirección de envío",
     "thank_you": "¡Gracias por tu pedido!",
     "email_confirmation": "Recibirás un email de confirmación próximamente",
-    "next_steps": "Próximos pasos"
+    "next_steps": "Próximos pasos",
+    "disabled_no_shipping": "Selecciona un método de envío",
+    "disabled_no_address": "Completa tu dirección de envío",
+    "disabled_no_payment": "Selecciona un método de pago",
+    "disabled_no_turnstile": "Completa la verificación de seguridad"
   },
   "account": {
     "title": "Mi Cuenta",

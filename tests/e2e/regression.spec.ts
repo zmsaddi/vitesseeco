@@ -1,0 +1,117 @@
+/**
+ * Regression guards (P1-09).
+ *
+ * Each test here protects against a bug we already fixed and want to prevent
+ * from recurring:
+ *  - hard-refresh dispose error on /produits with filters (commit 3771166)
+ *  - out-of-stock products hidden by default + toggle (commit 48ee37a)
+ *  - Arabic routes work and the language switcher exposes AR (P1-03)
+ *  - cart drawer touch targets are >= 44px on mobile (P1-06)
+ *  - cookie banner is compact on mobile (P1-05)
+ */
+import { test, expect, devices } from '@playwright/test'
+
+const HOME = '/'
+const PRODUCTS = '/produits'
+
+test.describe('Hard refresh — no dispose error (regression for unhead bug)', () => {
+  test('produits page loads cleanly with filter query params', async ({ page }) => {
+    const consoleErrors: string[] = []
+    page.on('pageerror', (err) => consoleErrors.push(String(err)))
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text())
+    })
+
+    await page.goto(`${PRODUCTS}?type=bike&brand=QMWheel`, { waitUntil: 'networkidle' })
+
+    const dispose = consoleErrors.filter((e) => /dispose/i.test(e))
+    expect(dispose, `expected zero "dispose" errors, got:\n${dispose.join('\n')}`).toHaveLength(0)
+    await expect(page.locator('h1')).toBeVisible()
+  })
+})
+
+test.describe('Out-of-stock filter behaviour', () => {
+  test('out-of-stock items are hidden by default and revealed by toggle', async ({ page }) => {
+    await page.goto(PRODUCTS, { waitUntil: 'networkidle' })
+    await page.locator('h1').waitFor()
+
+    // Read the result count before toggle
+    const before = await page.locator('text=/\\d+\\s*\\/\\s*\\d+/').first().textContent()
+
+    // Toggle "show out of stock"
+    const toggle = page.getByRole('checkbox').first()
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.check()
+      await page.waitForTimeout(300)
+      const after = await page.locator('text=/\\d+\\s*\\/\\s*\\d+/').first().textContent()
+      expect(after).not.toBe(before)
+    }
+  })
+})
+
+test.describe('Arabic routing + language switcher exposure', () => {
+  test('AR home loads and html dir is rtl', async ({ page }) => {
+    await page.goto('/ar', { waitUntil: 'domcontentloaded' })
+    const dir = await page.locator('html').getAttribute('dir')
+    expect(dir).toBe('rtl')
+  })
+
+  test('language switcher includes Arabic option (P1-03)', async ({ page }) => {
+    await page.goto(HOME)
+    // Open the switcher (selector is by visible flag/text content)
+    const switcherButton = page.locator('button').filter({ hasText: /FR|EN|ES|NL|DE|AR/ }).first()
+    await switcherButton.click()
+    await expect(page.locator('button').filter({ hasText: /العربية|Arabic|AR/i }).first()).toBeVisible()
+  })
+})
+
+test.describe('Mobile UX — touch targets and overlays (P1-05/P1-06)', () => {
+  test.use({ ...devices['iPhone 13'] })
+
+  test('cart drawer +/− buttons are >= 44px (P1-06)', async ({ page }) => {
+    await page.goto(PRODUCTS)
+    await page.locator('h1').waitFor()
+
+    // Click the first product to land on its detail page
+    const firstCard = page.locator('a[href*="/produits/"]').first()
+    if (!(await firstCard.isVisible().catch(() => false))) test.skip(true, 'no product cards visible')
+    await firstCard.click()
+
+    // Add to cart
+    const addBtn = page.getByRole('button').filter({ hasText: /panier|cart|ajouter|add/i }).first()
+    if (!(await addBtn.isVisible().catch(() => false))) test.skip(true, 'no add-to-cart button')
+    await addBtn.click()
+
+    // The drawer opens — find +/− buttons by aria-label and check size
+    const inc = page.getByRole('button', { name: /increase|augment|↑|\+/i }).first()
+    if (await inc.isVisible().catch(() => false)) {
+      const box = await inc.boundingBox()
+      expect(box?.width || 0).toBeGreaterThanOrEqual(44)
+      expect(box?.height || 0).toBeGreaterThanOrEqual(44)
+    }
+  })
+
+  test('cookie banner does not consume more than 30% of viewport height (P1-05)', async ({ page }) => {
+    // Force the cookie banner to show by clearing storage and reloading
+    await page.context().clearCookies()
+    await page.goto(HOME)
+    await page.evaluate(() => localStorage.removeItem('cookie_consent'))
+    await page.reload({ waitUntil: 'networkidle' })
+
+    // Banner appears after a small delay
+    const banner = page.locator('[class*="cookie"], [class*="legal.cookies"]').first()
+    // Fallback: look for the OK button as a marker of the banner
+    const ok = page.getByRole('button', { name: /^ok$/i }).first()
+    if (!(await ok.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip(true, 'cookie banner not surfaced in this run')
+    }
+
+    const viewport = page.viewportSize()
+    const banner2 = page.locator('div').filter({ has: ok }).first()
+    const box = await banner2.boundingBox().catch(() => null)
+    if (viewport && box) {
+      const ratio = box.height / viewport.height
+      expect(ratio, `banner takes ${Math.round(ratio * 100)}% of viewport`).toBeLessThanOrEqual(0.3)
+    }
+  })
+})

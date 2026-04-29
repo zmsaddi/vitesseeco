@@ -177,7 +177,11 @@
     "same_as_shipping": "Identisch mit der Lieferadresse",
     "thank_you": "Vielen Dank für Ihre Bestellung!",
     "email_confirmation": "Eine Bestätigungs-E-Mail wird Ihnen in Kürze zugesandt",
-    "next_steps": "Nächste Schritte"
+    "next_steps": "Nächste Schritte",
+    "disabled_no_shipping": "Wählen Sie eine Versandart",
+    "disabled_no_address": "Vervollständigen Sie Ihre Lieferadresse",
+    "disabled_no_payment": "Wählen Sie eine Zahlungsmethode",
+    "disabled_no_turnstile": "Bitte führen Sie die Sicherheitsprüfung durch"
   },
   "account": {
     "title": "Mein Konto",

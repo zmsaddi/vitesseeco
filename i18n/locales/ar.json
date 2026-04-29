@@ -177,7 +177,11 @@
     "same_as_shipping": "نفس عنوان الشحن",
     "thank_you": "شكراً لطلبك!",
     "email_confirmation": "سيتم إرسال بريد تأكيد إليك قريباً",
-    "next_steps": "الخطوات التالية"
+    "next_steps": "الخطوات التالية",
+    "disabled_no_shipping": "اختر طريقة شحن",
+    "disabled_no_address": "أكمل عنوان الشحن",
+    "disabled_no_payment": "اختر طريقة دفع",
+    "disabled_no_turnstile": "يرجى إكمال التحقق الأمني"
   },
   "account": {
     "title": "حسابي",

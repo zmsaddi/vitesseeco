@@ -115,9 +115,22 @@ const footerDescription = computed(() => {
   if (siteSettings.value?.footerText) return l(siteSettings.value.footerText)
   return null
 })
-const instagramUrl = computed(() => siteSettings.value?.socialLinks?.instagram || '#')
-const facebookUrl = computed(() => siteSettings.value?.socialLinks?.facebook || '#')
-const tiktokUrl = computed(() => siteSettings.value?.socialLinks?.tiktok || '#')
+// P1-07: only render a social icon if a real URL is configured. The previous
+// fallback of '#' produced visible icons that did nothing when clicked.
+function realUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed || trimmed === '#') return null
+  try {
+    new URL(trimmed)
+    return trimmed
+  } catch {
+    return null
+  }
+}
+const instagramUrl = computed(() => realUrl(siteSettings.value?.socialLinks?.instagram))
+const facebookUrl = computed(() => realUrl(siteSettings.value?.socialLinks?.facebook))
+const tiktokUrl = computed(() => realUrl(siteSettings.value?.socialLinks?.tiktok))
 
 const newsletterEmail = ref('')
 const newsletterSubmitted = ref(false)

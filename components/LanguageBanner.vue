@@ -7,7 +7,10 @@
     leave-from-class="translate-y-0 opacity-100"
     leave-to-class="-translate-y-full opacity-0"
   >
-    <div v-if="show" class="fixed top-0 left-0 right-0 z-[60] bg-dark-secondary/95 backdrop-blur-sm border-b border-dark-tertiary shadow-xl">
+    <!-- P1-04: positioned below header (top-16) with lower z-index so the
+         header stays clickable. Was top-0 z-[60] which covered the language
+         switcher and other header controls. -->
+    <div v-if="show" class="fixed top-16 left-0 right-0 z-30 bg-dark-secondary/95 backdrop-blur-sm border-b border-dark-tertiary shadow-xl">
       <div class="container-custom py-3 flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 min-w-0">
           <span class="text-lg shrink-0">{{ detectedFlag }}</span>
