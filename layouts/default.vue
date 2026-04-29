@@ -11,6 +11,7 @@
       <LanguageBanner />
       <CartDrawer />
       <CookieConsent />
+      <AppToast />
     </ClientOnly>
   </div>
 </template>

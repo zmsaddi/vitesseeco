@@ -223,7 +223,7 @@
       leave-from-class="translate-y-0 opacity-100"
       leave-to-class="translate-y-4 opacity-0"
     >
-      <div v-if="showAddedToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-accent text-primary px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
+      <div v-if="showAddedToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-toast bg-accent text-primary px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
         <Icon name="ph:check-circle-fill" class="w-5 h-5" />
         {{ $t('product.add_to_cart') }} ✓
       </div>

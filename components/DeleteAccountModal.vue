@@ -7,7 +7,7 @@
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div v-if="visible" class="fixed inset-0 z-modal flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" @click="cancel" />
 
       <Transition

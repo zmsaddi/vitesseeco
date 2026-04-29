@@ -7,7 +7,7 @@
     leave-from-class="opacity-100"
     leave-to-class="opacity-0"
   >
-    <div v-if="isOpen" class="fixed inset-0 z-50">
+    <div v-if="isOpen" class="fixed inset-0 z-modal">
       <div class="absolute inset-0 bg-black/60" @click="close" />
       <Transition
         enter-active-class="transition duration-300 ease-out"

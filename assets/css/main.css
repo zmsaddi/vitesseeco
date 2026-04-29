@@ -2,23 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ──────────────────────────────────────────────────────────────────
+   DESIGN SYSTEM (Phase 2)
+   Vitesse Eco — dark, technical, electric green identity preserved.
+   Tokens live in tailwind.config.ts; this file composes them into
+   component classes.
+   ────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  /* ─── P2-04: Unified focus-visible ring (keyboard only) ─────────── */
+  /* Default browser :focus is too noisy on click; we use :focus-visible
+     so the ring only shows for keyboard navigation. accent color on
+     primary background gives a 8.9:1 contrast (AAA). */
+  :focus-visible {
+    outline: 2px solid #4ADE80;       /* accent */
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Reset noisy click outline */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
 @layer components {
+  /* ─── Buttons (P2-07) ────────────────────────────────────────────── */
+  /* Shared button base — apply variant (.btn-primary etc.) on top.
+     Includes min-height for touch targets and consistent transitions. */
+  .btn-base {
+    @apply inline-flex items-center justify-center font-semibold rounded-lg
+           transition-colors duration-normal ease-soft
+           min-h-touch px-6 py-3
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
   .btn-primary {
-    @apply bg-accent text-primary font-semibold px-6 py-3 rounded-lg hover:bg-green-300 transition-colors duration-200 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-primary;
+    @apply btn-base bg-accent text-primary hover:bg-green-300;
   }
 
   .btn-secondary {
-    @apply bg-dark-secondary text-white font-semibold px-6 py-3 rounded-lg hover:bg-dark-tertiary transition-colors duration-200 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-primary;
+    @apply btn-base bg-dark-secondary text-white hover:bg-dark-tertiary;
   }
 
   .btn-outline {
-    @apply border-2 border-accent text-accent font-semibold px-6 py-3 rounded-lg hover:bg-accent hover:text-primary transition-colors duration-200 focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-primary;
+    @apply btn-base border-2 border-accent text-accent hover:bg-accent hover:text-primary;
   }
 
+  .btn-danger {
+    @apply btn-base bg-danger text-white hover:bg-red-700;
+  }
+
+  .btn-ghost {
+    @apply btn-base bg-transparent text-text-secondary hover:bg-dark-secondary hover:text-white;
+  }
+
+  /* Loading state — used by Button component with prop. */
+  .btn-loading {
+    @apply pointer-events-none cursor-wait;
+  }
+
+  /* Smaller variants for compact UIs (e.g., cart drawer footer) */
+  .btn-sm {
+    @apply px-4 py-2 text-sm;
+  }
+  .btn-xs {
+    @apply px-3 py-1.5 text-xs min-h-0;
+  }
+
+  /* ─── Inputs (P2-08) ─────────────────────────────────────────────── */
+  .input-field {
+    @apply w-full bg-dark-secondary border border-dark-tertiary text-white
+           rounded-lg px-4 py-3
+           placeholder-text-secondary
+           transition-colors duration-normal ease-soft
+           focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .input-error {
+    @apply border-danger focus:ring-danger;
+  }
+
+  .input-help {
+    @apply text-text-secondary text-xs mt-1;
+  }
+
+  .input-error-text {
+    @apply text-danger text-xs mt-1 flex items-center gap-1;
+  }
+
+  .input-label {
+    @apply block text-sm font-medium text-white mb-1.5;
+  }
+
+  /* ─── Cards ──────────────────────────────────────────────────────── */
   .card {
-    @apply bg-dark-secondary rounded-xl overflow-hidden border border-dark-tertiary/50 transition-all duration-300;
+    @apply bg-dark-secondary rounded-xl overflow-hidden
+           border border-dark-tertiary/50
+           transition-all duration-slow ease-soft;
   }
 
+  .card-interactive {
+    @apply card hover:border-dark-tertiary cursor-pointer;
+  }
+
+  /* ─── Page primitives ────────────────────────────────────────────── */
   .section-title {
     @apply font-display text-3xl md:text-4xl font-bold text-white;
   }
@@ -27,31 +116,63 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
   }
 
+  /* ─── Badges ─────────────────────────────────────────────────────── */
+  .badge-base {
+    @apply text-xs font-bold px-2 py-1 rounded-full inline-flex items-center gap-1;
+  }
+
   .badge-promo {
-    @apply bg-accent text-primary text-xs font-bold px-2 py-1 rounded-full;
+    @apply badge-base bg-accent text-primary;
   }
 
   .badge-new {
-    @apply bg-gold text-primary text-xs font-bold px-2 py-1 rounded-full;
+    @apply badge-base bg-gold text-primary;
   }
 
   .badge-bestseller {
-    @apply bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg;
+    @apply badge-base bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg;
   }
 
-  .input-field {
-    @apply w-full bg-dark-secondary border border-dark-tertiary text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent placeholder-text-secondary;
+  .badge-stock-low {
+    @apply badge-base bg-gold/20 text-gold;
   }
 
+  .badge-stock-out {
+    @apply badge-base bg-danger/20 text-red-400;
+  }
+
+  /* ─── Skeleton loader (P2-09) ─────────────────────────────────────── */
+  .skeleton {
+    @apply animate-pulse bg-dark-tertiary rounded;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-3;
+  }
+
+  .skeleton-text-lg {
+    @apply skeleton h-5;
+  }
+
+  /* ─── Form helpers ────────────────────────────────────────────────── */
   .required::after {
     content: ' *';
-    @apply text-red-400;
+    @apply text-danger;
   }
 }
 
+@layer utilities {
+  /* Convenience for keyboard-only focus rings on custom interactive
+     elements (cards, etc.) where outline is undesirable. */
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary focus-visible:outline-none;
+  }
+}
+
+/* ─── Page transitions (Nuxt) ─────────────────────────────────────────── */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.15s ease;
+  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .page-enter-from,
