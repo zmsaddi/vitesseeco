@@ -25,6 +25,7 @@
     "type_parts": "Spare Parts",
     "type_parts_desc": "Keep your ride in peak condition",
     "type_kids": "Kids'",
+    "type_other": "Other",
     "type_kids_desc": "Guaranteed smiles for your little drivers"
   },
   "home": {
@@ -58,7 +59,7 @@
     "sort_name": "Name A-Z",
     "sort_newest": "Newest",
     "all_categories": "All categories",
-    "price_range": "Price range",
+    "price_range": "Price",
     "tire_size": "Tire size",
     "range_km": "Range (km)",
     "no_results": "No bikes match your criteria.",
@@ -66,7 +67,6 @@
     "search": "Search a product...",
     "brand": "Brand",
     "all_brands": "All brands",
-    "price_range": "Price",
     "all_prices": "All prices",
     "results": "products",
     "load_more": "Load more",
@@ -106,7 +106,6 @@
     "highlights": "Key Features",
     "watch_video": "Watch product video",
     "reviews": "Customer Reviews",
-    "max_load": "Max load",
     "gears": "Gears",
     "gross_weight": "Gross weight",
     "packing_size": "Package size",

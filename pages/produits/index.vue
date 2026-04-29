@@ -66,11 +66,7 @@
               <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.price_range') }}</label>
               <select v-model="selectedPrice" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_prices') }}</option>
-                <option value="0-50">&lt; 50€</option>
-                <option value="50-200">50 — 200€</option>
-                <option value="200-800">200 — 800€</option>
-                <option value="800-1500">800 — 1 500€</option>
-                <option value="1500+">1 500€ +</option>
+                <option v-for="b in priceBuckets" :key="b.value" :value="b.value">{{ b.label }}</option>
               </select>
             </div>
 
@@ -88,7 +84,7 @@
                 <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.tire_size') }}</label>
                 <select v-model="selectedTire" class="input-field text-sm py-2">
                   <option value="">{{ $t('products.all_sizes') }}</option>
-                  <option v-for="s in tireSizes" :key="s" :value="s">{{ s }}</option>
+                  <option v-for="s in availableTireSizes" :key="s" :value="s">{{ s }}</option>
                 </select>
               </div>
             </template>
@@ -236,14 +232,54 @@ const pageSubtitle = computed(() => {
   return m[selectedType.value] || t('products.subtitle')
 })
 
-const typeFilters = computed(() => [
-  { value: 'bike', icon: '🚲', label: t('nav.type_bikes') },
-  { value: 'spare_part', icon: '🔧', label: t('nav.type_parts') },
-  { value: 'accessory', icon: '🎒', label: t('nav.type_accessories') },
-  { value: 'kids_car', icon: '🧸', label: t('nav.type_kids') },
-])
+const typeMeta: Record<string, { icon: string; label: () => string }> = {
+  bike:        { icon: '🚲', label: () => t('nav.type_bikes') },
+  spare_part:  { icon: '🔧', label: () => t('nav.type_parts') },
+  accessory:   { icon: '🎒', label: () => t('nav.type_accessories') },
+  kids_car:    { icon: '🧸', label: () => t('nav.type_kids') },
+  other:       { icon: '📦', label: () => t('nav.type_other') },
+}
+const typeFilters = computed(() => {
+  const present = new Set(stockFilteredProducts.value.map((p: any) => p.productType).filter(Boolean))
+  return Object.keys(typeMeta)
+    .filter(k => present.has(k))
+    .map(k => ({ value: k, icon: typeMeta[k].icon, label: typeMeta[k].label() }))
+})
 
-const tireSizes = ['16"', '20"', '24"', '70/100-17"']
+const priceBuckets = computed(() => {
+  let list = stockFilteredProducts.value
+  if (selectedType.value) list = list.filter((p: any) => p.productType === selectedType.value)
+  const prices = list.map((p: any) => p.price).filter((n: any) => typeof n === 'number' && n > 0)
+  if (prices.length < 2) return []
+  const max = Math.max(...prices)
+  // Round bucket edges to nice numbers based on overall max
+  const fmt = (n: number) => `${Math.round(n).toLocaleString('fr-FR')}€`
+  let edges: number[]
+  if (max < 100) edges = [25, 50, 75]
+  else if (max < 500) edges = [50, 150, 300]
+  else if (max < 2000) edges = [200, 800, 1500]
+  else edges = [500, 1500, 3000]
+  const buckets = [
+    { value: `0-${edges[0]}`, label: `< ${fmt(edges[0])}` },
+    { value: `${edges[0]}-${edges[1]}`, label: `${fmt(edges[0])} — ${fmt(edges[1])}` },
+    { value: `${edges[1]}-${edges[2]}`, label: `${fmt(edges[1])} — ${fmt(edges[2])}` },
+    { value: `${edges[2]}+`, label: `${fmt(edges[2])} +` },
+  ]
+  // Drop empty buckets (no products in range)
+  return buckets.filter(b => {
+    const [min, maxStr] = b.value.split('-')
+    const minN = parseFloat(min)
+    const maxN = maxStr === '' || b.value.endsWith('+') ? Infinity : parseFloat(maxStr)
+    return prices.some((p: number) => p >= minN && p <= maxN)
+  })
+})
+
+const availableTireSizes = computed(() => {
+  // Tire-size filter UI is only rendered for bikes (or when no type is selected)
+  const bikes = stockFilteredProducts.value.filter((p: any) => p.productType === 'bike')
+  const sizes = [...new Set(bikes.map((p: any) => p.specifications?.tireSize).filter(Boolean))] as string[]
+  return sizes.sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0))
+})
 
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stock desc, sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,

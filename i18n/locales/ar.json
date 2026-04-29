@@ -25,6 +25,7 @@
     "type_parts": "قطع غيار",
     "type_parts_desc": "حافظ على دراجتك في أفضل حالة",
     "type_kids": "أطفال",
+    "type_other": "أخرى",
     "type_kids_desc": "ابتسامات مضمونة لسائقيك الصغار"
   },
   "home": {
@@ -58,7 +59,7 @@
     "sort_name": "الاسم أ-ي",
     "sort_newest": "الأحدث",
     "all_categories": "جميع الفئات",
-    "price_range": "نطاق السعر",
+    "price_range": "السعر",
     "tire_size": "حجم الإطار",
     "range_km": "المدى (كم)",
     "no_results": "لا توجد دراجات تطابق معاييرك.",
@@ -66,7 +67,6 @@
     "search": "ابحث عن منتج...",
     "brand": "العلامة التجارية",
     "all_brands": "كل العلامات",
-    "price_range": "السعر",
     "all_prices": "كل الأسعار",
     "results": "منتجات",
     "load_more": "تحميل المزيد",
@@ -106,7 +106,6 @@
     "highlights": "المميزات الرئيسية",
     "watch_video": "شاهد فيديو المنتج",
     "reviews": "آراء العملاء",
-    "max_load": "الحمولة القصوى",
     "gears": "السرعات",
     "gross_weight": "الوزن الإجمالي",
     "packing_size": "حجم العبوة",

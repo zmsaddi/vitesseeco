@@ -223,15 +223,13 @@ const recommendations = computed(() => {
   else if (budget.value === 'mid') filtered = filtered.filter(p => p.price >= 1100 && p.price <= 1500)
   else if (budget.value === 'high') filtered = filtered.filter(p => p.price > 1500)
 
-  // Height filter — by tire size
-  if (height.value === 'short') {
-    const m = filtered.filter(p => p.specifications?.tireSize?.includes('16'))
-    if (m.length) filtered = m
-  } else if (height.value === 'tall') {
-    const m = filtered.filter(p => {
-      const ts = p.specifications?.tireSize || ''
-      return ts.includes('24') || ts.includes('26') || ts.includes('27')
-    })
+  // Height filter — by leading numeric tire size (handles any size: 12", 14", 16", 17", 20", 24"...)
+  if (height.value) {
+    const tireNum = (p: any) => parseFloat(p.specifications?.tireSize || '0') || 0
+    let m: any[] = []
+    if (height.value === 'short') m = filtered.filter(p => { const n = tireNum(p); return n > 0 && n < 18 })
+    else if (height.value === 'medium') m = filtered.filter(p => { const n = tireNum(p); return n >= 18 && n <= 22 })
+    else if (height.value === 'tall') m = filtered.filter(p => tireNum(p) > 22)
     if (m.length) filtered = m
   }
 

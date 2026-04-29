@@ -25,6 +25,7 @@
     "type_parts": "Repuestos",
     "type_parts_desc": "Mantén tu bici en plena forma",
     "type_kids": "Niños",
+    "type_other": "Otros",
     "type_kids_desc": "Sonrisas garantizadas para tus pequeños pilotos"
   },
   "home": {
@@ -58,7 +59,7 @@
     "sort_name": "Nombre A-Z",
     "sort_newest": "Novedades",
     "all_categories": "Todas las categorías",
-    "price_range": "Rango de precios",
+    "price_range": "Precio",
     "tire_size": "Tamaño de neumáticos",
     "range_km": "Autonomía (km)",
     "no_results": "Ninguna bicicleta coincide con tus criterios.",
@@ -66,7 +67,6 @@
     "search": "Buscar un producto...",
     "brand": "Marca",
     "all_brands": "Todas las marcas",
-    "price_range": "Precio",
     "all_prices": "Todos los precios",
     "results": "productos",
     "load_more": "Cargar más",
@@ -106,7 +106,6 @@
     "highlights": "Puntos fuertes",
     "watch_video": "Ver vídeo del producto",
     "reviews": "Opiniones de clientes",
-    "max_load": "Carga máxima",
     "gears": "Velocidades",
     "gross_weight": "Peso bruto",
     "packing_size": "Tamaño del paquete",
