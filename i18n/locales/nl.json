@@ -380,5 +380,11 @@
     "all_models": "Bekijk de gedetailleerde specificaties op elke productpagina",
     "search": "Zoek een model...",
     "all_categories": "Alle categorieën"
+  },
+  "turnstile": {
+    "loading": "Beveiligingscontrole laden…",
+    "failed": "Beveiligingscontrole mislukt.",
+    "retry": "Opnieuw proberen",
+    "verified": "Geverifieerd"
   }
 }

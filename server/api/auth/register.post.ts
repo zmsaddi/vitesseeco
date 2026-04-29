@@ -41,8 +41,19 @@ export default defineEventHandler(async (event) => {
     customer = inserted
   } catch (e: any) {
     // Unique constraint violation (PostgreSQL code 23505)
+    // SEC-05 (P0-03): keep the message generic — directing the user to sign in
+    // or reset their password — rather than confirming that the address is
+    // registered. Timing is already similar between paths because both reach
+    // here only after the bcrypt hash above.
+    // TODO(P0-04 / P0-06): once Resend + password reset are wired, switch to
+    // returning a registration-shaped success and emailing the existing
+    // account holder ("someone tried to register with your email — reset
+    // password if it was you"). That fully closes the enumeration surface.
     if (e.code === '23505') {
-      throw createError({ statusCode: 409, message: 'Email already registered' })
+      throw createError({
+        statusCode: 409,
+        message: 'An account with this email already exists. Please sign in or use the password reset flow.',
+      })
     }
     throw e
   }

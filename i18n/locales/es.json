@@ -380,5 +380,11 @@
     "all_models": "Consulte las especificaciones detalladas en cada ficha de producto",
     "search": "Buscar un modelo...",
     "all_categories": "Todas las categorías"
+  },
+  "turnstile": {
+    "loading": "Verificación de seguridad en curso…",
+    "failed": "La verificación de seguridad falló.",
+    "retry": "Reintentar",
+    "verified": "Verificado"
   }
 }

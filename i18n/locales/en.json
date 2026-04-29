@@ -380,5 +380,11 @@
     "all_models": "See detailed specifications on each product page",
     "search": "Search a model...",
     "all_categories": "All categories"
+  },
+  "turnstile": {
+    "loading": "Security check loading…",
+    "failed": "Security check failed.",
+    "retry": "Retry",
+    "verified": "Verified"
   }
 }
