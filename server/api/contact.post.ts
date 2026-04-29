@@ -1,6 +1,7 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
+import { isValidEmail, normalizeEmail, LIMITS } from '~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
@@ -13,11 +14,15 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'All fields are required' })
   }
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
+  if (!isValidEmail(body.email)) {
     throw createError({ statusCode: 400, message: 'Invalid email' })
   }
 
-  if (body.message.length > 5000 || body.subject.length > 200 || body.name.length > 100) {
+  if (
+    body.message.length > LIMITS.MAX_MESSAGE_LENGTH ||
+    body.subject.length > LIMITS.MAX_SUBJECT_LENGTH ||
+    body.name.length > LIMITS.MAX_NAME_LENGTH
+  ) {
     throw createError({ statusCode: 400, message: 'Message too long' })
   }
 
@@ -42,7 +47,7 @@ export default defineEventHandler(async (event) => {
     await client.create({
       _type: 'contactMessage',
       name: body.name.trim(),
-      email: body.email.trim().toLowerCase(),
+      email: normalizeEmail(body.email),
       subject: body.subject.trim(),
       message: body.message.trim(),
       isRead: false,

@@ -2,6 +2,7 @@ import { useDB } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { isValidEmail, normalizeEmail, isValidName, isValidPassword, LIMITS } from '~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
@@ -14,13 +15,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing required fields' })
   }
 
-  const email = body.email.toLowerCase().trim()
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!isValidEmail(body.email)) {
     throw createError({ statusCode: 400, message: 'Invalid email' })
   }
-  if (body.password.length < 8) {
-    throw createError({ statusCode: 400, message: 'Password must be at least 8 characters' })
+  if (!isValidName(body.firstName) || !isValidName(body.lastName)) {
+    throw createError({ statusCode: 400, message: 'Invalid name' })
   }
+  if (!isValidPassword(body.password)) {
+    throw createError({ statusCode: 400, message: `Password must be at least ${LIMITS.MIN_PASSWORD_LENGTH} characters` })
+  }
+  const email = normalizeEmail(body.email)
 
   const db = useDB()
   const passwordHash = await bcrypt.hash(body.password, 12)

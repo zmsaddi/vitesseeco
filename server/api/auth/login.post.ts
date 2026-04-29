@@ -3,6 +3,7 @@ import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { normalizeEmail } from '~/server/utils/validation'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 10, windowMs: 60_000 })
@@ -14,7 +15,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const db = useDB()
-  const email = body.email.toLowerCase().trim()
+  // Login does NOT validate email format intentionally — the lookup will fail
+  // for malformed emails, returning the same generic error to avoid leaking
+  // whether the email exists. We only normalize for case-insensitive lookup.
+  const email = normalizeEmail(body.email)
 
   const [customer] = await db.select({
     id: customers.id,
