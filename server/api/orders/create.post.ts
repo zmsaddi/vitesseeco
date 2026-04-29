@@ -2,6 +2,7 @@ import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { LIMITS, isValidName, isAllowedCountry, isValidProductId } from '~/server/utils/validation'
+import { reservePromoUse, releasePromoUse } from '~/server/utils/promo'
 import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/server/utils/types'
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
@@ -102,20 +103,22 @@ export default defineEventHandler(async (event) => {
   let shippingCost = shippingMethod?.price || 0
   if (shippingMethod?.freeAbove && subtotal >= shippingMethod.freeAbove) shippingCost = 0
 
-  // 3. Validate promo
+  // 3. RESERVE the promo BEFORE order creation (P0-01, SEC-02).
+  // Atomic increment with re-validation in the retry loop closes the
+  // concurrency window: two parallel orders for a maxUses=1 code cannot
+  // both succeed because each retry re-reads currentUses. If order
+  // creation later fails, releasePromoUse() compensates.
+  // Failed reservation does not error out — the order proceeds without
+  // a discount, matching prior UX for invalid codes.
   let discount = 0
+  let reservedPromo: { id: string; code: string } | null = null
   if (body.promoCode) {
-    const promo = await readClient.fetch(
-      `*[_type == "promoCode" && code == $code && isActive == true][0]{ discountType, discountValue, minOrderAmount }`,
-      { code: body.promoCode.toUpperCase().trim() }
-    )
-    if (promo) {
-      if (!promo.minOrderAmount || subtotal >= promo.minOrderAmount) {
-        discount = promo.discountType === 'percentage'
-          ? Math.round(subtotal * promo.discountValue / 100)
-          : promo.discountValue
-        discount = Math.min(discount, subtotal)
-      }
+    const reservation = await reservePromoUse(writeClient, readClient, body.promoCode, subtotal)
+    if (reservation.success && reservation.promoId && reservation.code && typeof reservation.discount === 'number') {
+      discount = reservation.discount
+      reservedPromo = { id: reservation.promoId, code: reservation.code }
+    } else if (reservation.reason) {
+      console.warn(`[ORDER] Promo "${body.promoCode}" reservation failed: ${reservation.reason}`)
     }
   }
 
@@ -139,99 +142,121 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // 6. Create order in Sanity (primary source — dashboard uses this)
-  if (writeClient) {
-    await writeClient.create({
-      _type: 'order',
-      orderNumber,
-      status: body.paymentCode === 'in_store' ? 'pending' : 'pending',
-      paymentMethod: body.paymentCode,
-      customer: customerInfo,
-      shippingAddress: body.shippingAddress,
-      billingAddress: body.billingAddress || body.shippingAddress,
-      shippingMethod: shippingMethod?.name?.fr || body.shippingCode,
-      items: validatedItems,
-      subtotal,
-      shippingCost,
-      discount,
-      total,
-      promoCode: body.promoCode || null,
-      notes: body.notes || null,
-      createdAt: new Date().toISOString(),
-    })
-  }
-
-  // 7. Create order in Postgres too (secondary — for relational queries)
+  // From here on, the promo is RESERVED (counter already incremented).
+  // If anything below throws before the order is durably written, we MUST
+  // release it to avoid a phantom use.
   try {
-    const db = useDB()
-    await db.insert(orders).values({
-      customerId: customerInfo.customerId || null,
-      guestEmail: customerInfo.email || null,
-      status: 'pending',
-      items: validatedItems,
-      subtotal: String(subtotal),
-      shippingCost: String(shippingCost),
-      discount: String(discount),
-      total: String(total),
-      promoCode: body.promoCode || null,
-      shippingMethod: body.shippingCode,
-      shippingAddress: body.shippingAddress,
-      stripePaymentId: null,
-    })
-  } catch (pgError) {
-    // Log but don't fail — Sanity order exists and is the dashboard source
-    console.error(`[ORDER] PostgreSQL write failed for ${orderNumber}:`, pgError)
-  }
+    // 6. Create order in Sanity (primary source — dashboard uses this)
+    if (writeClient) {
+      await writeClient.create({
+        _type: 'order',
+        orderNumber,
+        status: body.paymentCode === 'in_store' ? 'pending' : 'pending',
+        paymentMethod: body.paymentCode,
+        customer: customerInfo,
+        shippingAddress: body.shippingAddress,
+        billingAddress: body.billingAddress || body.shippingAddress,
+        shippingMethod: shippingMethod?.name?.fr || body.shippingCode,
+        items: validatedItems,
+        subtotal,
+        shippingCost,
+        discount,
+        total,
+        promoCode: body.promoCode || null,
+        notes: body.notes || null,
+        createdAt: new Date().toISOString(),
+      })
+    }
 
-  // 8. Decrement stock in Sanity (System B: direct product.stock)
-  // Uses ifRevisionId for optimistic locking to prevent race conditions
-  if (writeClient) {
-    for (const item of validatedItems) {
-      // Get current revision for optimistic lock
-      const current = await readClient.fetch(
-        `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
-        { id: item.productId }
-      )
+    // 7. Create order in Postgres too (secondary — for relational queries)
+    try {
+      const db = useDB()
+      await db.insert(orders).values({
+        customerId: customerInfo.customerId || null,
+        guestEmail: customerInfo.email || null,
+        status: 'pending',
+        items: validatedItems,
+        subtotal: String(subtotal),
+        shippingCost: String(shippingCost),
+        discount: String(discount),
+        total: String(total),
+        promoCode: body.promoCode || null,
+        shippingMethod: body.shippingCode,
+        shippingAddress: body.shippingAddress,
+        stripePaymentId: null,
+      })
+    } catch (pgError) {
+      // Log but don't fail — Sanity order exists and is the dashboard source
+      console.error(`[ORDER] PostgreSQL write failed for ${orderNumber}:`, pgError)
+    }
 
-      if (!current || (current.stock ?? 0) < item.quantity) {
-        console.error(`[ORDER] Stock insufficient for ${item.sku} at decrement time (have: ${current?.stock}, need: ${item.quantity})`)
-        continue // Skip decrement — order is already created, handle via support
-      }
+    // 8. Decrement stock in Sanity (System B: direct product.stock)
+    // Uses ifRevisionId for optimistic locking to prevent race conditions
+    if (writeClient) {
+      for (const item of validatedItems) {
+        // Get current revision for optimistic lock
+        const current = await readClient.fetch(
+          `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
+          { id: item.productId }
+        )
 
-      try {
-        await writeClient
-          .patch(item.productId)
-          .ifRevisionId(current._rev) // Optimistic lock — fails if document changed
-          .dec({ stock: item.quantity })
-          .commit()
-      } catch (patchError: unknown) {
-        // Revision conflict — another request modified this product simultaneously
-        // Retry once with fresh revision
+        if (!current || (current.stock ?? 0) < item.quantity) {
+          console.error(`[ORDER] Stock insufficient for ${item.sku} at decrement time (have: ${current?.stock}, need: ${item.quantity})`)
+          continue // Skip decrement — order is already created, handle via support
+        }
+
         try {
-          const fresh = await readClient.fetch(
-            `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
-            { id: item.productId }
-          )
-          if (fresh && (fresh.stock ?? 0) >= item.quantity) {
-            await writeClient
-              .patch(item.productId)
-              .ifRevisionId(fresh._rev)
-              .dec({ stock: item.quantity })
-              .commit()
-          } else {
-            console.error(`[ORDER] Stock race confirmed for ${item.sku}, insufficient after retry`)
+          await writeClient
+            .patch(item.productId)
+            .ifRevisionId(current._rev) // Optimistic lock — fails if document changed
+            .dec({ stock: item.quantity })
+            .commit()
+        } catch (patchError: unknown) {
+          // Revision conflict — another request modified this product simultaneously
+          // Retry once with fresh revision
+          try {
+            const fresh = await readClient.fetch(
+              `*[_type == "product" && _id == $id][0]{ _rev, stock }`,
+              { id: item.productId }
+            )
+            if (fresh && (fresh.stock ?? 0) >= item.quantity) {
+              await writeClient
+                .patch(item.productId)
+                .ifRevisionId(fresh._rev)
+                .dec({ stock: item.quantity })
+                .commit()
+            } else {
+              console.error(`[ORDER] Stock race confirmed for ${item.sku}, insufficient after retry`)
+            }
+          } catch (retryError) {
+            console.error(`[ORDER] Stock decrement failed for ${item.sku} after retry:`, retryError)
           }
-        } catch (retryError) {
-          console.error(`[ORDER] Stock decrement failed for ${item.sku} after retry:`, retryError)
         }
       }
     }
-  }
 
-  return {
-    orderNumber,
-    total,
-    status: 'pending',
-    paymentMethod: body.paymentCode,
+    return {
+      orderNumber,
+      total,
+      status: 'pending',
+      paymentMethod: body.paymentCode,
+    }
+  } catch (orderError) {
+    // Order creation failed AFTER reservation. Attempt to release.
+    if (reservedPromo && writeClient) {
+      const release = await releasePromoUse(writeClient, readClient, reservedPromo.id)
+      if (!release.success) {
+        // CRITICAL: counter is now 1 too high; manual reconciliation needed.
+        // TODO(P0-17): persist to audit_log for ops follow-up.
+        console.error(
+          `[ORDER ${orderNumber}] CRITICAL: promo "${reservedPromo.code}" reserved but order failed; release also failed (${release.reason}). Manual reconciliation required.`
+        )
+      } else {
+        console.warn(
+          `[ORDER ${orderNumber}] Order failed; promo "${reservedPromo.code}" reservation released.`
+        )
+      }
+    }
+    throw orderError
   }
 })
