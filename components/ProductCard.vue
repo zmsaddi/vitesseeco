@@ -66,7 +66,15 @@
         <span class="truncate">{{ topSpec.value }}</span>
       </div>
 
-      <div class="flex items-center justify-between mt-auto pt-4 gap-2">
+      <!-- Bestseller chip on its own row above the price (no price overlap on mobile) -->
+      <div v-if="product.isFeatured" class="mt-3">
+        <span class="badge-bestseller inline-flex items-center gap-1">
+          <span aria-hidden="true">⭐</span>
+          <span>{{ $t('product.bestseller') }}</span>
+        </span>
+      </div>
+
+      <div class="flex items-baseline justify-between mt-auto pt-3 gap-2">
         <div v-if="product.stock > 0" class="flex items-baseline gap-2 min-w-0">
           <span class="text-accent font-bold text-lg leading-none">{{ product.price }}€</span>
           <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs">{{ product.compareAtPrice }}€</span>
@@ -75,7 +83,6 @@
           <Icon name="ph:x-circle" class="w-3 h-3" />
           {{ $t('product.out_of_stock') }}
         </span>
-        <span v-if="product.isFeatured" class="badge-bestseller shrink-0 glow-accent">⭐ {{ $t('product.bestseller') }}</span>
       </div>
     </div>
   </div>

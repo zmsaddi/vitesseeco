@@ -1,13 +1,28 @@
 <template>
-  <div class="py-8 md:py-12">
-    <div class="container-custom max-w-4xl">
-      <div class="flex items-center justify-between mb-8">
-        <h1 class="section-title">{{ $t('account.title') }}</h1>
-        <button @click="handleLogout" class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors text-sm flex items-center gap-2 px-4 py-2 rounded-lg border border-red-800/50">
-          <Icon name="ph:sign-out" class="w-4 h-4" />
-          {{ $t('nav.logout') }}
-        </button>
+  <div>
+    <!-- Hero band -->
+    <section class="relative pt-10 md:pt-14 pb-6 md:pb-8 overflow-hidden">
+      <div class="absolute inset-0 bg-hero-glow pointer-events-none" />
+      <div class="container-custom relative max-w-4xl">
+        <div class="flex items-start sm:items-center justify-between gap-4 flex-col sm:flex-row">
+          <div>
+            <span class="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-accent/10 border border-accent/20 rounded-full backdrop-blur-sm">
+              <Icon name="ph:user-circle" class="w-3.5 h-3.5 text-accent" />
+              <span class="text-accent text-xs font-medium tracking-wider uppercase">
+                {{ auth.user?.firstName ? `Hi, ${auth.user.firstName}` : 'Account' }}
+              </span>
+            </span>
+            <h1 class="font-display text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tight">{{ $t('account.title') }}</h1>
+          </div>
+          <button @click="handleLogout" class="text-red-400 hover:text-red-300 bg-red-900/20 hover:bg-red-900/30 transition-colors text-sm flex items-center gap-2 px-4 py-2 rounded-lg border border-red-800/50 min-h-touch focus-ring">
+            <Icon name="ph:sign-out" class="w-4 h-4" />
+            {{ $t('nav.logout') }}
+          </button>
+        </div>
       </div>
+      <div class="absolute inset-x-0 bottom-0 divider-accent" />
+    </section>
+    <div class="container-custom max-w-4xl py-8 md:py-12">
 
       <div class="space-y-6">
         <!-- Profile Section -->

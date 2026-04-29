@@ -1,27 +1,54 @@
 <template>
-  <div class="py-8 md:py-12">
-    <div class="container-custom">
-      <div class="text-center mb-8">
-        <h1 class="section-title mb-3">{{ pageTitle }}</h1>
-        <p class="text-text-secondary text-lg">{{ pageSubtitle }}</p>
+  <div>
+    <!-- Hero band -->
+    <section class="relative pt-12 md:pt-16 pb-8 md:pb-12 overflow-hidden">
+      <div class="absolute inset-0 bg-hero-glow pointer-events-none" />
+      <div class="container-custom relative">
+        <div class="text-center max-w-3xl mx-auto">
+          <span class="inline-flex items-center gap-2 px-3 py-1.5 mb-5 bg-accent/10 border border-accent/20 rounded-full backdrop-blur-sm">
+            <Icon name="ph:package" class="w-3.5 h-3.5 text-accent" />
+            <span class="text-accent text-xs font-medium tracking-wider uppercase">
+              {{ stockFilteredProducts.length }} {{ $t('products.results') }}
+            </span>
+          </span>
+          <h1 class="font-display text-4xl md:text-5xl font-black text-white leading-[1.1] mb-3 tracking-tight">{{ pageTitle }}</h1>
+          <p class="text-text-secondary text-base md:text-lg">{{ pageSubtitle }}</p>
+        </div>
       </div>
+      <div class="absolute inset-x-0 bottom-0 divider-accent" />
+    </section>
 
-      <!-- Type tabs -->
+    <div class="container-custom py-8 md:py-12">
+      <!-- Type tabs (premium pill design) -->
       <div class="flex flex-wrap gap-2 justify-center mb-6">
-        <button @click="setType('')" class="px-4 py-2 rounded-full text-sm font-medium transition-colors" :class="!selectedType ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'">
+        <button
+          @click="setType('')"
+          class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-fast ease-soft border-2 focus-ring"
+          :class="!selectedType ? 'bg-accent text-primary border-accent shadow-[0_2px_12px_-4px_rgba(74,222,128,0.5)]' : 'bg-dark-secondary text-text-secondary border-dark-tertiary hover:text-white hover:border-accent/40'"
+        >
           {{ $t('nav.all_products') }} ({{ stockFilteredProducts.length }})
         </button>
-        <button v-for="t in typeFilters" :key="t.value" @click="setType(t.value)" class="px-4 py-2 rounded-full text-sm font-medium transition-colors" :class="selectedType === t.value ? 'bg-accent text-primary' : 'bg-dark-secondary text-text-secondary hover:text-white'">
+        <button
+          v-for="t in typeFilters" :key="t.value"
+          @click="setType(t.value)"
+          class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-fast ease-soft border-2 focus-ring"
+          :class="selectedType === t.value ? 'bg-accent text-primary border-accent shadow-[0_2px_12px_-4px_rgba(74,222,128,0.5)]' : 'bg-dark-secondary text-text-secondary border-dark-tertiary hover:text-white hover:border-accent/40'"
+        >
           {{ t.icon }} {{ t.label }} ({{ typeCounts[t.value] || 0 }})
         </button>
       </div>
 
-      <!-- Search -->
+      <!-- Search (premium pill) -->
       <div class="max-w-md mx-auto mb-8">
         <div class="relative">
-          <Icon name="ph:magnifying-glass" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
-          <input v-model="searchQuery" type="text" :placeholder="$t('products.search')" class="input-field pl-12 py-3 text-sm w-full rounded-full" />
-          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white">
+          <Icon name="ph:magnifying-glass" class="absolute left-4 rtl:right-4 rtl:left-auto top-1/2 -translate-y-1/2 w-5 h-5 text-text-secondary" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t('products.search')"
+            class="input-field ps-12 pe-12 py-3 text-sm w-full rounded-full"
+          />
+          <button v-if="searchQuery" @click="searchQuery = ''" class="absolute right-4 rtl:left-4 rtl:right-auto top-1/2 -translate-y-1/2 text-text-secondary hover:text-white min-h-touch min-w-touch flex items-center justify-center" :aria-label="$t('common.back')">
             <Icon name="ph:x" class="w-4 h-4" />
           </button>
         </div>

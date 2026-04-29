@@ -249,12 +249,80 @@
 }
 
 /* ─── Page transitions (Nuxt) ─────────────────────────────────────────── */
+/* Soft fade + subtle upward drift — gives a "premium" feel on every nav. */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: opacity 220ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.page-enter-from,
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
 .page-leave-to {
   opacity: 0;
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: opacity 100ms linear;
+  }
+  .page-enter-from,
+  .page-leave-to {
+    transform: none;
+  }
+}
+
+/* ─── Scroll reveal ──────────────────────────────────────────────────── */
+/* Add `v-reveal` to any element. Initially invisible + translated down;
+   the directive (composables/useReveal.ts) toggles `.is-visible` on intersection. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 600ms cubic-bezier(0.4, 0, 0.2, 1),
+              transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+[data-reveal-delay="1"].is-visible { transition-delay: 60ms; }
+[data-reveal-delay="2"].is-visible { transition-delay: 120ms; }
+[data-reveal-delay="3"].is-visible { transition-delay: 180ms; }
+[data-reveal-delay="4"].is-visible { transition-delay: 240ms; }
+[data-reveal-delay="5"].is-visible { transition-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ─── Custom cursor (pointer ring on interactive elements) ─────────── */
+/* Pointer-only — touch devices keep their native UI. Subtle, not a JS-driven
+   follower (those are gimmicky and bad for a11y). Uses CSS to enlarge the
+   default cursor's footprint visually on hover via box-shadow rings. */
+@media (hover: hover) and (pointer: fine) {
+  .cursor-ring {
+    position: relative;
+  }
+  .cursor-ring::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: inherit;
+    border: 1.5px solid transparent;
+    transition: border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+  .cursor-ring:hover::after {
+    border-color: rgba(74, 222, 128, 0.30);
+  }
 }

@@ -1,7 +1,18 @@
 <template>
-  <div class="py-8 md:py-12">
-    <div class="container-custom max-w-4xl">
-      <h1 class="section-title mb-6">{{ $t('checkout.title') }}</h1>
+  <div>
+    <!-- Hero band -->
+    <section class="relative pt-10 md:pt-14 pb-6 md:pb-8 overflow-hidden">
+      <div class="absolute inset-0 bg-hero-glow pointer-events-none" />
+      <div class="container-custom relative max-w-4xl">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-accent/10 border border-accent/20 rounded-full backdrop-blur-sm">
+          <Icon name="ph:credit-card" class="w-3.5 h-3.5 text-accent" />
+          <span class="text-accent text-xs font-medium tracking-wider uppercase">{{ $t('cart.checkout') }}</span>
+        </span>
+        <h1 class="font-display text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tight">{{ $t('checkout.title') }}</h1>
+      </div>
+      <div class="absolute inset-x-0 bottom-0 divider-accent" />
+    </section>
+    <div class="container-custom max-w-4xl py-8 md:py-12">
 
       <!-- Progress Stepper -->
       <div v-if="!cart.isEmpty" class="flex items-center justify-between mb-8 max-w-xl mx-auto">

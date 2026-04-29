@@ -100,7 +100,13 @@
           <h2 class="section-title mt-3">{{ $t('home.values_title') }}</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div v-for="(value, i) in values" :key="i" class="card card-lift p-6 text-center group">
+          <div
+            v-for="(value, i) in values"
+            :key="i"
+            data-reveal
+            :data-reveal-delay="(i % 4) + 1"
+            class="card card-lift p-6 text-center group"
+          >
             <div class="w-16 h-16 bg-gradient-to-br from-accent/20 to-accent/5 rounded-2xl flex items-center justify-center mx-auto mb-5 group-hover:scale-110 transition-transform duration-normal ease-soft">
               <Icon :name="value.icon" class="w-8 h-8 text-accent" />
             </div>
@@ -133,9 +139,12 @@
         </div>
         <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NuxtLink
-            v-for="product in featuredProducts"
+            v-for="(product, i) in featuredProducts"
             :key="product._id"
             :to="localePath(`/produits/${product.slug?.current}`)"
+            data-reveal
+            :data-reveal-delay="(i % 3) + 1"
+            class="block focus-ring rounded-xl"
           >
             <ProductCard :product="product" />
           </NuxtLink>
