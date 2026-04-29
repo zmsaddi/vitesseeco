@@ -100,7 +100,15 @@
               </button>
             </div>
           </div>
-          <p v-else-if="!addingAddress" class="text-text-secondary text-sm mb-4">{{ $t('account.no_addresses') }}</p>
+          <EmptyState
+            v-else-if="!addingAddress"
+            icon="ph:map-pin"
+            :message="$t('account.no_addresses')"
+            :cta-label="$t('account.add_address')"
+            cta-icon="ph:plus"
+            :cta-action="() => addingAddress = true"
+            size="sm"
+          />
 
           <!-- Add Address Form -->
           <form v-if="addingAddress" @submit.prevent="saveAddress" class="space-y-4 border-t border-dark-tertiary pt-4">
@@ -262,10 +270,15 @@
             </div>
           </div>
 
-          <div v-else class="text-text-secondary text-sm">
-            <p>{{ $t('account.no_orders') }}</p>
-            <NuxtLink :to="localePath('/produits')" class="text-accent hover:underline mt-2 inline-block">{{ $t('cart.empty_cta') }}</NuxtLink>
-          </div>
+          <EmptyState
+            v-else
+            icon="ph:package"
+            :message="$t('account.no_orders')"
+            :cta-to="localePath('/produits')"
+            :cta-label="$t('cart.empty_cta')"
+            cta-icon="ph:arrow-right"
+            size="sm"
+          />
         </div>
 
         <!-- Delete Account -->

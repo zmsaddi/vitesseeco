@@ -135,7 +135,8 @@
     "remove": "Entfernen",
     "quantity": "Menge",
     "decrease_quantity": "Menge verringern",
-    "increase_quantity": "Menge erhöhen"
+    "increase_quantity": "Menge erhöhen",
+    "removed_with_undo": "{name} aus dem Warenkorb entfernt"
   },
   "shipping": {
     "title": "Versand",

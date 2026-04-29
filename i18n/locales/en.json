@@ -135,7 +135,8 @@
     "remove": "Remove",
     "quantity": "Quantity",
     "decrease_quantity": "Decrease quantity",
-    "increase_quantity": "Increase quantity"
+    "increase_quantity": "Increase quantity",
+    "removed_with_undo": "{name} removed from cart"
   },
   "shipping": {
     "title": "Shipping",

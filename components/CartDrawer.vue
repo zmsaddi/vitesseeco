@@ -33,15 +33,16 @@
             </button>
           </div>
 
-          <!-- Empty State -->
-          <div v-if="cart.isEmpty" class="flex-1 flex items-center justify-center p-6">
-            <div class="text-center">
-              <Icon name="ph:shopping-cart" class="w-16 h-16 text-dark-tertiary mx-auto mb-4" />
-              <p class="text-text-secondary mb-4">{{ $t('cart.empty') }}</p>
-              <NuxtLink :to="localePath('/produits')" class="btn-primary inline-block" @click="close">
-                {{ $t('cart.empty_cta') }}
-              </NuxtLink>
-            </div>
+          <!-- Empty State (P3-06: unified via EmptyState) -->
+          <div v-if="cart.isEmpty" class="flex-1 flex items-center justify-center">
+            <EmptyState
+              icon="ph:shopping-cart"
+              :message="$t('cart.empty')"
+              :cta-to="localePath('/produits')"
+              :cta-label="$t('cart.empty_cta')"
+              cta-icon="ph:arrow-right"
+              :cta-action="() => close()"
+            />
           </div>
 
           <!-- Cart Items -->

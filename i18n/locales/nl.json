@@ -135,7 +135,8 @@
     "remove": "Verwijderen",
     "quantity": "Aantal",
     "decrease_quantity": "Aantal verminderen",
-    "increase_quantity": "Aantal verhogen"
+    "increase_quantity": "Aantal verhogen",
+    "removed_with_undo": "{name} verwijderd uit winkelwagen"
   },
   "shipping": {
     "title": "Verzending",

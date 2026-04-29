@@ -135,7 +135,8 @@
     "remove": "حذف",
     "quantity": "الكمية",
     "decrease_quantity": "تقليل الكمية",
-    "increase_quantity": "زيادة الكمية"
+    "increase_quantity": "زيادة الكمية",
+    "removed_with_undo": "تمت إزالة {name} من السلة"
   },
   "shipping": {
     "title": "الشحن",

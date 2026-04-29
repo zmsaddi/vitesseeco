@@ -133,10 +133,14 @@
             </NuxtLink>
           </div>
 
-          <div v-else class="text-center py-16 card">
-            <Icon name="ph:magnifying-glass" class="w-12 h-12 text-dark-tertiary mx-auto mb-4" />
-            <p class="text-text-secondary mb-4">{{ $t('products.no_results') }}</p>
-            <button @click="clearAll" class="btn-outline text-sm">{{ $t('products.clear_filters') }}</button>
+          <div v-else class="card">
+            <EmptyState
+              icon="ph:magnifying-glass"
+              :message="$t('products.no_results')"
+              :cta-label="$t('products.clear_filters')"
+              cta-icon="ph:x"
+              :cta-action="clearAll"
+            />
           </div>
 
           <div v-if="filteredProducts.length > showCount" class="text-center mt-8">

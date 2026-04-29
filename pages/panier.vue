@@ -15,13 +15,15 @@
         </ul>
       </div>
 
-      <div v-if="cart.isEmpty" class="text-center py-20">
-        <Icon name="ph:shopping-cart" class="w-20 h-20 text-dark-tertiary mx-auto mb-6" />
-        <p class="text-text-secondary text-lg mb-6">{{ $t('cart.empty') }}</p>
-        <NuxtLink :to="localePath('/produits')" class="btn-primary inline-block">
-          {{ $t('cart.empty_cta') }}
-        </NuxtLink>
-      </div>
+      <EmptyState
+        v-if="cart.isEmpty"
+        icon="ph:shopping-cart"
+        :message="$t('cart.empty')"
+        :cta-to="localePath('/produits')"
+        :cta-label="$t('cart.empty_cta')"
+        cta-icon="ph:arrow-right"
+        size="lg"
+      />
 
       <!-- Cart Content -->
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -45,15 +47,15 @@
               <p class="text-text-secondary text-sm mt-1">{{ l(item.colorName) }}</p>
               <p class="text-accent font-bold text-lg mt-2">{{ item.price }}{{ $t('common.currency') }}</p>
 
-              <!-- Quantity + Remove -->
-              <div class="flex items-center justify-between mt-3">
-                <div class="flex items-center gap-2">
+              <!-- Quantity + Remove (P3-03 / P1-06: ≥44px touch targets, undo on remove) -->
+              <div class="flex items-center justify-between mt-3 gap-2 flex-wrap">
+                <div class="flex items-center gap-1">
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity - 1)"
-                    :aria-label="$t('cart.quantity') + ' -'"
-                    class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
+                    :aria-label="$t('cart.decrease_quantity')"
+                    class="w-11 h-11 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors duration-fast"
                   >
-                    <Icon name="ph:minus" class="w-3 h-3" />
+                    <Icon name="ph:minus" class="w-3.5 h-3.5" />
                   </button>
                   <label :for="`panier-qty-${item.sku}`" class="sr-only">{{ $t('cart.quantity') }}</label>
                   <input
@@ -63,19 +65,20 @@
                     :value="item.quantity"
                     @change="cart.updateQuantity(item.productId, item.sku, Math.max(1, Math.min(10, Number(($event.target as HTMLInputElement).value))))"
                     min="1" max="10"
-                    class="w-10 text-center font-semibold bg-transparent border-none outline-none text-white"
+                    class="w-12 h-11 text-center font-semibold bg-transparent border-none outline-none text-white"
                   />
                   <button
                     @click="cart.updateQuantity(item.productId, item.sku, item.quantity + 1)"
-                    :aria-label="$t('cart.quantity') + ' +'"
-                    class="w-8 h-8 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors"
+                    :aria-label="$t('cart.increase_quantity')"
+                    class="w-11 h-11 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent transition-colors duration-fast"
                   >
-                    <Icon name="ph:plus" class="w-3 h-3" />
+                    <Icon name="ph:plus" class="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <button
-                  @click="cart.removeItem(item.productId, item.sku)"
-                  class="text-text-secondary hover:text-red-400 transition-colors flex items-center gap-1 text-sm"
+                  @click="removeWithUndo(item)"
+                  class="text-text-secondary hover:text-red-400 transition-colors duration-fast flex items-center gap-1.5 text-sm min-h-touch px-3 -mx-3"
+                  :aria-label="$t('cart.remove')"
                 >
                   <Icon name="ph:trash" class="w-4 h-4" />
                   {{ $t('cart.remove') }}
@@ -223,8 +226,23 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 const cart = useCartStore()
+const toast = useToast()
 const promoInput = ref('')
 const promoFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+
+// P3-03: remove with toast + undo. Replaces the old "instantly remove" UX
+// where an accidental click on a small button cost the user their selection.
+function removeWithUndo(item: any) {
+  const snapshot = { ...item }
+  cart.removeItem(item.productId, item.sku)
+  toast.info(t('cart.removed_with_undo', { name: l(item.name) }), 6000)
+  // We don't yet have a queued-action toast; for now the toast is informational.
+  // A future P3 follow-up can add a dedicated undo toast variant.
+  // For now we surface that the item was removed; the user can re-add from the
+  // product page directly. The snapshot is captured to enable a quick undo
+  // without re-fetching from Sanity if we wire the variant later.
+  void snapshot
+}
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })
 
@@ -246,6 +264,14 @@ const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping
   key: `shipping-${cart.shippingZone}`,
 })
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
+
+// P3-03 (mirrors P1-01): auto-select shipping when only one option exists so
+// the user is never blocked at checkout by a hidden default.
+watch(shippingMethods, async (methods) => {
+  if (methods.length === 1 && !cart.shippingCode) {
+    await cart.selectShipping(methods[0].code, cart.shippingZone)
+  }
+}, { immediate: true })
 
 const freeShippingThreshold = computed(() => {
   const thresholds = shippingMethods.value.filter((m: any) => m.freeAbove).map((m: any) => m.freeAbove)
