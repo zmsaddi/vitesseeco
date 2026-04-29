@@ -232,55 +232,6 @@ const pageSubtitle = computed(() => {
   return m[selectedType.value] || t('products.subtitle')
 })
 
-const typeMeta: Record<string, { icon: string; label: () => string }> = {
-  bike:        { icon: '🚲', label: () => t('nav.type_bikes') },
-  spare_part:  { icon: '🔧', label: () => t('nav.type_parts') },
-  accessory:   { icon: '🎒', label: () => t('nav.type_accessories') },
-  kids_car:    { icon: '🧸', label: () => t('nav.type_kids') },
-  other:       { icon: '📦', label: () => t('nav.type_other') },
-}
-const typeFilters = computed(() => {
-  const present = new Set(stockFilteredProducts.value.map((p: any) => p.productType).filter(Boolean))
-  return Object.keys(typeMeta)
-    .filter(k => present.has(k))
-    .map(k => ({ value: k, icon: typeMeta[k].icon, label: typeMeta[k].label() }))
-})
-
-const priceBuckets = computed(() => {
-  let list = stockFilteredProducts.value
-  if (selectedType.value) list = list.filter((p: any) => p.productType === selectedType.value)
-  const prices = list.map((p: any) => p.price).filter((n: any) => typeof n === 'number' && n > 0)
-  if (prices.length < 2) return []
-  const max = Math.max(...prices)
-  // Round bucket edges to nice numbers based on overall max
-  const fmt = (n: number) => `${Math.round(n).toLocaleString('fr-FR')}€`
-  let edges: number[]
-  if (max < 100) edges = [25, 50, 75]
-  else if (max < 500) edges = [50, 150, 300]
-  else if (max < 2000) edges = [200, 800, 1500]
-  else edges = [500, 1500, 3000]
-  const buckets = [
-    { value: `0-${edges[0]}`, label: `< ${fmt(edges[0])}` },
-    { value: `${edges[0]}-${edges[1]}`, label: `${fmt(edges[0])} — ${fmt(edges[1])}` },
-    { value: `${edges[1]}-${edges[2]}`, label: `${fmt(edges[1])} — ${fmt(edges[2])}` },
-    { value: `${edges[2]}+`, label: `${fmt(edges[2])} +` },
-  ]
-  // Drop empty buckets (no products in range)
-  return buckets.filter(b => {
-    const [min, maxStr] = b.value.split('-')
-    const minN = parseFloat(min)
-    const maxN = maxStr === '' || b.value.endsWith('+') ? Infinity : parseFloat(maxStr)
-    return prices.some((p: number) => p >= minN && p <= maxN)
-  })
-})
-
-const availableTireSizes = computed(() => {
-  // Tire-size filter UI is only rendered for bikes (or when no type is selected)
-  const bikes = stockFilteredProducts.value.filter((p: any) => p.productType === 'bike')
-  const sizes = [...new Set(bikes.map((p: any) => p.specifications?.tireSize).filter(Boolean))] as string[]
-  return sizes.sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0))
-})
-
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stock desc, sortOrder asc) {
   _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
   productType, color, colorHex, stock, modelFamily, specifications,
@@ -313,6 +264,53 @@ const availableColors = computed(() => {
   const colorMap = new Map<string, string>()
   list.forEach(p => { if (p.colorHex) colorMap.set(p.colorHex, l(p.color) || p.colorHex) })
   return [...colorMap.entries()].map(([hex, name]) => ({ hex, name })).slice(0, 12)
+})
+
+const typeMeta: Record<string, { icon: string; labelKey: string }> = {
+  bike:        { icon: '🚲', labelKey: 'nav.type_bikes' },
+  spare_part:  { icon: '🔧', labelKey: 'nav.type_parts' },
+  accessory:   { icon: '🎒', labelKey: 'nav.type_accessories' },
+  kids_car:    { icon: '🧸', labelKey: 'nav.type_kids' },
+  other:       { icon: '📦', labelKey: 'nav.type_other' },
+}
+const typeFilters = computed(() => {
+  const present = new Set(stockFilteredProducts.value.map((p: any) => p.productType).filter(Boolean))
+  return Object.keys(typeMeta)
+    .filter(k => present.has(k))
+    .map(k => ({ value: k, icon: typeMeta[k].icon, label: t(typeMeta[k].labelKey) }))
+})
+
+const priceBuckets = computed(() => {
+  let list = stockFilteredProducts.value
+  if (selectedType.value) list = list.filter((p: any) => p.productType === selectedType.value)
+  const prices = list.map((p: any) => p.price).filter((n: any) => typeof n === 'number' && n > 0)
+  if (prices.length < 2) return []
+  let max = 0
+  for (const p of prices) if (p > max) max = p
+  const fmt = (n: number) => `${Math.round(n).toLocaleString('fr-FR')}€`
+  let edges: number[]
+  if (max < 100) edges = [25, 50, 75]
+  else if (max < 500) edges = [50, 150, 300]
+  else if (max < 2000) edges = [200, 800, 1500]
+  else edges = [500, 1500, 3000]
+  const buckets = [
+    { value: `0-${edges[0]}`, label: `< ${fmt(edges[0])}` },
+    { value: `${edges[0]}-${edges[1]}`, label: `${fmt(edges[0])} — ${fmt(edges[1])}` },
+    { value: `${edges[1]}-${edges[2]}`, label: `${fmt(edges[1])} — ${fmt(edges[2])}` },
+    { value: `${edges[2]}+`, label: `${fmt(edges[2])} +` },
+  ]
+  return buckets.filter(b => {
+    const [min, maxStr] = b.value.split('-')
+    const minN = parseFloat(min)
+    const maxN = b.value.endsWith('+') ? Infinity : parseFloat(maxStr)
+    return prices.some((p: number) => p >= minN && p <= maxN)
+  })
+})
+
+const availableTireSizes = computed(() => {
+  const bikes = stockFilteredProducts.value.filter((p: any) => p.productType === 'bike')
+  const sizes = [...new Set(bikes.map((p: any) => p.specifications?.tireSize).filter(Boolean))] as string[]
+  return sizes.sort((a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0))
 })
 
 const filteredProducts = computed(() => {
