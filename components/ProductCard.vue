@@ -16,6 +16,7 @@
       <!-- Badges -->
       <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo z-10">{{ $t('product.on_sale') }}</span>
       <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new z-10">{{ $t('product.new') }}</span>
+      <span v-if="product.isFeatured" class="absolute top-3 right-3 badge-bestseller z-10">⭐ {{ $t('product.bestseller') }}</span>
       <!-- Color dot -->
       <span
         v-if="product.colorHex"

@@ -59,6 +59,7 @@
         <div>
           <p v-if="product.brand?.name" class="text-text-secondary text-sm mb-1">{{ product.brand.name }}</p>
           <div class="flex items-center gap-2 mb-2">
+            <span v-if="product.isFeatured" class="badge-bestseller">⭐ {{ $t('product.bestseller') }}</span>
             <span v-if="product.isOnSale" class="badge-promo">{{ $t('product.on_sale') }}</span>
             <span v-if="product.isNew" class="badge-new">{{ $t('product.new') }}</span>
           </div>
@@ -255,7 +256,7 @@ const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 const productQuery = groq`{
   "product": *[_type == "product" && slug.current == $slug][0] {
     _id, name, slug, shortDescription, description, price, compareAtPrice,
-    isOnSale, isNew, isAvailable, warranty, highlights, videoUrl,
+    isOnSale, isNew, isFeatured, isAvailable, warranty, highlights, videoUrl,
     productType, color, colorHex, stock, modelFamily, seo,
     specifications, brand->{ name },
     "images": images[]{asset, altText}
