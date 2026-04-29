@@ -13,10 +13,9 @@
       <div v-else class="absolute inset-0 flex items-center justify-center">
         <Icon name="ph:package" class="w-16 h-16 text-dark-tertiary/50" />
       </div>
-      <!-- Badges -->
+      <!-- Badges (left side, top — keep on/sale & new since they communicate price changes) -->
       <span v-if="product.isOnSale" class="absolute top-3 left-3 badge-promo z-10">{{ $t('product.on_sale') }}</span>
       <span v-else-if="product.isNew" class="absolute top-3 left-3 badge-new z-10">{{ $t('product.new') }}</span>
-      <span v-if="product.isFeatured" class="absolute top-3 right-3 badge-bestseller z-10">⭐ {{ $t('product.bestseller') }}</span>
       <!-- Color dot -->
       <span
         v-if="product.colorHex"
@@ -32,7 +31,7 @@
       <h3 class="font-display font-semibold text-white group-hover:text-accent transition-colors mb-1 text-sm leading-tight">
         {{ l(product.name) }}
       </h3>
-      <div class="flex items-center justify-between mt-2">
+      <div class="flex items-center justify-between mt-2 gap-2">
         <div v-if="product.stock > 0">
           <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs mr-2">{{ product.compareAtPrice }}€</span>
           <span class="text-accent font-bold">{{ product.price }}€</span>
@@ -41,6 +40,7 @@
           <Icon name="ph:x-circle" class="w-3 h-3" />
           {{ $t('product.out_of_stock') }}
         </span>
+        <span v-if="product.isFeatured" class="badge-bestseller shrink-0">⭐ {{ $t('product.bestseller') }}</span>
       </div>
     </div>
   </div>
