@@ -155,12 +155,6 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 const route = useRoute()
-
-useSeoMeta({
-  title: () => `${pageTitle.value} — Vitesse Eco`,
-  description: () => `${pageSubtitle.value} — Vitesse Eco`,
-})
-
 const router = useRouter()
 
 // URL-synced filter state
@@ -228,6 +222,11 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() => {
   const m: Record<string, string> = { bike: t('nav.type_bikes_desc'), accessory: t('nav.type_accessories_desc'), spare_part: t('nav.type_parts_desc'), kids_car: t('nav.type_kids_desc') }
   return m[selectedType.value] || t('products.subtitle')
+})
+
+useSeoMeta({
+  title: () => `${pageTitle.value} — Vitesse Eco`,
+  description: () => `${pageSubtitle.value} — Vitesse Eco`,
 })
 
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stock desc, sortOrder asc) {
