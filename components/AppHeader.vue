@@ -1,5 +1,7 @@
 <template>
-  <header class="sticky top-0 z-40 bg-primary/95 backdrop-blur-md border-b border-dark-tertiary/50">
+  <header class="sticky top-0 z-header bg-primary/85 backdrop-blur-xl border-b border-dark-tertiary/30 shadow-soft relative">
+    <!-- Subtle accent line under header -->
+    <div class="absolute inset-x-0 -bottom-px divider-accent" />
     <div class="container-custom">
       <div class="flex items-center justify-between h-16 md:h-20">
         <!-- Logo -->

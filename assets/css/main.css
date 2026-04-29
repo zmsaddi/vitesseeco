@@ -38,15 +38,23 @@
   }
 
   .btn-primary {
-    @apply btn-base bg-accent text-primary hover:bg-green-300;
+    @apply btn-base bg-accent text-primary hover:bg-green-300
+           shadow-[0_4px_16px_-4px_rgba(74,222,128,0.40)]
+           hover:shadow-[0_6px_24px_-4px_rgba(74,222,128,0.55)]
+           hover:-translate-y-px active:translate-y-0;
+    background-image: linear-gradient(135deg, #4ADE80 0%, #34D399 100%);
   }
 
   .btn-secondary {
-    @apply btn-base bg-dark-secondary text-white hover:bg-dark-tertiary;
+    @apply btn-base bg-dark-secondary text-white hover:bg-dark-tertiary
+           border border-dark-tertiary hover:border-accent/40
+           shadow-soft;
   }
 
   .btn-outline {
-    @apply btn-base border-2 border-accent text-accent hover:bg-accent hover:text-primary;
+    @apply btn-base border-2 border-accent/60 text-accent hover:bg-accent hover:text-primary
+           hover:border-accent
+           hover:shadow-[0_4px_16px_-4px_rgba(74,222,128,0.30)];
   }
 
   .btn-danger {
@@ -100,11 +108,16 @@
   .card {
     @apply bg-dark-secondary rounded-xl overflow-hidden
            border border-dark-tertiary/50
+           shadow-soft
            transition-all duration-slow ease-soft;
   }
 
   .card-interactive {
-    @apply card hover:border-dark-tertiary cursor-pointer;
+    @apply card hover:border-accent/30 cursor-pointer card-lift;
+  }
+
+  .card-premium {
+    @apply card ring-accent-soft;
   }
 
   /* ─── Page primitives ────────────────────────────────────────────── */
@@ -166,6 +179,72 @@
      elements (cards, etc.) where outline is undesirable. */
   .focus-ring {
     @apply focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary focus-visible:outline-none;
+  }
+
+  /* ─── Premium visual utilities (refresh) ─────────────────────────── */
+  /* Subtle accent-tinted glow used on hero CTAs and featured cards. */
+  .glow-accent {
+    box-shadow:
+      0 0 0 1px rgba(74, 222, 128, 0.10),
+      0 8px 24px -6px rgba(74, 222, 128, 0.30),
+      0 4px 12px -4px rgba(0, 0, 0, 0.40);
+  }
+  .glow-accent-strong {
+    box-shadow:
+      0 0 0 1px rgba(74, 222, 128, 0.15),
+      0 14px 40px -10px rgba(74, 222, 128, 0.45),
+      0 6px 16px -6px rgba(0, 0, 0, 0.50);
+  }
+  /* Soft elevation for premium cards. */
+  .shadow-soft {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 8px 24px -8px rgba(0, 0, 0, 0.50);
+  }
+  .shadow-soft-lg {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 16px 40px -12px rgba(0, 0, 0, 0.60);
+  }
+  /* Gradient accent text — for hero headlines. */
+  .text-gradient-accent {
+    background: linear-gradient(135deg, #4ADE80 0%, #34D399 50%, #D4A843 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Decorative divider with center-glow accent. */
+  .divider-accent {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(74, 222, 128, 0.40) 50%,
+      transparent 100%
+    );
+  }
+  /* Background hero treatment — subtle radial accent. */
+  .bg-hero-glow {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(74, 222, 128, 0.12), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(212, 168, 67, 0.06), transparent 70%);
+  }
+  /* Card hover lift — premium feel without being garish. */
+  .card-lift {
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .card-lift:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.30),
+      0 18px 44px -12px rgba(74, 222, 128, 0.18),
+      0 10px 24px -8px rgba(0, 0, 0, 0.55);
+  }
+  /* Hairline border with gradient — for premium frame on featured items. */
+  .ring-accent-soft {
+    box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.15);
   }
 }
 
