@@ -23,11 +23,6 @@ test.describe('Site Navigation', () => {
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
   })
 
-  test('buying guide page loads', async ({ page }) => {
-    await page.goto('/guide')
-    await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
-  })
-
   test('comparison page loads with table', async ({ page }) => {
     await page.goto('/comparatif')
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })

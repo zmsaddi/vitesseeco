@@ -101,11 +101,11 @@
         <button @click="page = Math.min(totalPages, page + 1)" :disabled="page === totalPages" class="btn-outline text-sm px-3 py-1.5 disabled:opacity-30">→</button>
       </div>
 
-      <!-- Legend + Guide CTA -->
+      <!-- Legend + Browse CTA -->
       <div class="flex flex-col sm:flex-row items-center justify-between mt-8 gap-4">
         <p class="text-text-secondary text-xs">{{ $t('compare.all_models') }}</p>
-        <NuxtLink :to="localePath('/guide')" class="btn-outline text-sm inline-flex items-center gap-2">
-          <Icon name="ph:compass" class="w-4 h-4" /> {{ $t('guide.title') }}
+        <NuxtLink :to="localePath('/produits')" class="btn-outline text-sm inline-flex items-center gap-2">
+          <Icon name="ph:storefront" class="w-4 h-4" /> {{ $t('nav.products') }}
         </NuxtLink>
       </div>
     </div>

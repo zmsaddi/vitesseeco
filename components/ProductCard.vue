@@ -42,13 +42,6 @@
         </span>
       </div>
 
-      <!-- Color dot — bottom right with subtle ring -->
-      <span
-        v-if="product.colorHex"
-        class="absolute bottom-3 right-3 w-6 h-6 rounded-full ring-2 ring-white/30 ring-offset-2 ring-offset-black/30 z-base"
-        :style="{ backgroundColor: product.colorHex }"
-        :title="l(product.color)"
-      />
     </div>
 
     <!-- Info -->

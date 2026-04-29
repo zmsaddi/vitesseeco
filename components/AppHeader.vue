@@ -59,8 +59,8 @@
                     <NuxtLink :to="localePath('/produits')" @click="showProducts = false" class="text-accent text-sm font-medium hover:underline flex items-center gap-1">
                       {{ $t('nav.all_products') }} <Icon name="ph:arrow-right" class="w-4 h-4 rtl:rotate-180" />
                     </NuxtLink>
-                    <NuxtLink :to="localePath('/guide')" @click="showProducts = false" class="text-text-secondary text-xs hover:text-accent flex items-center gap-1">
-                      <Icon name="ph:compass" class="w-3.5 h-3.5" /> {{ $t('guide.title') }}
+                    <NuxtLink :to="localePath('/comparatif')" @click="showProducts = false" class="text-text-secondary text-xs hover:text-accent flex items-center gap-1">
+                      <Icon name="ph:table" class="w-3.5 h-3.5" /> {{ $t('compare.title') }}
                     </NuxtLink>
                   </div>
                 </div>

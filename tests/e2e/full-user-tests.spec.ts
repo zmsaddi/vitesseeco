@@ -219,11 +219,6 @@ test.describe('Content Pages', () => {
     await expect(page.locator('button').filter({ hasText: /Toutes|All/ }).first()).toBeVisible()
   })
 
-  test('guide', async ({ page }) => {
-    await page.goto(`${BASE}/guide`, LOAD)
-    await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })
-  })
-
   test('about with SIREN', async ({ page }) => {
     await page.goto(`${BASE}/a-propos`, LOAD)
     await expect(page.locator('h1')).toBeVisible({ timeout: 10_000 })

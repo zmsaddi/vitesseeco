@@ -49,9 +49,9 @@
               {{ heroCtaText }}
               <Icon name="ph:arrow-right" class="w-5 h-5 rtl:rotate-180" />
             </NuxtLink>
-            <NuxtLink :to="localePath('/guide')" class="btn-outline text-lg px-8 py-4 inline-flex items-center gap-2">
-              <Icon name="ph:compass" class="w-5 h-5" />
-              {{ $t('guide.title') }}
+            <NuxtLink :to="localePath('/comparatif')" class="btn-outline text-lg px-8 py-4 inline-flex items-center gap-2">
+              <Icon name="ph:table" class="w-5 h-5" />
+              {{ $t('compare.title') }}
             </NuxtLink>
           </div>
 
