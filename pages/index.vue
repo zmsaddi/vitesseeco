@@ -177,11 +177,9 @@ const homeQuery = groq`*[_type == "homePage"][0]{
 }`
 const { data: homeData } = useSanityFetch('home-page', homeQuery)
 
-useHead({
-  title: computed(() => homeData.value?.seo?.title || 'Vitesse Eco — Fatbikes Électriques'),
-  meta: [
-    { name: 'description', content: computed(() => homeData.value?.seo?.description || '') },
-  ],
+useSeoMeta({
+  title: () => homeData.value?.seo?.title || 'Vitesse Eco — Fatbikes Électriques',
+  description: () => homeData.value?.seo?.description || '',
 })
 
 const heroTitle = computed(() => homeData.value?.heroBanner?.title ? l(homeData.value.heroBanner.title) : t('home.hero_title'))

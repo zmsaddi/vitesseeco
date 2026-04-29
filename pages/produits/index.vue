@@ -156,11 +156,9 @@ const localePath = useLocalePath()
 const l = useLocalizedField()
 const route = useRoute()
 
-useHead({
-  title: computed(() => `${pageTitle.value} — Vitesse Eco`),
-  meta: [
-    { name: 'description', content: computed(() => `${pageSubtitle.value} — Vitesse Eco`) },
-  ],
+useSeoMeta({
+  title: () => `${pageTitle.value} — Vitesse Eco`,
+  description: () => `${pageSubtitle.value} — Vitesse Eco`,
 })
 
 const router = useRouter()

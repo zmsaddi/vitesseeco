@@ -341,20 +341,21 @@ const seoDescription = computed(() => {
   return `${name} — ${price}€. ${l(p.shortDescription) || ''}`.slice(0, 160)
 })
 
-useHead({
-  title: computed(() => product.value?.seo?.title || (product.value ? `${l(product.value.name)} | Vitesse Eco` : 'Vitesse Eco')),
-  meta: computed(() => product.value ? [
-    { name: 'description', content: seoDescription.value },
-    { property: 'og:title', content: `${l(product.value.name)} — Vitesse Eco` },
-    { property: 'og:description', content: seoDescription.value },
-    { property: 'og:image', content: product.value.images?.[0]?.asset ? useSanityImageUrl(product.value.images[0], 1200, 630) : 'https://vitesse-eco.fr/poster.webp' },
-    { property: 'og:url', content: `https://vitesse-eco.fr/produits/${product.value.slug?.current}` },
-    { property: 'og:type', content: 'product' },
-  ] : []),
-  script: computed(() => {
-    if (!product.value) return []
-    const p = product.value
-    return [
+useSeoMeta({
+  title: () => product.value?.seo?.title || (product.value ? `${l(product.value.name)} | Vitesse Eco` : 'Vitesse Eco'),
+  description: () => product.value ? seoDescription.value : '',
+  ogTitle: () => product.value ? `${l(product.value.name)} — Vitesse Eco` : '',
+  ogDescription: () => product.value ? seoDescription.value : '',
+  ogImage: () => product.value?.images?.[0]?.asset ? useSanityImageUrl(product.value.images[0], 1200, 630) : 'https://vitesse-eco.fr/poster.webp',
+  ogUrl: () => product.value ? `https://vitesse-eco.fr/produits/${product.value.slug?.current}` : '',
+  ogType: 'product' as any,
+})
+
+useHead(() => {
+  if (!product.value) return {}
+  const p = product.value
+  return {
+    script: [
       { type: 'application/ld+json', innerHTML: JSON.stringify({
         '@context': 'https://schema.org', '@type': 'Product',
         name: l(p.name), description: l(p.shortDescription) || l(p.description)?.slice(0, 300),
@@ -375,7 +376,7 @@ useHead({
           { '@type': 'ListItem', position: 3, name: l(p.name) },
         ],
       }) },
-    ]
-  }),
+    ],
+  }
 })
 </script>

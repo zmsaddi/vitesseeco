@@ -53,11 +53,9 @@ const l = useLocalizedField()
 const query = groq`*[_type == "aboutPage"][0]{ title, subtitle, story, values, seo }`
 const { data: aboutData } = useSanityFetch('about-page', query)
 
-useHead({
-  title: computed(() => aboutData.value?.seo?.title || `${t('about.title')} — Vitesse Eco`),
-  meta: [
-    { name: 'description', content: computed(() => aboutData.value?.seo?.description || '') },
-  ],
+useSeoMeta({
+  title: () => aboutData.value?.seo?.title || `${t('about.title')} — Vitesse Eco`,
+  description: () => aboutData.value?.seo?.description || '',
 })
 
 const pageTitle = computed(() => aboutData.value?.title ? l(aboutData.value.title) : t('about.title'))

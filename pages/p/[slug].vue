@@ -110,8 +110,8 @@ if (import.meta.client) {
   })
 }
 
-useHead({
-  title: computed(() => page.value?.seo?.title || (page.value ? `${l(page.value.title)} — Vitesse Eco` : 'Vitesse Eco')),
-  meta: computed(() => page.value?.seo?.description ? [{ name: 'description', content: page.value.seo.description }] : []),
+useSeoMeta({
+  title: () => page.value?.seo?.title || (page.value ? `${l(page.value.title)} — Vitesse Eco` : 'Vitesse Eco'),
+  description: () => page.value?.seo?.description || '',
 })
 </script>

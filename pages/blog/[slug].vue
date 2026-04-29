@@ -100,15 +100,16 @@ if (import.meta.client) {
 }
 
 // SEO + Article JSON-LD
-useHead({
-  title: computed(() => article.value?.seo?.title || (article.value ? `${l(article.value.title)} — Vitesse Eco` : 'Vitesse Eco')),
-  meta: computed(() => article.value ? [
-    { name: 'description', content: article.value.seo?.description || l(article.value.excerpt) || '' },
-  ] : []),
-  script: computed(() => {
-    if (!article.value) return []
-    const a = article.value
-    return [{
+useSeoMeta({
+  title: () => article.value?.seo?.title || (article.value ? `${l(article.value.title)} — Vitesse Eco` : 'Vitesse Eco'),
+  description: () => article.value ? (article.value.seo?.description || l(article.value.excerpt) || '') : '',
+})
+
+useHead(() => {
+  if (!article.value) return {}
+  const a = article.value
+  return {
+    script: [{
       type: 'application/ld+json',
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
@@ -120,7 +121,7 @@ useHead({
         datePublished: a.publishedAt,
         publisher: { '@type': 'Organization', name: 'Vitesse Eco', url: 'https://vitesse-eco.fr' },
       }),
-    }]
-  }),
+    }],
+  }
 })
 </script>

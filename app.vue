@@ -34,36 +34,36 @@ const pathWithoutLocale = computed(() => {
   return path
 })
 
-useHead({
-  htmlAttrs: {
-    lang: locale,
-    dir: dir,
-  },
-  link: computed(() => {
-    const path = pathWithoutLocale.value
-    const links: any[] = []
+useHead(() => {
+  const path = pathWithoutLocale.value
+  const links: any[] = []
 
-    // Canonical
-    const currentPrefix = locales.find(l => l.code === locale.value)?.prefix || ''
-    links.push({ rel: 'canonical', href: `${baseUrl}${currentPrefix}${path}` })
+  // Canonical
+  const currentPrefix = locales.find(l => l.code === locale.value)?.prefix || ''
+  links.push({ rel: 'canonical', href: `${baseUrl}${currentPrefix}${path}` })
 
-    // Hreflang alternates
-    for (const l of locales) {
-      links.push({
-        rel: 'alternate',
-        hreflang: l.hreflang,
-        href: `${baseUrl}${l.prefix}${path}`,
-      })
-    }
-
-    // x-default (French)
+  // Hreflang alternates
+  for (const l of locales) {
     links.push({
       rel: 'alternate',
-      hreflang: 'x-default',
-      href: `${baseUrl}${path}`,
+      hreflang: l.hreflang,
+      href: `${baseUrl}${l.prefix}${path}`,
     })
+  }
 
-    return links
-  }),
+  // x-default (French)
+  links.push({
+    rel: 'alternate',
+    hreflang: 'x-default',
+    href: `${baseUrl}${path}`,
+  })
+
+  return {
+    htmlAttrs: {
+      lang: locale.value,
+      dir: dir.value,
+    },
+    link: links,
+  }
 })
 </script>
