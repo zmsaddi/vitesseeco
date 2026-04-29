@@ -3,6 +3,7 @@ import { customers, sessions } from '~/server/database/schema'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { isValidEmail, normalizeEmail, isValidName, isValidPassword, LIMITS } from '~/server/utils/validation'
+import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
@@ -50,6 +51,7 @@ export default defineEventHandler(async (event) => {
     // account holder ("someone tried to register with your email — reset
     // password if it was you"). That fully closes the enumeration surface.
     if (e.code === '23505') {
+      await logEvent({ type: 'auth_register_duplicate', payload: { emailHash: email.slice(0, 3) + '***' }, event })
       throw createError({
         statusCode: 409,
         message: 'An account with this email already exists. Please sign in or use the password reset flow.',
@@ -73,6 +75,8 @@ export default defineEventHandler(async (event) => {
     maxAge: 30 * 24 * 60 * 60,
     path: '/',
   })
+
+  await logEvent({ type: 'auth_register_success', customerId: customer.id, event })
 
   return { user: customer }
 })

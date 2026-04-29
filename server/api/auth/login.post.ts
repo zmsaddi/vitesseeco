@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { normalizeEmail } from '~/server/utils/validation'
+import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 10, windowMs: 60_000 })
@@ -28,11 +29,13 @@ export default defineEventHandler(async (event) => {
     lastName: customers.lastName,
   }).from(customers).where(eq(customers.email, email)).limit(1)
   if (!customer) {
+    await logEvent({ type: 'auth_login_failed', payload: { reason: 'no_customer' }, event })
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
 
   const valid = await bcrypt.compare(body.password, customer.passwordHash)
   if (!valid) {
+    await logEvent({ type: 'auth_login_failed', customerId: customer.id, payload: { reason: 'bad_password' }, event })
     throw createError({ statusCode: 401, message: 'Invalid email or password' })
   }
 
@@ -50,6 +53,8 @@ export default defineEventHandler(async (event) => {
     maxAge: 30 * 24 * 60 * 60,
     path: '/',
   })
+
+  await logEvent({ type: 'auth_login_success', customerId: customer.id, event })
 
   return {
     user: {

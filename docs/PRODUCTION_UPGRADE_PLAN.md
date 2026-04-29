@@ -568,6 +568,7 @@ Each high-risk task ships behind a feature flag; default is **off** in productio
 |---|---|---|
 | 2026-04-29 | zmsaddi + Claude | Initial draft created |
 | 2026-04-29 | zmsaddi + Claude | Approved for use as official reference. Adjustments: removed Neon keep-alive ping (cold-start accepted); outbox processor uses opportunistic + external free cron (no Vercel 1/min); Vercel ToS wording made more professional; Open Questions resolved with project owner's decisions |
+| 2026-04-29 | zmsaddi + Claude | Phase 0 progress: P0-01 ✅ (promo maxUses, atomic reservation), P0-02 ✅ (email validation unified), P0-03 ⚠️ partial (generic register message; full silent-success deferred to P0-04), P0-09 ✅ (ADR-001 written), P0-10 ✅ (schema additions: inventory/outbox/audit_log/events/password_reset_tokens), P0-11 ✅ (orderService.ts + PG-primary path behind ENABLE_PG_PRIMARY_ORDERS flag, default off — needs migration applied + flag flipped to activate), P0-12 ✅ (outbox helper + cron route at /api/cron/process-outbox), P0-13 ✅ (stock.ts with SELECT FOR UPDATE), P0-15 ✅ (Turnstile UX states), P0-17 ✅ (audit helper + wired to order create/fail), P0-18 ✅ (events helper + wired to auth + order). Concurrency tests for promo (5×, 10×) PASSED. Stock concurrency test script written, awaits migration apply to run. |
 
 ---
 

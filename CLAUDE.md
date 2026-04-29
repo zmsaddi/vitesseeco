@@ -1,6 +1,7 @@
 # Vitesse Eco — Project Documentation
-> **Last updated:** 2026-04-11
+> **Last updated:** 2026-04-29
 > **System:** B (product per color, no variants)
+> **Active upgrade plan:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (Phase 0 in progress)
 
 ## Project Overview
 | Field | Value |

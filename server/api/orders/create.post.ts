@@ -7,6 +7,10 @@ import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/serve
 import { useDB } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
+import { persistOrderPGPrimary, opportunisticOutboxFlush } from '~/server/utils/orderService'
+import { dispatchOutboxEntry } from '~/server/utils/sanitySync'
+import { audit } from '~/server/utils/audit'
+import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
@@ -142,9 +146,115 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // From here on, the promo is RESERVED (counter already incremented).
-  // If anything below throws before the order is durably written, we MUST
-  // release it to avoid a phantom use.
+  // ── Branch on feature flag (ADR-001 / P0-11) ─────────────────────────────
+  // PG-primary path: stock locked + order inserted in one transaction; Sanity
+  // is synced async via the outbox. Fail-safe: if the flag is off, fall back
+  // to the existing Sanity-first dual-write code below.
+  const usePgPrimary = process.env.ENABLE_PG_PRIMARY_ORDERS === 'true'
+
+  if (usePgPrimary) {
+    try {
+      await persistOrderPGPrimary({
+        orderNumber,
+        customerSnapshot: customerInfo,
+        customerId: customerInfo.customerId || null,
+        guestEmail: customerInfo.email || null,
+        validatedItems,
+        subtotal,
+        shippingCost,
+        discount,
+        total,
+        shippingCode: body.shippingCode,
+        shippingMethodLabel: shippingMethod?.name?.fr || null,
+        shippingAddress: body.shippingAddress,
+        billingAddress: body.billingAddress,
+        paymentCode: body.paymentCode,
+        promoCode: body.promoCode || null,
+        notes: body.notes || null,
+      })
+
+      // Audit + telemetry
+      await audit({
+        action: 'order.create',
+        actorType: customerInfo.customerId ? 'customer' : 'system',
+        actorId: customerInfo.customerId || null,
+        resourceType: 'order',
+        resourceId: orderNumber,
+        after: { orderNumber, total, paymentMethod: body.paymentCode, items: validatedItems.length },
+      })
+      await logEvent({
+        type: 'order_created',
+        customerId: customerInfo.customerId || null,
+        payload: { orderNumber, total, items: validatedItems.length, promo: !!reservedPromo },
+        event,
+      })
+
+      // Best-effort opportunistic Sanity sync — admin sees the order quickly
+      // when this succeeds; cron drains anything left over.
+      opportunisticOutboxFlush({ process: dispatchOutboxEntry, batchSize: 5, budgetMs: 4000 }).catch(() => {})
+
+      return {
+        orderNumber,
+        total,
+        status: 'pending',
+        paymentMethod: body.paymentCode,
+      }
+    } catch (orderError: any) {
+      // Failed AFTER promo reservation. Compensate.
+      if (reservedPromo && writeClient) {
+        const release = await releasePromoUse(writeClient, readClient, reservedPromo.id)
+        if (!release.success) {
+          console.error(
+            `[ORDER ${orderNumber}] CRITICAL: promo "${reservedPromo.code}" reserved but order failed; release also failed (${release.reason}).`
+          )
+          await audit({
+            action: 'promo.release_failed',
+            resourceType: 'promo',
+            resourceId: reservedPromo.id,
+            metadata: { code: reservedPromo.code, reason: release.reason, orderNumber },
+          })
+        } else {
+          await audit({
+            action: 'promo.release',
+            resourceType: 'promo',
+            resourceId: reservedPromo.id,
+            metadata: { code: reservedPromo.code, orderNumber },
+          })
+        }
+      }
+
+      await audit({
+        action: 'order.failed',
+        resourceType: 'order',
+        resourceId: orderNumber,
+        metadata: {
+          code: orderError?.code,
+          message: String(orderError?.message || orderError),
+          insufficient: orderError?.insufficient,
+          notFound: orderError?.notFound,
+        },
+      })
+      await logEvent({
+        type: 'order_failed',
+        customerId: customerInfo.customerId || null,
+        payload: { orderNumber, reason: orderError?.code || 'unknown' },
+        event,
+      })
+
+      // Translate STOCK_UNAVAILABLE into a 409 the client can act on
+      if (orderError?.code === 'STOCK_UNAVAILABLE') {
+        throw createError({
+          statusCode: 409,
+          message: 'Some items are no longer available in the requested quantity. Please review your cart.',
+          data: { insufficient: orderError.insufficient, notFound: orderError.notFound },
+        })
+      }
+      throw orderError
+    }
+  }
+
+  // ── Legacy Sanity-first path (default until ENABLE_PG_PRIMARY_ORDERS=true)
+  // Kept intentionally as a rollback path — see ADR-001.
   try {
     // 6. Create order in Sanity (primary source — dashboard uses this)
     if (writeClient) {
@@ -172,9 +282,11 @@ export default defineEventHandler(async (event) => {
     try {
       const db = useDB()
       await db.insert(orders).values({
+        orderNumber,
         customerId: customerInfo.customerId || null,
         guestEmail: customerInfo.email || null,
         status: 'pending',
+        paymentMethod: body.paymentCode,
         items: validatedItems,
         subtotal: String(subtotal),
         shippingCost: String(shippingCost),
@@ -183,6 +295,8 @@ export default defineEventHandler(async (event) => {
         promoCode: body.promoCode || null,
         shippingMethod: body.shippingCode,
         shippingAddress: body.shippingAddress,
+        billingAddress: body.billingAddress || body.shippingAddress,
+        customerSnapshot: customerInfo,
         stripePaymentId: null,
       })
     } catch (pgError) {
@@ -235,6 +349,22 @@ export default defineEventHandler(async (event) => {
       }
     }
 
+    // Audit + telemetry on legacy path too (P0-17/P0-18)
+    await audit({
+      action: 'order.create',
+      actorType: customerInfo.customerId ? 'customer' : 'system',
+      actorId: customerInfo.customerId || null,
+      resourceType: 'order',
+      resourceId: orderNumber,
+      after: { orderNumber, total, paymentMethod: body.paymentCode, items: validatedItems.length, path: 'legacy' },
+    })
+    await logEvent({
+      type: 'order_created',
+      customerId: customerInfo.customerId || null,
+      payload: { orderNumber, total, items: validatedItems.length, promo: !!reservedPromo, path: 'legacy' },
+      event,
+    })
+
     return {
       orderNumber,
       total,
@@ -246,17 +376,16 @@ export default defineEventHandler(async (event) => {
     if (reservedPromo && writeClient) {
       const release = await releasePromoUse(writeClient, readClient, reservedPromo.id)
       if (!release.success) {
-        // CRITICAL: counter is now 1 too high; manual reconciliation needed.
-        // TODO(P0-17): persist to audit_log for ops follow-up.
         console.error(
           `[ORDER ${orderNumber}] CRITICAL: promo "${reservedPromo.code}" reserved but order failed; release also failed (${release.reason}). Manual reconciliation required.`
         )
+        await audit({ action: 'promo.release_failed', resourceType: 'promo', resourceId: reservedPromo.id, metadata: { code: reservedPromo.code, reason: release.reason, orderNumber } })
       } else {
-        console.warn(
-          `[ORDER ${orderNumber}] Order failed; promo "${reservedPromo.code}" reservation released.`
-        )
+        await audit({ action: 'promo.release', resourceType: 'promo', resourceId: reservedPromo.id, metadata: { code: reservedPromo.code, orderNumber } })
       }
     }
+    await audit({ action: 'order.failed', resourceType: 'order', resourceId: orderNumber, metadata: { message: String(orderError) } })
+    await logEvent({ type: 'order_failed', customerId: customerInfo.customerId || null, payload: { orderNumber }, event })
     throw orderError
   }
 })
