@@ -6,7 +6,7 @@
  * serialized by the database and oversell becomes impossible.
  */
 
-import { sql } from 'drizzle-orm'
+import { sql, inArray } from 'drizzle-orm'
 import { inventory } from '~/server/database/schema'
 
 export interface StockItem {
@@ -45,20 +45,19 @@ export async function lockAndDecrement(
   const productIds = [...new Set(items.map((i) => i.productId))]
 
   // Step 1: SELECT FOR UPDATE all relevant rows. Order by product_id to keep
-  // a stable lock order across requests and avoid deadlocks.
-  // Using raw SQL for the FOR UPDATE clause (drizzle's query builder has
-  // limited support for it across versions — this is the most portable form).
-  const rows: Array<{ product_id: string; stock: number }> = await tx.execute(
-    sql`
-      SELECT product_id, stock
-      FROM inventory
-      WHERE product_id = ANY(${productIds})
-      ORDER BY product_id
-      FOR UPDATE
-    `
-  ).then((r: any) => r.rows ?? r)
+  // a stable lock order across requests and avoid deadlocks. Use Drizzle's
+  // query builder + inArray() rather than raw `WHERE col = ANY(${jsArr})`:
+  // the raw form flattens the JS array into individual numbered params, and
+  // a length-1 input collapses to a scalar that PG then rejects as a
+  // malformed array literal (22P02). inArray emits IN ($1, $2, …) cleanly.
+  const rows: Array<{ productId: string; stock: number }> = await tx
+    .select({ productId: inventory.productId, stock: inventory.stock })
+    .from(inventory)
+    .where(inArray(inventory.productId, productIds))
+    .orderBy(inventory.productId)
+    .for('update')
 
-  const stockMap = new Map<string, number>(rows.map((r) => [r.product_id, r.stock]))
+  const stockMap = new Map<string, number>(rows.map((r) => [r.productId, r.stock]))
 
   // Step 2 & 3: validate every requested item against the locked snapshot.
   const insufficient: Array<{ productId: string; requested: number; available: number }> = []
@@ -132,8 +131,9 @@ export async function readStock(
   productIds: string[]
 ): Promise<Map<string, number>> {
   if (productIds.length === 0) return new Map()
-  const rows: Array<{ product_id: string; stock: number }> = await tx.execute(
-    sql`SELECT product_id, stock FROM inventory WHERE product_id = ANY(${productIds})`
-  ).then((r: any) => r.rows ?? r)
-  return new Map(rows.map((r) => [r.product_id, r.stock]))
+  const rows: Array<{ productId: string; stock: number }> = await tx
+    .select({ productId: inventory.productId, stock: inventory.stock })
+    .from(inventory)
+    .where(inArray(inventory.productId, productIds))
+  return new Map(rows.map((r) => [r.productId, r.stock]))
 }
