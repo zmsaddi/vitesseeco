@@ -87,8 +87,29 @@
               </div>
             </div>
 
+            <!-- PICKUP guest: collect name + phone so the store knows who's coming.
+                 No address form — the address is the store's. Logged-in users skip
+                 this since their profile already has the name. -->
+            <div v-if="isPickup && !auth.isLoggedIn" class="space-y-3 mt-4">
+              <p class="text-text-secondary text-sm">{{ $t('checkout.pickup_contact_title') }}</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
+                  <input id="co-fn" v-model="addr.firstName" @blur="touch('firstName')" type="text" class="input-field" :class="fieldError('firstName', addr.firstName) ? 'border-red-500' : ''" required />
+                </div>
+                <div>
+                  <label for="co-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
+                  <input id="co-ln" v-model="addr.lastName" @blur="touch('lastName')" type="text" class="input-field" :class="fieldError('lastName', addr.lastName) ? 'border-red-500' : ''" required />
+                </div>
+              </div>
+              <div>
+                <label for="co-phone" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.phone') }}</label>
+                <input id="co-phone" v-model="addr.phone" type="tel" class="input-field" />
+              </div>
+            </div>
+
             <!-- DELIVERY -->
-            <div v-else>
+            <div v-if="!isPickup">
               <div v-if="loadingAddresses" class="flex items-center gap-2 text-text-secondary text-sm py-4">
                 <Icon name="ph:spinner" class="w-4 h-4 animate-spin" /> {{ $t('common.loading') }}
               </div>
@@ -413,7 +434,12 @@ async function pickCo(s: any) {
 // Can order?
 const canOrder = computed(() => {
   if (!selectedShipping.value || !selectedPayment.value || !turnstileToken.value) return false
-  if (isPickup.value) return true
+  if (isPickup.value) {
+    // The store needs to know who is coming to pick up. Logged-in users have
+    // their name on file; guests must enter first + last name.
+    if (auth.isLoggedIn) return true
+    return !!(addr.firstName?.trim() && addr.lastName?.trim())
+  }
   if (selectedAddressId.value && !showNewForm.value) return true
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
@@ -424,7 +450,9 @@ const canOrder = computed(() => {
 const disabledReason = computed(() => {
   if (canOrder.value) return ''
   if (!selectedShipping.value) return t('checkout.disabled_no_shipping')
-  if (!isPickup.value) {
+  if (isPickup.value && !auth.isLoggedIn) {
+    if (!addr.firstName?.trim() || !addr.lastName?.trim()) return t('checkout.disabled_no_name')
+  } else if (!isPickup.value) {
     if (showNewForm.value) {
       const missing = ['firstName', 'lastName', 'address', 'city', 'postalCode']
         .filter((k) => !(addr as any)[k]?.trim())
@@ -453,7 +481,13 @@ async function placeOrder() {
 
   let shippingAddress: any
   if (isPickup.value) {
-    shippingAddress = { firstName: auth.user?.firstName || 'Client', lastName: auth.user?.lastName || '', address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
+    // Logged-in users: take name from profile. Guests: take from the form
+    // gated by canOrder (which requires non-empty firstName/lastName).
+    // No more 'Client' / '' fallback that 400's at server-side validation.
+    const fn = (auth.user?.firstName?.trim() || addr.firstName?.trim() || '')
+    const ln = (auth.user?.lastName?.trim() || addr.lastName?.trim() || '')
+    const ph = (auth.user?.phone?.trim() || addr.phone?.trim() || undefined)
+    shippingAddress = { firstName: fn, lastName: ln, phone: ph, address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
   } else if (selectedAddressId.value && !showNewForm.value) {
     const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
     if (!a) { orderError.value = 'Select address'; placing.value = false; return }

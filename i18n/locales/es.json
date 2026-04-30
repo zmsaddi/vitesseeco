@@ -182,7 +182,9 @@
     "disabled_no_shipping": "Selecciona un método de envío",
     "disabled_no_address": "Completa tu dirección de envío",
     "disabled_no_payment": "Selecciona un método de pago",
-    "disabled_no_turnstile": "Completa la verificación de seguridad"
+    "disabled_no_turnstile": "Completa la verificación de seguridad",
+    "disabled_no_name": "Indica tu nombre y apellidos para la recogida en tienda",
+    "pickup_contact_title": "¿Quién recoge el pedido?"
   },
   "account": {
     "title": "Mi Cuenta",

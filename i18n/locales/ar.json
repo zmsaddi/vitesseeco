@@ -182,7 +182,9 @@
     "disabled_no_shipping": "اختر طريقة شحن",
     "disabled_no_address": "أكمل عنوان الشحن",
     "disabled_no_payment": "اختر طريقة دفع",
-    "disabled_no_turnstile": "يرجى إكمال التحقق الأمني"
+    "disabled_no_turnstile": "يرجى إكمال التحقق الأمني",
+    "disabled_no_name": "أدخل اسمك الأول واسم العائلة لاستلام الطلب من المتجر",
+    "pickup_contact_title": "من سيستلم الطلب؟"
   },
   "account": {
     "title": "حسابي",

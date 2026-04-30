@@ -182,7 +182,9 @@
     "disabled_no_shipping": "Wählen Sie eine Versandart",
     "disabled_no_address": "Vervollständigen Sie Ihre Lieferadresse",
     "disabled_no_payment": "Wählen Sie eine Zahlungsmethode",
-    "disabled_no_turnstile": "Bitte führen Sie die Sicherheitsprüfung durch"
+    "disabled_no_turnstile": "Bitte führen Sie die Sicherheitsprüfung durch",
+    "disabled_no_name": "Geben Sie Ihren Vor- und Nachnamen für die Abholung an",
+    "pickup_contact_title": "Wer holt die Bestellung ab?"
   },
   "account": {
     "title": "Mein Konto",

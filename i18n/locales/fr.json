@@ -182,7 +182,9 @@
     "disabled_no_shipping": "Sélectionnez un mode de livraison",
     "disabled_no_address": "Complétez votre adresse de livraison",
     "disabled_no_payment": "Choisissez un moyen de paiement",
-    "disabled_no_turnstile": "La vérification de sécurité doit être complétée"
+    "disabled_no_turnstile": "La vérification de sécurité doit être complétée",
+    "disabled_no_name": "Indiquez votre prénom et votre nom pour le retrait",
+    "pickup_contact_title": "Qui vient retirer la commande ?"
   },
   "account": {
     "title": "Mon Compte",

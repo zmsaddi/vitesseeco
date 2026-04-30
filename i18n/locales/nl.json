@@ -182,7 +182,9 @@
     "disabled_no_shipping": "Kies een verzendmethode",
     "disabled_no_address": "Vul je verzendadres in",
     "disabled_no_payment": "Kies een betaalmethode",
-    "disabled_no_turnstile": "Voltooi de beveiligingscontrole"
+    "disabled_no_turnstile": "Voltooi de beveiligingscontrole",
+    "disabled_no_name": "Vul uw voor- en achternaam in voor afhalen in de winkel",
+    "pickup_contact_title": "Wie haalt de bestelling op?"
   },
   "account": {
     "title": "Mijn Account",

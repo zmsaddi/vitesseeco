@@ -182,7 +182,9 @@
     "disabled_no_shipping": "Please select a shipping method",
     "disabled_no_address": "Please complete your shipping address",
     "disabled_no_payment": "Please select a payment method",
-    "disabled_no_turnstile": "Please complete the security check"
+    "disabled_no_turnstile": "Please complete the security check",
+    "disabled_no_name": "Enter your first and last name for store pickup",
+    "pickup_contact_title": "Who's picking up the order?"
   },
   "account": {
     "title": "My Account",
