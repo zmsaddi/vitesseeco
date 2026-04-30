@@ -10,10 +10,10 @@
     "postinstall": "nuxt prepare",
     "check:langs": "node scripts/check-languages.mjs",
     "check:hex": "node scripts/check-hex-colors.mjs",
-    "test:e2e": "npx playwright test --testDir=tests/e2e",
-    "test:e2e:ui": "npx playwright test --testDir=tests/e2e --ui",
-    "test:visual": "npx playwright test --testDir=tests/visual",
-    "test:visual:update": "npx playwright test --testDir=tests/visual --update-snapshots"
+    "test:e2e": "npx playwright test tests/e2e",
+    "test:e2e:ui": "npx playwright test tests/e2e --ui",
+    "test:visual": "npx playwright test tests/visual",
+    "test:visual:update": "npx playwright test tests/visual --update-snapshots"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
