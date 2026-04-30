@@ -22,9 +22,9 @@ window during execution and tick boxes as you go.
 - [ ] `npx nuxi typecheck` exit 0
 - [ ] `npx nuxi build` exit 0
 - [ ] `npm run test:e2e` against production base URL — all green.
-- [ ] `node --env-file=.env scripts/backfill-inventory.mjs --dry-run` runs
-      cleanly and reports counts that look sane (insert + update + unchanged
-      sum to fetched count).
+- [ ] `node -c scripts/backfill-inventory.mjs` parses (the live dry-run is
+      deferred to Phase 1 step 2 because it queries the `inventory` table that
+      doesn't exist until the migration in Phase 1 step 1).
 
 If any of the above is red, **stop**. Activation is not authorised.
 
@@ -100,6 +100,9 @@ psql "$DATABASE_URL" -f server/database/migrations/0002_moaning_moondragon.sql
 
 ### 2. Backfill inventory from Sanity
 
+**2a. Dry-run first** — depends on the `inventory` table existing, so this is
+the earliest point at which it can be executed:
+
 ```
 node --env-file=.env scripts/backfill-inventory.mjs --dry-run
 ```
@@ -107,14 +110,31 @@ node --env-file=.env scripts/backfill-inventory.mjs --dry-run
 Review the dry-run report. It must show:
 - `Fetched N sellable products from Sanity` where N matches the published
   product count you expect.
-- No "invalid/negative stock" warnings (or only known cases).
+- **Zero** "invalid/negative stock" entries. The script defaults to strict
+  mode and will exit non-zero if any sellable product has bad stock — fix
+  them in Sanity Studio before continuing. Only use
+  `--allow-clamp-invalid-stock` after a deliberate decision.
 - `would INSERT + would UPDATE + unchanged == Fetched`.
+- `PG rows not in Sanity result: 0`. If non-zero, the live run will exit 6
+  (extras detected) unless you investigate and either delete the orphans or
+  pass `--allow-extra-rows`.
 
-If the dry-run looks right, run live:
+**2b. Live run** — only after the dry-run is clean:
 
 ```
 node --env-file=.env scripts/backfill-inventory.mjs
 ```
+
+The live script aborts (non-zero exit) if any of:
+- final PG count < fetched Sanity count (rows lost — exit 4),
+- final PG count > fetched Sanity count without `--allow-extra-rows` (exit 6),
+- any row has `stock IS NULL OR stock < 0` post-write (exit 3),
+- any individual upsert errors (exit 2),
+- Sanity returns invalid stock without `--allow-clamp-invalid-stock` (exit 5).
+
+If you hit exit 5 or 6, **do not pass the `--allow-*` flag without first
+understanding what you're permitting**. The strict mode is what gives the
+first activation a clean baseline.
 
 The script aborts (non-zero exit) if any of:
 - final PG count < fetched Sanity count,
