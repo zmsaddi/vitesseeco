@@ -20,18 +20,7 @@ export default defineNuxtConfig({
     '@nuxtjs/sanity',
     '@nuxt/icon',
     '@nuxt/fonts',
-    '@sentry/nuxt/module',
   ],
-
-  // Sentry build-time options. The actual init() lives in
-  // sentry.client.config.ts + sentry.server.config.ts and is gated by
-  // ENABLE_SENTRY at runtime (no-op when the flag is unset). Source-map
-  // upload is intentionally disabled — that path requires SENTRY_AUTH_TOKEN
-  // and ships in Sentry-2 / Sentry-3.
-  sentry: {
-    sourceMapsUploadOptions: { enabled: false },
-    autoInjectServerSentry: 'top-level-import',
-  },
 
   tailwindcss: {
     cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }],
