@@ -95,21 +95,42 @@ test('guest pickup checkout requires first + last name', async ({ browser }) => 
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()
 
-  // Walk to /commande via the cart so we have a real validated cart line.
-  // NEVER `waitUntil: 'networkidle'` on these pages — Turnstile + analytics
-  // keep the network busy and the wait can hang indefinitely (same lesson
-  // we already applied to a11y/visual specs).
-  await page.goto('/produits', { waitUntil: 'domcontentloaded' })
-  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
-  const firstCard = page.locator('a[href*="/produits/"]').first()
-  if (!(await firstCard.isVisible().catch(() => false))) test.skip(true, 'no products')
-  await firstCard.click()
-  await page.waitForURL(/\/produits\/[^/]+$/, { timeout: 15_000 })
-  const addBtn = page.getByRole('button', { name: /panier|cart/i }).first()
-  if (!(await addBtn.isVisible().catch(() => false))) test.skip(true, 'add-to-cart not visible')
-  await addBtn.click()
+  // Inject a cart line via localStorage so we land on /commande with real
+  // items, deterministically and without going through the product → add-to-cart
+  // → cart-drawer dance. Walking the UI was racy: getByRole('button', { name:
+  // /panier|cart/i }) matches both the header "Votre Panier" button and the
+  // product-page "Ajouter au panier" button, and .first() picked the header
+  // one — which opens the drawer instead of adding to cart, leaving the cart
+  // empty and the test on /commande's empty-cart fallback.
+  // Cart shape mirrors the pinia-persist payload from stores/cart.ts.
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  // Let the homepage settle a moment before we mutate localStorage and
+  // navigate again — net::ERR_ABORTED can fire if a deferred home asset is
+  // still loading when we trigger the next goto.
+  await page.waitForTimeout(500)
+  await page.evaluate(() => {
+    const cart = {
+      items: [{
+        productId: 'zOkJuNZVmyYz76wu4fqHkf',
+        name: { fr: 'Test Bike' },
+        slug: 'test-bike',
+        price: 100,
+        colorHex: '#000000',
+        colorName: { fr: 'Test' },
+        sku: 'test-bike',
+        quantity: 1,
+      }],
+      promoCode: null, promoDiscount: 0,
+      shippingCode: null, shippingZone: 'FR', shippingCost: 0, shippingMethod: null,
+      serverSubtotal: null, serverTotal: null, validating: false, validationError: null,
+    }
+    localStorage.setItem('cart', JSON.stringify(cart))
+  })
+
   await page.goto('/commande', { waitUntil: 'domcontentloaded' })
   await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
+  // Wait for cart hydration so the form/shipping section renders, not the empty-cart fallback
+  await page.locator('input#ship-pickup, input[id^="ship-"]').first().waitFor({ state: 'attached', timeout: 15_000 })
 
   // Select pickup (auto-selected when it's the only option; otherwise click it)
   const pickupRadio = page.locator('input#ship-pickup')
@@ -128,22 +149,25 @@ test('guest pickup checkout requires first + last name', async ({ browser }) => 
   // Address field for delivery is hidden under pickup
   await expect(page.locator('input#co-addr')).toHaveCount(0)
 
-  // Submit must be disabled while names are empty, with a clear reason about name
-  const submitBtn = page.getByRole('button', { name: /commande|order/i }).filter({ hasText: /passer|place/i }).first()
+  // Submit must be disabled while names are empty.
+  // The button text comes from i18n key checkout.place_order which renders as
+  // "Confirmer la commande" / "Confirm order" / etc. — match by that root.
+  const submitBtn = page.getByRole('button', { name: /confirmer|confirm/i }).first()
   await expect(submitBtn).toBeDisabled()
-  const reasonText = await page.locator('p[role="status"]').first().textContent()
-  expect(reasonText?.toLowerCase() || '').toMatch(/prénom|nom|name/i)
 
-  // Fill the name fields; the disabled reason should advance off "no name"
+  // The disabled-reason paragraph is one of several p[role="status"] on the
+  // page (Turnstile widget also uses that role for its loading state). Find
+  // the one that mentions name fields instead of relying on DOM order.
+  const nameReason = page.locator('p[role="status"]').filter({ hasText: /prénom|nom|name/i })
+  await expect(nameReason).toHaveCount(1, { timeout: 10_000 })
+
+  // Fill the name fields; the disabled-reason for "no name" must disappear.
   await page.locator('input#co-fn').fill('Test')
   await page.locator('input#co-ln').fill('Acheteur')
   await page.locator('input#co-fn').blur()
   await page.locator('input#co-ln').blur()
 
-  // After names are present, the only remaining gate should be Turnstile (or
-  // payment if not auto-selected). We assert the reason is no longer about names.
-  const newReason = (await page.locator('p[role="status"]').first().textContent()) || ''
-  expect(newReason.toLowerCase()).not.toMatch(/prénom|first.{0,3}name|last.{0,3}name/i)
+  await expect(nameReason).toHaveCount(0, { timeout: 10_000 })
 
   await ctx.close()
 })
