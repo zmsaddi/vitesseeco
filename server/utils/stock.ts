@@ -15,7 +15,7 @@ export interface StockItem {
   quantity: number
 }
 
-export interface StockCheckResult {
+export interface StockLockResult {
   ok: boolean
   insufficient?: Array<{ productId: string; requested: number; available: number }>
   notFound?: string[]
@@ -39,7 +39,7 @@ export interface StockCheckResult {
 export async function lockAndDecrement(
   tx: any,
   items: StockItem[]
-): Promise<StockCheckResult> {
+): Promise<StockLockResult> {
   if (items.length === 0) return { ok: true }
 
   const productIds = [...new Set(items.map((i) => i.productId))]
