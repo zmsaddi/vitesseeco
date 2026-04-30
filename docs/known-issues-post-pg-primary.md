@@ -8,24 +8,29 @@
 > **Do not bundle these into a single fix.** They have unrelated root
 > causes; bundling makes review harder and rollback riskier.
 
-## 1. Confirmation page does not display orderNumber to the customer
+## 1. ~~Confirmation page does not display orderNumber to the customer~~ — **fixed in [a0a9e6e](https://github.com/zmsaddi/vitesseeco/commit/a0a9e6e)**
 
-- **Reproducer:** anonymous-or-logged-in checkout → submit order → expected
-  `/commande/confirmation?order=ORD-XXXX` shows the bold orderNumber on
-  screen. Observed: page renders but the orderNumber spot is empty.
-- **What we know is correct:** API returns `{ orderNumber, total, status,
-  paymentMethod }` (verified for ORD-MOLMNP8P), client receives it, and
-  `navigateTo` is called with `?order=...`.
-- **Suspected:** [pages/commande/confirmation.vue:66](../pages/commande/confirmation.vue#L66) reads
-  `route.query.order` in a `computed`. SSR likely renders before the query
-  is hydrated, leaving the bound `<strong>{{ orderNumber }}</strong>` empty
-  on first paint, and the hydration mismatch (item 2) prevents the client
-  patch.
-- **Severity:** UX-critical for the customer, but the data is correct in
-  PG and Sanity — orders are not being lost, just not displayed.
-- **Fix shape:** wrap the orderNumber render in `<ClientOnly>` or use
-  `useRoute().query` reactively with a fallback that renders only after
-  mounted. Likely 5-line patch.
+- **Original symptom:** anonymous-or-logged-in checkout → submit order → page
+  rendered but the orderNumber spot was empty.
+- **Real root cause** (the original "SSR before hydration" theory was
+  wrong): `pages/commande.vue` and `pages/commande/confirmation.vue` formed
+  a parent/child route pair, but the parent had no `<NuxtPage />` slot, so
+  `/commande/confirmation` matched the parent only and the confirmation
+  child never rendered. SSR returned the parent's empty-cart layout while
+  the order number lived only in the `__NUXT__` payload, never in visible
+  HTML. Verified by `curl https://vitesse-eco.fr/commande/confirmation?order=...`
+  showing zero `<strong>` tags.
+- **Fix:** rename `pages/commande.vue` → `pages/commande/index.vue` so
+  `/commande` and `/commande/confirmation` resolve as siblings. Plus a
+  `hasValidOrderNumber` guard on the confirmation page that accepts only
+  `ORD-[A-Z0-9]+` values, with a soft fallback message and `data-test`
+  attributes for the regression suite.
+- **Regression coverage:** three new e2e tests in `checkout-flow.spec.ts`
+  pin (a) a valid number renders, (b) missing query falls back, (c)
+  malformed `?order=javascript:alert(1)` falls back without leaking junk
+  into the `<strong>` slot.
+- **Verified live:** `curl /commande/confirmation?order=ORD-TEST123 → 200`
+  with `<strong>ORD-TEST123</strong>` in the SSR HTML.
 
 ## 2. Hydration mismatch warning on multiple pages
 
@@ -81,9 +86,16 @@
 
 ## Tracking
 
-These four are logged here rather than in `git` issues to keep the surface
+These items are logged here rather than in `git` issues to keep the surface
 small while PG-primary stabilises. When picked up:
 
 1. Each gets its own commit + PR with a regression test where applicable.
 2. Update this file: strike the entry, add a "Fixed in commit X" line.
 3. Once all four are fixed and green for 7 days, delete this file.
+
+| # | Issue | Status |
+|---|-------|--------|
+| 1 | Confirmation page orderNumber not visible | ✅ **Fixed** in [a0a9e6e](https://github.com/zmsaddi/vitesseeco/commit/a0a9e6e) |
+| 2 | Hydration mismatch warning | open |
+| 3 | Turnstile widget "Nothing to reset" warning | open |
+| 4 | `orders.guest_email` populated for logged-in customers | open |
