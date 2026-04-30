@@ -6,6 +6,9 @@
  */
 
 import { createClient } from '@sanity/client'
+import { eq } from 'drizzle-orm'
+import { useDB } from '~/server/database/db'
+import { inventory } from '~/server/database/schema'
 import type { OutboxKind } from '~/server/utils/outbox'
 
 let cachedClient: ReturnType<typeof createClient> | null = null
@@ -45,12 +48,32 @@ export async function dispatchOutboxEntry(entry: { kind: string; payload: any })
     }
 
     case 'sanity.inventory.patch': {
-      // payload: { productId, stock } — set absolute value (PG is source of truth)
-      const { productId, stock } = entry.payload as { productId: string; stock: number }
-      if (!productId || typeof stock !== 'number') {
-        throw new Error(`invalid inventory.patch payload: ${JSON.stringify(entry.payload)}`)
+      // payload: { productId } — stock is read fresh from PG at dispatch time
+      // because PG is the source of truth post-activation. Putting stock in the
+      // payload would freeze the value at enqueue time and cause drift if a
+      // later order decremented again before the cron drained the earlier
+      // entry. Reading at dispatch makes Sanity converge on the latest value.
+      const { productId } = entry.payload as { productId: string }
+      if (!productId || typeof productId !== 'string') {
+        throw new Error(`invalid inventory.patch payload: missing productId — ${JSON.stringify(entry.payload)}`)
       }
-      await client.patch(productId).set({ stock }).commit()
+
+      const db = useDB()
+      const rows = await db
+        .select({ stock: inventory.stock })
+        .from(inventory)
+        .where(eq(inventory.productId, productId))
+        .limit(1)
+
+      if (rows.length === 0) {
+        // Throwing keeps the entry in the outbox; retry/backoff covers the
+        // case where the inventory row is created after enqueue (e.g., backfill
+        // running concurrently with first orders). After PERMANENT_FAIL_AFTER
+        // attempts the entry is marked failed for manual reconciliation.
+        throw new Error(`inventory row not found for productId=${productId}`)
+      }
+
+      await client.patch(productId).set({ stock: rows[0].stock }).commit()
       return
     }
 
