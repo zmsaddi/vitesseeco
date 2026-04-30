@@ -66,52 +66,59 @@ test.describe('Arabic routing + language switcher exposure', () => {
 })
 
 test.describe('Mobile UX — touch targets and overlays (P1-05/P1-06)', () => {
-  test.use({ ...devices['iPhone 13'] })
+  // Playwright forbids test.use({ defaultBrowserType }) inside a describe.
+  // We open a manual mobile context per test instead — same effect, no
+  // worker-restart constraint.
 
-  test('cart drawer +/− buttons are >= 44px (P1-06)', async ({ page }) => {
-    await page.goto(PRODUCTS)
-    await page.locator('h1').waitFor()
+  test('cart drawer +/− buttons are >= 44px (P1-06)', async ({ browser }) => {
+    const ctx = await browser.newContext({ ...devices['iPhone 13'] })
+    const page = await ctx.newPage()
+    try {
+      await page.goto(PRODUCTS)
+      await page.locator('h1').waitFor()
 
-    // Click the first product to land on its detail page
-    const firstCard = page.locator('a[href*="/produits/"]').first()
-    if (!(await firstCard.isVisible().catch(() => false))) test.skip(true, 'no product cards visible')
-    await firstCard.click()
+      const firstCard = page.locator('a[href*="/produits/"]').first()
+      if (!(await firstCard.isVisible().catch(() => false))) test.skip(true, 'no product cards visible')
+      await firstCard.click()
 
-    // Add to cart
-    const addBtn = page.getByRole('button').filter({ hasText: /panier|cart|ajouter|add/i }).first()
-    if (!(await addBtn.isVisible().catch(() => false))) test.skip(true, 'no add-to-cart button')
-    await addBtn.click()
+      const addBtn = page.getByRole('button').filter({ hasText: /panier|cart|ajouter|add/i }).first()
+      if (!(await addBtn.isVisible().catch(() => false))) test.skip(true, 'no add-to-cart button')
+      await addBtn.click()
 
-    // The drawer opens — find +/− buttons by aria-label and check size
-    const inc = page.getByRole('button', { name: /increase|augment|↑|\+/i }).first()
-    if (await inc.isVisible().catch(() => false)) {
-      const box = await inc.boundingBox()
-      expect(box?.width || 0).toBeGreaterThanOrEqual(44)
-      expect(box?.height || 0).toBeGreaterThanOrEqual(44)
+      const inc = page.getByRole('button', { name: /increase|augment|↑|\+/i }).first()
+      if (await inc.isVisible().catch(() => false)) {
+        const box = await inc.boundingBox()
+        expect(box?.width || 0).toBeGreaterThanOrEqual(44)
+        expect(box?.height || 0).toBeGreaterThanOrEqual(44)
+      }
+    } finally {
+      await ctx.close()
     }
   })
 
-  test('cookie banner does not consume more than 30% of viewport height (P1-05)', async ({ page }) => {
-    // Force the cookie banner to show by clearing storage and reloading
-    await page.context().clearCookies()
-    await page.goto(HOME)
-    await page.evaluate(() => localStorage.removeItem('cookie_consent'))
-    await page.reload({ waitUntil: 'networkidle' })
+  test('cookie banner does not consume more than 30% of viewport height (P1-05)', async ({ browser }) => {
+    const ctx = await browser.newContext({ ...devices['iPhone 13'] })
+    const page = await ctx.newPage()
+    try {
+      await page.context().clearCookies()
+      await page.goto(HOME)
+      await page.evaluate(() => localStorage.removeItem('cookie_consent'))
+      await page.reload({ waitUntil: 'networkidle' })
 
-    // Banner appears after a small delay
-    const banner = page.locator('[class*="cookie"], [class*="legal.cookies"]').first()
-    // Fallback: look for the OK button as a marker of the banner
-    const ok = page.getByRole('button', { name: /^ok$/i }).first()
-    if (!(await ok.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip(true, 'cookie banner not surfaced in this run')
-    }
+      const ok = page.getByRole('button', { name: /^ok$/i }).first()
+      if (!(await ok.isVisible({ timeout: 3000 }).catch(() => false))) {
+        test.skip(true, 'cookie banner not surfaced in this run')
+      }
 
-    const viewport = page.viewportSize()
-    const banner2 = page.locator('div').filter({ has: ok }).first()
-    const box = await banner2.boundingBox().catch(() => null)
-    if (viewport && box) {
-      const ratio = box.height / viewport.height
-      expect(ratio, `banner takes ${Math.round(ratio * 100)}% of viewport`).toBeLessThanOrEqual(0.3)
+      const viewport = page.viewportSize()
+      const banner2 = page.locator('div').filter({ has: ok }).first()
+      const box = await banner2.boundingBox().catch(() => null)
+      if (viewport && box) {
+        const ratio = box.height / viewport.height
+        expect(ratio, `banner takes ${Math.round(ratio * 100)}% of viewport`).toBeLessThanOrEqual(0.3)
+      }
+    } finally {
+      await ctx.close()
     }
   })
 })
