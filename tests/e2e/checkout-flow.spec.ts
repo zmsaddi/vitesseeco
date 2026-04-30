@@ -91,19 +91,25 @@ for (const v of VARIANTS) {
  * test fails fast if anyone reverts the guest-pickup form fields.
  */
 test('guest pickup checkout requires first + last name', async ({ browser }) => {
+  test.setTimeout(60_000)
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
   const page = await ctx.newPage()
 
-  // Walk to /commande via the cart so we have a real validated cart line
-  await page.goto('/produits', { waitUntil: 'networkidle' })
+  // Walk to /commande via the cart so we have a real validated cart line.
+  // NEVER `waitUntil: 'networkidle'` on these pages — Turnstile + analytics
+  // keep the network busy and the wait can hang indefinitely (same lesson
+  // we already applied to a11y/visual specs).
+  await page.goto('/produits', { waitUntil: 'domcontentloaded' })
+  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
   const firstCard = page.locator('a[href*="/produits/"]').first()
   if (!(await firstCard.isVisible().catch(() => false))) test.skip(true, 'no products')
   await firstCard.click()
-  await page.waitForURL(/\/produits\/[^/]+$/)
+  await page.waitForURL(/\/produits\/[^/]+$/, { timeout: 15_000 })
   const addBtn = page.getByRole('button', { name: /panier|cart/i }).first()
   if (!(await addBtn.isVisible().catch(() => false))) test.skip(true, 'add-to-cart not visible')
   await addBtn.click()
-  await page.goto('/commande', { waitUntil: 'networkidle' })
+  await page.goto('/commande', { waitUntil: 'domcontentloaded' })
+  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
 
   // Select pickup (auto-selected when it's the only option; otherwise click it)
   const pickupRadio = page.locator('input#ship-pickup')
