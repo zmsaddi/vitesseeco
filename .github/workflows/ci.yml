@@ -44,10 +44,15 @@ jobs:
           VERCEL: '1'
 
       # P5-04 — bundle size budget
+      # Bumped from 13 MB to 16 MB on 2026-04-30 to accommodate the @sentry/nuxt
+      # SDK (server + client) added in the Sentry-1 prerequisites commit. The
+      # SDK weighs ~2.5 MB gzip across both runtimes; the previous budget had
+      # 0.5 MB headroom which was insufficient. Re-tighten after a future
+      # tree-shake / split-bundle pass.
       - name: Bundle size budget
         run: node scripts/check-bundle-size.mjs
         env:
-          BUNDLE_BUDGET_BYTES: '13631488' # 13 MB gzip total
+          BUNDLE_BUDGET_BYTES: '16777216' # 16 MB gzip total
 
   e2e:
     runs-on: ubuntu-latest
