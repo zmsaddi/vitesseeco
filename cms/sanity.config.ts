@@ -7,8 +7,6 @@ import { media } from 'sanity-plugin-media'
 // @ts-ignore
 import { languageFilter } from '@sanity/language-filter'
 // @ts-ignore
-import { assist } from '@sanity/assist'
-// @ts-ignore
 import { colorInput } from '@sanity/color-input'
 import { schemaTypes } from './schemas'
 import { deskStructure } from './structure/deskStructure'
@@ -44,7 +42,6 @@ export default defineConfig({
     }),
     colorInput(),
     media(),
-    assist(),
     visionTool(),
   ],
 
