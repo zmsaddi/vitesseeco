@@ -1,47 +1,25 @@
 /**
  * Accessibility audit via axe-core (P5-03).
  *
- * Asserts zero critical/serious violations on the most-trafficked pages.
- * Less severe violations (moderate, minor) are reported but not failing —
- * they're tracked in the report and addressed incrementally.
- *
- * Requires `@axe-core/playwright` — installed lazily so the rest of the
- * test suite still works if it's missing.
+ * Asserts zero critical/serious WCAG 2.1 AA violations on the most-trafficked
+ * pages. Moderate/minor violations are logged but do not fail the suite —
+ * they're addressed incrementally.
  */
 import { test, expect } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
 
 const PAGES = ['/', '/produits', '/contact', '/a-propos', '/faq']
 
-let AxeBuilder: any = null
-async function loadAxe() {
-  if (AxeBuilder) return AxeBuilder
-  try {
-    // String concat hides the specifier from TS so a missing dep doesn't fail
-    // the typecheck CI step. The dep is genuinely optional — a11y suite is
-    // a smoke check that's enabled once `npm i -D @axe-core/playwright` is run.
-    const specifier = '@axe-core/' + 'playwright'
-    // eslint-disable-next-line @typescript-eslint/no-implied-eval
-    const mod: any = await (Function('s', 'return import(s)') as any)(specifier)
-    AxeBuilder = mod.default ?? mod.AxeBuilder
-    return AxeBuilder
-  } catch {
-    return null
-  }
-}
-
 for (const path of PAGES) {
   test(`a11y — ${path}`, async ({ page }) => {
-    const Builder = await loadAxe()
-    test.skip(!Builder, '@axe-core/playwright not installed — `npm i -D @axe-core/playwright` to enable')
-
     await page.goto(path, { waitUntil: 'networkidle' })
 
-    const results = await new Builder({ page })
+    const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
       .analyze()
 
     const seriousOrCritical = results.violations.filter(
-      (v: any) => v.impact === 'critical' || v.impact === 'serious'
+      (v) => v.impact === 'critical' || v.impact === 'serious'
     )
 
     if (seriousOrCritical.length > 0) {
@@ -54,6 +32,9 @@ for (const path of PAGES) {
       }
     }
 
-    expect(seriousOrCritical, `Found ${seriousOrCritical.length} serious/critical a11y violations on ${path}`).toHaveLength(0)
+    expect(
+      seriousOrCritical,
+      `Found ${seriousOrCritical.length} serious/critical a11y violations on ${path}`
+    ).toHaveLength(0)
   })
 }

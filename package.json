@@ -13,10 +13,10 @@
     "postinstall": "nuxt prepare",
     "check:langs": "node scripts/check-languages.mjs",
     "check:hex": "node scripts/check-hex-colors.mjs",
-    "test:e2e": "npx playwright test tests/e2e",
-    "test:e2e:ui": "npx playwright test tests/e2e --ui",
-    "test:visual": "npx playwright test tests/visual",
-    "test:visual:update": "npx playwright test tests/visual --update-snapshots"
+    "test:e2e": "npx playwright test --project=e2e",
+    "test:e2e:ui": "npx playwright test --project=e2e --ui",
+    "test:visual": "npx playwright test --project=visual",
+    "test:visual:update": "npx playwright test --project=visual --update-snapshots"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -38,6 +38,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.2",
     "@playwright/test": "^1.59.1",
     "@types/bcryptjs": "^2.4.6",
     "drizzle-kit": "^0.31.10",
