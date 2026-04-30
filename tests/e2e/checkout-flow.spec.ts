@@ -147,3 +147,63 @@ test('guest pickup checkout requires first + last name', async ({ browser }) => 
 
   await ctx.close()
 })
+
+/**
+ * Regression: /commande/confirmation must display the order number when one
+ * is present in the URL, and a soft fallback when it isn't.
+ *
+ * Pre-fix bug: pages/commande.vue and pages/commande/confirmation.vue formed
+ * a parent/child route pair, but the parent had no <NuxtPage /> slot, so SSR
+ * for /commande/confirmation rendered the parent's empty-cart layout instead
+ * of the confirmation card. Restructuring to siblings (pages/commande/index.vue)
+ * fixes the route resolution.
+ */
+test('confirmation page renders the order number', async ({ browser }) => {
+  test.setTimeout(45_000)
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await ctx.newPage()
+
+  await page.goto('/commande/confirmation?order=ORD-TESTABC123', { waitUntil: 'domcontentloaded' })
+  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
+
+  const orderNumberEl = page.locator('[data-test="order-number"]')
+  await expect(orderNumberEl).toBeVisible()
+  await expect(orderNumberEl).toContainText('ORD-TESTABC123')
+  // The fallback must NOT be visible when a valid number is present
+  await expect(page.locator('[data-test="order-number-fallback"]')).toHaveCount(0)
+
+  await ctx.close()
+})
+
+test('confirmation page falls back gracefully when order query is missing', async ({ browser }) => {
+  test.setTimeout(45_000)
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await ctx.newPage()
+
+  await page.goto('/commande/confirmation', { waitUntil: 'domcontentloaded' })
+  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
+
+  // Fallback paragraph is shown
+  const fallbackEl = page.locator('[data-test="order-number-fallback"]')
+  await expect(fallbackEl).toBeVisible()
+  // The order-number element is NOT in the DOM (v-if hides it cleanly)
+  await expect(page.locator('[data-test="order-number"]')).toHaveCount(0)
+
+  await ctx.close()
+})
+
+test('confirmation page rejects malformed order query', async ({ browser }) => {
+  test.setTimeout(45_000)
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } })
+  const page = await ctx.newPage()
+
+  // Junk in the query that doesn't match ORD-XXXXX should fall back, never
+  // render attacker-controlled text inside the prominent <strong> slot.
+  await page.goto('/commande/confirmation?order=javascript:alert(1)', { waitUntil: 'domcontentloaded' })
+  await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
+
+  await expect(page.locator('[data-test="order-number-fallback"]')).toBeVisible()
+  await expect(page.locator('[data-test="order-number"]')).toHaveCount(0)
+
+  await ctx.close()
+})

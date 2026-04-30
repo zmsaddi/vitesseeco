@@ -8,8 +8,14 @@
       <h1 class="font-display text-3xl font-bold text-white mb-3">{{ $t('checkout.order_confirmed') }}</h1>
       <p class="text-accent text-lg font-semibold mb-1">{{ $t('checkout.thank_you') }}</p>
 
-      <p class="text-text-secondary text-lg mb-6">
-        {{ $t('checkout.order_number') }}: <strong class="text-white bg-dark-secondary px-3 py-1 rounded-lg">{{ orderNumber }}</strong>
+      <!-- orderNumber present + well-formed: show it prominently. Otherwise fall
+           back to a soft message that the order was placed but the reference
+           wasn't carried in the URL — never hide the success state. -->
+      <p v-if="hasValidOrderNumber" data-test="order-number" class="text-text-secondary text-lg mb-6">
+        {{ $t('checkout.order_number') }}: <strong class="text-white bg-dark-secondary px-3 py-1 rounded-lg select-all">{{ orderNumber }}</strong>
+      </p>
+      <p v-else data-test="order-number-fallback" class="text-text-secondary text-base mb-6">
+        {{ $t('checkout.order_received_no_number') }}
       </p>
 
       <!-- Order summary card -->
@@ -63,7 +69,17 @@ const localePath = useLocalePath()
 const auth = useAuthStore()
 const route = useRoute()
 
-const orderNumber = computed(() => route.query.order as string || '')
+const orderNumber = computed(() => {
+  const raw = route.query.order
+  if (typeof raw !== 'string') return ''
+  return raw.trim()
+})
+
+// Server-issued order numbers look like ORD-XXXX (uppercase alphanumerics
+// after the prefix; see /api/orders/create.post.ts). Anything else — empty
+// query, a tampered value, or a different shape — falls back to a softer
+// message rather than rendering an empty <strong> next to the label.
+const hasValidOrderNumber = computed(() => /^ORD-[A-Z0-9]+$/.test(orderNumber.value))
 
 useHead({ title: `${t('checkout.order_confirmed')} — Vitesse Eco` })
 

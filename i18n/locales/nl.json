@@ -184,7 +184,8 @@
     "disabled_no_payment": "Kies een betaalmethode",
     "disabled_no_turnstile": "Voltooi de beveiligingscontrole",
     "disabled_no_name": "Vul uw voor- en achternaam in voor afhalen in de winkel",
-    "pickup_contact_title": "Wie haalt de bestelling op?"
+    "pickup_contact_title": "Wie haalt de bestelling op?",
+    "order_received_no_number": "Uw bestelling is geregistreerd. Als het bestelnummer niet zichtbaar is, vindt u het in de bevestigingsmail of in uw account."
   },
   "account": {
     "title": "Mijn Account",
