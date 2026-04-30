@@ -4,7 +4,7 @@
       @click="open = !open"
       class="flex items-center gap-1.5 text-text-secondary hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-dark-secondary min-h-touch focus-ring"
       :aria-expanded="open"
-      :aria-label="currentLocaleData?.name || 'Language'"
+      :aria-label="currentLocaleName"
     >
       <Icon :name="currentFlag" class="w-5 h-4 rounded-sm" />
       <span class="text-sm font-medium">{{ currentLocaleData?.short }}</span>
@@ -58,6 +58,10 @@ const localeData: Record<string, { flag: string; short: string }> = {
 
 const currentLocaleData = computed(() => localeData[locale.value])
 const currentFlag = computed(() => currentLocaleData.value?.flag || 'twemoji:globe-with-meridians')
+const currentLocaleName = computed(() => {
+  const found = (locales.value as Array<{ code: string; name?: string }>).find(l => l.code === locale.value)
+  return found?.name || locale.value || 'Language'
+})
 
 const allLocales = computed(() =>
   locales.value as Array<{ code: string; name?: string }>
