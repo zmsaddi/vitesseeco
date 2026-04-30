@@ -71,8 +71,8 @@
 
             <!-- Brand -->
             <div>
-              <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.brand') }}</label>
-              <select v-model="selectedBrand" class="input-field text-sm py-2">
+              <label for="filter-brand" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.brand') }}</label>
+              <select id="filter-brand" v-model="selectedBrand" :aria-label="$t('products.brand')" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_brands') }}</option>
                 <option v-for="b in availableBrands" :key="b" :value="b">{{ b }}</option>
               </select>
@@ -80,18 +80,27 @@
 
             <!-- Color -->
             <div>
-              <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('compare.colors') }}</label>
-              <div class="flex flex-wrap gap-2">
-                <button v-for="c in availableColors" :key="c.hex" @click="selectedColor = selectedColor === c.hex ? '' : c.hex"
-                  class="w-7 h-7 rounded-full border-2 transition-all" :class="selectedColor === c.hex ? 'border-accent scale-110' : 'border-dark-tertiary'"
-                  :style="{ backgroundColor: c.hex }" :title="c.name" />
+              <span class="text-text-secondary text-xs font-medium block mb-2">{{ $t('compare.colors') }}</span>
+              <div class="flex flex-wrap gap-2" role="group" :aria-label="$t('compare.colors')">
+                <button
+                  v-for="c in availableColors"
+                  :key="c.hex"
+                  type="button"
+                  @click="selectedColor = selectedColor === c.hex ? '' : c.hex"
+                  :aria-label="c.name"
+                  :aria-pressed="selectedColor === c.hex"
+                  class="w-7 h-7 rounded-full border-2 transition-all"
+                  :class="selectedColor === c.hex ? 'border-accent scale-110' : 'border-dark-tertiary'"
+                  :style="{ backgroundColor: c.hex }"
+                  :title="c.name"
+                />
               </div>
             </div>
 
             <!-- Price -->
             <div>
-              <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.price_range') }}</label>
-              <select v-model="selectedPrice" class="input-field text-sm py-2">
+              <label for="filter-price" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.price_range') }}</label>
+              <select id="filter-price" v-model="selectedPrice" :aria-label="$t('products.price_range')" class="input-field text-sm py-2">
                 <option value="">{{ $t('products.all_prices') }}</option>
                 <option v-for="b in priceBuckets" :key="b.value" :value="b.value">{{ b.label }}</option>
               </select>
@@ -108,8 +117,8 @@
             <!-- Bike-specific -->
             <template v-if="!selectedType || selectedType === 'bike'">
               <div>
-                <label class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.tire_size') }}</label>
-                <select v-model="selectedTire" class="input-field text-sm py-2">
+                <label for="filter-tire" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.tire_size') }}</label>
+                <select id="filter-tire" v-model="selectedTire" :aria-label="$t('products.tire_size')" class="input-field text-sm py-2">
                   <option value="">{{ $t('products.all_sizes') }}</option>
                   <option v-for="s in availableTireSizes" :key="s" :value="s">{{ s }}</option>
                 </select>
@@ -125,17 +134,32 @@
               <span class="text-white font-medium">{{ paginatedProducts.length }}</span> / {{ filteredProducts.length }} {{ $t('products.results') }}
             </p>
             <div class="flex items-center gap-3">
-              <select v-model="sortBy" class="input-field text-xs py-1.5 w-auto">
+              <label for="prod-sort" class="sr-only">{{ $t('products.sort') }}</label>
+              <select id="prod-sort" v-model="sortBy" :aria-label="$t('products.sort')" class="input-field text-xs py-1.5 w-auto">
                 <option value="sortOrder">{{ $t('products.sort_newest') }}</option>
                 <option value="name">{{ $t('products.sort_name') }}</option>
                 <option value="price_asc">{{ $t('products.sort_price_asc') }}</option>
                 <option value="price_desc">{{ $t('products.sort_price_desc') }}</option>
               </select>
-              <div class="hidden md:flex gap-1">
-                <button @click="viewMode = 'grid'" class="p-1.5 rounded" :class="viewMode === 'grid' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
+              <div class="hidden md:flex gap-1" role="group" :aria-label="$t('products.filter')">
+                <button
+                  type="button"
+                  @click="viewMode = 'grid'"
+                  :aria-label="$t('products.view_grid')"
+                  :aria-pressed="viewMode === 'grid'"
+                  class="p-1.5 rounded min-h-touch min-w-touch flex items-center justify-center"
+                  :class="viewMode === 'grid' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'"
+                >
                   <Icon name="ph:squares-four" class="w-4 h-4" />
                 </button>
-                <button @click="viewMode = 'list'" class="p-1.5 rounded" :class="viewMode === 'list' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'">
+                <button
+                  type="button"
+                  @click="viewMode = 'list'"
+                  :aria-label="$t('products.view_list')"
+                  :aria-pressed="viewMode === 'list'"
+                  class="p-1.5 rounded min-h-touch min-w-touch flex items-center justify-center"
+                  :class="viewMode === 'list' ? 'text-accent bg-dark-secondary' : 'text-text-secondary'"
+                >
                   <Icon name="ph:list" class="w-4 h-4" />
                 </button>
               </div>

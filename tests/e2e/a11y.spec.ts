@@ -12,7 +12,12 @@ const PAGES = ['/', '/produits', '/contact', '/a-propos', '/faq']
 
 for (const path of PAGES) {
   test(`a11y — ${path}`, async ({ page }) => {
-    await page.goto(path, { waitUntil: 'networkidle' })
+    // Don't wait for networkidle — Turnstile, analytics widgets, and lazy-loaded
+    // images can keep the network busy indefinitely on /contact and home. Using
+    // domcontentloaded + h1 visible gives us a stable layout to audit without
+    // false timeouts on third-party iframes.
+    await page.goto(path, { waitUntil: 'domcontentloaded' })
+    await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])

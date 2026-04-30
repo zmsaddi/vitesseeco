@@ -48,7 +48,10 @@ for (const vp of VIEWPORTS) {
         `,
       })
 
-      await page.goto(p.path, { waitUntil: 'networkidle' })
+      // Avoid networkidle — Turnstile/analytics/Sanity image CDN can keep the
+      // network busy indefinitely. Wait for a stable element instead.
+      await page.goto(p.path, { waitUntil: 'domcontentloaded' })
+      await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
 
       // Mask dynamic regions to avoid noise (products, prices, dates)
       const masks = [

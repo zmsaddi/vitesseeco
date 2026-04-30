@@ -31,6 +31,13 @@ export default defineConfig({
       use: { browserName: 'chromium' },
       // Stricter on diff so accidental drifts get caught
       expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.02 } },
+      // Cross-platform snapshots: drop the {platform} segment so a baseline
+      // generated on Windows (test:visual:update locally) matches the Ubuntu
+      // CI run. Without this, Playwright appends -win32 / -linux to filenames
+      // and CI fails with "snapshot doesn't exist". Trade-off: font / sub-pixel
+      // rendering can differ between OSes — that's why maxDiffPixelRatio is
+      // 0.02. Generate baselines on Linux (CI or WSL) for best fidelity.
+      snapshotPathTemplate: '{testDir}/__screenshots__/{testFilePath}/{arg}{ext}',
     },
   ],
 })

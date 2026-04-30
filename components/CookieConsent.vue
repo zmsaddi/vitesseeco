@@ -17,7 +17,7 @@
             <p class="hidden sm:block text-white text-sm font-medium mb-1">🍪 {{ $t('legal.cookies') }}</p>
             <p class="text-text-secondary text-xs leading-snug truncate sm:whitespace-normal sm:truncate-none">
               <span class="sm:hidden">🍪 </span>{{ $t('legal.cookie_notice') }}
-              <NuxtLink :to="localePath('/politique-confidentialite')" class="text-accent hover:underline whitespace-nowrap">{{ $t('footer.privacy') }}</NuxtLink>
+              <NuxtLink :to="localePath('/politique-confidentialite')" class="text-accent underline underline-offset-2 decoration-accent/50 hover:decoration-accent whitespace-nowrap">{{ $t('footer.privacy') }}</NuxtLink>
             </p>
           </div>
           <button
