@@ -1,4 +1,4 @@
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import { rateLimit } from '~/server/utils/rateLimit'
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, message: 'Not authenticated' })
   }
 
-  const db = useDB()
+  const db = useDBHttp()
 
   const [session] = await db
     .select({ customerId: sessions.customerId })

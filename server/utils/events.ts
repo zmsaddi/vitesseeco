@@ -16,7 +16,7 @@
 
 import { createHash } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { events } from '~/server/database/schema'
 
 export type EventType =
@@ -66,7 +66,7 @@ function getClientIp(event: H3Event): string | null {
  */
 export async function logEvent(entry: EventEntry): Promise<void> {
   try {
-    const db = useDB()
+    const db = useDBHttp()
 
     let ipHash: string | null = null
     let userAgent: string | null = null

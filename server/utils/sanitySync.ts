@@ -7,7 +7,7 @@
 
 import { createClient } from '@sanity/client'
 import { eq } from 'drizzle-orm'
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { inventory } from '~/server/database/schema'
 import type { OutboxKind } from '~/server/utils/outbox'
 
@@ -58,7 +58,7 @@ export async function dispatchOutboxEntry(entry: { kind: string; payload: any })
         throw new Error(`invalid inventory.patch payload: missing productId — ${JSON.stringify(entry.payload)}`)
       }
 
-      const db = useDB()
+      const db = useDBHttp()
       const rows = await db
         .select({ stock: inventory.stock })
         .from(inventory)

@@ -1,4 +1,4 @@
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   }
   const email = normalizeEmail(body.email)
 
-  const db = useDB()
+  const db = useDBHttp()
   const passwordHash = await bcrypt.hash(body.password, 12)
 
   let customer: { id: string; email: string; firstName: string; lastName: string }

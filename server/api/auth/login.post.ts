@@ -1,4 +1,4 @@
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Email and password required' })
   }
 
-  const db = useDB()
+  const db = useDBHttp()
   // Login does NOT validate email format intentionally — the lookup will fail
   // for malformed emails, returning the same generic error to avoid leaking
   // whether the email exists. We only normalize for case-insensitive lookup.

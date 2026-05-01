@@ -1,5 +1,5 @@
 import { google } from 'googleapis'
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
       return sendRedirect(event, '/connexion?error=no_email')
     }
 
-    const db = useDB()
+    const db = useDBHttp()
 
     // Find or create user
     let [customer] = await db.select().from(customers).where(eq(customers.email, email)).limit(1)

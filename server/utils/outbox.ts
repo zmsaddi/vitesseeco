@@ -8,7 +8,7 @@
  */
 
 import { sql, and, eq, lt } from 'drizzle-orm'
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { outbox } from '~/server/database/schema'
 
 export type OutboxKind =
@@ -58,7 +58,11 @@ export interface DrainResult {
  * Bounded by batchSize to keep each invocation fast.
  */
 export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
-  const db = useDB()
+  // HTTP driver: no Pool cold-start, so the cron route stays well under the
+  // 30 s free-tier wall on cron-job.org even when Neon's compute resumed
+  // from auto-suspend. enqueueOutbox still runs against the Pool tx (it
+  // takes the tx as an arg from orderService).
+  const db = useDBHttp()
   const batchSize = opts.batchSize ?? 25
 
   const pending = await db

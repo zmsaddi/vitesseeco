@@ -1,4 +1,4 @@
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import { rateLimit } from '~/server/utils/rateLimit'
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const token = getCookie(event, 'auth_token')
   if (token) {
-    const db = useDB()
+    const db = useDBHttp()
     await db.delete(sessions).where(eq(sessions.token, token))
     deleteCookie(event, 'auth_token')
   }

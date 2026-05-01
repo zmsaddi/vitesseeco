@@ -6,7 +6,7 @@ import { reservePromoUse, releasePromoUse } from '~/server/utils/promo'
 import { verify as verifyPriceLock, type SignedPriceSnapshot } from '~/server/utils/priceLock'
 import { getPaymentAdapter } from '~/server/payments/registry'
 import type { SanityProductForCart, OrderItem, OrderCustomerInfo } from '~/server/utils/types'
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { orders, sessions, customers } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import { persistOrderPGPrimary, opportunisticOutboxFlush } from '~/server/utils/orderService'
@@ -180,7 +180,7 @@ export default defineEventHandler(async (event) => {
   let customerInfo: OrderCustomerInfo = { name: `${body.shippingAddress.firstName} ${body.shippingAddress.lastName}`, email: '', phone: body.shippingAddress.phone || '', customerId: '' }
   const token = getCookie(event, 'auth_token')
   if (token) {
-    const db = useDB()
+    const db = useDBHttp()
     const [session] = await db.select({ customerId: sessions.customerId }).from(sessions)
       .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date()))).limit(1)
     if (session) {
@@ -325,7 +325,7 @@ export default defineEventHandler(async (event) => {
 
     // 7. Create order in Postgres too (secondary — for relational queries)
     try {
-      const db = useDB()
+      const db = useDBHttp()
       await db.insert(orders).values({
         orderNumber,
         customerId: customerInfo.customerId || null,

@@ -8,7 +8,7 @@
  * - Failures here MUST NOT fail the parent request — log and continue.
  */
 
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { auditLog } from '~/server/database/schema'
 
 export type AuditActorType = 'system' | 'customer' | 'admin'
@@ -29,7 +29,7 @@ export interface AuditEntry {
  */
 export async function audit(entry: AuditEntry): Promise<void> {
   try {
-    const db = useDB()
+    const db = useDBHttp()
     await db.insert(auditLog).values({
       actorType: entry.actorType ?? 'system',
       actorId: entry.actorId ?? null,

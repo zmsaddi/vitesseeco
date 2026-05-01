@@ -1,4 +1,4 @@
-import { useDB } from '~/server/database/db'
+import { useDBHttp } from '~/server/database/db'
 import { customers, sessions, addresses, orders } from '~/server/database/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ password?: string }>(event)
 
-  const db = useDB()
+  const db = useDBHttp()
   const [session] = await db.select({ customerId: sessions.customerId }).from(sessions)
     .where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date()))).limit(1)
   if (!session) throw createError({ statusCode: 401, message: 'Session expired' })
