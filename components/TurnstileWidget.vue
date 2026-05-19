@@ -62,7 +62,8 @@ const state = ref<TurnstileState>('loading')
 // Read from runtimeConfig so Preview/Production can use different site keys
 // (Preview uses Cloudflare's domain-agnostic test key when checked out on a
 // Vercel preview URL that isn't in the production site key's allowlist).
-const SITE_KEY = useRuntimeConfig().public.turnstileSiteKey as string
+// .trim() defends against trailing whitespace/newlines from Vercel UI paste.
+const SITE_KEY = ((useRuntimeConfig().public.turnstileSiteKey as string) || '').trim()
 const SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
 const SCRIPT_LOAD_TIMEOUT_MS = 15_000
 

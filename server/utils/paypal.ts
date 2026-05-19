@@ -22,8 +22,10 @@ function readMode(): PayPalMode {
 }
 
 function readCreds(): { clientId: string; clientSecret: string } {
-  const clientId = process.env.PAYPAL_CLIENT_ID
-  const clientSecret = process.env.PAYPAL_CLIENT_SECRET
+  // .trim() defends against trailing whitespace/newlines that the Vercel UI
+  // sometimes appends when secrets are pasted in.
+  const clientId = (process.env.PAYPAL_CLIENT_ID || '').trim()
+  const clientSecret = (process.env.PAYPAL_CLIENT_SECRET || '').trim()
   if (!clientId || !clientSecret) {
     throw new Error('PayPal credentials missing — set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET')
   }
@@ -91,7 +93,7 @@ export interface WebhookVerifyInput {
  * is treated as failure — never optimistically accept.
  */
 export async function verifyPayPalWebhook({ headers, rawBody }: WebhookVerifyInput): Promise<boolean> {
-  const webhookId = process.env.PAYPAL_WEBHOOK_ID
+  const webhookId = (process.env.PAYPAL_WEBHOOK_ID || '').trim()
   if (!webhookId) {
     console.error('[PAYPAL] PAYPAL_WEBHOOK_ID missing — rejecting webhook')
     return false
