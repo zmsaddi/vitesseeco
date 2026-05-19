@@ -28,8 +28,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 500, message: 'webhook handler not registered' })
   }
 
+  // Record the inbound attempt so we can tell apart "PayPal never hit us" from
+  // "PayPal hit us but signature failed" — important during webhook setup.
+  await audit({
+    action: 'paypal.webhook.received',
+    resourceType: 'webhook',
+    metadata: {
+      headers: {
+        'paypal-transmission-id': event.node.req.headers['paypal-transmission-id'] || null,
+        'paypal-cert-url': event.node.req.headers['paypal-cert-url'] || null,
+      },
+      ua: event.node.req.headers['user-agent'] || null,
+    },
+  })
+
   const result = await paypalAdapter.verifyWebhook(event)
   if (!result.ok) {
+    await audit({
+      action: 'paypal.webhook.signature_failed',
+      resourceType: 'webhook',
+    })
     throw createError({ statusCode: 400, message: 'Invalid webhook signature' })
   }
 
