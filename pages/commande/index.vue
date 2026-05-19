@@ -287,22 +287,34 @@
             </div>
             <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{{ orderError }}</p>
             <ClientOnly><TurnstileWidget @verify="t => turnstileToken = t" /></ClientOnly>
-            <!-- Confirmation overlay -->
-            <div v-if="showConfirmation" class="bg-accent/5 border border-accent/30 rounded-lg p-4 space-y-3">
-              <p class="text-white text-sm font-medium">{{ $t('checkout.step_review') }}</p>
-              <p class="text-text-secondary text-xs">{{ cart.items.length }} {{ $t('products.results') }} — {{ orderTotal }}{{ $t('common.currency') }}</p>
-              <div class="flex gap-2">
-                <button @click="placeOrder" :disabled="placing" class="btn-primary flex-1 py-3 text-sm disabled:opacity-50">
-                  <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-4 h-4 animate-spin" /></span>
-                  <span v-else>{{ $t('checkout.place_order') }}</span>
-                </button>
-                <button @click="showConfirmation = false" class="btn-secondary px-4 py-3 text-sm">{{ $t('common.back') }}</button>
+            <!-- PayPal Smart Buttons — render directly when payment=paypal so the
+                 PayPal popup is the confirmation step, replacing our inline dialog. -->
+            <PayPalButtons
+              v-if="selectedPayment === 'paypal' && canOrder && paypalOrderPayload"
+              :order-payload="paypalOrderPayload"
+              :disabled="placing"
+              @success="onPayPalSuccess"
+              @error="(m) => orderError = m"
+              @cancel="orderError = $t('checkout.paypal_cancelled')"
+            />
+            <template v-else>
+              <!-- Confirmation overlay (in-store + future card methods) -->
+              <div v-if="showConfirmation" class="bg-accent/5 border border-accent/30 rounded-lg p-4 space-y-3">
+                <p class="text-white text-sm font-medium">{{ $t('checkout.step_review') }}</p>
+                <p class="text-text-secondary text-xs">{{ cart.items.length }} {{ $t('products.results') }} — {{ orderTotal }}{{ $t('common.currency') }}</p>
+                <div class="flex gap-2">
+                  <button @click="placeOrder" :disabled="placing" class="btn-primary flex-1 py-3 text-sm disabled:opacity-50">
+                    <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-4 h-4 animate-spin" /></span>
+                    <span v-else>{{ $t('checkout.place_order') }}</span>
+                  </button>
+                  <button @click="showConfirmation = false" class="btn-secondary px-4 py-3 text-sm">{{ $t('common.back') }}</button>
+                </div>
               </div>
-            </div>
-            <button v-else @click="requestConfirmation" :disabled="!canOrder || placing" class="btn-primary w-full py-4 text-lg disabled:opacity-50">
-              <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-5 h-5 animate-spin" /></span>
-              <span v-else>{{ $t('checkout.place_order') }}</span>
-            </button>
+              <button v-else @click="requestConfirmation" :disabled="!canOrder || placing" class="btn-primary w-full py-4 text-lg disabled:opacity-50">
+                <span v-if="placing" class="flex items-center justify-center gap-2"><Icon name="ph:spinner" class="w-5 h-5 animate-spin" /></span>
+                <span v-else>{{ $t('checkout.place_order') }}</span>
+              </button>
+            </template>
             <!-- P1-08: explicit reason when submit is disabled — never silent. -->
             <p v-if="disabledReason" class="text-text-secondary text-xs text-center mt-2 flex items-center justify-center gap-1.5" role="status">
               <Icon name="ph:info" class="w-3.5 h-3.5 shrink-0" />
@@ -471,6 +483,51 @@ function requestConfirmation() {
   if (!canOrder.value) return
   orderError.value = ''
   showConfirmation.value = true
+}
+
+// Build the shipping address from whichever input the user filled in. Shared
+// between placeOrder() (in-store path) and the PayPal flow.
+function resolveShippingAddress(): any | null {
+  if (isPickup.value) {
+    const fn = (auth.user?.firstName?.trim() || addr.firstName?.trim() || '')
+    const ln = (auth.user?.lastName?.trim() || addr.lastName?.trim() || '')
+    const ph = (auth.user?.phone?.trim() || addr.phone?.trim() || undefined)
+    return { firstName: fn, lastName: ln, phone: ph, address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
+  }
+  if (selectedAddressId.value && !showNewForm.value) {
+    const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
+    if (!a) return null
+    return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, city: a.city, postalCode: a.postalCode, country: a.country }
+  }
+  return { ...addr }
+}
+
+// Reactive payload PayPalButtons consumes. Recomputes when any checkout
+// field changes; PayPalButtons re-renders on change so the next click reflects
+// the latest state. `null` blocks render until the form is valid.
+const paypalOrderPayload = computed(() => {
+  if (!canOrder.value || !turnstileToken.value) return null
+  const shippingAddress = resolveShippingAddress()
+  if (!shippingAddress) return null
+  return {
+    items: cart.items.map(i => ({ productId: i.productId, sku: i.sku, quantity: i.quantity })),
+    shippingCode: selectedShipping.value,
+    shippingAddress,
+    billingAddress: billingSameAsShipping.value || isPickup.value ? shippingAddress : { ...billing },
+    promoCode: cart.promoCode || undefined,
+    turnstileToken: turnstileToken.value,
+  }
+})
+
+async function onPayPalSuccess(orderNumber: string) {
+  // The PayPal flow does not pre-save the new address (we don't know if the
+  // user will complete the PayPal popup until they do). Save it now on a
+  // successful capture, same condition placeOrder() uses for the in-store path.
+  if (!isPickup.value && auth.isLoggedIn && saveAddr.value && showNewForm.value && !selectedAddressId.value) {
+    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }) } catch {}
+  }
+  cart.clearCart()
+  navigateTo(localePath(`/commande/confirmation?order=${orderNumber}`))
 }
 
 // Place order

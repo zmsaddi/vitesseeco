@@ -39,6 +39,7 @@ export default defineType({
         list: [
           { title: '🏪 الدفع في المتجر', value: 'in_store' },
           { title: '💳 بطاقة بنكية (Stripe)', value: 'stripe' },
+          { title: '🅿️ PayPal', value: 'paypal' },
         ],
       },
     },
@@ -176,6 +177,20 @@ export default defineType({
     {
       name: 'stripePaymentId',
       title: 'Stripe Payment ID',
+      type: 'string',
+      readOnly: true,
+      hidden: true,
+    },
+    {
+      name: 'paypalOrderId',
+      title: 'PayPal Order ID',
+      type: 'string',
+      readOnly: true,
+      hidden: true,
+    },
+    {
+      name: 'paypalCaptureId',
+      title: 'PayPal Capture ID',
       type: 'string',
       readOnly: true,
       hidden: true,

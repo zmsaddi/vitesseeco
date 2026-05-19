@@ -60,6 +60,11 @@ export default defineNuxtConfig({
     sanityToken: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
+    // PayPal — credentials are env-only. PAYPAL_MODE switches sandbox vs live.
+    paypalClientId: '',
+    paypalClientSecret: '',
+    paypalWebhookId: '',
+    paypalMode: 'sandbox',
     resendApiKey: '',
     authSecret: '',
     databaseUrl: '',
@@ -70,6 +75,9 @@ export default defineNuxtConfig({
       sanityProjectId: '2jvnjf0c',
       sanityDataset: 'production',
       stripePublishableKey: '',
+      // Public PayPal client id is needed by the JS SDK on the browser. Safe to ship.
+      paypalClientId: '',
+      paypalMode: 'sandbox',
       siteUrl: 'https://vitesse-eco.fr',
       googlePlacesApiKey: '',
       turnstileSiteKey: '',

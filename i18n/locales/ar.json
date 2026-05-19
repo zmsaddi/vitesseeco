@@ -169,6 +169,8 @@
     "country": "البلد",
     "payment_method": "طريقة الدفع",
     "place_order": "تأكيد الطلب",
+    "paypal_processing": "جارٍ معالجة الدفع عبر PayPal…",
+    "paypal_cancelled": "تم إلغاء الدفع عبر PayPal",
     "order_confirmed": "تم تأكيد الطلب!",
     "order_number": "رقم الطلب",
     "order_email_sent": "تم إرسال بريد التأكيد إلى {email}.",

@@ -169,6 +169,8 @@
     "country": "País",
     "payment_method": "Método de pago",
     "place_order": "Confirmar pedido",
+    "paypal_processing": "Procesando pago con PayPal…",
+    "paypal_cancelled": "Pago con PayPal cancelado",
     "order_confirmed": "¡Pedido confirmado!",
     "order_number": "Número de pedido",
     "order_email_sent": "Se ha enviado un email de confirmación a {email}.",

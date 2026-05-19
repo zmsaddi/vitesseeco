@@ -169,6 +169,8 @@
     "country": "Land",
     "payment_method": "Betaalmethode",
     "place_order": "Bestelling bevestigen",
+    "paypal_processing": "PayPal-betaling wordt verwerkt…",
+    "paypal_cancelled": "PayPal-betaling geannuleerd",
     "order_confirmed": "Bestelling bevestigd!",
     "order_number": "Bestelnummer",
     "order_email_sent": "Een bevestigingsmail is verzonden naar {email}.",

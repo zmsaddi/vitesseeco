@@ -169,6 +169,8 @@
     "country": "Land",
     "payment_method": "Zahlungsmethode",
     "place_order": "Bestellung bestätigen",
+    "paypal_processing": "PayPal-Zahlung wird verarbeitet…",
+    "paypal_cancelled": "PayPal-Zahlung abgebrochen",
     "order_confirmed": "Bestellung bestätigt!",
     "order_number": "Bestellnummer",
     "order_email_sent": "Eine Bestätigungsmail wurde an {email} gesendet.",

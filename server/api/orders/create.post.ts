@@ -191,6 +191,55 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // P4-06: build OrderContext + run the adapter contract BEFORE any persist
+  // step. Validation rejects unsuitable orders early (e.g., zero total for a
+  // chargeable method). prepareCheckout() creates any external state the
+  // adapter needs (PayPal Order, Stripe PaymentIntent, …) and returns a
+  // clientPayload we can forward to the browser. Doing this BEFORE persist
+  // means: an adapter failure leaves zero local state; the worst case if
+  // persist fails afterwards is an orphan external order (PayPal auto-expires
+  // unpaid orders within hours).
+  const orderContext = {
+    orderNumber,
+    total,
+    subtotal,
+    shippingCost,
+    discount,
+    currency: 'EUR' as const,
+    items: validatedItems.map((it) => ({
+      productId: it.productId,
+      sku: it.sku,
+      quantity: it.quantity,
+      price: it.price,
+      productName: it.productName,
+    })),
+    customer: customerInfo,
+    shippingAddress: body.shippingAddress as Record<string, unknown>,
+    billingAddress: (body.billingAddress || body.shippingAddress) as Record<string, unknown>,
+    paymentCode: body.paymentCode,
+    promoCode: body.promoCode || null,
+    notes: body.notes || null,
+  }
+
+  const validation = await paymentAdapter.validate({ context: orderContext })
+  if (!validation.ok) {
+    if (reservedPromo && writeClient) {
+      await releasePromoUse(writeClient, readClient, reservedPromo.id).catch(() => {})
+    }
+    throw createError({ statusCode: 400, message: `Payment validation failed: ${validation.reason || 'unknown'}` })
+  }
+
+  let prepared
+  try {
+    prepared = await paymentAdapter.prepareCheckout({ context: orderContext, event })
+  } catch (err) {
+    if (reservedPromo && writeClient) {
+      await releasePromoUse(writeClient, readClient, reservedPromo.id).catch(() => {})
+    }
+    console.error(`[ORDER ${orderNumber}] adapter prepareCheckout failed`, err)
+    throw createError({ statusCode: 502, message: 'Payment gateway unavailable. Please try again.' })
+  }
+
   // ── Branch on feature flag (ADR-001 / P0-11) ─────────────────────────────
   // PG-primary path: stock locked + order inserted in one transaction; Sanity
   // is synced async via the outbox. Fail-safe: if the flag is off, fall back
@@ -241,8 +290,9 @@ export default defineEventHandler(async (event) => {
       return {
         orderNumber,
         total,
-        status: 'pending',
+        status: prepared.initialStatus,
         paymentMethod: body.paymentCode,
+        clientPayload: prepared.clientPayload || null,
       }
     } catch (orderError: any) {
       // Failed AFTER promo reservation. Compensate.
@@ -413,8 +463,9 @@ export default defineEventHandler(async (event) => {
     return {
       orderNumber,
       total,
-      status: 'pending',
+      status: prepared.initialStatus,
       paymentMethod: body.paymentCode,
+      clientPayload: prepared.clientPayload || null,
     }
   } catch (orderError) {
     // Order creation failed AFTER reservation. Attempt to release.

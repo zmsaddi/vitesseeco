@@ -25,6 +25,7 @@ export type EventType =
   | 'checkout_started'
   | 'checkout_validated'
   | 'order_created'
+  | 'order_paid'
   | 'order_failed'
   | 'promo_applied'
   | 'promo_rejected'
