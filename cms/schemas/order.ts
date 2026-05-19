@@ -79,6 +79,7 @@ export default defineType({
         { name: 'city', title: 'المدينة', type: 'string', readOnly: true },
         { name: 'postalCode', title: 'الرمز البريدي', type: 'string', readOnly: true },
         { name: 'country', title: 'البلد', type: 'string', readOnly: true },
+        { name: 'phone', title: 'الهاتف', type: 'string', readOnly: true },
       ],
     },
     {
