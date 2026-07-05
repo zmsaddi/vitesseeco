@@ -77,6 +77,7 @@
 |---|---|---|
 | U-S0 | GEO / AI-answer readiness: robots.txt welcomes all major AI crawlers (private paths kept), dynamic /llms.txt (llmstxt.org) with company facts, policies, key pages, feeds + top-30 live products | ✅ 2026-07-05 |
 | U-S0b | Distribution pack: IndexNow (key file + admin one-tap submit of all URLs ×6 locales to Bing/Yandex/partners), blog RSS with autodiscovery, OpenSearch browser-search registration, web app manifest + theme-color, sitewide og:site_name/twitter:card | ✅ 2026-07-05 |
+| U-S0d | GTIN/EAN pipeline: product.gtin field (EAN-13 check-digit validation in Studio), cms/scripts/assign-gtins.mjs (idempotent sequential assignment inside licensed GS1 prefix, covers future products on rerun), all 4 Merchant feeds + catalog.csv emit gtin per product with identifier_exists fallback | ✅ 2026-07-05 · ⏸ run needs owner GS1 France prefix |
 
 
 | Unit | Scope | Status |
