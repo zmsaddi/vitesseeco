@@ -5,6 +5,7 @@
       <div class="relative w-full sm:w-72">
         <Icon name="heroicons:magnifying-glass" class="w-5 h-5 absolute start-3 top-1/2 -translate-y-1/2 text-on-surface-muted pointer-events-none" />
         <input
+          ref="searchEl"
           v-model="searchInput"
           type="search"
           :placeholder="$t('admin.search_placeholder')"
@@ -69,6 +70,38 @@
       </a>
     </div>
 
+    <!-- U-A2: bulk action bar — appears only with a selection -->
+    <div
+      v-if="selected.length"
+      class="flex flex-wrap items-center gap-3 mb-4 rounded-xl border border-accent/40 bg-accent/5 px-4 py-3"
+    >
+      <span class="text-sm font-medium">{{ $t('admin.selected_count', { count: selected.length }) }}</span>
+      <select
+        v-model="bulkStatus"
+        class="bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm focus:outline-none focus:border-accent"
+        :aria-label="$t('admin.bulk_status')"
+      >
+        <option value="" disabled>{{ $t('admin.bulk_status') }}</option>
+        <option v-for="chip in statusChips.slice(1)" :key="chip.value" :value="chip.value">{{ $t(chip.label) }}</option>
+      </select>
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-accent text-primary px-4 py-2 text-sm font-semibold disabled:opacity-40"
+        :disabled="!bulkStatus || applying"
+        @click="applyBulk"
+      >
+        <Icon v-if="applying" name="heroicons:arrow-path" class="w-4 h-4 animate-spin" />
+        {{ $t('admin.apply') }}
+      </button>
+      <button
+        type="button"
+        class="text-sm text-on-surface-muted underline underline-offset-2 ms-auto"
+        @click="clearSelection"
+      >
+        {{ $t('admin.clear_selection') }}
+      </button>
+    </div>
+
     <!-- Table -->
     <div class="bg-surface border border-surface-2 rounded-xl overflow-hidden">
       <div v-if="pending" class="p-6 space-y-3">
@@ -81,10 +114,20 @@
         <p v-else>{{ $t('admin.empty_orders') }}</p>
       </div>
 
-      <div v-else class="overflow-x-auto">
+      <!-- U-A2: vertical scroll container so the sticky header actually sticks -->
+      <div v-else class="overflow-auto max-h-[65vh]">
         <table class="w-full text-sm">
-          <thead>
+          <thead class="sticky top-0 z-10 bg-surface">
             <tr class="text-start text-on-surface-muted border-b border-surface-2">
+              <th class="px-3 py-3 w-10">
+                <input
+                  type="checkbox"
+                  :checked="allSelected"
+                  :aria-label="$t('admin.clear_selection')"
+                  class="accent-accent w-4 h-4 align-middle"
+                  @change="toggleAll"
+                >
+              </th>
               <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_order') }}</th>
               <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_customer') }}</th>
               <th class="text-start font-medium px-4 py-3 hidden lg:table-cell">
@@ -108,6 +151,15 @@
               class="border-b border-surface-2 last:border-0 hover:bg-surface-2/50 cursor-pointer transition-colors duration-200"
               @click="navigateTo(localePath(`/admin/commandes/${order.orderNumber}`))"
             >
+              <td class="px-3 py-3.5 w-10" @click.stop>
+                <input
+                  type="checkbox"
+                  :checked="selected.includes(order.orderNumber ?? '')"
+                  :aria-label="order.orderNumber ?? ''"
+                  class="accent-accent w-4 h-4 align-middle"
+                  @change="toggleRow(order.orderNumber ?? '')"
+                >
+              </td>
               <td class="px-4 py-3.5">
                 <NuxtLink :to="localePath(`/admin/commandes/${order.orderNumber}`)" class="font-mono font-semibold text-accent" @click.stop>
                   {{ order.orderNumber }}
@@ -151,6 +203,11 @@
         {{ $t('admin.next') }}
       </button>
     </div>
+
+    <!-- U-A2: keyboard shortcuts — desktop power users -->
+    <p class="hidden md:block text-xs text-on-surface-muted mt-4">
+      {{ $t('admin.shortcuts_hint') }}
+    </p>
   </div>
 </template>
 
@@ -199,7 +256,82 @@ const filterParams = computed(() => ({
 
 const query = computed(() => ({ page: page.value, ...filterParams.value }))
 
-const { data, pending } = await useFetch('/api/admin/orders', { query })
+const { data, pending, refresh } = await useFetch('/api/admin/orders', { query })
+
+// ── U-A2: bulk selection + status update ──────────────────────────────
+const toast = useToast()
+const searchEl = ref<HTMLInputElement>()
+const selected = ref<string[]>([])
+const bulkStatus = ref('')
+const applying = ref(false)
+
+// A new page or filter shows different rows — a stale selection would
+// silently patch orders the admin no longer sees.
+watch(query, () => { selected.value = [] })
+
+const allSelected = computed(
+  () => rows.value.length > 0 && rows.value.every((o: any) => selected.value.includes(o.orderNumber ?? ''))
+)
+
+function toggleRow(orderNumber: string) {
+  if (!orderNumber) return
+  selected.value = selected.value.includes(orderNumber)
+    ? selected.value.filter((n) => n !== orderNumber)
+    : [...selected.value, orderNumber]
+}
+
+function toggleAll() {
+  selected.value = allSelected.value ? [] : rows.value.map((o: any) => o.orderNumber ?? '').filter(Boolean)
+}
+
+function clearSelection() {
+  selected.value = []
+  bulkStatus.value = ''
+}
+
+async function applyBulk() {
+  if (!bulkStatus.value || !selected.value.length || applying.value) return
+  applying.value = true
+  let ok = 0
+  let fail = 0
+  for (const orderNumber of selected.value) {
+    try {
+      await $fetch(`/api/admin/orders/${orderNumber}`, { method: 'PATCH', body: { status: bulkStatus.value } })
+      ok++
+    } catch {
+      fail++
+    }
+  }
+  applying.value = false
+  if (ok) toast.success(t('admin.bulk_done', { count: ok }))
+  if (fail) toast.error(t('admin.bulk_failed', { count: fail }))
+  clearSelection()
+  await refresh()
+}
+
+// ── U-A2: keyboard shortcuts (/, N, P, Escape) ────────────────────────
+function onKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLElement | null
+  const typing = target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)
+  if (e.metaKey || e.ctrlKey || e.altKey) return
+  if (e.key === 'Escape') {
+    if (typing) (target as HTMLElement).blur()
+    else if (selected.value.length) clearSelection()
+    else resetFilters()
+    return
+  }
+  if (typing) return
+  if (e.key === '/') {
+    e.preventDefault()
+    searchEl.value?.focus()
+  } else if (e.key.toLowerCase() === 'n' && page.value < totalPages.value) {
+    page.value++
+  } else if (e.key.toLowerCase() === 'p' && page.value > 1) {
+    page.value--
+  }
+}
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 
 const hasActiveFilters = computed(
   () => Boolean(status.value || search.value || dateFrom.value || dateTo.value || payment.value)

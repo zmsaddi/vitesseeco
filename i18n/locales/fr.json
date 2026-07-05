@@ -257,7 +257,12 @@
     "value2_title": "Livraison Soignée",
     "value2_desc": "Emballage renforcé et livraison avec suivi pour que votre vélo arrive en parfait état.",
     "value3_title": "Support Dédié",
-    "value3_desc": "Notre équipe est à votre écoute pour vous accompagner avant, pendant et après votre achat."
+    "value3_desc": "Notre équipe est à votre écoute pour vous accompagner avant, pendant et après votre achat.",
+    "stat_products": "Produits en stock",
+    "stat_brands": "Marques sélectionnées",
+    "stat_countries": "Langues disponibles",
+    "stat_warranty": "Ans de garantie",
+    "cta_title": "Prêt à passer à l'électrique ?"
   },
   "contact": {
     "title": "Contactez-nous",
@@ -275,7 +280,9 @@
     "legal_info": "Informations légales",
     "send_message": "Envoyez-nous un message",
     "web": "Web",
-    "map_title": "Notre emplacement"
+    "map_title": "Notre emplacement",
+    "whatsapp_desc": "Réponse rapide à vos questions, 7j/7.",
+    "faq_hint": "Besoin d'une réponse immédiate ? La plupart des questions trouvent déjà leur réponse dans notre FAQ."
   },
   "footer": {
     "description": "Détaillant en fatbikes électriques. Puissance, style et respect de l'environnement.",
@@ -320,7 +327,10 @@
     "article3": "Article 3 — Livraison",
     "article4": "Article 4 — Droit de rétractation",
     "article5": "Article 5 — Garantie",
-    "toc": "Sommaire"
+    "toc": "Sommaire",
+    "impressum": "Impressum",
+    "withdrawal": "Droit de rétractation",
+    "batteries": "Reprise des batteries"
   },
   "error_page": {
     "not_found": "Page non trouvée",
@@ -410,8 +420,7 @@
     "failed": "La vérification de sécurité a échoué.",
     "retry": "Réessayer",
     "verified": "Vérification réussie"
-  }
-,
+  },
   "chat": {
     "open": "Ouvrir le chat",
     "title": "Assistant Vitesse Eco",
@@ -441,8 +450,7 @@
     "status_shipped": "expédiée",
     "status_delivered": "livrée",
     "status_cancelled": "annulée"
-  }
-,
+  },
   "admin": {
     "notify_engines": "Notifier les moteurs de recherche",
     "notify_done": "{n} URLs soumises via IndexNow",
@@ -550,16 +558,21 @@
     "note_placeholder": "Ex : répondu le 05/07, devis envoyé",
     "note_saved": "Note enregistrée",
     "marked_read": "Marqué comme lu",
-    "marked_unread": "Marqué comme non lu"
-  }
-,
+    "marked_unread": "Marqué comme non lu",
+    "selected_count": "{count} commande(s) sélectionnée(s)",
+    "bulk_status": "Changer le statut",
+    "apply": "Appliquer",
+    "bulk_done": "{count} commande(s) mise(s) à jour",
+    "bulk_failed": "{count} échec(s) — réessayez",
+    "clear_selection": "Tout désélectionner",
+    "shortcuts_hint": "Raccourcis : / rechercher · N page suivante · P page précédente · Échap réinitialiser"
+  },
   "search": {
     "placeholder": "Rechercher un vélo, une pièce, un accessoire…",
     "no_results": "Aucun résultat pour « {q} »",
     "see_all": "Voir tous les résultats",
     "recent": "Recherches récentes"
-  }
-,
+  },
   "wishlist": {
     "title": "Mes favoris",
     "empty": "Aucun favori pour le moment — touchez le cœur sur un produit pour le garder ici.",

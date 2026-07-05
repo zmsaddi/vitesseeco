@@ -13,6 +13,9 @@
     </section>
 
     <div class="container-custom max-w-6xl pb-24 lg:pb-12">
+      <!-- Known-issue #2: cart hydrates from localStorage, so SSR HTML can
+           never match a filled cart. Checkout is client-only by design. -->
+      <ClientOnly>
       <!-- Empty cart -->
       <div v-if="cart.isEmpty" class="text-center py-20">
         <Icon name="ph:shopping-cart" class="w-16 h-16 text-dark-tertiary mx-auto mb-4" />
@@ -323,11 +326,23 @@
           </div>
         </div>
       </div>
+      <template #fallback>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" aria-hidden="true">
+          <div class="lg:col-span-2 space-y-5">
+            <div class="card p-6 h-48 animate-pulse" />
+            <div class="card p-6 h-32 animate-pulse" />
+            <div class="card p-6 h-32 animate-pulse" />
+          </div>
+          <div class="card p-6 h-80 animate-pulse" />
+        </div>
+      </template>
+      </ClientOnly>
     </div>
 
     <!-- Mobile sticky pay bar: total always visible; tapping scrolls to the
          summary (PayPal buttons cannot be duplicated). pe leaves room for the
          chat launcher. -->
+    <ClientOnly>
     <div v-if="!cart.isEmpty" class="lg:hidden fixed bottom-0 inset-x-0 z-header bg-dark-secondary/95 backdrop-blur border-t border-dark-tertiary px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] pe-20">
       <a href="#checkout-summary" class="flex items-center justify-between gap-3">
         <span>
@@ -337,6 +352,7 @@
         <span class="btn-primary px-5 py-2.5 text-sm">{{ $t('checkout.place_order') }} ↓</span>
       </a>
     </div>
+    </ClientOnly>
   </div>
 </template>
 

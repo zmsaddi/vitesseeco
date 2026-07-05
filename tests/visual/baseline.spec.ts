@@ -24,6 +24,12 @@ const PAGES = [
   { name: 'cart-empty', path: '/panier' },
   { name: 'contact', path: '/contact' },
   { name: 'a-propos', path: '/a-propos' },
+  // U-Q2: full-surface coverage
+  { name: 'guide', path: '/guide' },
+  { name: 'comparatif', path: '/comparatif' },
+  { name: 'faq', path: '/faq' },
+  { name: 'blog', path: '/blog' },
+  { name: 'withdrawal', path: '/retractation' },
 ]
 
 const VIEWPORTS = [

@@ -154,5 +154,8 @@ const legalLinks = [
   { path: '/mentions-legales', label: 'footer.mentions_legales' },
   { path: '/politique-confidentialite', label: 'footer.privacy' },
   { path: '/cgv', label: 'footer.cgv' },
+  { path: '/retractation', label: 'legal.withdrawal' },
+  { path: '/impressum', label: 'legal.impressum' },
+  { path: '/batteries', label: 'legal.batteries' },
 ]
 </script>

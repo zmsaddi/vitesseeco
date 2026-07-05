@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hors ligne — Vitesse Eco</title>
+<style>
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background: #0A1628; color: #fff; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-align: center; padding: 24px;
+  }
+  .box { max-width: 26rem; }
+  img { width: 72px; height: 72px; margin-bottom: 20px; }
+  h1 { font-size: 1.35rem; margin: 0 0 10px; }
+  p { color: #94A3B8; font-size: .95rem; line-height: 1.6; margin: 0 0 24px; }
+  button {
+    background: #4ADE80; color: #0A1628; border: 0; border-radius: 12px;
+    padding: 13px 28px; font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <img src="/logo.webp" alt="Vitesse Eco">
+    <h1>Vous êtes hors ligne</h1>
+    <p>Impossible de joindre vitesse-eco.fr pour le moment. Vérifiez votre connexion puis réessayez.<br>
+    <small>You appear to be offline — check your connection and try again.</small></p>
+    <button onclick="location.reload()">Réessayer</button>
+  </div>
+</body>
+</html>

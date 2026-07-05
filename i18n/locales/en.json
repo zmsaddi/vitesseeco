@@ -257,7 +257,12 @@
     "value2_title": "Careful Delivery",
     "value2_desc": "Reinforced packaging and tracked delivery so your bike arrives in perfect condition.",
     "value3_title": "Dedicated Support",
-    "value3_desc": "Our team is here to assist you before, during and after your purchase."
+    "value3_desc": "Our team is here to assist you before, during and after your purchase.",
+    "stat_products": "Products in stock",
+    "stat_brands": "Curated brands",
+    "stat_countries": "Languages available",
+    "stat_warranty": "Years of warranty",
+    "cta_title": "Ready to go electric?"
   },
   "contact": {
     "title": "Contact Us",
@@ -275,7 +280,9 @@
     "legal_info": "Legal Information",
     "send_message": "Send us a message",
     "web": "Web",
-    "map_title": "Our location"
+    "map_title": "Our location",
+    "whatsapp_desc": "Quick answers to your questions, 7 days a week.",
+    "faq_hint": "Need an instant answer? Most questions are already covered in our FAQ."
   },
   "footer": {
     "description": "Electric fatbike retailer. Power, style and environmental responsibility.",
@@ -320,7 +327,10 @@
     "article3": "Article 3 — Delivery",
     "article4": "Article 4 — Right of withdrawal",
     "article5": "Article 5 — Warranty",
-    "toc": "Table of Contents"
+    "toc": "Table of Contents",
+    "impressum": "Impressum",
+    "withdrawal": "Right of withdrawal",
+    "batteries": "Battery take-back"
   },
   "error_page": {
     "not_found": "Page not found",
@@ -410,8 +420,7 @@
     "failed": "Security check failed.",
     "retry": "Retry",
     "verified": "Verified"
-  }
-,
+  },
   "chat": {
     "open": "Open chat",
     "title": "Vitesse Eco Assistant",
@@ -441,8 +450,7 @@
     "status_shipped": "shipped",
     "status_delivered": "delivered",
     "status_cancelled": "cancelled"
-  }
-,
+  },
   "admin": {
     "notify_engines": "Notify search engines",
     "notify_done": "{n} URLs submitted via IndexNow",
@@ -550,16 +558,21 @@
     "note_placeholder": "e.g. replied 07/05, quote sent",
     "note_saved": "Note saved",
     "marked_read": "Marked as read",
-    "marked_unread": "Marked as unread"
-  }
-,
+    "marked_unread": "Marked as unread",
+    "selected_count": "{count} order(s) selected",
+    "bulk_status": "Change status",
+    "apply": "Apply",
+    "bulk_done": "{count} order(s) updated",
+    "bulk_failed": "{count} failed — try again",
+    "clear_selection": "Clear selection",
+    "shortcuts_hint": "Shortcuts: / search · N next page · P previous page · Esc reset"
+  },
   "search": {
     "placeholder": "Search a bike, a part, an accessory…",
     "no_results": "No results for “{q}”",
     "see_all": "See all results",
     "recent": "Recent searches"
-  }
-,
+  },
   "wishlist": {
     "title": "My favourites",
     "empty": "No favourites yet — tap the heart on a product to keep it here.",

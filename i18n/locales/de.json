@@ -257,7 +257,12 @@
     "value2_title": "Sorgfältige Lieferung",
     "value2_desc": "Verstärkte Verpackung und Lieferung mit Sendungsverfolgung, damit Ihr Fahrrad in einwandfreiem Zustand ankommt.",
     "value3_title": "Engagierter Support",
-    "value3_desc": "Unser Team steht Ihnen vor, während und nach Ihrem Kauf zur Seite."
+    "value3_desc": "Unser Team steht Ihnen vor, während und nach Ihrem Kauf zur Seite.",
+    "stat_products": "Produkte auf Lager",
+    "stat_brands": "Ausgewählte Marken",
+    "stat_countries": "Verfügbare Sprachen",
+    "stat_warranty": "Jahre Garantie",
+    "cta_title": "Bereit für den Umstieg aufs E-Bike?"
   },
   "contact": {
     "title": "Kontaktieren Sie uns",
@@ -275,7 +280,9 @@
     "legal_info": "Rechtliche Informationen",
     "send_message": "Senden Sie uns eine Nachricht",
     "web": "Web",
-    "map_title": "Unser Standort"
+    "map_title": "Unser Standort",
+    "whatsapp_desc": "Schnelle Antworten auf Ihre Fragen, 7 Tage die Woche.",
+    "faq_hint": "Sofort eine Antwort? Die meisten Fragen beantwortet unsere FAQ bereits."
   },
   "footer": {
     "description": "Händler für elektrische Fatbikes. Kraft, Stil und Umweltbewusstsein.",
@@ -320,7 +327,10 @@
     "article3": "Artikel 3 — Lieferung",
     "article4": "Artikel 4 — Widerrufsrecht",
     "article5": "Artikel 5 — Garantie",
-    "toc": "Inhaltsverzeichnis"
+    "toc": "Inhaltsverzeichnis",
+    "impressum": "Impressum",
+    "withdrawal": "Widerrufsbelehrung",
+    "batteries": "Batteriehinweise (BattG)"
   },
   "error_page": {
     "not_found": "Seite nicht gefunden",
@@ -410,8 +420,7 @@
     "failed": "Sicherheitsprüfung fehlgeschlagen.",
     "retry": "Erneut versuchen",
     "verified": "Verifiziert"
-  }
-,
+  },
   "chat": {
     "open": "Chat öffnen",
     "title": "Vitesse Eco Assistent",
@@ -441,8 +450,7 @@
     "status_shipped": "versandt",
     "status_delivered": "zugestellt",
     "status_cancelled": "storniert"
-  }
-,
+  },
   "admin": {
     "notify_engines": "Suchmaschinen benachrichtigen",
     "notify_done": "{n} URLs über IndexNow übermittelt",
@@ -550,16 +558,21 @@
     "note_placeholder": "z. B. am 05.07. geantwortet, Angebot gesendet",
     "note_saved": "Notiz gespeichert",
     "marked_read": "Als gelesen markiert",
-    "marked_unread": "Als ungelesen markiert"
-  }
-,
+    "marked_unread": "Als ungelesen markiert",
+    "selected_count": "{count} Bestellung(en) ausgewählt",
+    "bulk_status": "Status ändern",
+    "apply": "Anwenden",
+    "bulk_done": "{count} Bestellung(en) aktualisiert",
+    "bulk_failed": "{count} fehlgeschlagen — bitte erneut versuchen",
+    "clear_selection": "Auswahl aufheben",
+    "shortcuts_hint": "Kurzbefehle: / Suche · N nächste Seite · P vorherige Seite · Esc zurücksetzen"
+  },
   "search": {
     "placeholder": "E-Bike, Ersatzteil, Zubehör suchen…",
     "no_results": "Keine Ergebnisse für „{q}“",
     "see_all": "Alle Ergebnisse anzeigen",
     "recent": "Letzte Suchanfragen"
-  }
-,
+  },
   "wishlist": {
     "title": "Meine Favoriten",
     "empty": "Noch keine Favoriten — tippen Sie auf das Herz eines Produkts, um es hier zu speichern.",

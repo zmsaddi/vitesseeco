@@ -257,7 +257,12 @@
     "value2_title": "Entrega Cuidadosa",
     "value2_desc": "Embalaje reforzado y entrega con seguimiento para que tu bicicleta llegue en perfecto estado.",
     "value3_title": "Soporte Dedicado",
-    "value3_desc": "Nuestro equipo está a tu disposición para acompañarte antes, durante y después de tu compra."
+    "value3_desc": "Nuestro equipo está a tu disposición para acompañarte antes, durante y después de tu compra.",
+    "stat_products": "Productos en stock",
+    "stat_brands": "Marcas seleccionadas",
+    "stat_countries": "Idiomas disponibles",
+    "stat_warranty": "Años de garantía",
+    "cta_title": "¿Listo para pasarte a la eléctrica?"
   },
   "contact": {
     "title": "Contáctanos",
@@ -275,7 +280,9 @@
     "legal_info": "Información legal",
     "send_message": "Envíanos un mensaje",
     "web": "Web",
-    "map_title": "Nuestra ubicación"
+    "map_title": "Nuestra ubicación",
+    "whatsapp_desc": "Respuesta rápida a tus preguntas, los 7 días de la semana.",
+    "faq_hint": "¿Necesitas una respuesta inmediata? La mayoría de las preguntas ya están resueltas en nuestras FAQ."
   },
   "footer": {
     "description": "Distribuidor de fatbikes eléctricas. Potencia, estilo y respeto por el medio ambiente.",
@@ -320,7 +327,10 @@
     "article3": "Artículo 3 — Entrega",
     "article4": "Artículo 4 — Derecho de desistimiento",
     "article5": "Artículo 5 — Garantía",
-    "toc": "Índice"
+    "toc": "Índice",
+    "impressum": "Impressum",
+    "withdrawal": "Derecho de desistimiento",
+    "batteries": "Devolución de baterías"
   },
   "error_page": {
     "not_found": "Página no encontrada",
@@ -410,8 +420,7 @@
     "failed": "La verificación de seguridad falló.",
     "retry": "Reintentar",
     "verified": "Verificado"
-  }
-,
+  },
   "chat": {
     "open": "Abrir el chat",
     "title": "Asistente Vitesse Eco",
@@ -441,8 +450,7 @@
     "status_shipped": "enviado",
     "status_delivered": "entregado",
     "status_cancelled": "cancelado"
-  }
-,
+  },
   "admin": {
     "notify_engines": "Notificar a los buscadores",
     "notify_done": "{n} URLs enviadas vía IndexNow",
@@ -550,16 +558,21 @@
     "note_placeholder": "Ej.: respondido el 05/07, presupuesto enviado",
     "note_saved": "Nota guardada",
     "marked_read": "Marcado como leído",
-    "marked_unread": "Marcado como no leído"
-  }
-,
+    "marked_unread": "Marcado como no leído",
+    "selected_count": "{count} pedido(s) seleccionado(s)",
+    "bulk_status": "Cambiar estado",
+    "apply": "Aplicar",
+    "bulk_done": "{count} pedido(s) actualizado(s)",
+    "bulk_failed": "{count} error(es) — inténtalo de nuevo",
+    "clear_selection": "Quitar selección",
+    "shortcuts_hint": "Atajos: / buscar · N página siguiente · P página anterior · Esc restablecer"
+  },
   "search": {
     "placeholder": "Buscar una bici, una pieza, un accesorio…",
     "no_results": "Sin resultados para «{q}»",
     "see_all": "Ver todos los resultados",
     "recent": "Búsquedas recientes"
-  }
-,
+  },
   "wishlist": {
     "title": "Mis favoritos",
     "empty": "Aún no hay favoritos: toca el corazón de un producto para guardarlo aquí.",

@@ -10,6 +10,25 @@
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Contact Info Cards -->
         <div class="space-y-4">
+          <!-- U-P12: WhatsApp first — the fastest channel we actually staff -->
+          <a
+            href="https://wa.me/33745830049"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="card p-6 flex items-start gap-4 border-accent/40 hover:border-accent transition-colors"
+          >
+            <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center shrink-0">
+              <Icon name="ph:whatsapp-logo" class="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h3 class="font-display font-semibold text-white mb-1">WhatsApp</h3>
+              <p class="text-text-secondary text-sm">{{ $t('contact.whatsapp_desc') }}</p>
+              <span class="text-accent text-sm font-medium inline-flex items-center gap-1 mt-2">
+                {{ $t('chat.whatsapp') }} <Icon name="ph:arrow-right" class="w-3.5 h-3.5 rtl:-scale-x-100" />
+              </span>
+            </div>
+          </a>
+
           <div class="card p-6 flex items-start gap-4">
             <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center shrink-0">
               <Icon name="ph:map-pin" class="w-6 h-6 text-accent" />
@@ -107,6 +126,17 @@
             </ClientOnly>
           </div>
 
+          <!-- U-P12: many messages are questions the FAQ already answers -->
+          <div class="card p-4 flex items-center justify-between gap-3 flex-wrap">
+            <p class="text-text-secondary text-sm flex items-center gap-2">
+              <Icon name="ph:lightbulb" class="w-5 h-5 text-accent shrink-0" />
+              {{ $t('contact.faq_hint') }}
+            </p>
+            <NuxtLink :to="localePath('/faq')" class="text-accent text-sm font-medium inline-flex items-center gap-1 hover:underline">
+              {{ $t('nav.faq') }} <Icon name="ph:arrow-right" class="w-3.5 h-3.5 rtl:-scale-x-100" />
+            </NuxtLink>
+          </div>
+
           <!-- Contact Form -->
           <div class="card p-6 md:p-8">
             <h2 class="font-display text-xl font-semibold text-white mb-6">{{ $t('contact.send_message') }}</h2>
@@ -164,6 +194,7 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const l = useLocalizedField()
+const localePath = useLocalePath()
 
 // Fetch ALL contact page fields from Sanity
 const defaultMapUrl = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2770.7!2d0.3434!3d46.5802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47fdbe31a5075ccb%3A0x2a43cf344f2d1b0!2s32%20Rue%20du%20Faubourg%20du%20Pont%20Neuf%2C%2086000%20Poitiers!5e0!3m2!1sfr!2sfr!4v1700000000000!5m2!1sfr!2sfr'

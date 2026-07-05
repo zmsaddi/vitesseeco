@@ -257,7 +257,12 @@
     "value2_title": "Zorgvuldige Levering",
     "value2_desc": "Versterkte verpakking en levering met tracking zodat je fiets in perfecte staat aankomt.",
     "value3_title": "Toegewijde Ondersteuning",
-    "value3_desc": "Ons team staat klaar om je te begeleiden voor, tijdens en na je aankoop."
+    "value3_desc": "Ons team staat klaar om je te begeleiden voor, tijdens en na je aankoop.",
+    "stat_products": "Producten op voorraad",
+    "stat_brands": "Geselecteerde merken",
+    "stat_countries": "Beschikbare talen",
+    "stat_warranty": "Jaar garantie",
+    "cta_title": "Klaar om elektrisch te gaan?"
   },
   "contact": {
     "title": "Neem contact op",
@@ -275,7 +280,9 @@
     "legal_info": "Juridische informatie",
     "send_message": "Stuur ons een bericht",
     "web": "Web",
-    "map_title": "Onze locatie"
+    "map_title": "Onze locatie",
+    "whatsapp_desc": "Snel antwoord op je vragen, 7 dagen per week.",
+    "faq_hint": "Direct antwoord nodig? De meeste vragen worden al beantwoord in onze FAQ."
   },
   "footer": {
     "description": "Dealer in elektrische fatbikes. Kracht, stijl en respect voor het milieu.",
@@ -320,7 +327,10 @@
     "article3": "Artikel 3 — Levering",
     "article4": "Artikel 4 — Herroepingsrecht",
     "article5": "Artikel 5 — Garantie",
-    "toc": "Inhoudsopgave"
+    "toc": "Inhoudsopgave",
+    "impressum": "Impressum",
+    "withdrawal": "Herroepingsrecht",
+    "batteries": "Inname van batterijen"
   },
   "error_page": {
     "not_found": "Pagina niet gevonden",
@@ -410,8 +420,7 @@
     "failed": "Beveiligingscontrole mislukt.",
     "retry": "Opnieuw proberen",
     "verified": "Geverifieerd"
-  }
-,
+  },
   "chat": {
     "open": "Chat openen",
     "title": "Vitesse Eco Assistent",
@@ -441,8 +450,7 @@
     "status_shipped": "verzonden",
     "status_delivered": "bezorgd",
     "status_cancelled": "geannuleerd"
-  }
-,
+  },
   "admin": {
     "notify_engines": "Zoekmachines melden",
     "notify_done": "{n} URLs ingediend via IndexNow",
@@ -550,16 +558,21 @@
     "note_placeholder": "Bijv. beantwoord op 05/07, offerte verzonden",
     "note_saved": "Notitie opgeslagen",
     "marked_read": "Gemarkeerd als gelezen",
-    "marked_unread": "Gemarkeerd als ongelezen"
-  }
-,
+    "marked_unread": "Gemarkeerd als ongelezen",
+    "selected_count": "{count} bestelling(en) geselecteerd",
+    "bulk_status": "Status wijzigen",
+    "apply": "Toepassen",
+    "bulk_done": "{count} bestelling(en) bijgewerkt",
+    "bulk_failed": "{count} mislukt — probeer opnieuw",
+    "clear_selection": "Selectie wissen",
+    "shortcuts_hint": "Sneltoetsen: / zoeken · N volgende pagina · P vorige pagina · Esc herstellen"
+  },
   "search": {
     "placeholder": "Zoek een fiets, onderdeel, accessoire…",
     "no_results": "Geen resultaten voor “{q}”",
     "see_all": "Alle resultaten bekijken",
     "recent": "Recente zoekopdrachten"
-  }
-,
+  },
   "wishlist": {
     "title": "Mijn favorieten",
     "empty": "Nog geen favorieten — tik op het hartje bij een product om het hier te bewaren.",

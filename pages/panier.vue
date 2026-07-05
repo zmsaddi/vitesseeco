@@ -3,7 +3,10 @@
     <div class="container-custom">
       <h1 class="section-title mb-8">{{ $t('cart.title') }}</h1>
 
-      <!-- Empty State -->
+      <!-- Known-issue #2: cart state is restored from localStorage during
+           hydration, so SSR (empty) never matches a returning visitor's cart.
+           Cart content is client-only by design — zero SEO value here. -->
+      <ClientOnly>
       <!-- Stock warnings -->
       <div v-if="stockMessages.length > 0" class="mb-6 bg-gold/10 border border-gold/30 rounded-xl p-4">
         <p class="text-gold text-sm font-medium mb-2 flex items-center gap-2">
@@ -217,6 +220,16 @@
           </div>
         </div>
       </div>
+      <template #fallback>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" aria-hidden="true">
+          <div class="lg:col-span-2 space-y-4">
+            <div class="card p-6 h-36 animate-pulse" />
+            <div class="card p-6 h-36 animate-pulse" />
+          </div>
+          <div class="card p-6 h-72 animate-pulse" />
+        </div>
+      </template>
+      </ClientOnly>
     </div>
   </div>
 </template>

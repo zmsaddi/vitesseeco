@@ -32,7 +32,18 @@
 - **Verified live:** `curl /commande/confirmation?order=ORD-TEST123 → 200`
   with `<strong>ORD-TEST123</strong>` in the SSR HTML.
 
-## 2. Hydration mismatch warning on multiple pages
+## 2. ~~Hydration mismatch warning on multiple pages~~ — **fixed 2026-07-05**
+
+- **Root cause found:** the cart store persists to localStorage
+  (`pinia-plugin-persistedstate`) and is restored synchronously while Vue
+  hydrates, so for any visitor with items in the cart the SSR HTML of
+  `/panier` and `/commande` (rendered empty) never matches the client
+  render (filled). Auth was NOT a source — `plugins/auth.client.ts` fetches
+  the user on `app:mounted`, after hydration. All layout-level
+  client-state components were already `<ClientOnly>`.
+- **Fix:** cart/checkout page content wrapped in `<ClientOnly>` with
+  skeleton fallbacks (zero SEO value on those pages), including the
+  mobile sticky pay bar.
 
 - **Reproducer:** open vitesse-eco.fr in any browser → DevTools console →
   `Hydration completed but contains mismatches` warning fires.
@@ -96,6 +107,6 @@ small while PG-primary stabilises. When picked up:
 | # | Issue | Status |
 |---|-------|--------|
 | 1 | Confirmation page orderNumber not visible | ✅ **Fixed** in [a0a9e6e](https://github.com/zmsaddi/vitesseeco/commit/a0a9e6e) |
-| 2 | Hydration mismatch warning | open |
+| 2 | Hydration mismatch warning | ✅ **Fixed** 2026-07-05 — cart-driven pages made ClientOnly with skeletons (localStorage restore during hydration was the source) |
 | 3 | Turnstile widget "Nothing to reset" warning | ✅ **Fixed** — retry() wraps `turnstile.remove` in try/catch (verified 2026-07-05, TurnstileWidget.vue:154) |
 | 4 | `orders.guest_email` populated for logged-in customers | ✅ **Fixed** 2026-07-05 — both order-creation paths now NULL guest_email when customerId is set |

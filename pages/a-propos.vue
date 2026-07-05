@@ -20,6 +20,14 @@
         </div>
       </div>
 
+      <!-- U-P12: proof in numbers — scannable trust band -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-16">
+        <div v-for="stat in stats" :key="stat.label" class="card p-5 text-center">
+          <p class="font-display text-2xl md:text-3xl font-black text-accent">{{ stat.value }}</p>
+          <p class="text-text-secondary text-xs md:text-sm mt-1">{{ stat.label }}</p>
+        </div>
+      </div>
+
       <!-- Values -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div v-for="(value, i) in aboutValues" :key="i" class="card p-8 text-center">
@@ -42,6 +50,15 @@
           <p>{{ $t('about.active_since') }}</p>
         </div>
       </div>
+
+      <!-- U-P12: never a dead-end page — route the reader to the catalog -->
+      <div class="mt-10 card p-8 text-center bg-accent/5 border-accent/30">
+        <h2 class="font-display text-xl md:text-2xl font-bold text-white mb-4">{{ $t('about.cta_title') }}</h2>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <NuxtLink :to="localePath('/produits')" class="btn-primary">{{ $t('cart.empty_cta') }}</NuxtLink>
+          <NuxtLink :to="localePath('/contact')" class="btn-secondary">{{ $t('nav.contact') }}</NuxtLink>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -49,6 +66,14 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const l = useLocalizedField()
+const localePath = useLocalePath()
+
+const stats = computed(() => [
+  { value: '140+', label: t('about.stat_products') },
+  { value: '10', label: t('about.stat_brands') },
+  { value: '6', label: t('about.stat_countries') },
+  { value: '2', label: t('about.stat_warranty') },
+])
 
 const query = groq`*[_type == "aboutPage"][0]{ title, subtitle, story, values, seo }`
 const { data: aboutData } = useSanityFetch('about-page', query)

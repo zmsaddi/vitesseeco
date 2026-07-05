@@ -16,7 +16,7 @@
 | U-D2 | DS batch 2: AppSelect, QuantityStepper, Tabs, Accordion, Pagination, InlineError, Banner | ⬜ |
 | U-D3 | DS batch 3: ProductCard v2, TrustRow, StickyBar, PageLoading | ⬜ |
 | U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | ✅ 2026-07-05 |
-| U-A2 | Admin UX pass: bulk status actions, sticky header, keyboard shortcuts | ⬜ |
+| U-A2 | Admin UX pass: bulk select + bulk status change (audited per order via existing PATCH), sticky table header, keyboard shortcuts (/ search, N/P pages, Esc reset) | ✅ 2026-07-05 |
 | U-A3 | Admin full i18n: 105 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-07-05 |
 | U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry; checkout quotes by destination country with FR fallback | ✅ 2026-07-05 |
 | U-X2 | Aggregator integration (Sendcloud/Boxtal): labels + tracking webhooks + Bancontact/iDEAL via PSP adapter | ⏸ owner accounts |
@@ -50,14 +50,14 @@
 |---|---|---|
 | U-P10 | Login: Google-account hint shown with any auth error (generic, no enumeration) — password reset UI waits on Resend (owner accounts session) | ✅ partial 2026-07-05 |
 | U-P11 | Order detail: 4-step status timeline (paid→processing→shipped→delivered, hidden when cancelled, pending note) + one-click reorder rebuilding cart lines from LIVE product data (fresh price/stock, qty capped, partial-availability toasts) | ✅ 2026-07-05 |
-| U-P12 | Contact/a-propos/legal v2 | ⬜ |
+| U-P12 | Contact v2 (WhatsApp card first, FAQ shortcut band), a-propos v2 (stats band + catalog CTA) | ✅ 2026-07-05 |
 
 ## Phase R4 — Markets (BE/NL/DE/ES)
 
 | Unit | Scope | Status |
 |---|---|---|
 | U-K1 | Shared merchantFeed builder; feeds live for fr/nl/de/es with localized titles + locale-prefixed links; fr-BE/nl-BE hreflang added (x-default already existed); llms.txt lists all feeds. Owner registers each feed per country in Merchant Center | ✅ 2026-07-05 |
-| U-K2 | DE compliance pages (Impressum, Widerruf, BattG) + EU withdrawal in CGV | ⬜ owner-assisted |
+| U-K2 | DE compliance: /impressum, /retractation (EU withdrawal + model form), /batteries (BattG take-back) — DE text authoritative, 6-locale in-page content, footer links + sitemaps | ✅ 2026-07-05 |
 | U-K3 | Shipping zones BE/NL/DE/ES in Sanity + checkout country filtering | ⬜ owner pricing |
 | U-K4 | Native review pass NL/DE/ES (BE covered by fr+nl) | ⏸ owner reviewers |
 
@@ -67,9 +67,10 @@
 |---|---|---|
 | U-Q1 | Verified already built: ci.yml runs bundle budget (13MB gzip, blocking) + Lighthouse CI on master pushes (perf≥85/a11y≥90/seo≥90, continue-on-error while tuning) | ✅ pre-existing |
 | U-Q3a | Known issues closed: #3 Turnstile reset (verified already fixed), #4 guest_email hygiene (fixed both creation paths). #2 hydration mismatch remains open | ✅ 2026-07-05 |
-| U-Q2 | Full E2E matrix (4 langs × 2 viewports) + visual baselines all pages | ⬜ |
-| U-Q3 | axe pass + RTL dedicated pass + hydration-mismatch fix (known-issue #2) | ⬜ |
-| U-M3 | Back-in-stock alerts (needs Resend) · U-M4 PWA | ⬜ |
+| U-Q2 | E2E locale matrix (fr/nl/de/es × desktop/mobile × 7 pages + hreflang + mobile chrome) in locale-matrix.spec.ts; visual coverage 5→10 pages (regenerate baselines post-deploy: `npm run test:visual:update`) | ✅ 2026-07-05 |
+| U-Q3 | Hydration mismatch (known-issue #2) FIXED — cart localStorage restore during hydration; /panier + /commande now ClientOnly with skeletons. axe/RTL dedicated pass still open | 🔄 2026-07-05 |
+| U-M3 | Back-in-stock alerts (needs Resend) | ⏸ owner |
+| U-M4 | PWA: hand-rolled sw.js (network-first nav + offline.html, cache-first /_nuxt, SWR images capped 120, never touches api/checkout/account), client plugin registration, manifest pre-existing | ✅ 2026-07-05 |
 
 ## Phase R6 — SEO engine & launch
 
@@ -84,5 +85,5 @@
 |---|---|---|
 | U-S1 | Emails: order confirmation + shipped-with-tracking + admin alert (needs Resend) | ⏸ owner |
 | U-S2 | Trustpilot post-purchase + aggregateRating JSON-LD | ⏸ owner |
-| U-S3 | First content batch: 1 buying guide × 4 languages + internal links | ⬜ |
+| U-S3 | Buying guide article × 6 locales + 4 related-product internal links: cms/scripts/add-buying-guide-article.mjs (idempotent, uploads featured image) | ✅ built 2026-07-05 · ⏸ publish in owner Sanity session |
 | U-S4 | Launch checklist (plan §9) + 7-day bake | ⬜ |
