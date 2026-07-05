@@ -193,7 +193,10 @@
     "disabled_no_turnstile": "La vérification de sécurité doit être complétée",
     "disabled_no_name": "Indiquez votre prénom et votre nom pour le retrait",
     "pickup_contact_title": "Qui vient retirer la commande ?",
-    "order_received_no_number": "Votre commande a bien été enregistrée. Si le numéro de commande ne s'affiche pas, vous le retrouverez dans l'email de confirmation ou dans votre espace client."
+    "order_received_no_number": "Votre commande a bien été enregistrée. Si le numéro de commande ne s'affiche pas, vous le retrouverez dans l'email de confirmation ou dans votre espace client.",
+    "shipping_dest": "Options pour :",
+    "shipping_dest_hint": "changez le pays à l’étape 1 pour livrer ailleurs",
+    "enter_address_first": "Renseignez votre adresse à l’étape 1 — les options de livraison pour votre pays apparaîtront ici."
   },
   "account": {
     "reorder": "Commander à nouveau",

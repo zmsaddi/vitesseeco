@@ -193,7 +193,10 @@
     "disabled_no_turnstile": "Voltooi de beveiligingscontrole",
     "disabled_no_name": "Vul uw voor- en achternaam in voor afhalen in de winkel",
     "pickup_contact_title": "Wie haalt de bestelling op?",
-    "order_received_no_number": "Uw bestelling is geregistreerd. Als het bestelnummer niet zichtbaar is, vindt u het in de bevestigingsmail of in uw account."
+    "order_received_no_number": "Uw bestelling is geregistreerd. Als het bestelnummer niet zichtbaar is, vindt u het in de bevestigingsmail of in uw account.",
+    "shipping_dest": "Opties voor:",
+    "shipping_dest_hint": "wijzig het land in stap 1 om elders te laten bezorgen",
+    "enter_address_first": "Vul je adres in bij stap 1 — de bezorgopties voor jouw land verschijnen hier."
   },
   "account": {
     "reorder": "Opnieuw bestellen",

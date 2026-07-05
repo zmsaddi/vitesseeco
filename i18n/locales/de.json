@@ -193,7 +193,10 @@
     "disabled_no_turnstile": "Bitte führen Sie die Sicherheitsprüfung durch",
     "disabled_no_name": "Geben Sie Ihren Vor- und Nachnamen für die Abholung an",
     "pickup_contact_title": "Wer holt die Bestellung ab?",
-    "order_received_no_number": "Ihre Bestellung wurde registriert. Falls die Bestellnummer nicht angezeigt wird, finden Sie sie in der Bestätigungs-E-Mail oder in Ihrem Konto."
+    "order_received_no_number": "Ihre Bestellung wurde registriert. Falls die Bestellnummer nicht angezeigt wird, finden Sie sie in der Bestätigungs-E-Mail oder in Ihrem Konto.",
+    "shipping_dest": "Optionen für:",
+    "shipping_dest_hint": "ändern Sie das Land in Schritt 1, um woanders zu liefern",
+    "enter_address_first": "Geben Sie Ihre Adresse in Schritt 1 ein — die Lieferoptionen für Ihr Land erscheinen hier."
   },
   "account": {
     "reorder": "Erneut bestellen",

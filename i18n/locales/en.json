@@ -193,7 +193,10 @@
     "disabled_no_turnstile": "Please complete the security check",
     "disabled_no_name": "Enter your first and last name for store pickup",
     "pickup_contact_title": "Who's picking up the order?",
-    "order_received_no_number": "Your order has been placed. If the order number is not visible, you'll find it in the confirmation email or in your account."
+    "order_received_no_number": "Your order has been placed. If the order number is not visible, you'll find it in the confirmation email or in your account.",
+    "shipping_dest": "Options for:",
+    "shipping_dest_hint": "change the country in step 1 to ship elsewhere",
+    "enter_address_first": "Enter your address in step 1 — delivery options for your country will appear here."
   },
   "account": {
     "reorder": "Order again",

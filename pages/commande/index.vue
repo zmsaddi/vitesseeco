@@ -203,9 +203,21 @@
               </span>
               {{ $t('shipping.title') }}
             </h2>
-            <div v-if="shippingMethods?.length" class="space-y-2">
+            <!-- The methods follow the DESTINATION address entered in step ① —
+                 say so, or a gift buyer never realizes options change per country. -->
+            <p v-if="deliveryAddressReady && !isPickup" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
+              <Icon name="ph:map-pin" class="w-3.5 h-3.5 text-accent shrink-0" />
+              {{ $t('checkout.shipping_dest') }} <span class="text-white font-medium">{{ countryLabel(addr.country) }}</span>
+              — {{ $t('checkout.shipping_dest_hint') }}
+            </p>
+            <!-- Address not entered yet → delivery options wait for it -->
+            <div v-if="!deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 mb-3 flex items-start gap-2.5">
+              <Icon name="ph:arrow-up" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <p class="text-text-secondary text-xs">{{ $t('checkout.enter_address_first') }}</p>
+            </div>
+            <div v-if="visibleShippingMethods?.length" class="space-y-2">
               <label
-                v-for="method in shippingMethods"
+                v-for="method in visibleShippingMethods"
                 :key="method.code"
                 :for="`ship-${method.code}`"
                 class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors min-h-touch"
@@ -418,6 +430,24 @@ const addressComplete = computed(() => {
 // The server falls back to FR methods when a zone has no configuration yet,
 // so switching country can never leave the customer with zero options.
 const shippingZone = computed(() => (isPickup.value ? 'FR' : addr.country || 'FR'))
+
+const COUNTRY_LABELS: Record<string, string> = {
+  FR: '🇫🇷 France', BE: '🇧🇪 Belgique', LU: '🇱🇺 Luxembourg',
+  DE: '🇩🇪 Deutschland', NL: '🇳🇱 Nederland', ES: '🇪🇸 España',
+}
+const countryLabel = (c: string) => COUNTRY_LABELS[c] || c
+
+// Owner flow (2026-07-05): the customer enters the address FIRST, and only
+// then do delivery options appear — based on that address. Pickup needs no
+// address, so it is always offered.
+const deliveryAddressReady = computed(() => {
+  if (selectedAddressId.value && !showNewForm.value) return true
+  return !!(addr.address && addr.city && addr.postalCode)
+})
+const visibleShippingMethods = computed(() => {
+  const all = shippingMethods.value || []
+  return deliveryAddressReady.value ? all : all.filter((m: any) => m.code === 'pickup')
+})
 const { data: shippingData } = useFetch('/api/shipping/methods', {
   query: computed(() => ({ zone: shippingZone.value })),
 })
