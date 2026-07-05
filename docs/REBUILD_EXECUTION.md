@@ -73,6 +73,11 @@
 
 | Unit | Scope | Status |
 |---|---|---|
+| U-S0 | GEO / AI-answer readiness: robots.txt welcomes all major AI crawlers (private paths kept), dynamic /llms.txt (llmstxt.org) with company facts, policies, key pages, feeds + top-30 live products | ✅ 2026-07-05 |
+
+
+| Unit | Scope | Status |
+|---|---|---|
 | U-S1 | Emails: order confirmation + shipped-with-tracking + admin alert (needs Resend) | ⏸ owner |
 | U-S2 | Trustpilot post-purchase + aggregateRating JSON-LD | ⏸ owner |
 | U-S3 | First content batch: 1 buying guide × 4 languages + internal links | ⬜ |

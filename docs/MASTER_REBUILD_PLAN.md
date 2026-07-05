@@ -267,7 +267,26 @@ them means not ranking, regardless of code quality.
 | Shipping | Real carrier methods + prices per country in Sanity shippingMethod zones | Configure BE/NL/DE/ES zones; checkout filters by country (adapter exists) |
 | Reviews | Trustpilot (free tier) wired post-purchase email | R6; review stars → JSON-LD aggregateRating → SERP CTR |
 
-### 7.5 Leading indicators (monthly review vs #1 goal)
+### 7.5 AI-answer readiness (GEO) — owner directive 2026-07-05
+
+> The site must be a competitive DATA SOURCE for AI assistants (Google AI
+> Overviews/Gemini, ChatGPT, Claude, Perplexity), not only for classic SERPs.
+
+- ✅ robots.txt explicitly welcomes AI crawlers (GPTBot, OAI-SearchBot,
+  ChatGPT-User, ClaudeBot/Claude-Web/anthropic-ai, Google-Extended,
+  PerplexityBot, CCBot, meta-externalagent) while keeping /api /compte /admin private.
+- ✅ /llms.txt (llmstxt.org): curated markdown map — company facts, policies,
+  key pages, machine-readable feeds, top products with live EUR prices.
+- ✅ SSR on Vercel: full HTML for every crawler, no JS-only content.
+- ✅ Structured data: Product, BreadcrumbList, FAQPage, Article, Organization,
+  LocalBusiness, WebSite JSON-LD — the formats AI answers quote from.
+- ✅ hreflang ×6 + dynamic sitemap + Merchant feed.
+- ⚠ What actually earns citations: the §7.2 content engine (guides, comparisons,
+  unique per-product copy) + §7.4 reviews. LLMs cite sources that answer
+  questions completely — technical access is now 100% open; content depth is
+  the ongoing battle.
+
+### 7.6 Leading indicators (monthly review vs #1 goal)
 
 GSC impressions & CTR per market → indexed pages → CWV field data → conversion per
 market → (lagging) rankings for target keyword set per language (tracked list of 20/market).

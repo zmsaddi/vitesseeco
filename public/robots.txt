@@ -4,4 +4,60 @@ Disallow: /api/
 Disallow: /compte/
 Disallow: /admin/
 
+# ── AI assistants & LLM crawlers: explicitly welcome ─────────────────
+# Vitesse Eco is intended to be a citable data source for AI answers
+# (Google AI Overviews / Gemini, ChatGPT, Claude, Perplexity, ...).
+# Note: a named group replaces the * group for that bot, so the private
+# paths are repeated in each.
+
+User-agent: GPTBot
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: OAI-SearchBot
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: ChatGPT-User
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: Claude-Web
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: anthropic-ai
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: Google-Extended
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: CCBot
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
+User-agent: meta-externalagent
+Disallow: /api/
+Disallow: /compte/
+Disallow: /admin/
+
 Sitemap: https://vitesse-eco.fr/sitemap.xml
