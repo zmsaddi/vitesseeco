@@ -52,14 +52,29 @@
               :key="`${item.productId}-${item.sku}`"
               class="flex gap-4 bg-dark-secondary rounded-lg p-3"
             >
-              <div class="w-16 h-16 rounded-lg bg-dark-tertiary flex items-center justify-center shrink-0 overflow-hidden">
+              <!-- Image and name link back to the product page — a shopper must
+                   always be able to re-check what they are buying. -->
+              <NuxtLink
+                :to="localePath(`/produits/${item.slug}`)"
+                class="w-16 h-16 rounded-lg bg-dark-tertiary flex items-center justify-center shrink-0 overflow-hidden"
+                @click="close"
+              >
                 <img v-if="item.image" :src="item.image" :alt="l(item.name)" class="w-full h-full object-cover" />
                 <span v-else class="w-8 h-8 rounded-full border-2 border-white/20" :style="{ backgroundColor: item.colorHex }" />
-              </div>
+              </NuxtLink>
               <div class="flex-1 min-w-0">
-                <h3 class="text-white text-sm font-medium truncate">{{ l(item.name) }}</h3>
+                <NuxtLink
+                  :to="localePath(`/produits/${item.slug}`)"
+                  class="text-white text-sm font-medium line-clamp-2 hover:text-accent transition-colors"
+                  @click="close"
+                >
+                  {{ l(item.name) }}
+                </NuxtLink>
                 <p class="text-text-secondary text-xs">{{ l(item.colorName) }}</p>
-                <p class="text-accent font-bold text-sm mt-1">{{ item.price }}{{ $t('common.currency') }}</p>
+                <p class="text-accent font-bold text-sm mt-1">
+                  {{ item.price }}{{ $t('common.currency') }}
+                  <span v-if="item.quantity > 1" class="text-text-secondary font-normal text-xs">× {{ item.quantity }} = {{ (item.price * item.quantity).toFixed(2) }}{{ $t('common.currency') }}</span>
+                </p>
               </div>
               <!-- P1-06: every interactive element is now ≥44px hit area on mobile -->
               <div class="flex flex-col items-end gap-2">
