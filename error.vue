@@ -20,7 +20,11 @@
 <script setup lang="ts">
 const props = defineProps<{ error: { statusCode: number; message: string } }>()
 
+// Keep the visitor's language: a German user on a broken /de page must
+// land on /de, not the French home.
+const localePath = useLocalePath()
+
 function handleError() {
-  clearError({ redirect: '/' })
+  clearError({ redirect: localePath('/') })
 }
 </script>

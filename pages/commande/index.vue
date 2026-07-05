@@ -286,7 +286,7 @@
                   >{{ l(item.name) }}</NuxtLink>
                   <span class="text-text-secondary">× {{ item.quantity }}</span>
                 </span>
-                <span class="text-white font-medium ml-2 whitespace-nowrap">{{ item.price * item.quantity }}{{ $t('common.currency') }}</span>
+                <span class="text-white font-medium ml-2 whitespace-nowrap">{{ (item.price * item.quantity).toFixed(2) }}{{ $t('common.currency') }}</span>
               </div>
             </div>
             <div class="border-t border-dark-tertiary pt-3 space-y-2 text-sm">
@@ -590,7 +590,7 @@ async function placeOrder() {
     }
     cart.clearCart()
     navigateTo(localePath(`/commande/confirmation?order=${result.orderNumber}`))
-  } catch (e: any) { orderError.value = e.data?.message || 'Order failed' }
+  } catch (e: any) { orderError.value = e.data?.message || t('common.error') }
   finally { placing.value = false }
 }
 </script>

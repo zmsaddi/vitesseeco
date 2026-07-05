@@ -226,7 +226,8 @@
     "delete_consequence_3": "You will lose access to your order tracking and history",
     "delete_consequence_4": "Your previous orders will be kept anonymously for our business records",
     "delete_consequence_5": "This action is irreversible and cannot be undone",
-    "tracking": "Tracking number"
+    "tracking": "Tracking number",
+    "greeting": "Hi, {name}"
   },
   "auth": {
     "google_hint": "Tip: created your account with Google? Use the Google button above — it has no password.",
@@ -242,7 +243,10 @@
     "forgot_password": "Forgot your password?",
     "login_subtitle": "Sign in to your account",
     "register_subtitle": "Create your account to start shopping",
-    "password_mismatch": "Passwords do not match"
+    "password_mismatch": "Passwords do not match",
+    "error_invalid": "Incorrect email or password",
+    "error_email_exists": "An account already exists with this email — sign in instead",
+    "error_check_fields": "Please check the form fields"
   },
   "about": {
     "title": "About Vitesse Eco",

@@ -226,7 +226,8 @@
     "delete_consequence_3": "Je verliest de toegang tot het volgen en de geschiedenis van je bestellingen",
     "delete_consequence_4": "Je eerdere bestellingen worden anoniem bewaard in onze administratie",
     "delete_consequence_5": "Deze actie is onomkeerbaar en kan niet ongedaan worden gemaakt",
-    "tracking": "Tracking nummer"
+    "tracking": "Tracking nummer",
+    "greeting": "Hallo, {name}"
   },
   "auth": {
     "google_hint": "Tip: account met Google aangemaakt? Gebruik de Google-knop hierboven — er is geen wachtwoord.",
@@ -242,7 +243,10 @@
     "forgot_password": "Wachtwoord vergeten?",
     "login_subtitle": "Log in op je account",
     "register_subtitle": "Maak je account aan om te beginnen met winkelen",
-    "password_mismatch": "Wachtwoorden komen niet overeen"
+    "password_mismatch": "Wachtwoorden komen niet overeen",
+    "error_invalid": "Onjuist e-mailadres of wachtwoord",
+    "error_email_exists": "Er bestaat al een account met dit e-mailadres — log in",
+    "error_check_fields": "Controleer de velden van het formulier"
   },
   "about": {
     "title": "Over Vitesse Eco",

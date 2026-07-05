@@ -226,7 +226,8 @@
     "delete_consequence_3": "Sie verlieren den Zugang zu Ihrer Bestellverfolgung und -historie",
     "delete_consequence_4": "Ihre bisherigen Bestellungen werden anonymisiert in unseren Geschäftsunterlagen aufbewahrt",
     "delete_consequence_5": "Diese Aktion ist unwiderruflich und kann nicht rückgängig gemacht werden",
-    "tracking": "Sendungsverfolgung"
+    "tracking": "Sendungsverfolgung",
+    "greeting": "Hallo, {name}"
   },
   "auth": {
     "google_hint": "Tipp: Konto mit Google erstellt? Nutzen Sie den Google-Button oben — es gibt kein Passwort.",
@@ -242,7 +243,10 @@
     "forgot_password": "Passwort vergessen?",
     "login_subtitle": "Melden Sie sich bei Ihrem Konto an",
     "register_subtitle": "Erstellen Sie Ihr Konto, um mit dem Einkaufen zu beginnen",
-    "password_mismatch": "Die Passwörter stimmen nicht überein"
+    "password_mismatch": "Die Passwörter stimmen nicht überein",
+    "error_invalid": "E-Mail oder Passwort falsch",
+    "error_email_exists": "Mit dieser E-Mail existiert bereits ein Konto — bitte anmelden",
+    "error_check_fields": "Bitte prüfen Sie die Formularfelder"
   },
   "about": {
     "title": "Über Vitesse Eco",

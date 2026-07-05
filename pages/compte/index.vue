@@ -9,7 +9,7 @@
             <span class="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-accent/10 border border-accent/20 rounded-full backdrop-blur-sm">
               <Icon name="ph:user-circle" class="w-3.5 h-3.5 text-accent" />
               <span class="text-accent text-xs font-medium tracking-wider uppercase">
-                {{ auth.user?.firstName ? `Hi, ${auth.user.firstName}` : 'Account' }}
+                {{ auth.user?.firstName ? $t('account.greeting', { name: auth.user.firstName }) : $t('account.title') }}
               </span>
             </span>
             <h1 class="font-display text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tight">{{ $t('account.title') }}</h1>
@@ -255,7 +255,7 @@
                     <template v-else>{{ item.productName }}</template>
                     ({{ item.color }}) × {{ item.quantity }}
                   </span>
-                  <span>{{ item.price * item.quantity }}€</span>
+                  <span>{{ (item.price * item.quantity).toFixed(2) }}€</span>
                 </div>
               </div>
 

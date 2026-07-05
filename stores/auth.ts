@@ -17,6 +17,9 @@ export const useAuthStore = defineStore('auth', {
     user: null as User | null,
     loading: false,
     error: null as string | null,
+    // HTTP status of the last auth failure — pages map it to a LOCALIZED
+    // message (server messages are English and must never reach the UI).
+    errorCode: null as number | null,
   }),
 
   getters: {
@@ -37,6 +40,7 @@ export const useAuthStore = defineStore('auth', {
     async login(email: string, password: string) {
       this.loading = true
       this.error = null
+      this.errorCode = null
       try {
         const { user } = await $fetch('/api/auth/login', {
           method: 'POST',
@@ -46,6 +50,7 @@ export const useAuthStore = defineStore('auth', {
         return true
       } catch (e: any) {
         this.error = e.data?.message || 'Login failed'
+        this.errorCode = e.statusCode || e.status || 500
         return false
       } finally {
         this.loading = false
@@ -55,6 +60,7 @@ export const useAuthStore = defineStore('auth', {
     async register(data: { email: string; password: string; firstName: string; lastName: string; phone?: string }) {
       this.loading = true
       this.error = null
+      this.errorCode = null
       try {
         const { user } = await $fetch('/api/auth/register', {
           method: 'POST',
@@ -64,6 +70,7 @@ export const useAuthStore = defineStore('auth', {
         return true
       } catch (e: any) {
         this.error = e.data?.message || 'Registration failed'
+        this.errorCode = e.statusCode || e.status || 500
         return false
       } finally {
         this.loading = false

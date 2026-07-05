@@ -226,7 +226,8 @@
     "delete_consequence_3": "ستفقد الوصول إلى تتبع طلباتك وسجلها",
     "delete_consequence_4": "سيتم الاحتفاظ بطلباتك السابقة بشكل مجهول في سجلاتنا التجارية",
     "delete_consequence_5": "هذا الإجراء لا رجعة فيه ولا يمكن التراجع عنه",
-    "tracking": "رقم التتبع"
+    "tracking": "رقم التتبع",
+    "greeting": "مرحباً {name}"
   },
   "auth": {
     "google_hint": "تلميح: أنشأت حسابك عبر Google؟ استخدم زر Google أعلاه — لا توجد كلمة مرور له.",
@@ -242,7 +243,10 @@
     "forgot_password": "نسيت كلمة المرور؟",
     "login_subtitle": "سجّل الدخول إلى حسابك",
     "register_subtitle": "أنشئ حسابك لبدء التسوق",
-    "password_mismatch": "كلمتا المرور غير متطابقتين"
+    "password_mismatch": "كلمتا المرور غير متطابقتين",
+    "error_invalid": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "error_email_exists": "يوجد حساب بهذا البريد مسبقاً — سجّل الدخول",
+    "error_check_fields": "تحقق من حقول النموذج"
   },
   "about": {
     "title": "عن Vitesse Eco",

@@ -17,7 +17,7 @@
           <div class="flex-1 border-t border-dark-tertiary" />
         </div>
 
-        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
+        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ regErrorText }}</p>
 
         <form @submit.prevent="handleRegister" class="space-y-4">
           <!-- Personal -->
@@ -160,6 +160,14 @@ const auth = useAuthStore()
 const turnstileToken = ref('')
 
 useHead({ title: `${t('auth.register_title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
+
+// Localized mapping of English server messages: 409 = email already
+// registered, 400 = a field failed validation, anything else = generic.
+const regErrorText = computed(() => {
+  if (auth.errorCode === 409) return t('auth.error_email_exists')
+  if (auth.errorCode === 400) return t('auth.error_check_fields')
+  return t('common.error')
+})
 
 const form = reactive({
   firstName: '', lastName: '', email: '', phone: '',

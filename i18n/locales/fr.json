@@ -226,7 +226,8 @@
     "delete_consequence_3": "Vous perdrez l'accès au suivi et à l'historique de vos commandes",
     "delete_consequence_4": "Vos commandes précédentes seront conservées de manière anonyme dans nos archives",
     "delete_consequence_5": "Cette action est irréversible et ne peut pas être annulée",
-    "tracking": "Suivi de livraison"
+    "tracking": "Suivi de livraison",
+    "greeting": "Bonjour, {name}"
   },
   "auth": {
     "google_hint": "Astuce : compte créé avec Google ? Utilisez le bouton « Google » ci-dessus — il n'a pas de mot de passe.",
@@ -242,7 +243,10 @@
     "forgot_password": "Mot de passe oublié ?",
     "login_subtitle": "Connectez-vous à votre compte",
     "register_subtitle": "Créez votre compte pour commencer vos achats",
-    "password_mismatch": "Les mots de passe ne correspondent pas"
+    "password_mismatch": "Les mots de passe ne correspondent pas",
+    "error_invalid": "Email ou mot de passe incorrect",
+    "error_email_exists": "Un compte existe déjà avec cet email — connectez-vous",
+    "error_check_fields": "Vérifiez les champs du formulaire"
   },
   "about": {
     "title": "À Propos de Vitesse Eco",

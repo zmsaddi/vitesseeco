@@ -52,7 +52,11 @@ self.addEventListener('fetch', (event) => {
   // Navigations: live network, offline page only when the network is gone.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req).catch(() => caches.match(OFFLINE_URL))
+      fetch(req).catch(() =>
+        // If the offline page was never cached (failed install), fall back to
+        // a real network-error response — respondWith(undefined) throws.
+        caches.match(OFFLINE_URL).then((r) => r || Response.error())
+      )
     )
     return
   }

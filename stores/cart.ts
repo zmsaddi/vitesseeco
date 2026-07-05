@@ -35,14 +35,16 @@ export const useCartStore = defineStore('cart', {
     totalItems: (state) => state.items.reduce((sum, item) => sum + item.quantity, 0),
 
     // Client-side estimate (for display only — NOT for payment)
-    subtotal: (state) => state.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    // Rounded to cents — raw float sums leak artifacts like 2599.8000000003
+    // into the UI when any price has decimals.
+    subtotal: (state) => Math.round(state.items.reduce((sum, item) => sum + item.price * item.quantity, 0) * 100) / 100,
 
     discount: (state) => state.promoDiscount,
 
     // Use server total if available, otherwise client estimate
     total(): number {
       if (this.serverTotal !== null) return this.serverTotal
-      return Math.max(0, this.subtotal - this.discount + this.shippingCost)
+      return Math.round(Math.max(0, this.subtotal - this.discount + this.shippingCost) * 100) / 100
     },
 
     isEmpty: (state) => state.items.length === 0,

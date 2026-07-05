@@ -19,7 +19,7 @@
         </div>
 
         <p v-if="googleError" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">Google: {{ googleError }}</p>
-        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-2 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
+        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-2 bg-red-900/20 p-3 rounded-lg">{{ authErrorText }}</p>
         <!-- U-P10: Google accounts have a random password — point the user to
              the right door instead of leaving them retrying (generic hint so
              we never reveal whether the email exists). -->
@@ -63,6 +63,12 @@ const localePath = useLocalePath()
 const auth = useAuthStore()
 
 useHead({ title: `${t('auth.login_title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
+
+// Server auth messages are English — map by status code to the visitor's
+// language. 400/401 stay deliberately generic (no account enumeration).
+const authErrorText = computed(() =>
+  auth.errorCode === 400 || auth.errorCode === 401 ? t('auth.error_invalid') : t('common.error')
+)
 
 // Check for Google OAuth error in URL
 const route = useRoute()
