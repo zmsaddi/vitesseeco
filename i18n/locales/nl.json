@@ -202,7 +202,8 @@
     "no_delivery_country": "Nog geen thuisbezorging voor dit adres — kies afhalen in de winkel of neem contact op.",
     "your_details": "Jouw gegevens",
     "receive_title": "Ontvangstwijze",
-    "choose_option_first": "Kies eerst je ontvangstwijze bij stap 2."
+    "choose_option_first": "Kies eerst je ontvangstwijze bij stap 2.",
+    "pick_city": "Jouw plaats:"
   },
   "account": {
     "reorder": "Opnieuw bestellen",

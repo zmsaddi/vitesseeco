@@ -202,7 +202,8 @@
     "no_delivery_country": "No home delivery for this address yet — choose store pickup or contact us.",
     "your_details": "Your details",
     "receive_title": "How you receive your order",
-    "choose_option_first": "First choose how to receive your order in step 2."
+    "choose_option_first": "First choose how to receive your order in step 2.",
+    "pick_city": "Your town:"
   },
   "account": {
     "reorder": "Order again",

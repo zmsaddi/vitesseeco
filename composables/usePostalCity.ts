@@ -1,21 +1,31 @@
 /**
- * Zip-first address UX: postal code → city via /api/geo/postal, memoized
- * per session so retyping the same code costs nothing.
+ * Zip-first address UX: postal code → commune(s) via /api/geo/postal,
+ * memoized per session. A zip may cover several communes — the caller
+ * decides how to present the choice.
  */
-const cache = new Map<string, string | null>()
+export interface PostalResult {
+  /** Unambiguous city (exactly one commune), else null. */
+  city: string | null
+  /** Every commune under this code (may be empty when unknown). */
+  cities: string[]
+}
+
+const cache = new Map<string, PostalResult>()
 
 export function usePostalCity() {
-  async function lookup(country: string, code: string): Promise<string | null> {
+  async function lookup(country: string, code: string): Promise<PostalResult> {
     const key = `${country}:${code}`.toUpperCase().replace(/\s/g, '')
-    if (cache.has(key)) return cache.get(key) ?? null
+    const hit = cache.get(key)
+    if (hit) return hit
     try {
-      const res = await $fetch<{ city: string | null }>('/api/geo/postal', {
+      const res = await $fetch<PostalResult>('/api/geo/postal', {
         query: { country, code },
       })
-      cache.set(key, res.city)
-      return res.city
+      const value: PostalResult = { city: res.city ?? null, cities: res.cities ?? [] }
+      cache.set(key, value)
+      return value
     } catch {
-      return null
+      return { city: null, cities: [] }
     }
   }
   return { lookup }

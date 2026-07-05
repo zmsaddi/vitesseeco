@@ -202,7 +202,8 @@
     "no_delivery_country": "Für diese Adresse noch keine Lieferung nach Hause — wählen Sie Abholung oder kontaktieren Sie uns.",
     "your_details": "Ihre Angaben",
     "receive_title": "Empfangsart",
-    "choose_option_first": "Wählen Sie zuerst in Schritt 2 die Empfangsart."
+    "choose_option_first": "Wählen Sie zuerst in Schritt 2 die Empfangsart.",
+    "pick_city": "Ihr Ort:"
   },
   "account": {
     "reorder": "Erneut bestellen",

@@ -202,7 +202,8 @@
     "no_delivery_country": "Aún no hay entrega a domicilio para esta dirección — elige recogida en tienda o contáctanos.",
     "your_details": "Tus datos",
     "receive_title": "Forma de recepción",
-    "choose_option_first": "Elige primero la forma de recepción en el paso 2."
+    "choose_option_first": "Elige primero la forma de recepción en el paso 2.",
+    "pick_city": "Tu localidad:"
   },
   "account": {
     "reorder": "Volver a pedir",

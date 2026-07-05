@@ -25,19 +25,26 @@ export default defineEventHandler(async (event) => {
   // Same result for everyone → let the CDN keep it for a day.
   setHeader(event, 'Cache-Control', 'public, max-age=86400, s-maxage=86400')
 
-  if (!code) return { city: null }
+  if (!code) return { city: null, cities: [] }
 
   try {
     const res: any = await $fetch(`https://api.zippopotam.us/${country.toLowerCase()}/${code}`, {
       timeout: 4000,
     })
-    const place = res?.places?.[0]
+    // A zip can cover SEVERAL communes (FR 86100 = Châtellerault, Antran,
+    // Targé…). Return them ALL — the UI lets the customer pick; guessing
+    // places[0] silently produced the wrong town.
+    const names: string[] = (res?.places || [])
+      .map((p: any) => String(p?.['place name'] || '').trim())
+      .filter((n: string) => n.length > 0)
+    const cities = [...new Set(names)].slice(0, 12)
     return {
-      city: place?.['place name'] || null,
-      region: place?.state || null,
+      city: cities.length === 1 ? cities[0] : null,
+      cities,
+      region: res?.places?.[0]?.state || null,
     }
   } catch {
     // Unknown code or upstream hiccup — the field simply stays manual.
-    return { city: null }
+    return { city: null, cities: [] }
   }
 })

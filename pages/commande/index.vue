@@ -89,11 +89,22 @@
                   <div>
                     <label for="co-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
                     <div class="relative">
-                      <input id="co-city" v-model="addr.city" @input="cityAuto = false" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
+                      <input id="co-city" v-model="addr.city" @input="cityAuto = false; cityOptions = []" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
                       <div v-if="cityLookupBusy" class="absolute end-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
                       <Icon v-else-if="cityAuto && addr.city" name="ph:check-circle" class="w-4 h-4 text-accent absolute end-3 top-1/2 -translate-y-1/2" />
                     </div>
                   </div>
+                </div>
+                <!-- One zip, several communes → the customer taps theirs -->
+                <div v-if="cityOptions.length" class="flex flex-wrap items-center gap-2">
+                  <span class="text-text-secondary text-xs">{{ $t('checkout.pick_city') }}</span>
+                  <button
+                    v-for="c in cityOptions" :key="c" type="button"
+                    @click="pickCity(c)"
+                    class="px-3 py-1.5 rounded-full border border-dark-tertiary text-xs text-text-secondary hover:border-accent hover:text-white transition-colors"
+                  >
+                    {{ c }}
+                  </button>
                 </div>
                 <div>
                   <label for="co-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
@@ -524,7 +535,7 @@ const coInput = ref<HTMLInputElement>()
 const coSuggestions = ref<any[]>([])
 const coLoading = ref(false)
 let coTimer: ReturnType<typeof setTimeout>
-watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false })
+watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = [] })
 
 // Zip-first UX: postal code → city, silently. Never clobbers a city the
 // customer typed themselves (cityAuto tracks provenance).
@@ -532,20 +543,33 @@ const { lookup: lookupCity } = usePostalCity()
 const cityLookupBusy = ref(false)
 const cityAuto = ref(false)
 let zipTimer: ReturnType<typeof setTimeout>
+const cityOptions = ref<string[]>([])
 function onZipInput() {
   clearTimeout(zipTimer)
+  cityOptions.value = []
   const code = (addr.postalCode || '').replace(/\s/g, '')
   if (code.length < 4) return
   zipTimer = setTimeout(async () => {
     if (addr.city && !cityAuto.value) return
     cityLookupBusy.value = true
-    const city = await lookupCity(addr.country, code)
+    const res = await lookupCity(addr.country, code)
     cityLookupBusy.value = false
-    if (city && (!addr.city || cityAuto.value)) {
-      addr.city = city
+    if (res.city && (!addr.city || cityAuto.value)) {
+      // Exactly one commune — fill silently.
+      addr.city = res.city
       cityAuto.value = true
+    } else if (res.cities.length > 1) {
+      // Several communes share this zip (FR 86100: Châtellerault, Antran…)
+      // — never guess: let the customer tap theirs.
+      if (cityAuto.value) { addr.city = ''; cityAuto.value = false }
+      cityOptions.value = res.cities
     }
   }, 350)
+}
+function pickCity(c: string) {
+  addr.city = c
+  cityAuto.value = true
+  cityOptions.value = []
 }
 
 function onCoInput() {
@@ -566,7 +590,7 @@ async function pickCo(s: any) {
     const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (d.address) {
       addr.address = d.address
-      if (d.city) { addr.city = d.city; cityAuto.value = true }
+      if (d.city) { addr.city = d.city; cityAuto.value = true; cityOptions.value = [] }
       if (d.postalCode) addr.postalCode = d.postalCode
     }
   } catch {}

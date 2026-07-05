@@ -202,7 +202,8 @@
     "no_delivery_country": "Pas encore de livraison à domicile pour cette adresse — choisissez le retrait en magasin ou contactez-nous.",
     "your_details": "Vos coordonnées",
     "receive_title": "Mode de réception",
-    "choose_option_first": "Choisissez d'abord votre mode de réception à l'étape 2."
+    "choose_option_first": "Choisissez d'abord votre mode de réception à l'étape 2.",
+    "pick_city": "Votre commune :"
   },
   "account": {
     "reorder": "Commander à nouveau",
