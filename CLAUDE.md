@@ -104,8 +104,11 @@ vitesseeco/
 │   ├── compte/index.vue        ← Account
 │   ├── compte/orders/[orderNumber].vue ← Order detail
 │   ├── admin/                  ← Admin panel (FR-only, ADMIN_EMAILS allowlist, noindex)
+│   │   ├── index.vue           ← Dashboard: KPIs 24h/7d/30d, funnel, top products, low stock
 │   │   ├── commandes/index.vue ← Live orders list from PG (search/filter/pagination)
-│   │   └── commandes/[orderNumber].vue ← Order processing (status flow, tracking, notes)
+│   │   ├── commandes/[orderNumber].vue ← Order processing (status flow, tracking, notes)
+│   │   ├── stock/index.vue     ← Inline stock editing (PG inventory → Sanity sync)
+│   │   └── messages/index.vue  ← Contact messages (read/unread, internal notes)
 │   ├── p/[slug].vue            ← Landing pages (from Sanity)
 │   └── legal pages (3)         ← Mentions, Privacy, CGV
 │
@@ -142,7 +145,7 @@ vitesseeco/
 │
 ├── server/
 │   ├── api/auth/               ← login, register, logout, me, profile, delete-account, google OAuth
-│   ├── api/admin/              ← me + orders list/detail/patch (requireAdmin on every route)
+│   ├── api/admin/              ← me, stats, orders, stock, messages (requireAdmin on every route)
 │   ├── api/addresses/          ← saved addresses CRUD
 │   ├── api/cart/               ← check-stock, validate (System B: no variants)
 │   ├── api/orders/             ← create, my-orders, [orderNumber] (System B: direct product.stock)

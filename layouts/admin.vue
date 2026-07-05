@@ -13,20 +13,20 @@
         <NuxtLink
           v-for="item in navItems"
           :key="item.to"
-          :to="item.disabled ? '' : item.to"
+          :to="item.to"
           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200"
-          :class="[
-            isActive(item.to) ? 'bg-accent/10 text-accent font-semibold' : 'text-on-surface-muted hover:bg-surface-2 hover:text-on-surface',
-            item.disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : '',
-          ]"
+          :class="isActive(item) ? 'bg-accent/10 text-accent font-semibold' : 'text-on-surface-muted hover:bg-surface-2 hover:text-on-surface'"
         >
           <Icon :name="item.icon" class="w-5 h-5 shrink-0" />
           <span>{{ item.label }}</span>
-          <span v-if="item.disabled" class="ms-auto text-[10px] uppercase text-on-surface-muted">bientôt</span>
         </NuxtLink>
       </nav>
 
       <div class="px-3 py-4 border-t border-surface-2 space-y-1">
+        <div v-if="adminEmail" class="px-3 pb-2 text-xs text-on-surface-muted truncate" :title="adminEmail">
+          <Icon name="heroicons:user-circle" class="w-4 h-4 inline-block me-1 align-text-bottom" />
+          {{ adminEmail }}
+        </div>
         <NuxtLink to="/" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-on-surface-muted hover:bg-surface-2 hover:text-on-surface transition-colors duration-200">
           <Icon name="heroicons:arrow-uturn-left" class="w-5 h-5" />
           <span>Retour au site</span>
@@ -44,11 +44,11 @@
         </NuxtLink>
         <nav class="flex items-center gap-1">
           <NuxtLink
-            v-for="item in navItems.filter(i => !i.disabled)"
+            v-for="item in navItems"
             :key="item.to"
             :to="item.to"
             class="rounded-lg p-2.5"
-            :class="isActive(item.to) ? 'bg-accent/10 text-accent' : 'text-on-surface-muted'"
+            :class="isActive(item) ? 'bg-accent/10 text-accent' : 'text-on-surface-muted'"
             :aria-label="item.label"
           >
             <Icon :name="item.icon" class="w-5 h-5" />
@@ -74,15 +74,18 @@
 const route = useRoute()
 
 const navItems = [
-  { to: '/admin/commandes', label: 'Commandes', icon: 'heroicons:shopping-bag', disabled: false },
-  { to: '/admin/stock', label: 'Stock', icon: 'heroicons:cube', disabled: true },
-  { to: '/admin/messages', label: 'Messages', icon: 'heroicons:envelope', disabled: true },
-  { to: '/admin/tableau-de-bord', label: 'Tableau de bord', icon: 'heroicons:chart-bar', disabled: true },
+  { to: '/admin', label: 'Tableau de bord', icon: 'heroicons:chart-bar', exact: true },
+  { to: '/admin/commandes', label: 'Commandes', icon: 'heroicons:shopping-bag', exact: false },
+  { to: '/admin/stock', label: 'Stock', icon: 'heroicons:cube', exact: false },
+  { to: '/admin/messages', label: 'Messages', icon: 'heroicons:envelope', exact: false },
 ]
 
-function isActive(to: string) {
-  return to && route.path.startsWith(to)
+function isActive(item: { to: string; exact: boolean }) {
+  return item.exact ? route.path.replace(/\/$/, '') === item.to : route.path.startsWith(item.to)
 }
+
+const { data: adminInfo } = useFetch('/api/admin/me', { server: false })
+const adminEmail = computed(() => adminInfo.value?.email ?? '')
 
 useHead({
   meta: [{ name: 'robots', content: 'noindex, nofollow' }],

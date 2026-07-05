@@ -116,8 +116,10 @@ import { STATUS_LABELS, STATUS_CLASSES } from '~/utils/adminOrderStatus'
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 useHead({ title: 'Commandes — Admin Vitesse Eco' })
 
+const route = useRoute()
 const page = ref(1)
-const status = ref('')
+// Dashboard status chips deep-link here via /admin/commandes?status=<x>.
+const status = ref(typeof route.query.status === 'string' ? route.query.status : '')
 const search = ref('')
 const searchInput = ref('')
 
