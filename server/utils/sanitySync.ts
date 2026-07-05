@@ -8,7 +8,7 @@
 import { createClient } from '@sanity/client'
 import { eq } from 'drizzle-orm'
 import { useDBHttp } from '~/server/database/db'
-import { inventory } from '~/server/database/schema'
+import { inventory, orders } from '~/server/database/schema'
 import type { OutboxKind } from '~/server/utils/outbox'
 
 let cachedClient: ReturnType<typeof createClient> | null = null
@@ -44,6 +44,47 @@ export async function dispatchOutboxEntry(entry: { kind: string; payload: any })
         if (existing?._id) return
       }
       await client.create({ _type: 'order', ...entry.payload })
+      return
+    }
+
+    case 'sanity.order.patch': {
+      // payload: { orderNumber } — status/tracking/notes are read fresh from
+      // PG at dispatch time (same convergence rationale as inventory.patch:
+      // freezing values at enqueue time would cause drift when multiple
+      // updates queue up before the cron drains).
+      const { orderNumber } = entry.payload as { orderNumber: string }
+      if (!orderNumber || typeof orderNumber !== 'string') {
+        throw new Error(`invalid order.patch payload: missing orderNumber — ${JSON.stringify(entry.payload)}`)
+      }
+
+      const db = useDBHttp()
+      const rows = await db
+        .select({ status: orders.status, trackingNumber: orders.trackingNumber, notes: orders.notes })
+        .from(orders)
+        .where(eq(orders.orderNumber, orderNumber))
+        .limit(1)
+      if (rows.length === 0) {
+        throw new Error(`order not found in PG for orderNumber=${orderNumber}`)
+      }
+
+      const existing = await client.fetch(
+        `*[_type == "order" && orderNumber == $n][0]{ _id }`,
+        { n: orderNumber }
+      )
+      if (!existing?._id) {
+        // Mirror doc may not exist yet (order.create entry still pending).
+        // Throwing keeps this entry retrying with backoff until it appears.
+        throw new Error(`Sanity order doc not found for orderNumber=${orderNumber}`)
+      }
+
+      await client
+        .patch(existing._id)
+        .set({
+          status: rows[0].status,
+          trackingNumber: rows[0].trackingNumber ?? '',
+          notes: rows[0].notes ?? '',
+        })
+        .commit()
       return
     }
 

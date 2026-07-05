@@ -103,6 +103,9 @@ vitesseeco/
 │   ├── connexion/inscription   ← Auth (email + Google OAuth)
 │   ├── compte/index.vue        ← Account
 │   ├── compte/orders/[orderNumber].vue ← Order detail
+│   ├── admin/                  ← Admin panel (FR-only, ADMIN_EMAILS allowlist, noindex)
+│   │   ├── commandes/index.vue ← Live orders list from PG (search/filter/pagination)
+│   │   └── commandes/[orderNumber].vue ← Order processing (status flow, tracking, notes)
 │   ├── p/[slug].vue            ← Landing pages (from Sanity)
 │   └── legal pages (3)         ← Mentions, Privacy, CGV
 │
@@ -139,6 +142,7 @@ vitesseeco/
 │
 ├── server/
 │   ├── api/auth/               ← login, register, logout, me, profile, delete-account, google OAuth
+│   ├── api/admin/              ← me + orders list/detail/patch (requireAdmin on every route)
 │   ├── api/addresses/          ← saved addresses CRUD
 │   ├── api/cart/               ← check-stock, validate (System B: no variants)
 │   ├── api/orders/             ← create, my-orders, [orderNumber] (System B: direct product.stock)
@@ -225,6 +229,7 @@ GOOGLE_CLIENT_SECRET=          ← (or NUXT_GOOGLE_CLIENT_SECRET)
 GOOGLE_PLACES_API_KEY=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+ADMIN_EMAILS=                  ← Comma-separated admin allowlist (/admin panel)
 PAYPAL_MODE=                   ← live | sandbox
 PAYPAL_CLIENT_ID=
 PAYPAL_CLIENT_SECRET=

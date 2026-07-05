@@ -124,7 +124,7 @@ Q-09 is **reversed** (2026-07-05, owner approval): build a dedicated, friendly `
 
 ### 3.4 Technical shape
 
-- Routes under `pages/admin/` guarded by role middleware (`role: 'admin'` column on `customers` + server-side check on every `/api/admin/*` endpoint).
+- Routes under `pages/admin/` guarded by route middleware + server-side `requireAdmin()` check on every `/api/admin/*` endpoint. v1 admin identity: `ADMIN_EMAILS` env allowlist (zero-migration); move to a `role` column on `customers` if the team grows.
 - New `server/api/admin/*` endpoints reading PG directly (orders, inventory, stats). Reuse existing `orderService`, `stock`, `outbox`, `audit` utils — no new infra.
 - Every admin mutation writes to the existing `audit_log`.
 - Not indexed: `noindex` + excluded from sitemap.

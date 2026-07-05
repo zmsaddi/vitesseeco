@@ -13,6 +13,7 @@ import { outbox } from '~/server/database/schema'
 
 export type OutboxKind =
   | 'sanity.order.create'
+  | 'sanity.order.patch'
   | 'sanity.inventory.patch'
   | 'sanity.promo.increment'
   | 'sanity.promo.decrement'
