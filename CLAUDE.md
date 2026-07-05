@@ -1,5 +1,5 @@
 # Vitesse Eco — Project Documentation
-> **Last updated:** 2026-04-29
+> **Last updated:** 2026-07-05
 > **System:** B (product per color, no variants)
 > **Active upgrade plan:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (Phase 0 in progress)
 
@@ -27,7 +27,7 @@
 5. **Sanity Studio** in `cms/` — excluded from Vercel via `.vercelignore`
 6. **`sanity`** as devDependency in root — required by `@nuxtjs/sanity`
 7. **Always answer user in Arabic**
-8. **Run `npm run check:langs` before every commit**
+8. **Run `npm run check:langs` (+ `npm run check:hex`) before every commit**
 9. **System B:** Each color = separate product. No `variants[]`. Products linked via `modelFamily`
 
 ## Tech Stack
@@ -43,10 +43,11 @@
 | Icons | @nuxt/icon | ^1.15.0 |
 | Images | @nuxt/image | ^2.0.0 |
 | Fonts | @nuxt/fonts | ^0.14.0 |
-| Database | Neon PostgreSQL + Drizzle ORM |
-| Auth | Custom JWT + Google OAuth |
+| Database | Neon PostgreSQL + Drizzle ORM (^0.45.2) |
+| Auth | DB sessions (`sessions` table) + httpOnly `auth_token` cookie + Google OAuth |
+| Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (stripe/inStore scaffolded) |
 | CAPTCHA | Cloudflare Turnstile |
-| Tests | Playwright |
+| Tests | Playwright (e2e + visual + a11y via @axe-core/playwright) |
 | CI/CD | GitHub Actions |
 
 ## Product System (System B)
@@ -86,36 +87,42 @@ vitesseeco/
 ├── .github/workflows/ci.yml    ← CI: build + typecheck + e2e
 ├── playwright.config.ts
 │
-├── pages/ (18 pages)
+├── pages/ (20 pages)
 │   ├── index.vue               ← Homepage + trust badges + featured + blog
 │   ├── produits/index.vue      ← Products listing (type/brand/color/price filters)
 │   ├── produits/[slug].vue     ← Product detail + auto other colors
 │   ├── blog/index.vue + [slug] ← Blog with Article JSON-LD
 │   ├── faq.vue                 ← FAQ with FAQPage JSON-LD
-│   ├── guide.vue               ← Buying guide (filters + sort)
 │   ├── comparatif.vue          ← Comparison table
+│   ├── a-propos.vue            ← About page
 │   ├── panier.vue              ← Cart + free shipping bar
-│   ├── commande.vue            ← Checkout + stepper
+│   ├── commande/index.vue      ← Checkout + stepper
 │   ├── commande/confirmation   ← Order confirmation
 │   ├── contact.vue             ← Contact + map + Turnstile
 │   ├── connexion/inscription   ← Auth (email + Google OAuth)
-│   ├── compte/                 ← Account + orders
+│   ├── compte/index.vue        ← Account
+│   ├── compte/orders/[orderNumber].vue ← Order detail
 │   ├── p/[slug].vue            ← Landing pages (from Sanity)
 │   └── legal pages (3)         ← Mentions, Privacy, CGV
 │
-├── components/ (10)
+├── components/ (18)
 │   ├── AppHeader.vue           ← Mega-dropdown products nav
 │   ├── AppFooter.vue
 │   ├── ProductCard.vue         ← Single color + brand + price
 │   ├── LanguageSwitcher.vue    ← 5 langs (AR hidden)
+│   ├── LanguageBanner.vue
 │   ├── CartDrawer.vue
+│   ├── PayPalButtons.vue       ← PayPal checkout buttons
 │   ├── LegalSections.vue       ← Structured legal with TOC
 │   ├── TurnstileWidget.vue
 │   ├── CookieConsent.vue
-│   └── DeleteAccountModal.vue
+│   ├── DeleteAccountModal.vue
+│   ├── AddressAutocomplete.vue ← Google Places
+│   ├── PhoneInput.vue
+│   └── AppButton / AppInput / AppSkeleton / AppToast / EmptyState (UI kit)
 │
 ├── cms/ (Sanity Studio v5.20.0)
-│   ├── schemas/ (16 schemas — no colorVariant)
+│   ├── schemas/ (20 = 12 documents + 5 singletons + 3 objects — no colorVariant)
 │   │   ├── product.ts          ← System B: color/images/stock direct
 │   │   ├── category.ts, brand.ts
 │   │   ├── faq.ts, article.ts, landingPage.ts
@@ -123,28 +130,38 @@ vitesseeco/
 │   │   ├── promoCode.ts, testimonial.ts
 │   │   ├── shippingMethod.ts, paymentMethod.ts
 │   │   ├── homePage.ts, aboutPage.ts, contactPage.ts
-│   │   ├── legalPages.ts
-│   │   └── siteSettings.ts
+│   │   ├── legalPages.ts, siteSettings.ts
+│   │   └── localizedString.ts, localizedText.ts, seoFields.ts (objects)
+│   ├── scripts/                ← Test-data helpers (create-test-product, update-test-stock)
 │   ├── sanity.config.ts        ← Plugins: languageFilter, media, assist, colorInput
 │   └── structure/deskStructure ← Products by type + brand filters
 │
 ├── server/
-│   ├── api/auth/               ← login, register, google OAuth, me
+│   ├── api/auth/               ← login, register, logout, me, profile, delete-account, google OAuth
+│   ├── api/addresses/          ← saved addresses CRUD
 │   ├── api/cart/               ← check-stock, validate (System B: no variants)
-│   ├── api/orders/             ← create (System B: direct product.stock)
+│   ├── api/orders/             ← create, my-orders, [orderNumber] (System B: direct product.stock)
+│   ├── api/payments/paypal/    ← capture-order
+│   ├── api/webhooks/paypal.post.ts ← PayPal webhook (audit-logged)
+│   ├── api/cron/process-outbox.post.ts ← Outbox worker (CRON_SECRET)
 │   ├── api/contact.post.ts
-│   ├── api/shipping/ + payment/
-│   ├── api/places/             ← Google autocomplete
-│   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang
+│   ├── api/shipping/ + payment/ ← methods
+│   ├── api/places/             ← Google autocomplete + details
+│   ├── api/events/vitals.post.ts
+│   ├── payments/               ← Adapter registry: paypal, stripe, inStore (ENABLE_* flags)
+│   ├── database/               ← Drizzle schema + db (Neon)
+│   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang (+ api/sitemap.xml)
 │   ├── middleware/security.ts  ← CSP headers
-│   └── utils/                  ← rateLimit, verifyTurnstile
+│   └── utils/                  ← rateLimit, verifyTurnstile, paypal, orderService, outbox,
+│                                 sanitySync, audit, priceLock, stock, promo, events, validation
 │
 ├── stores/auth.ts + cart.ts    ← Pinia + localStorage persist
-├── i18n/locales/               ← 6 files × 327 keys
-├── scripts/check-languages.mjs ← CI language check
+├── i18n/locales/               ← 6 files × 353 keys
+├── scripts/                    ← check-languages, check-hex-colors, check-bundle-size, backfill-inventory
+├── docs/                       ← PRODUCTION_UPGRADE_PLAN, known-issues-post-pg-primary
 ├── public/                     ← favicon.ico, logo.webp, poster.webp, robots.txt
 ├── assets-reference/           ← QMWheel catalogue PDF
-├── tests/e2e/                  ← Playwright tests
+├── tests/                      ← Playwright: e2e/ (navigation, checkout-flow, regression, a11y, full-user) + visual/
 ├── import-data/                ← Migration scripts (gitignored)
 └── competitor-research/        ← Internal study (gitignored)
 ```
@@ -179,13 +196,19 @@ vitesseeco/
 - Server-side price validation
 - 35 Sanity validation rules
 
+## Payments
+- **PayPal — LIVE** (`ENABLE_PAYPAL`): server SDK, capture-order endpoint, webhook with signature verification + audit log
+- **Stripe — scaffolded, disabled** (`ENABLE_STRIPE`): adapter exists in `server/payments/adapters/stripe.ts`
+- **In-store** adapter available
+- Orders: PG-primary flow behind `ENABLE_PG_PRIMARY_ORDERS`, Sanity sync via outbox + cron worker
+
 ## Pending (needs external accounts)
 | Service | Purpose | Cost |
 |---------|---------|------|
 | GTM + GA4 | Analytics | Free |
 | Resend | Order confirmation emails | Free (100/day) |
 | Sentry | Error monitoring | Free (5000/month) |
-| Stripe | Online payments | Commission only |
+| Stripe | Card payments (adapter ready, disabled) | Commission only |
 | Trustpilot | Customer reviews | Free (basic) |
 | Hotjar | Session recording | Free (1000/month) |
 
@@ -195,11 +218,20 @@ SANITY_PROJECT_ID=2jvnjf0c
 SANITY_DATASET=production
 SANITY_TOKEN=                  ← For write operations
 DATABASE_URL=                  ← Neon PostgreSQL
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+AUTH_SECRET=                   ← Price-lock signing
+GOOGLE_CLIENT_ID=              ← (or NUXT_GOOGLE_CLIENT_ID)
+GOOGLE_CLIENT_SECRET=          ← (or NUXT_GOOGLE_CLIENT_SECRET)
 GOOGLE_PLACES_API_KEY=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+PAYPAL_MODE=                   ← live | sandbox
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+PAYPAL_WEBHOOK_ID=
+ENABLE_PAYPAL=                 ← Feature flag
+ENABLE_STRIPE=                 ← Feature flag (off)
+ENABLE_PG_PRIMARY_ORDERS=      ← Feature flag
+CRON_SECRET=                   ← Outbox cron auth
 STRIPE_SECRET_KEY=             ← When ready
 RESEND_API_KEY=                ← When ready
 NUXT_PUBLIC_SITE_URL=https://vitesse-eco.fr
