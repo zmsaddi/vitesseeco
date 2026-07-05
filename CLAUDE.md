@@ -201,7 +201,7 @@ vitesseeco/
 | Brands | 10 |
 | Categories | 11 |
 | FAQ | 22 |
-| Blog Articles | 6 (+1 buying guide after owner runs script) |
+| Blog Articles | 7 (incl. buying guide × 6 locales) |
 | Datasets | production + staging |
 
 ## SEO / GEO (AI answer engines)
@@ -245,7 +245,7 @@ vitesseeco/
 | Sentry / Trustpilot / Hotjar / GTM+GA4 | Observability, reviews, analytics | — |
 | Stripe + Klarna contracts | Card & BNPL at checkout | flip ENABLE_STRIPE / ENABLE_KLARNA + wire adapters |
 | Sendcloud or Boxtal | Labels + tracking + Bancontact/iDEAL via PSP | U-X2 |
-| sanity login session | Run 4 cms scripts + `sanity deploy` (Studio v2) | content + GTIN + payment docs |
+| ~~sanity login session~~ | ✅ DONE 2026-07-05 (GitHub login): free-shipping BE/NL live, buying-guide article live, card+Klarna docs created, Studio v2 deployed | only assign-gtins left (needs GS1 prefix) |
 | Native reviewers NL/DE/ES | Professional translation gate | U-K4 |
 
 ## Environment Variables

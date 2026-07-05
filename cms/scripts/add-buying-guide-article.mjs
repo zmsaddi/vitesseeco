@@ -247,11 +247,18 @@ const asset = await client.assets.upload('image', readFileSync(imagePath), {
   filename: 'guide-achat-2026.webp',
 })
 
-// Internal links: the 4 best-stocked available bikes become related-product
-// blocks on the article page (U-P9 renderer).
-const bikes = await client.fetch(
-  `*[_type == "product" && productType == "bike" && isAvailable == true && stock > 0] | order(stock desc)[0...4]{ _id, "name": name.fr }`
+// Internal links: 4 best-stocked available bikes, ONE per model family —
+// four colors of the same bike teach the reader nothing.
+const allBikes = await client.fetch(
+  `*[_type == "product" && productType == "bike" && isAvailable == true && stock > 0] | order(stock desc){ _id, "name": name.fr, modelFamily }`
 )
+const seen = new Set()
+const bikes = allBikes.filter((b) => {
+  const fam = b.modelFamily || b._id
+  if (seen.has(fam)) return false
+  seen.add(fam)
+  return true
+}).slice(0, 4)
 console.log('Related products:', bikes.map((b) => b.name).join(' · ') || '(none found)')
 
 const doc = {

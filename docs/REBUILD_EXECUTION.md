@@ -86,5 +86,5 @@
 |---|---|---|
 | U-S1 | Emails: order confirmation + shipped-with-tracking + admin alert (needs Resend) | ⏸ owner |
 | U-S2 | Trustpilot post-purchase + aggregateRating JSON-LD | ⏸ owner |
-| U-S3 | Buying guide article × 6 locales + 4 related-product internal links: cms/scripts/add-buying-guide-article.mjs (idempotent, uploads featured image) | ✅ built 2026-07-05 · ⏸ publish in owner Sanity session |
+| U-S3 | Buying guide article × 6 locales PUBLISHED LIVE at /blog/guide-achat-velo-electrique-2026 (4 related products, one per model family, featured image uploaded) | ✅ 2026-07-05 |
 | U-S4 | Launch checklist (plan §9) + 7-day bake | ⬜ |
