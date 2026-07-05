@@ -56,7 +56,7 @@
 
 | Unit | Scope | Status |
 |---|---|---|
-| U-K1 | Per-language Merchant feeds (nl/de/es) + BE country targeting (fr-BE/nl-BE reuse) + x-default hreflang + CI hreflang check | ⬜ |
+| U-K1 | Shared merchantFeed builder; feeds live for fr/nl/de/es with localized titles + locale-prefixed links; fr-BE/nl-BE hreflang added (x-default already existed); llms.txt lists all feeds. Owner registers each feed per country in Merchant Center | ✅ 2026-07-05 |
 | U-K2 | DE compliance pages (Impressum, Widerruf, BattG) + EU withdrawal in CGV | ⬜ owner-assisted |
 | U-K3 | Shipping zones BE/NL/DE/ES in Sanity + checkout country filtering | ⬜ owner pricing |
 | U-K4 | Native review pass NL/DE/ES (BE covered by fr+nl) | ⏸ owner reviewers |

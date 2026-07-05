@@ -160,7 +160,7 @@ vitesseeco/
 │   ├── shipping/               ← Carrier adapter registry: manual (SHIPPING_CARRIER env; Sendcloud/Boxtal ready)
 │   ├── database/               ← Drizzle schema + db (Neon)
 │   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang (+ api/sitemap.xml)
-│   ├── routes/feeds/google-merchant.xml ← Google Shopping feed (item_group_id = modelFamily)
+│   ├── routes/feeds/google-merchant[-nl|-de|-es].xml ← Google Shopping feeds ×4 langs (shared builder in utils/merchantFeed)
 │   ├── middleware/security.ts  ← CSP headers
 │   └── utils/                  ← rateLimit, verifyTurnstile, paypal, orderService, outbox,
 │                                 sanitySync, audit, priceLock, stock, promo, events, validation

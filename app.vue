@@ -51,6 +51,11 @@ useHead(() => {
     })
   }
 
+  // Belgium (U-K1): both Belgian language communities are served by the
+  // existing fr/nl pages — declare the regional variants explicitly.
+  links.push({ rel: 'alternate', hreflang: 'fr-BE', href: `${baseUrl}${path}` })
+  links.push({ rel: 'alternate', hreflang: 'nl-BE', href: `${baseUrl}/nl${path}` })
+
   // x-default (French)
   links.push({
     rel: 'alternate',
