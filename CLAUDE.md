@@ -1,7 +1,8 @@
 # Vitesse Eco — Project Documentation
 > **Last updated:** 2026-07-05
 > **System:** B (product per color, no variants)
-> **Active upgrade plan:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (Phase 0 in progress)
+> **Active plan:** [docs/EXPERIENCE_RECONSTRUCTION_PLAN.md](docs/EXPERIENCE_RECONSTRUCTION_PLAN.md) (customer + admin experience, 6–8 weeks)
+> **Security backlog:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (remains authoritative for SEC-*/OBS-* items)
 
 ## Project Overview
 | Field | Value |

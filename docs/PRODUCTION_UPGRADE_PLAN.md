@@ -1,8 +1,10 @@
 # Vitesse Eco — Production-Grade Commerce Upgrade Plan
 
-> **Status:** Approved — official reference for all upgrade work
+> **Status:** Partially superseded (2026-07-05) — UX scope (Phases 1–3, CHK-*/UI-* items) is now driven by
+> [EXPERIENCE_RECONSTRUCTION_PLAN.md](EXPERIENCE_RECONSTRUCTION_PLAN.md). Security & data-integrity backlog
+> (SEC-*, OBS-*, TEST-*, OPS-*) remains authoritative here. Q-09 reversed: a dedicated `/admin` panel will be built.
 > **Created:** 2026-04-29
-> **Last reviewed:** 2026-04-29
+> **Last reviewed:** 2026-07-05
 > **Owner:** zmsaddi
 > **Target completion:** ~10-12 weeks (Phase 0 first, then iterative)
 > **Working directory:** `D:\vitesseeco`
@@ -557,7 +559,7 @@ Each high-risk task ships behind a feature flag; default is **off** in productio
 | `Q-06` | Minimum acceptable analytics for now: SQL on PG only, or basic dashboard page in `/admin`? | **SQL on PG events only.** |
 | `Q-07` | Who owns the GCP project for Google Places? Is the billing alarm going to a monitored inbox? | **Owner: zmsaddi. Billing alarm to a monitored inbox.** |
 | `Q-08` | Vercel Hobby cron limits — what's our scheduling strategy for the outbox processor? | **No Vercel 1/min cron on Hobby. Use external free cron (e.g. cron-job.org) at 5–15min intervals AND opportunistic in-process processing at end of order requests. Re-evaluate Vercel Pro only if sub-minute sync becomes required.** |
-| `Q-09` | Do we want a `/admin` route, or stay in Sanity Studio? | **Stay in Sanity Studio. No `/admin` for now.** |
+| `Q-09` | Do we want a `/admin` route, or stay in Sanity Studio? | ~~Stay in Sanity Studio. No `/admin` for now.~~ **REVERSED 2026-07-05** after admin feedback: dedicated `/admin` panel approved — see [EXPERIENCE_RECONSTRUCTION_PLAN.md](EXPERIENCE_RECONSTRUCTION_PLAN.md) §3. |
 | `Q-10` | Should AR be machine-translated and reviewed, or human-only? | **Machine translation + native-speaker review.** |
 
 ---
@@ -568,6 +570,7 @@ Each high-risk task ships behind a feature flag; default is **off** in productio
 |---|---|---|
 | 2026-04-29 | zmsaddi + Claude | Initial draft created |
 | 2026-04-29 | zmsaddi + Claude | Approved for use as official reference. Adjustments: removed Neon keep-alive ping (cold-start accepted); outbox processor uses opportunistic + external free cron (no Vercel 1/min); Vercel ToS wording made more professional; Open Questions resolved with project owner's decisions |
+| 2026-07-05 | zmsaddi + Claude | UX scope superseded by EXPERIENCE_RECONSTRUCTION_PLAN.md after customer/admin feedback ("confusing, not ugly"). Q-09 reversed (dedicated /admin approved). Security backlog unchanged. |
 | 2026-04-29 | zmsaddi + Claude | Phase 0 progress: P0-01 ✅ (promo maxUses, atomic reservation), P0-02 ✅ (email validation unified), P0-03 ⚠️ partial (generic register message; full silent-success deferred to P0-04), P0-09 ✅ (ADR-001 written), P0-10 ✅ (schema additions: inventory/outbox/audit_log/events/password_reset_tokens), P0-11 ✅ (orderService.ts + PG-primary path behind ENABLE_PG_PRIMARY_ORDERS flag, default off — needs migration applied + flag flipped to activate), P0-12 ✅ (outbox helper + cron route at /api/cron/process-outbox), P0-13 ✅ (stock.ts with SELECT FOR UPDATE), P0-15 ✅ (Turnstile UX states), P0-17 ✅ (audit helper + wired to order create/fail), P0-18 ✅ (events helper + wired to auth + order). Concurrency tests for promo (5×, 10×) PASSED. Stock concurrency test script written, awaits migration apply to run. |
 
 ---
