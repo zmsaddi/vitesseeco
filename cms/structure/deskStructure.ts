@@ -31,6 +31,37 @@ export const deskStructure = (S: StructureBuilder) =>
             ])
         ),
 
+      // ━━━━━━ CATALOG QUALITY ━━━━━━
+      // Every list here is a to-do: empty lists = catalog ready for
+      // Google Merchant + Amazon/bol/Kaufland + the translation gate.
+      S.listItem()
+        .title('🧹 جودة الكتالوج')
+        .child(
+          S.list()
+            .title('🧹 نواقص الكتالوج (الهدف: قوائم فارغة)')
+            .items([
+              S.listItem()
+                .title('🌐 بدون GTIN/EAN (يمنع Amazon/bol)')
+                .child(S.documentList().title('بدون GTIN').filter('_type == "product" && !defined(gtin)').defaultOrdering([{ field: 'name.fr', direction: 'asc' }])),
+              S.listItem()
+                .title('🖼️ بدون صور')
+                .child(S.documentList().title('بدون صور').filter('_type == "product" && !defined(images[0])')),
+              S.listItem()
+                .title('🌍 ترجمة ناقصة (DE/NL/ES)')
+                .child(S.documentList().title('ترجمة ناقصة').filter('_type == "product" && (!defined(name.de) || name.de == "" || !defined(name.nl) || name.nl == "" || !defined(name.es) || name.es == "")')),
+              S.listItem()
+                .title('🔍 بدون عنوان SEO')
+                .child(S.documentList().title('بدون SEO').filter('_type == "product" && !defined(seo.title)')),
+              S.listItem()
+                .title('🔗 بدون عائلة موديل (روابط الألوان)')
+                .child(S.documentList().title('بدون modelFamily').filter('_type == "product" && !defined(modelFamily)')),
+              S.divider(),
+              S.listItem()
+                .title('🚫 منتجات موقوفة (غير متاحة)')
+                .child(S.documentList().title('غير متاحة').filter('_type == "product" && isAvailable != true')),
+            ])
+        ),
+
       S.divider(),
 
       // ━━━━━━ PRODUCTS ━━━━━━
@@ -47,8 +78,38 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem().title('🎒 الإكسسوارات').child(S.documentList().title('الإكسسوارات').filter('_type == "product" && productType == "accessory"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
               S.listItem().title('🧸 الأطفال').child(S.documentList().title('منتجات الأطفال').filter('_type == "product" && productType == "kids_car"').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
               S.divider(),
+              // Browse by brand / category / model family — mirrors how the
+              // team actually thinks about the catalog.
+              S.listItem()
+                .title('🏷️ حسب العلامة التجارية')
+                .child(
+                  S.documentTypeList('brand')
+                    .title('اختر العلامة')
+                    .child((brandId: string) =>
+                      S.documentList()
+                        .title('منتجات العلامة')
+                        .filter('_type == "product" && brand._ref == $brandId')
+                        .params({ brandId })
+                        .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+                    )
+                ),
+              S.listItem()
+                .title('📂 حسب الفئة')
+                .child(
+                  S.documentTypeList('category')
+                    .title('اختر الفئة')
+                    .child((categoryId: string) =>
+                      S.documentList()
+                        .title('منتجات الفئة')
+                        .filter('_type == "product" && category._ref == $categoryId')
+                        .params({ categoryId })
+                        .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+                    )
+                ),
+              S.divider(),
               S.listItem().title('⭐ منتجات مميزة').child(S.documentList().title('مميزة').filter('_type == "product" && isFeatured == true').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
               S.listItem().title('🏷️ تخفيضات').child(S.documentList().title('تخفيضات').filter('_type == "product" && isOnSale == true').defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])),
+              S.listItem().title('🕐 آخر المعدَّلة').child(S.documentList().title('آخر تعديل').filter('_type == "product"').defaultOrdering([{ field: '_updatedAt', direction: 'desc' }])),
             ])
         ),
 

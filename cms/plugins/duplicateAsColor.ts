@@ -50,9 +50,11 @@ export const duplicateAsColorAction: DocumentActionComponent = (props) => {
 
       try {
         const created = await client.create(newDoc)
-        // Navigate to the new document in Sanity Studio
+        props.onComplete()
+        // structureTool mounts at /structure in Sanity v3+ (the old /desk
+        // route 404s), so navigate there.
         if (typeof window !== 'undefined') {
-          window.location.href = `/desk/product;${created._id}`
+          window.location.href = `/structure/product;${created._id}`
         }
       } catch (e) {
         console.error('Failed to duplicate as color:', e)

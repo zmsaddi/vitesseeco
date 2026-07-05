@@ -16,6 +16,11 @@ export default defineType({
       name: 'status',
       title: '📊 حالة الطلب',
       type: 'string',
+      // PG-primary: orders are processed in the /admin panel; this document
+      // is a read-only mirror synced by the outbox. Editing here would be
+      // silently overwritten on the next sync.
+      readOnly: true,
+      description: '🔒 تُدار حالة الطلب من لوحة الإدارة vitesse-eco.fr/admin — هذه نسخة للعرض فقط',
       options: {
         list: [
           { title: '⏳ في انتظار الدفع', value: 'pending' },
@@ -166,14 +171,16 @@ export default defineType({
       name: 'trackingNumber',
       title: '📦 رقم التتبع',
       type: 'string',
-      description: 'أدخل رقم التتبع عند شحن الطلب',
+      readOnly: true,
+      description: '🔒 يُدخل رقم التتبع من لوحة الإدارة vitesse-eco.fr/admin',
     },
     {
       name: 'notes',
       title: '📝 ملاحظات',
       type: 'text',
       rows: 3,
-      description: 'ملاحظات داخلية (لا يراها العميل)',
+      readOnly: true,
+      description: '🔒 الملاحظات الداخلية تُكتب من لوحة الإدارة vitesse-eco.fr/admin',
     },
     {
       name: 'stripePaymentId',

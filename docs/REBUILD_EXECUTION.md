@@ -19,6 +19,7 @@
 | U-A2 | Admin UX pass: bulk select + bulk status change (audited per order via existing PATCH), sticky table header, keyboard shortcuts (/ search, N/P pages, Esc reset) | ✅ 2026-07-05 |
 | U-A3 | Admin full i18n: 105 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-07-05 |
 | U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry; checkout quotes by destination country with FR fallback | ✅ 2026-07-05 |
+| U-CMS1 | Sanity Studio v2: catalog-quality desk section (no-GTIN/no-images/missing-translations/no-SEO/no-modelFamily — empty lists = marketplace-ready), browse by brand/category, singleton delete/duplicate protection, create-menu limited to hand-made types, per-type product templates, order mirror fully readOnly (PG-primary split-brain guard), duplicateAsColor /desk→/structure route fix, product orderings (+newest, +family) | ✅ 2026-07-05 |
 | U-X2 | Aggregator integration (Sendcloud/Boxtal): labels + tracking webhooks + Bancontact/iDEAL via PSP adapter | ⏸ owner accounts |
 | EXT | Sentry + Resend + Merchant Center + AI key — **with owner, after build** | ⏸ owner |
 

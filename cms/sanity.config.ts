@@ -21,6 +21,12 @@ const LANGUAGES = [
   { id: 'ar', title: '🇸🇦 العربية' },
 ]
 
+// One document each — deleting or duplicating them breaks the website.
+const SINGLETONS = ['homePage', 'aboutPage', 'contactPage', 'legalPages', 'siteSettings']
+
+// Created by the website (checkout / contact form), never by hand.
+const SYSTEM_DOCS = ['order', 'contactMessage']
+
 export default defineConfig({
   name: 'vitesseeco',
   title: 'Vitesse Eco',
@@ -45,10 +51,36 @@ export default defineConfig({
     visionTool(),
   ],
 
-  schema: { types: schemaTypes },
+  schema: {
+    types: schemaTypes,
+    templates: (prev) => [
+      ...prev,
+      // One-click product creation with the right type preselected.
+      { id: 'product-bike', title: '🚲 دراجة جديدة', schemaType: 'product', value: { productType: 'bike', isAvailable: true, stock: 0 } },
+      { id: 'product-spare', title: '🔧 قطعة غيار جديدة', schemaType: 'product', value: { productType: 'spare_part', isAvailable: true, stock: 0 } },
+      { id: 'product-accessory', title: '🎒 إكسسوار جديد', schemaType: 'product', value: { productType: 'accessory', isAvailable: true, stock: 0 } },
+      { id: 'product-kids', title: '🧸 منتج أطفال جديد', schemaType: 'product', value: { productType: 'kids_car', isAvailable: true, stock: 0 } },
+    ],
+  },
 
   document: {
+    // The global «create new» menu only offers documents editors actually
+    // create by hand — no singletons, no orders, no contact messages.
+    newDocumentOptions: (prev, { creationContext }) => {
+      if (creationContext.type === 'global') {
+        return prev.filter(
+          (item) => !SINGLETONS.includes(item.templateId) && !SYSTEM_DOCS.includes(item.templateId)
+        )
+      }
+      return prev
+    },
     actions: (prev, context) => {
+      if (SINGLETONS.includes(context.schemaType)) {
+        return prev.filter(({ action }) => !['delete', 'duplicate', 'unpublish'].includes(action ?? ''))
+      }
+      if (SYSTEM_DOCS.includes(context.schemaType)) {
+        return prev.filter(({ action }) => action !== 'duplicate')
+      }
       if (context.schemaType === 'product') {
         return [...prev, duplicateAsColorAction]
       }

@@ -202,5 +202,7 @@ export default defineType({
     { title: 'السعر ↑', name: 'priceAsc', by: [{ field: 'price', direction: 'asc' }] },
     { title: 'السعر ↓', name: 'priceDesc', by: [{ field: 'price', direction: 'desc' }] },
     { title: 'المخزون', name: 'stock', by: [{ field: 'stock', direction: 'asc' }] },
+    { title: 'الأحدث إضافة', name: 'newest', by: [{ field: '_createdAt', direction: 'desc' }] },
+    { title: 'عائلة الموديل', name: 'family', by: [{ field: 'modelFamily', direction: 'asc' }, { field: 'name.fr', direction: 'asc' }] },
   ],
 })
