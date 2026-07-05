@@ -321,6 +321,8 @@
     "back_home": "Back to home"
   },
   "trust": {
+    "returns_14": "14-day returns",
+    "pickup_poitiers": "Free pickup in Poitiers",
     "secure_payment": "100% Secure Payment",
     "fast_delivery": "Fast Delivery in France",
     "warranty": "Manufacturer Warranty",

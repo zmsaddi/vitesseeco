@@ -321,6 +321,8 @@
     "back_home": "Retour à l'accueil"
   },
   "trust": {
+    "returns_14": "Retour 14 jours",
+    "pickup_poitiers": "Retrait gratuit à Poitiers",
     "secure_payment": "Paiement 100% sécurisé",
     "fast_delivery": "Livraison rapide en France",
     "warranty": "Garantie constructeur",

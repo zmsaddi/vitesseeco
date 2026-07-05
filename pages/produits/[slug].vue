@@ -1,17 +1,17 @@
 <template>
   <div class="py-8 md:py-12">
     <div class="container-custom" v-if="product">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center gap-2 text-sm text-text-secondary mb-8">
-        <NuxtLink :to="localePath('/')" class="hover:text-accent transition-colors">{{ $t('nav.home') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
-        <NuxtLink :to="localePath('/produits')" class="hover:text-accent transition-colors">{{ $t('nav.products') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
-        <span class="text-white">{{ l(product.name) }}</span>
-      </nav>
+      <!-- Breadcrumb (DS v2) -->
+      <div class="mb-6">
+        <Breadcrumbs :items="[
+          { label: $t('nav.home'), to: localePath('/') },
+          { label: $t('nav.products'), to: localePath('/produits') },
+          { label: l(product.name) },
+        ]" />
+      </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
-        <!-- Image Gallery -->
+        <!-- ═══ Gallery ═══ -->
         <div class="space-y-4">
           <div ref="galleryContainer" class="card aspect-square bg-dark-tertiary overflow-hidden relative touch-pan-y">
             <template v-if="product.images?.length">
@@ -26,12 +26,12 @@
               />
               <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage - 1 + product.images?.length) % product.images?.length"
                 :aria-label="$t('product.previous_image')"
-                class="absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
+                class="absolute ltr:left-2 rtl:right-2 top-1/2 -translate-y-1/2 w-touch h-touch bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-left" class="w-5 h-5" />
               </button>
               <button v-if="product.images?.length > 1" @click="selectedImage = (selectedImage + 1) % product.images?.length"
                 :aria-label="$t('product.next_image')"
-                class="absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
+                class="absolute ltr:right-2 rtl:left-2 top-1/2 -translate-y-1/2 w-touch h-touch bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 z-10">
                 <Icon name="ph:caret-right" class="w-5 h-5" />
               </button>
               <div class="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 z-10">
@@ -55,7 +55,7 @@
           </div>
         </div>
 
-        <!-- Product Info -->
+        <!-- ═══ Buy box column ═══ -->
         <div>
           <p v-if="product.brand?.name" class="text-text-secondary text-sm mb-1">{{ product.brand.name }}</p>
           <div class="flex items-center gap-2 mb-2">
@@ -64,62 +64,62 @@
             <span v-if="product.isNew" class="badge-new">{{ $t('product.new') }}</span>
           </div>
 
-          <h1 class="font-display text-3xl md:text-4xl font-bold text-white mb-4">{{ l(product.name) }}</h1>
+          <h1 class="font-display text-2xl md:text-3xl font-bold text-white mb-4">{{ l(product.name) }}</h1>
 
-          <div class="text-3xl font-bold mb-6">
-            <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xl mr-3">{{ product.compareAtPrice }}€</span>
-            <span class="text-accent">{{ product.price }}€</span>
-          </div>
-
-          <!-- Other Colors (auto from modelFamily) -->
-          <div v-if="otherColors.length" class="mb-6">
-            <p class="text-sm font-medium text-text-secondary block mb-3">{{ $t('product.other_colors') }}</p>
-            <div class="flex gap-3">
-              <!-- Current color -->
-              <span class="w-11 h-11 rounded-full border-2 border-accent scale-110"
-                :style="{ backgroundColor: product.colorHex }" :title="l(product.color)" role="img" :aria-label="$t('product.current_color', { color: l(product.color) })" />
-              <!-- Other colors as links -->
-              <NuxtLink v-for="c in otherColors" :key="c._id" :to="localePath(`/produits/${c.slug?.current}`)"
-                :aria-label="$t('product.switch_color', { color: l(c.color) })"
-                class="w-11 h-11 rounded-full border-2 border-dark-tertiary hover:border-accent transition-all hover:scale-110"
-                :style="{ backgroundColor: c.colorHex }" :title="l(c.color)" />
+          <!-- THE BUY BOX: everything needed to decide, in one bordered card -->
+          <div class="card p-5 border-accent/20 space-y-4">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <PriceTag :price="product.price" :compare-at="product.compareAtPrice" size="lg" />
+              <StockBadge :stock="product.stock" />
             </div>
-          </div>
 
-          <!-- Quantity + Add to Cart -->
-          <div v-if="product.stock > 0" class="mb-6">
-            <label for="product-qty" class="text-sm font-medium text-text-secondary block mb-3">{{ $t('cart.quantity') }}</label>
-            <div class="flex items-center gap-3">
-              <button @click="qty = Math.max(1, qty - 1)" :aria-label="$t('cart.decrease_quantity')" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
-                <Icon name="ph:minus" class="w-4 h-4" />
-              </button>
-              <input id="product-qty" type="number" v-model.number="qty" :max="Math.min(10, product.stock)" min="1" :aria-label="$t('cart.quantity')" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
-              <button @click="qty = Math.min(Math.min(10, product.stock), qty + 1)" :aria-label="$t('cart.increase_quantity')" class="w-10 h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
-                <Icon name="ph:plus" class="w-4 h-4" />
-              </button>
+            <!-- Colors of the same model (System B) -->
+            <div v-if="otherColors.length">
+              <p class="text-sm font-medium text-text-secondary mb-2">
+                {{ $t('product.other_colors') }}<template v-if="l(product.color)"> — <span class="text-white">{{ l(product.color) }}</span></template>
+              </p>
+              <div class="flex gap-3 flex-wrap">
+                <span class="w-11 h-11 rounded-full border-2 border-accent scale-110"
+                  :style="{ backgroundColor: product.colorHex }" :title="l(product.color)" role="img" :aria-label="$t('product.current_color', { color: l(product.color) })" />
+                <NuxtLink v-for="c in otherColors" :key="c._id" :to="localePath(`/produits/${c.slug?.current}`)"
+                  :aria-label="$t('product.switch_color', { color: l(c.color) })"
+                  class="w-11 h-11 rounded-full border-2 border-dark-tertiary hover:border-accent transition-all hover:scale-110"
+                  :style="{ backgroundColor: c.colorHex }" :title="l(c.color)" />
+              </div>
             </div>
-          </div>
 
-          <button v-if="product.stock > 0" @click="addToCart" class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3 mb-4">
-            <Icon name="ph:shopping-cart" class="w-5 h-5" /> {{ $t('product.add_to_cart') }}
-          </button>
-          <div v-else class="mb-4">
-            <button disabled class="w-full text-lg py-4 flex items-center justify-center gap-3 bg-red-900/30 text-red-400 rounded-lg cursor-not-allowed border border-red-800/50">
-              <Icon name="ph:x-circle" class="w-5 h-5" /> {{ $t('product.out_of_stock') }}
-            </button>
-            <NuxtLink :to="localePath('/contact')" class="btn-outline w-full text-center mt-3 block">{{ $t('product.contact_us') }}</NuxtLink>
-          </div>
+            <!-- Quantity + CTA -->
+            <template v-if="product.stock > 0">
+              <div class="flex items-center gap-3">
+                <label for="product-qty" class="text-sm font-medium text-text-secondary">{{ $t('cart.quantity') }}</label>
+                <div class="flex items-center gap-1">
+                  <button @click="qty = Math.max(1, qty - 1)" :aria-label="$t('cart.decrease_quantity')" class="w-touch h-touch min-w-10 min-h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
+                    <Icon name="ph:minus" class="w-4 h-4" />
+                  </button>
+                  <input id="product-qty" type="number" v-model.number="qty" :max="Math.min(10, product.stock)" min="1" :aria-label="$t('cart.quantity')" class="w-12 text-center font-semibold text-lg bg-transparent border-none outline-none text-white" />
+                  <button @click="qty = Math.min(Math.min(10, product.stock), qty + 1)" :aria-label="$t('cart.increase_quantity')" class="w-touch h-touch min-w-10 min-h-10 rounded-lg bg-dark-secondary border border-dark-tertiary flex items-center justify-center hover:border-accent">
+                    <Icon name="ph:plus" class="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <button @click="addToCart" class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3">
+                <Icon name="ph:shopping-cart" class="w-5 h-5" /> {{ $t('product.add_to_cart') }}
+              </button>
+            </template>
+            <template v-else>
+              <button disabled class="w-full text-lg py-4 flex items-center justify-center gap-3 bg-red-900/30 text-red-400 rounded-lg cursor-not-allowed border border-red-800/50">
+                <Icon name="ph:x-circle" class="w-5 h-5" /> {{ $t('product.out_of_stock') }}
+              </button>
+              <NuxtLink :to="localePath('/contact')" class="btn-outline w-full text-center block">{{ $t('product.contact_us') }}</NuxtLink>
+            </template>
 
-          <p v-if="product.stock > 0" class="text-accent text-sm flex items-center gap-2">
-            <Icon name="ph:check-circle" class="w-4 h-4" /> {{ $t('product.in_stock') }}
-            <span v-if="product.stock <= 5" class="text-gold">— {{ $t('product.low_stock', { count: product.stock }) }}</span>
-          </p>
-
-          <div v-if="product.stock > 0" class="mt-3 flex items-center gap-2 text-text-secondary text-sm">
-            <Icon name="ph:truck" class="w-4 h-4 text-accent" /> {{ $t('product.delivery_estimate') }}
-          </div>
-          <div v-if="l(product.warranty)" class="mt-2 flex items-center gap-2 text-text-secondary text-sm">
-            <Icon name="ph:shield-check" class="w-4 h-4 text-accent" /> {{ l(product.warranty) }}
+            <!-- Trust row: the four answers every buyer wants before clicking -->
+            <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-dark-tertiary text-xs text-text-secondary">
+              <span class="flex items-center gap-2"><Icon name="ph:truck" class="w-4 h-4 text-accent shrink-0" /> {{ $t('product.delivery_estimate') }}</span>
+              <span class="flex items-center gap-2"><Icon name="ph:shield-check" class="w-4 h-4 text-accent shrink-0" /> {{ l(product.warranty) || $t('trust.warranty') }}</span>
+              <span class="flex items-center gap-2"><Icon name="ph:arrow-u-up-left" class="w-4 h-4 text-accent shrink-0" /> {{ $t('trust.returns_14') }}</span>
+              <span class="flex items-center gap-2"><Icon name="ph:storefront" class="w-4 h-4 text-accent shrink-0" /> {{ $t('trust.pickup_poitiers') }}</span>
+            </div>
           </div>
 
           <!-- Highlights -->
@@ -133,26 +133,26 @@
           </div>
 
           <!-- Video -->
-          <div v-if="product.videoUrl" class="mt-6">
+          <div v-if="product.videoUrl" class="mt-4">
             <a :href="product.videoUrl" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-accent hover:underline text-sm">
               <Icon name="ph:play-circle" class="w-5 h-5" /> {{ $t('product.watch_video') }}
             </a>
           </div>
+        </div>
+      </div>
 
-          <!-- Description -->
-          <div class="mt-8" v-if="l(product.description)">
-            <h2 class="font-display text-xl font-semibold text-white mb-3">{{ $t('product.description') }}</h2>
-            <p class="text-text-secondary leading-relaxed whitespace-pre-line">{{ l(product.description) }}</p>
-          </div>
-
-          <!-- Specs -->
-          <div class="mt-8" v-if="specRows.length">
-            <h2 class="font-display text-xl font-semibold text-white mb-4">{{ $t('product.specifications') }}</h2>
-            <div class="card divide-y divide-dark-tertiary/50">
-              <div v-for="spec in specRows" :key="spec.label" class="flex justify-between px-4 py-3">
-                <span class="text-text-secondary text-sm">{{ $t(spec.label) }}</span>
-                <span class="text-white text-sm font-medium">{{ spec.value }}</span>
-              </div>
+      <!-- ═══ Below the fold: description + specs, full width, scannable ═══ -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-12">
+        <div v-if="l(product.description)">
+          <h2 class="font-display text-xl font-semibold text-white mb-3">{{ $t('product.description') }}</h2>
+          <p class="text-text-secondary leading-relaxed whitespace-pre-line">{{ l(product.description) }}</p>
+        </div>
+        <div v-if="specRows.length">
+          <h2 class="font-display text-xl font-semibold text-white mb-4">{{ $t('product.specifications') }}</h2>
+          <div class="card divide-y divide-dark-tertiary/50">
+            <div v-for="spec in specRows" :key="spec.label" class="flex justify-between px-4 py-3 gap-4">
+              <span class="text-text-secondary text-sm">{{ $t(spec.label) }}</span>
+              <span class="text-white text-sm font-medium text-end">{{ spec.value }}</span>
             </div>
           </div>
         </div>
@@ -203,46 +203,28 @@
         <div class="space-y-4">
           <div class="h-3 bg-dark-tertiary rounded w-24" />
           <div class="h-8 bg-dark-tertiary rounded w-3/4" />
-          <div class="h-7 bg-dark-tertiary rounded w-32" />
-          <div class="h-14 bg-dark-tertiary rounded-lg w-full" />
+          <div class="h-48 bg-dark-tertiary rounded-xl w-full" />
           <div class="space-y-3 mt-8">
             <div class="h-4 bg-dark-tertiary rounded w-full" />
             <div class="h-4 bg-dark-tertiary rounded w-5/6" />
-            <div class="h-4 bg-dark-tertiary rounded w-2/3" />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Toast: Added to cart -->
-    <Transition
-      enter-active-class="transition duration-300 ease-out"
-      enter-from-class="translate-y-4 opacity-0"
-      enter-to-class="translate-y-0 opacity-100"
-      leave-active-class="transition duration-200 ease-in"
-      leave-from-class="translate-y-0 opacity-100"
-      leave-to-class="translate-y-4 opacity-0"
-    >
-      <div v-if="showAddedToast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-toast bg-accent text-primary px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm font-medium">
-        <Icon name="ph:check-circle-fill" class="w-5 h-5" />
-        {{ $t('product.add_to_cart') }} ✓
-      </div>
-    </Transition>
-
-    <!-- P3-02: sticky mobile CTA — keeps add-to-cart reachable while scrolling
-         specs/description. Hidden on lg+ where the sidebar already keeps it
-         visible. Padding-safe-area for iPhones with home indicator. -->
+    <!-- P3-02: sticky mobile CTA — price + add-to-cart always reachable.
+         Padding-safe-area for iPhones; clearance for the chat launcher. -->
     <div
       v-if="product && product.stock > 0"
-      class="lg:hidden fixed bottom-0 left-0 right-0 z-banner bg-primary/95 backdrop-blur-md border-t border-dark-tertiary px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 shadow-2xl"
+      class="lg:hidden fixed bottom-0 left-0 right-0 z-banner bg-primary/95 backdrop-blur-md border-t border-dark-tertiary px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pe-20 flex items-center gap-3 shadow-2xl"
     >
       <div class="flex-1 min-w-0">
         <p class="text-text-secondary text-xs truncate">{{ l(product.name) }}</p>
-        <p class="text-accent font-bold text-base">{{ product.price }}€</p>
+        <PriceTag :price="product.price" :compare-at="product.compareAtPrice" size="sm" />
       </div>
       <button
         @click="addToCart"
-        class="btn-primary btn-sm shrink-0 flex items-center gap-2"
+        class="btn-primary btn-sm shrink-0 flex items-center gap-2 min-h-touch"
         :aria-label="$t('product.add_to_cart')"
       >
         <Icon name="ph:shopping-cart" class="w-4 h-4" />
@@ -259,12 +241,12 @@ const l = useLocalizedField()
 const route = useRoute()
 const cart = useCartStore()
 const cartOpen = useState('cartOpen', () => false)
+const toast = useToast()
 
 const selectedImage = ref(0)
 const qty = ref(1)
 const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
-const showAddedToast = ref(false)
 
 useSwipe(galleryContainer, {
   onLeft: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
@@ -349,8 +331,8 @@ function addToCart() {
   }, qty.value)
   cartOpen.value = true
   qty.value = 1
-  showAddedToast.value = true
-  setTimeout(() => { showAddedToast.value = false }, 3000)
+  // P2-10: unified toast system replaces the old page-local toast.
+  toast.success(`${t('product.add_to_cart')} ✓`)
 }
 
 // SEO
