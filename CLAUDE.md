@@ -227,7 +227,9 @@ vitesseeco/
   (`ENABLE_KLARNA` — activate via Stripe payment_method_types OR the direct adapter)
 - **In-store** adapter available · checkout handles PSP redirect flows generically
   (`clientPayload.redirectUrl`) · Sanity docs ready via `cms/scripts/add-payment-methods-card-klarna.mjs`
-- JSON-LD `paymentAccepted` is computed from the ENABLE_* flags at build — always truthful
+- JSON-LD declares PayPal + card (Visa/Mastercard/CB) + Klarna + cash
+  (`paymentAccepted` + rich `acceptedPaymentMethod`, owner decision 2026-07-05 —
+  checkout exposure itself stays behind the ENABLE_* flags)
 - Orders: **PG-primary** (`ENABLE_PG_PRIMARY_ORDERS`) → Sanity mirror via outbox + cron
 - Order processing happens in **/admin** — the Studio order document is read-only
 

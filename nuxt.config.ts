@@ -161,14 +161,17 @@ export default defineNuxtConfig({
           },
           priceRange: '€€',
           currenciesAccepted: 'EUR',
-          // Computed at build from the payment feature flags, so the
-          // structured data can never claim a method that is not live.
-          paymentAccepted: [
-            'Cash',
-            process.env.ENABLE_PAYPAL === 'true' && 'PayPal',
-            process.env.ENABLE_STRIPE === 'true' && 'Credit Card',
-            process.env.ENABLE_KLARNA === 'true' && 'Klarna',
-          ].filter(Boolean).join(', '),
+          // Owner decision 2026-07-05: card + Klarna are part of the offer
+          // and declared here ahead of PSP activation (checkout exposure
+          // itself stays gated by ENABLE_STRIPE / ENABLE_KLARNA).
+          paymentAccepted: 'PayPal, Credit Card (Visa, Mastercard, CB), Klarna, Cash',
+          acceptedPaymentMethod: [
+            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#PayPal', name: 'PayPal' },
+            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#VISA', name: 'Visa' },
+            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#MasterCard', name: 'Mastercard' },
+            { '@type': 'PaymentMethod', name: 'Klarna' },
+            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#Cash', name: 'Espèces en magasin' },
+          ],
           areaServed: [
             { '@type': 'Country', name: 'France' },
             { '@type': 'Country', name: 'Belgium' },
