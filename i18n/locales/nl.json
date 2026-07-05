@@ -444,6 +444,8 @@
   }
 ,
   "admin": {
+    "notify_engines": "Zoekmachines melden",
+    "notify_done": "{n} URLs ingediend via IndexNow",
     "nav_dashboard": "Dashboard",
     "nav_orders": "Bestellingen",
     "nav_stock": "Voorraad",

@@ -75,6 +75,7 @@
 | Unit | Scope | Status |
 |---|---|---|
 | U-S0 | GEO / AI-answer readiness: robots.txt welcomes all major AI crawlers (private paths kept), dynamic /llms.txt (llmstxt.org) with company facts, policies, key pages, feeds + top-30 live products | ✅ 2026-07-05 |
+| U-S0b | Distribution pack: IndexNow (key file + admin one-tap submit of all URLs ×6 locales to Bing/Yandex/partners), blog RSS with autodiscovery, OpenSearch browser-search registration, web app manifest + theme-color, sitewide og:site_name/twitter:card | ✅ 2026-07-05 |
 
 
 | Unit | Scope | Status |

@@ -1,6 +1,18 @@
 <template>
   <div>
-    <h1 class="text-2xl font-display font-bold mb-6">{{ $t('admin.nav_dashboard') }}</h1>
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <h1 class="text-2xl font-display font-bold">{{ $t('admin.nav_dashboard') }}</h1>
+      <!-- U-S0b: one-tap IndexNow ping (Bing/Yandex & partners) after catalog changes -->
+      <button
+        type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-surface border border-surface-2 px-3.5 py-2 text-sm font-medium hover:border-accent transition-colors disabled:opacity-50"
+        :disabled="notifying"
+        @click="notifyEngines"
+      >
+        <Icon :name="notifying ? 'ph:spinner' : 'ph:megaphone'" class="w-4 h-4" :class="{ 'animate-spin': notifying }" />
+        {{ $t('admin.notify_engines') }}
+      </button>
+    </div>
 
     <div v-if="pending" class="grid sm:grid-cols-3 gap-4">
       <div v-for="i in 6" :key="i" class="h-28 bg-surface-2 rounded-xl animate-pulse" />
@@ -154,6 +166,21 @@ const conversionRate = computed(() => {
 })
 
 const statusLabel = (s: string) => (STATUS_LABELS[s] ? t(STATUS_LABELS[s]) : s)
+
+// U-S0b: IndexNow submission
+const toast = useToast()
+const notifying = ref(false)
+async function notifyEngines() {
+  notifying.value = true
+  try {
+    const res: any = await $fetch('/api/admin/indexnow', { method: 'POST' })
+    toast.success(t('admin.notify_done', { n: res.submitted }))
+  } catch (e: any) {
+    toast.error(e?.data?.message || t('admin.update_failed'))
+  } finally {
+    notifying.value = false
+  }
+}
 
 function formatPrice(n: number) {
   return (n ?? 0).toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })

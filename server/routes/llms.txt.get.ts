@@ -60,6 +60,7 @@ Policies: delivery 48–72h in France, 2-year manufacturer warranty, 14-day retu
 - [Sitemap (all languages, hreflang)](${SITE}/sitemap.xml)
 - [Product feed — Google Merchant XML, French](${SITE}/feeds/google-merchant.xml)
 - [Product feed — Dutch](${SITE}/feeds/google-merchant-nl.xml) · [German](${SITE}/feeds/google-merchant-de.xml) · [Spanish](${SITE}/feeds/google-merchant-es.xml)
+- [Blog RSS](${SITE}/feeds/blog.xml)
 
 ## Products (selection)
 

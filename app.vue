@@ -63,12 +63,24 @@ useHead(() => {
     href: `${baseUrl}${path}`,
   })
 
+  // U-S0b distribution pack: browser search registration, blog RSS
+  // autodiscovery, installable-app manifest.
+  links.push({ rel: 'search', type: 'application/opensearchdescription+xml', title: 'Vitesse Eco', href: '/opensearch.xml' })
+  links.push({ rel: 'alternate', type: 'application/rss+xml', title: 'Vitesse Eco — Blog', href: `${baseUrl}/feeds/blog.xml` })
+  links.push({ rel: 'manifest', href: '/manifest.webmanifest' })
+
   return {
     htmlAttrs: {
       lang: locale.value,
       dir: dir.value,
     },
     link: links,
+    // Sitewide social/share defaults — pages override what they set.
+    meta: [
+      { property: 'og:site_name', content: 'Vitesse Eco' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'theme-color', content: '#0A1628' },
+    ],
   }
 })
 </script>

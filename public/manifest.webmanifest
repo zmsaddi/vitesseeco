@@ -1,0 +1,13 @@
+{
+  "name": "Vitesse Eco — Vélos électriques",
+  "short_name": "Vitesse Eco",
+  "description": "Vélos électriques, pièces et accessoires — Poitiers, France",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
+  "lang": "fr",
+  "icons": [
+    { "src": "/logo.webp", "sizes": "512x512", "type": "image/webp", "purpose": "any" }
+  ]
+}

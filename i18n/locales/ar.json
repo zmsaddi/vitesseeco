@@ -444,6 +444,8 @@
   }
 ,
   "admin": {
+    "notify_engines": "إشعار محركات البحث",
+    "notify_done": "أُرسل {n} رابطاً عبر IndexNow",
     "nav_dashboard": "لوحة القيادة",
     "nav_orders": "الطلبات",
     "nav_stock": "المخزون",

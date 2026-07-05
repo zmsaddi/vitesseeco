@@ -444,6 +444,8 @@
   }
 ,
   "admin": {
+    "notify_engines": "Notify search engines",
+    "notify_done": "{n} URLs submitted via IndexNow",
     "nav_dashboard": "Dashboard",
     "nav_orders": "Orders",
     "nav_stock": "Stock",
