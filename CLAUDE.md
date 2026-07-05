@@ -159,6 +159,7 @@ vitesseeco/
 │   ├── payments/               ← Adapter registry: paypal, stripe, inStore (ENABLE_* flags)
 │   ├── database/               ← Drizzle schema + db (Neon)
 │   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang (+ api/sitemap.xml)
+│   ├── routes/feeds/google-merchant.xml ← Google Shopping feed (item_group_id = modelFamily)
 │   ├── middleware/security.ts  ← CSP headers
 │   └── utils/                  ← rateLimit, verifyTurnstile, paypal, orderService, outbox,
 │                                 sanitySync, audit, priceLock, stock, promo, events, validation
