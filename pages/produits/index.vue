@@ -54,15 +54,33 @@
         </div>
       </div>
 
+      <!-- U-P5: active filters as removable chips — state visible at a glance -->
+      <div v-if="activeChips.length" class="flex flex-wrap items-center gap-2 mb-6">
+        <button
+          v-for="chip in activeChips"
+          :key="chip.key"
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-full bg-accent/10 border border-accent/40 text-accent px-3 py-1.5 text-xs font-medium hover:bg-accent/20 transition-colors min-h-touch"
+          :aria-label="`${chip.label} ✕`"
+          @click="chip.remove()"
+        >
+          {{ chip.label }}
+          <Icon name="ph:x" class="w-3 h-3" />
+        </button>
+        <button type="button" class="text-text-secondary text-xs underline underline-offset-2 hover:text-accent ms-1" @click="clearAll">
+          {{ $t('products.clear_filters') }}
+        </button>
+      </div>
+
       <div class="flex flex-col lg:flex-row gap-8">
-        <!-- Mobile filter toggle -->
-        <button @click="showFilters = !showFilters" class="lg:hidden btn-secondary flex items-center justify-center gap-2">
+        <!-- Mobile: filters open in a bottom sheet (thumb-reach, standard pattern) -->
+        <button @click="sheetOpen = true" class="lg:hidden btn-secondary flex items-center justify-center gap-2 min-h-touch">
           <Icon name="ph:funnel" class="w-5 h-5" />
           {{ $t('products.filter') }} {{ activeFilterCount > 0 ? `(${activeFilterCount})` : '' }}
         </button>
 
-        <!-- Sidebar -->
-        <aside :class="showFilters ? 'block' : 'hidden lg:block'" class="lg:w-56 shrink-0">
+        <!-- Sidebar (desktop only) -->
+        <aside class="hidden lg:block lg:w-56 shrink-0">
           <div class="card p-5 space-y-5 sticky top-24">
             <div class="flex items-center justify-between">
               <h3 class="font-display font-semibold text-white text-sm">{{ $t('products.filter') }}</h3>
@@ -202,6 +220,64 @@
         </div>
       </div>
     </div>
+
+    <!-- U-P5: mobile filters in a BottomSheet (DS v2) -->
+    <BottomSheet v-model="sheetOpen" :title="$t('products.filter')">
+      <div class="space-y-5">
+        <div>
+          <label for="sheet-brand" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.brand') }}</label>
+          <select id="sheet-brand" v-model="selectedBrand" class="input-field text-sm py-2.5 w-full">
+            <option value="">{{ $t('products.all_brands') }}</option>
+            <option v-for="b in availableBrands" :key="b" :value="b">{{ b }}</option>
+          </select>
+        </div>
+        <div>
+          <span class="text-text-secondary text-xs font-medium block mb-2">{{ $t('compare.colors') }}</span>
+          <div class="flex flex-wrap gap-2.5" role="group" :aria-label="$t('compare.colors')">
+            <button
+              v-for="c in availableColors"
+              :key="c.hex"
+              type="button"
+              @click="selectedColor = selectedColor === c.hex ? '' : c.hex"
+              :aria-label="c.name"
+              :aria-pressed="selectedColor === c.hex"
+              class="w-9 h-9 rounded-full border-2 transition-all"
+              :class="selectedColor === c.hex ? 'border-accent scale-110' : 'border-dark-tertiary'"
+              :style="{ backgroundColor: c.hex }"
+              :title="c.name"
+            />
+          </div>
+        </div>
+        <div>
+          <label for="sheet-price" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.price_range') }}</label>
+          <select id="sheet-price" v-model="selectedPrice" class="input-field text-sm py-2.5 w-full">
+            <option value="">{{ $t('products.all_prices') }}</option>
+            <option v-for="b in priceBuckets" :key="b.value" :value="b.value">{{ b.label }}</option>
+          </select>
+        </div>
+        <div v-if="!selectedType || selectedType === 'bike'">
+          <label for="sheet-tire" class="text-text-secondary text-xs font-medium block mb-2">{{ $t('products.tire_size') }}</label>
+          <select id="sheet-tire" v-model="selectedTire" class="input-field text-sm py-2.5 w-full">
+            <option value="">{{ $t('products.all_sizes') }}</option>
+            <option v-for="s in availableTireSizes" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+        <label class="flex items-center gap-2.5 cursor-pointer text-text-secondary text-sm min-h-touch">
+          <input type="checkbox" v-model="showOutOfStock" class="accent-accent w-4 h-4" />
+          {{ $t('products.show_out_of_stock') }}
+        </label>
+      </div>
+      <template #footer>
+        <div class="flex gap-2.5">
+          <button v-if="activeFilterCount > 0" type="button" class="btn-secondary px-4 py-3 text-sm" @click="clearFilters">
+            {{ $t('products.clear_filters') }}
+          </button>
+          <button type="button" class="btn-primary flex-1 py-3" @click="sheetOpen = false">
+            {{ $t('products.show_results', { n: filteredProducts.length }) }}
+          </button>
+        </div>
+      </template>
+    </BottomSheet>
   </div>
 </template>
 
@@ -222,7 +298,7 @@ const searchQuery = ref((route.query.q as string) || '')
 const sortBy = ref((route.query.sort as string) || 'sortOrder')
 const showOutOfStock = ref(route.query.oos === '1')
 const viewMode = ref<'grid' | 'list'>('grid')
-const showFilters = ref(false)
+const sheetOpen = ref(false)
 const pageSize = 24
 const showCount = ref(pageSize)
 
@@ -269,6 +345,36 @@ function clearFilters() { selectedBrand.value = ''; selectedColor.value = ''; se
 function clearAll() { clearFilters(); selectedType.value = ''; searchQuery.value = '' }
 
 const activeFilterCount = computed(() => [selectedBrand.value, selectedColor.value, selectedPrice.value, selectedTire.value, showOutOfStock.value ? '1' : ''].filter(Boolean).length)
+
+// U-P5: every active filter as a removable chip.
+const activeChips = computed(() => {
+  const chips: Array<{ key: string; label: string; remove: () => void }> = []
+  if (selectedType.value) {
+    const meta = typeMeta[selectedType.value]
+    chips.push({ key: 'type', label: meta ? t(meta.labelKey) : selectedType.value, remove: () => { selectedType.value = '' } })
+  }
+  if (searchQuery.value) {
+    chips.push({ key: 'q', label: `« ${searchQuery.value} »`, remove: () => { searchQuery.value = '' } })
+  }
+  if (selectedBrand.value) {
+    chips.push({ key: 'brand', label: selectedBrand.value, remove: () => { selectedBrand.value = '' } })
+  }
+  if (selectedColor.value) {
+    const c = availableColors.value.find((c) => c.hex === selectedColor.value)
+    chips.push({ key: 'color', label: c?.name || selectedColor.value, remove: () => { selectedColor.value = '' } })
+  }
+  if (selectedPrice.value) {
+    const b = priceBuckets.value.find((b) => b.value === selectedPrice.value)
+    chips.push({ key: 'price', label: b?.label || selectedPrice.value, remove: () => { selectedPrice.value = '' } })
+  }
+  if (selectedTire.value) {
+    chips.push({ key: 'tire', label: selectedTire.value, remove: () => { selectedTire.value = '' } })
+  }
+  if (showOutOfStock.value) {
+    chips.push({ key: 'oos', label: t('products.show_out_of_stock'), remove: () => { showOutOfStock.value = false } })
+  }
+  return chips
+})
 
 const pageTitle = computed(() => {
   const m: Record<string, string> = { bike: t('nav.type_bikes'), accessory: t('nav.type_accessories'), spare_part: t('nav.type_parts'), kids_car: t('nav.type_kids') }

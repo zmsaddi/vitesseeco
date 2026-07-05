@@ -35,7 +35,7 @@
 
 | Unit | Scope | Status |
 |---|---|---|
-| U-P5 | Listing `/produits`: BottomSheet filters, chips, URL-synced | ⬜ |
+| U-P5 | Listing `/produits`: removable active-filter chips row, mobile filters in DS BottomSheet with live "show N products" footer, desktop rail unchanged (URL-sync/sort/counts were already solid) | ✅ 2026-07-05 |
 | U-P6 | Home v2 + promo/announcement bar (Sanity-driven) | ⬜ |
 | U-P7 | Search results page + no-results UX | ⬜ |
 | U-P8 | Guide (recreate) + Comparatif + FAQ v2 | ⬜ |

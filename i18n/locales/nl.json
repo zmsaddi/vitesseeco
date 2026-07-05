@@ -50,6 +50,7 @@
     "value4_desc": "Technische ondersteuning 6 dagen per week beschikbaar per telefoon en email."
   },
   "products": {
+    "show_results": "Toon {n} producten",
     "title": "Onze Producten",
     "subtitle": "Vind het perfecte product voor uw behoeften.",
     "filter": "Filteren",

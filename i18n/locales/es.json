@@ -50,6 +50,7 @@
     "value4_desc": "Asistencia técnica disponible 6 días a la semana por teléfono y email."
   },
   "products": {
+    "show_results": "Ver {n} productos",
     "title": "Nuestros Productos",
     "subtitle": "Encuentra el producto perfecto para tus necesidades.",
     "filter": "Filtrar",

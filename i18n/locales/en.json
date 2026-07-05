@@ -50,6 +50,7 @@
     "value4_desc": "Technical support available 6 days a week by phone and email."
   },
   "products": {
+    "show_results": "Show {n} products",
     "title": "Our Products",
     "subtitle": "Find the perfect product for your needs.",
     "filter": "Filter",
