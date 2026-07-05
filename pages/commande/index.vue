@@ -35,61 +35,13 @@
                 <Icon v-if="addressComplete" name="ph:check-bold" class="w-4 h-4" />
                 <span v-else>1</span>
               </span>
-              {{ isPickup ? $t('checkout.pickup_contact_title') : $t('checkout.shipping_address') }}
+              {{ $t('checkout.shipping_address') }}
             </h2>
 
-            <!-- Delivery MODE first — one clear fork instead of pickup hiding
-                 inside the shipping-methods list (owner: page felt scattered) -->
-            <div class="grid grid-cols-2 gap-2 mb-5">
-              <button
-                type="button"
-                @click="setMode('delivery')"
-                class="flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors min-h-touch"
-                :class="mode === 'delivery' ? 'border-accent bg-accent/10 text-white' : 'border-dark-tertiary text-text-secondary hover:border-accent/50'"
-              >
-                <Icon name="ph:truck" class="w-5 h-5 shrink-0" :class="mode === 'delivery' ? 'text-accent' : ''" />
-                {{ $t('checkout.mode_delivery') }}
-              </button>
-              <button
-                type="button"
-                @click="setMode('pickup')"
-                class="flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors min-h-touch"
-                :class="mode === 'pickup' ? 'border-accent bg-accent/10 text-white' : 'border-dark-tertiary text-text-secondary hover:border-accent/50'"
-              >
-                <Icon name="ph:storefront" class="w-5 h-5 shrink-0" :class="mode === 'pickup' ? 'text-accent' : ''" />
-                {{ $t('checkout.mode_pickup') }}
-              </button>
-            </div>
-
-            <!-- PICKUP: only name + phone needed -->
-            <div v-if="isPickup" class="space-y-3">
-              <p class="text-text-secondary text-sm flex items-start gap-2">
-                <Icon name="ph:storefront" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                {{ $t('checkout.pickup_addr_hint') }}
-              </p>
-              <template v-if="!auth.isLoggedIn">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
-                    <input id="co-fn" v-model="addr.firstName" @blur="touch('firstName')" type="text" class="input-field" :class="fieldError('firstName', addr.firstName) ? 'border-red-500' : ''" required />
-                  </div>
-                  <div>
-                    <label for="co-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
-                    <input id="co-ln" v-model="addr.lastName" @blur="touch('lastName')" type="text" class="input-field" :class="fieldError('lastName', addr.lastName) ? 'border-red-500' : ''" required />
-                  </div>
-                </div>
-                <div>
-                  <label for="co-phone" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.phone') }}</label>
-                  <input id="co-phone" v-model="addr.phone" type="tel" class="input-field" />
-                </div>
-              </template>
-              <p v-else class="text-white text-sm flex items-center gap-2">
-                <Icon name="ph:check-circle" class="w-4 h-4 text-accent" /> {{ auth.user?.firstName }} {{ auth.user?.lastName }}
-              </p>
-            </div>
-
-            <!-- DELIVERY address -->
-            <div v-else>
+            <!-- ONE linear flow (owner): the address ALWAYS comes first, with
+                 no fork and no shape-shifting form. Every delivery/pickup
+                 option appears in step ② computed FROM this address. -->
+            <div>
               <div v-if="loadingAddresses" class="flex items-center gap-2 text-text-secondary text-sm py-4">
                 <Icon name="ph:spinner" class="w-4 h-4 animate-spin" /> {{ $t('common.loading') }}
               </div>
@@ -226,24 +178,23 @@
               </span>
               {{ $t('shipping.title') }}
             </h2>
-            <!-- The methods follow the DESTINATION address entered in step ① —
-                 say so, or a gift buyer never realizes options change per country. -->
-            <p v-if="!isPickup && deliveryAddressReady" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
+            <!-- Address not entered yet → the ONLY thing shown is where to go -->
+            <div v-if="!deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 flex items-start gap-2.5">
+              <Icon name="ph:arrow-up" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <p class="text-text-secondary text-xs">{{ $t('checkout.enter_address_first') }}</p>
+            </div>
+            <!-- The options follow the address entered in step ① — say so. -->
+            <p v-if="deliveryAddressReady" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
               <Icon name="ph:map-pin" class="w-3.5 h-3.5 text-accent shrink-0" />
               {{ $t('checkout.shipping_dest') }} <span class="text-white font-medium">{{ countryLabel(activeDestination.country) }}</span>
               — {{ $t('checkout.shipping_dest_hint') }}
             </p>
-            <!-- Address not entered yet → delivery options wait for it -->
-            <div v-if="!isPickup && !deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 mb-3 flex items-start gap-2.5">
-              <Icon name="ph:arrow-up" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
-              <p class="text-text-secondary text-xs">{{ $t('checkout.enter_address_first') }}</p>
-            </div>
-            <!-- Country has no home delivery configured yet -->
-            <div v-if="!isPickup && deliveryAddressReady && !visibleShippingMethods.length" class="bg-gold/10 border border-gold/30 rounded-lg p-3 mb-3 flex items-start gap-2.5">
+            <!-- This address has no home delivery yet — pickup is still right below -->
+            <div v-if="deliveryAddressReady && !hasDeliveryOption" class="bg-gold/10 border border-gold/30 rounded-lg p-3 mb-3 flex items-start gap-2.5">
               <Icon name="ph:info" class="w-4 h-4 text-gold shrink-0 mt-0.5" />
               <p class="text-text-secondary text-xs">{{ $t('checkout.no_delivery_country') }}</p>
             </div>
-            <div v-if="!isPickup && visibleShippingMethods?.length" class="space-y-2">
+            <div v-if="visibleShippingMethods?.length" class="space-y-2">
               <label
                 v-for="method in visibleShippingMethods"
                 :key="method.code"
@@ -446,11 +397,9 @@ const billing = reactive({ firstName: '', lastName: '', address: '', postalCode:
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
 
-// Block ① completion drives its number → checkmark.
+// Block ① completion drives its number → checkmark. One rule for everyone:
+// the address always comes first (pickup included — it doubles as billing).
 const addressComplete = computed(() => {
-  if (isPickup.value) {
-    return auth.isLoggedIn || !!(addr.firstName?.trim() && addr.lastName?.trim())
-  }
   if (selectedAddressId.value && !showNewForm.value) return true
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
@@ -467,10 +416,10 @@ const activeDestination = computed(() => {
   return { country: addr.country || 'FR', postalCode: addr.postalCode || '' }
 })
 
-// Shipping — methods follow the customer's destination country (U-X1).
-// The server falls back to FR methods when a zone has no configuration yet,
-// so switching country can never leave the customer with zero options.
-const shippingZone = computed(() => (isPickup.value ? 'FR' : activeDestination.value.country))
+// Shipping — options always follow the customer's ADDRESS, even while
+// pickup is selected (unselecting pickup must not reshuffle the list).
+// Pickup itself is zoned for all countries, so it appears everywhere.
+const shippingZone = computed(() => activeDestination.value.country)
 
 const COUNTRY_LABELS: Record<string, string> = {
   FR: '🇫🇷 France', BE: '🇧🇪 Belgique', LU: '🇱🇺 Luxembourg',
@@ -478,29 +427,21 @@ const COUNTRY_LABELS: Record<string, string> = {
 }
 const countryLabel = (c: string) => COUNTRY_LABELS[c] || c
 
-// Owner flow (2026-07-05): pickup vs delivery is ONE clear fork up front;
-// in delivery mode the customer enters the address FIRST and only then do
-// the delivery options for that address appear.
-const mode = ref<'delivery' | 'pickup'>(cart.shippingCode === 'pickup' ? 'pickup' : 'delivery')
-function setMode(m: 'delivery' | 'pickup') {
-  mode.value = m
-  if (m === 'pickup') selectedShipping.value = 'pickup'
-  else if (selectedShipping.value === 'pickup') selectedShipping.value = ''
-}
-
+// Owner flow (final, 2026-07-05): ONE straight line — the customer enters
+// the address, then step ② shows EVERY option for that address together:
+// eligible home-delivery methods AND store pickup, side by side.
 const deliveryAddressReady = computed(() => {
   if (selectedAddressId.value && !showNewForm.value) return true
   return !!(addr.address && addr.city && addr.postalCode)
 })
-// Pickup is a MODE now, never a row in the methods list.
-const deliveryMethods = computed(() => (shippingMethods.value || []).filter((m: any) => m.code !== 'pickup'))
-const visibleShippingMethods = computed(() => (deliveryAddressReady.value ? deliveryMethods.value : []))
+const visibleShippingMethods = computed(() => (deliveryAddressReady.value ? (shippingMethods.value || []) : []))
+const hasDeliveryOption = computed(() => visibleShippingMethods.value.some((m: any) => m.code !== 'pickup'))
 const { data: shippingData } = useFetch('/api/shipping/methods', {
   // Postal code included: methods can be scoped to postal prefixes
   // (e.g. FR own-fleet delivery = dept 86 only for now).
   query: computed(() => ({
     zone: shippingZone.value,
-    ...(!isPickup.value && activeDestination.value.postalCode ? { postal: activeDestination.value.postalCode } : {}),
+    ...(activeDestination.value.postalCode ? { postal: activeDestination.value.postalCode } : {}),
   })),
 })
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
@@ -517,10 +458,9 @@ const selectedPaymentData = computed(() => paymentMethods.value.find((m: any) =>
 // is never blocked by a hidden default. Only auto-selects if nothing is yet
 // selected (respects manual choice on subsequent renders).
 watch(visibleShippingMethods, (methods) => {
-  if (mode.value !== 'delivery') return
-  // Selected method vanished (postal/country change made it ineligible)
-  if (selectedShipping.value && selectedShipping.value !== 'pickup'
-      && deliveryAddressReady.value && !methods.some((m: any) => m.code === selectedShipping.value)) {
+  // Selected option vanished (postal/country change made it ineligible)
+  if (selectedShipping.value && deliveryAddressReady.value
+      && !methods.some((m: any) => m.code === selectedShipping.value)) {
     selectedShipping.value = ''
   }
   if (methods.length === 1 && !selectedShipping.value) {
@@ -590,18 +530,15 @@ const canOrder = computed(() => {
 // P1-08: explicit reason shown to the user when the submit button is disabled.
 const disabledReason = computed(() => {
   if (canOrder.value) return ''
-  if (!selectedShipping.value) return t('checkout.disabled_no_shipping')
-  if (isPickup.value && !auth.isLoggedIn) {
-    if (!addr.firstName?.trim() || !addr.lastName?.trim()) return t('checkout.disabled_no_name')
-  } else if (!isPickup.value) {
-    if (showNewForm.value) {
-      const missing = ['firstName', 'lastName', 'address', 'city', 'postalCode']
-        .filter((k) => !(addr as any)[k]?.trim())
-      if (missing.length) return t('checkout.disabled_no_address')
-    } else if (!selectedAddressId.value) {
-      return t('checkout.disabled_no_address')
-    }
+  // Reasons in the SAME order as the page: address → option → payment.
+  if (showNewForm.value) {
+    const missing = ['firstName', 'lastName', 'address', 'city', 'postalCode']
+      .filter((k) => !(addr as any)[k]?.trim())
+    if (missing.length) return t('checkout.disabled_no_address')
+  } else if (!selectedAddressId.value) {
+    return t('checkout.disabled_no_address')
   }
+  if (!selectedShipping.value) return t('checkout.disabled_no_shipping')
   if (!selectedPayment.value) return t('checkout.disabled_no_payment')
   if (!turnstileToken.value) return t('checkout.disabled_no_turnstile')
   return ''
@@ -614,14 +551,23 @@ function requestConfirmation() {
   showConfirmation.value = true
 }
 
+// The customer's own address (saved selection wins) — used as the billing
+// address on pickup orders, where the SHIPPING address is our store.
+function resolveCustomerAddress(): any {
+  if (selectedAddressId.value && !showNewForm.value) {
+    const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
+    if (a) return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, city: a.city, postalCode: a.postalCode, country: a.country }
+  }
+  return { ...addr }
+}
+
 // Build the shipping address from whichever input the user filled in. Shared
 // between placeOrder() (in-store path) and the PayPal flow.
 function resolveShippingAddress(): any | null {
   if (isPickup.value) {
-    const fn = (auth.user?.firstName?.trim() || addr.firstName?.trim() || '')
-    const ln = (auth.user?.lastName?.trim() || addr.lastName?.trim() || '')
-    const ph = (auth.user?.phone?.trim() || addr.phone?.trim() || undefined)
-    return { firstName: fn, lastName: ln, phone: ph, address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
+    const c = resolveCustomerAddress()
+    const ph = (c.phone?.trim?.() || auth.user?.phone?.trim() || undefined)
+    return { firstName: c.firstName, lastName: c.lastName, phone: ph, address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
   }
   if (selectedAddressId.value && !showNewForm.value) {
     const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
@@ -683,7 +629,7 @@ async function placeOrder() {
         shippingCode: selectedShipping.value,
         paymentCode: selectedPayment.value,
         shippingAddress,
-        billingAddress: billingSameAsShipping.value || isPickup.value ? shippingAddress : { ...billing },
+        billingAddress: isPickup.value ? resolveCustomerAddress() : (billingSameAsShipping.value ? shippingAddress : { ...billing }),
         promoCode: cart.promoCode || undefined,
         turnstileToken: turnstileToken.value,
       },
