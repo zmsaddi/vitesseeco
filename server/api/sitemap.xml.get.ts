@@ -10,6 +10,7 @@ export default defineEventHandler(async (event) => {
 
   const products = await client.fetch('*[_type == "product" && isAvailable == true]{ "slug": slug.current }')
   const articles = await client.fetch('*[_type == "article" && isPublished == true]{ "slug": slug.current }')
+  const landings = await client.fetch('*[_type == "landingPage" && isPublished == true && defined(slug.current)]{ "slug": slug.current }')
   const baseUrl = 'https://vitesse-eco.fr'
 
   // Escape dynamic values to prevent XSS in XML
@@ -58,6 +59,16 @@ export default defineEventHandler(async (event) => {
       ).join('\n')
       const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/blog/${slug}"/>`
       urls += `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n${alternates}\n${xDefault}\n  </url>\n`
+    }
+    // Landing pages
+    for (const lp of landings) {
+      const slug = escapeXml(lp.slug)
+      const loc = `${baseUrl}${locale.prefix}/p/${slug}`
+      const alternates = locales.map(l =>
+        `    <xhtml:link rel="alternate" hreflang="${l.hreflang}" href="${baseUrl}${l.prefix}/p/${slug}"/>`
+      ).join('\n')
+      const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${baseUrl}/p/${slug}"/>`
+      urls += `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${now}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n${alternates}\n${xDefault}\n  </url>\n`
     }
   }
 

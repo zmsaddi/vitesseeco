@@ -331,7 +331,7 @@ const auth = useAuthStore()
 const route = useRoute()
 
 definePageMeta({ middleware: 'auth' })
-useHead({ title: `${t('account.title')} — Vitesse Eco` })
+useHead({ title: `${t('account.title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 // Hash routing — scroll to section on mount/hash change
 function scrollToHash() {

@@ -363,7 +363,7 @@ const l = useLocalizedField()
 const cart = useCartStore()
 const auth = useAuthStore()
 
-useHead({ title: `${t('checkout.title')} — Vitesse Eco` })
+useHead({ title: `${t('checkout.title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 const selectedShipping = ref(cart.shippingCode || '')
 const selectedAddressId = ref('')

@@ -254,7 +254,7 @@ function removeWithUndo(item: any) {
   })
 }
 
-useHead({ title: `${t('cart.title')} — Vitesse Eco` })
+useHead({ title: `${t('cart.title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 // Check stock when page loads
 const stockMessages = ref<string[]>([])

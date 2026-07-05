@@ -40,11 +40,11 @@ export default defineEventHandler(async (event) => {
 > pickup in Poitiers. Site available in French (primary), English, Spanish, Dutch,
 > German and Arabic.
 
-Company: VITESSE ECO SAS — SIREN 100 732 247
+Company: VITESSE ECO SAS — SIREN 100 732 247 — VAT FR43 100 732 247
 Store: 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France
-Contact: contact@vitesse-eco.fr — +33 7 45 83 00 49
+Contact: contact@vitesse-eco.fr — +33 7 45 83 00 49 — WhatsApp https://wa.me/33745830049
 Prices: EUR, VAT included. Payment: PayPal or in store.
-Policies: delivery 48–72h in France, 2-year manufacturer warranty, 14-day returns.
+Policies: delivery 48–72h in France, 2-year manufacturer warranty, 14-day EU withdrawal right.
 
 ## Key pages
 
@@ -54,6 +54,9 @@ Policies: delivery 48–72h in France, 2-year manufacturer warranty, 14-day retu
 - [FAQ](${SITE}/faq): shipping, warranty, battery and legal questions
 - [Contact](${SITE}/contact)
 - [Blog](${SITE}/blog)
+- [Right of withdrawal — 14 days, with model form](${SITE}/retractation)
+- [Battery take-back / recycling (free)](${SITE}/batteries)
+- [Terms of sale](${SITE}/cgv) · [Impressum](${SITE}/impressum)
 
 ## Machine-readable resources
 

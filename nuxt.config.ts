@@ -123,6 +123,7 @@ export default defineNuxtConfig({
           contactPoint: {
             '@type': 'ContactPoint',
             email: 'contact@vitesse-eco.fr',
+            telephone: '+33745830049',
             contactType: 'customer service',
             availableLanguage: ['French', 'English', 'Spanish', 'Dutch', 'German', 'Arabic'],
           },
@@ -139,7 +140,7 @@ export default defineNuxtConfig({
           '@type': 'LocalBusiness',
           '@id': 'https://vitesse-eco.fr/#business',
           name: 'Vitesse Eco',
-          description: 'Votre spécialiste en mobilité électrique en France. Fatbikes, accessoires, pièces détachées et plus. Livraison gratuite.',
+          description: 'Votre spécialiste en mobilité électrique en France. Fatbikes, accessoires, pièces détachées et plus. Livraison en France et en Europe.',
           url: 'https://vitesse-eco.fr',
           logo: 'https://vitesse-eco.fr/logo.webp',
           image: 'https://vitesse-eco.fr/poster.webp',
@@ -160,7 +161,8 @@ export default defineNuxtConfig({
           },
           priceRange: '€€',
           currenciesAccepted: 'EUR',
-          paymentAccepted: 'Cash, Credit Card, Bank Transfer',
+          // Reality: PayPal live + in-store payment. Update when Stripe goes live.
+          paymentAccepted: 'PayPal, Cash',
           areaServed: [
             { '@type': 'Country', name: 'France' },
             { '@type': 'Country', name: 'Belgium' },

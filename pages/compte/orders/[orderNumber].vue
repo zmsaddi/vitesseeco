@@ -163,6 +163,7 @@ const { data, error, pending } = await useFetch<any>(() => `/api/orders/${orderN
 
 useSeoMeta({
   title: () => `${t('checkout.order_number')} ${orderNumber.value} — Vitesse Eco`,
+  robots: 'noindex',
 })
 
 function formatDate(d: string | Date | undefined) {

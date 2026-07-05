@@ -62,7 +62,7 @@ const { t } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
 
-useHead({ title: `${t('auth.login_title')} — Vitesse Eco` })
+useHead({ title: `${t('auth.login_title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 // Check for Google OAuth error in URL
 const route = useRoute()

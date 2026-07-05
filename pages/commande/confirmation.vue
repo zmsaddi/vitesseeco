@@ -81,7 +81,7 @@ const orderNumber = computed(() => {
 // message rather than rendering an empty <strong> next to the label.
 const hasValidOrderNumber = computed(() => /^ORD-[A-Z0-9]+$/.test(orderNumber.value))
 
-useHead({ title: `${t('checkout.order_confirmed')} — Vitesse Eco` })
+useHead({ title: `${t('checkout.order_confirmed')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 const instructions: Record<string, string> = {
   fr: 'Votre commande a été enregistrée avec succès ! Si vous avez choisi le retrait en magasin, présentez-vous avec votre numéro de commande. Pour la livraison, nous vous informerons par email de l\'avancement de votre commande.',

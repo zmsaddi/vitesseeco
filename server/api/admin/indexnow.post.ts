@@ -16,7 +16,8 @@ import { audit } from '~/server/utils/audit'
 const SITE = 'https://vitesse-eco.fr'
 const INDEXNOW_KEY = '4f1c9a2e7b8d4d6f9e3a1b5c8d2f7a90'
 const PREFIXES = ['', '/en', '/es', '/nl', '/de', '/ar']
-const STATIC_PAGES = ['', '/produits', '/guide', '/comparatif', '/blog', '/faq', '/a-propos', '/contact']
+// Must stay in sync with the sitemap's staticPages list.
+const STATIC_PAGES = ['', '/produits', '/guide', '/comparatif', '/blog', '/faq', '/a-propos', '/contact', '/mentions-legales', '/politique-confidentialite', '/cgv', '/retractation', '/impressum', '/batteries']
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 3, windowMs: 60_000 })
@@ -29,9 +30,10 @@ export default defineEventHandler(async (event) => {
     useCdn: true,
   })
 
-  const [productSlugs, articleSlugs] = await Promise.all([
+  const [productSlugs, articleSlugs, landingSlugs] = await Promise.all([
     client.fetch<string[]>(`*[_type == "product" && isAvailable == true && defined(slug.current)].slug.current`),
     client.fetch<string[]>(`*[_type == "article" && isPublished == true && defined(slug.current)].slug.current`),
+    client.fetch<string[]>(`*[_type == "landingPage" && isPublished == true && defined(slug.current)].slug.current`),
   ])
 
   const urlList: string[] = []
@@ -39,6 +41,7 @@ export default defineEventHandler(async (event) => {
     for (const page of STATIC_PAGES) urlList.push(`${SITE}${prefix}${page}`)
     for (const s of productSlugs) urlList.push(`${SITE}${prefix}/produits/${s}`)
     for (const s of articleSlugs) urlList.push(`${SITE}${prefix}/blog/${s}`)
+    for (const s of landingSlugs) urlList.push(`${SITE}${prefix}/p/${s}`)
   }
 
   // IndexNow caps a batch at 10 000 URLs — we are far below, but guard anyway.

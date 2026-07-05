@@ -68,9 +68,10 @@ export default defineEventHandler(async (event) => {
 - Delivery: 48–72h in France; free above the threshold shown per shipping method.
 - Free in-store pickup: 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France.
 - Warranty: 2-year manufacturer warranty on bikes.
-- Returns: 14-day EU withdrawal right.
+- Returns: 14-day EU withdrawal right — details and model form: ${SITE}/retractation
+- Batteries: free take-back of used e-bike batteries (EU 2006/66/EC, German BattG): ${SITE}/batteries
 - Payment: PayPal, or in store. Secure checkout, price validated server-side.
-- Contact: contact@vitesse-eco.fr — +33 7 45 83 00 49.
+- Contact: contact@vitesse-eco.fr — +33 7 45 83 00 49 — WhatsApp https://wa.me/33745830049 (7 days a week).
 
 ## FAQ (French, complete)
 

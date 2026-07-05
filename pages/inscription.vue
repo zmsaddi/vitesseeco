@@ -159,7 +159,7 @@ const localePath = useLocalePath()
 const auth = useAuthStore()
 const turnstileToken = ref('')
 
-useHead({ title: `${t('auth.register_title')} — Vitesse Eco` })
+useHead({ title: `${t('auth.register_title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
 const form = reactive({
   firstName: '', lastName: '', email: '', phone: '',
