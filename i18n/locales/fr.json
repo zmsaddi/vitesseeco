@@ -553,4 +553,11 @@
     "see_all": "Voir tous les résultats",
     "recent": "Recherches récentes"
   }
+,
+  "wishlist": {
+    "title": "Mes favoris",
+    "empty": "Aucun favori pour le moment — touchez le cœur sur un produit pour le garder ici.",
+    "added": "Ajouté aux favoris",
+    "removed": "Retiré des favoris"
+  }
 }

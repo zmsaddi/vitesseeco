@@ -1,14 +1,14 @@
 <template>
   <div class="py-8 md:py-12">
     <div class="container-custom max-w-3xl" v-if="article">
-      <!-- Breadcrumb -->
-      <nav class="flex items-center gap-2 text-sm text-text-secondary mb-8">
-        <NuxtLink :to="localePath('/')" class="hover:text-accent transition-colors">{{ $t('nav.home') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
-        <NuxtLink :to="localePath('/blog')" class="hover:text-accent transition-colors">{{ $t('blog.title') }}</NuxtLink>
-        <Icon name="ph:caret-right" class="w-3 h-3 rtl:rotate-180" />
-        <span class="text-white truncate">{{ l(article.title) }}</span>
-      </nav>
+      <!-- Breadcrumb (DS v2) -->
+      <div class="mb-8">
+        <Breadcrumbs :items="[
+          { label: $t('nav.home'), to: localePath('/') },
+          { label: $t('blog.title'), to: localePath('/blog') },
+          { label: l(article.title) },
+        ]" />
+      </div>
 
       <!-- Featured Image -->
       <div v-if="article.featuredImage?.asset" class="card overflow-hidden mb-8 aspect-video">

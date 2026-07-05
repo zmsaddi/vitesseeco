@@ -22,6 +22,22 @@
 
           <ClientOnly>
             <NuxtLink
+              :to="localePath('/favoris')"
+              class="relative text-text-secondary hover:text-white transition-colors p-2 min-w-touch min-h-touch hidden sm:flex items-center justify-center"
+              :aria-label="$t('wishlist.title')"
+            >
+              <Icon name="ph:heart" class="w-5 h-5" />
+              <span
+                v-if="wishlistCount > 0"
+                class="absolute top-0.5 end-0.5 bg-accent text-primary text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center"
+              >
+                {{ wishlistCount }}
+              </span>
+            </NuxtLink>
+          </ClientOnly>
+
+          <ClientOnly>
+            <NuxtLink
               :to="localePath(auth.isLoggedIn ? '/compte' : '/connexion')"
               class="text-text-secondary hover:text-white transition-colors p-2 min-w-touch min-h-touch flex items-center justify-center"
               :aria-label="auth.isLoggedIn ? $t('account.title') : $t('nav.login')"
@@ -124,6 +140,11 @@ const cart = useCartStore()
 const auth = useAuthStore()
 const cartCount = computed(() => cart.totalItems)
 const cartOpen = useState('cartOpen', () => false)
+
+// U-M2: wishlist badge (client-only; count fills after hydration).
+const wishlist = useWishlist()
+onMounted(wishlist.load)
+const wishlistCount = wishlist.count
 
 // Flat nav — every destination one predictable click away (plan §2.1:
 // "simple category navigation: flat, labeled" — the mega-dropdown is gone).

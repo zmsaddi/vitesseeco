@@ -553,4 +553,11 @@
     "see_all": "Alle resultaten bekijken",
     "recent": "Recente zoekopdrachten"
   }
+,
+  "wishlist": {
+    "title": "Mijn favorieten",
+    "empty": "Nog geen favorieten — tik op het hartje bij een product om het hier te bewaren.",
+    "added": "Toegevoegd aan favorieten",
+    "removed": "Verwijderd uit favorieten"
+  }
 }

@@ -102,9 +102,23 @@
                   </button>
                 </div>
               </div>
-              <button @click="addToCart" class="btn-primary w-full text-lg py-4 flex items-center justify-center gap-3">
-                <Icon name="ph:shopping-cart" class="w-5 h-5" /> {{ $t('product.add_to_cart') }}
-              </button>
+              <div class="flex gap-2.5">
+                <button @click="addToCart" class="btn-primary flex-1 text-lg py-4 flex items-center justify-center gap-3">
+                  <Icon name="ph:shopping-cart" class="w-5 h-5" /> {{ $t('product.add_to_cart') }}
+                </button>
+                <ClientOnly>
+                  <button
+                    type="button"
+                    class="w-14 shrink-0 rounded-lg border-2 flex items-center justify-center transition-colors min-h-touch"
+                    :class="inWishlist ? 'border-accent text-accent bg-accent/10' : 'border-dark-tertiary text-text-secondary hover:border-accent hover:text-accent'"
+                    :aria-label="inWishlist ? $t('wishlist.removed') : $t('wishlist.added')"
+                    :aria-pressed="inWishlist"
+                    @click="toggleWishlist"
+                  >
+                    <Icon :name="inWishlist ? 'ph:heart-fill' : 'ph:heart'" class="w-6 h-6" />
+                  </button>
+                </ClientOnly>
+              </div>
             </template>
             <template v-else>
               <button disabled class="w-full text-lg py-4 flex items-center justify-center gap-3 bg-red-900/30 text-red-400 rounded-lg cursor-not-allowed border border-red-800/50">
@@ -286,6 +300,24 @@ if (import.meta.server && status.value === 'success' && !product.value) throw cr
 if (import.meta.client) { watch([status, product], () => { if (status.value === 'success' && !product.value) showError({ statusCode: 404 }) }) }
 
 watch(() => product.value?._id, () => { selectedImage.value = 0; qty.value = 1 })
+
+// U-M2: wishlist toggle from the buy box.
+const wishlist = useWishlist()
+onMounted(wishlist.load)
+const inWishlist = computed(() => (product.value ? wishlist.has(product.value._id) : false))
+function toggleWishlist() {
+  const p = product.value
+  if (!p) return
+  const added = wishlist.toggle({
+    id: p._id,
+    name: l(p.name) || '',
+    slug: p.slug?.current || '',
+    price: p.price,
+    image: p.images?.[0]?.asset ? useSanityImageUrl(p.images[0], 320, 320) : '',
+    stock: p.stock ?? 0,
+  })
+  toast.info(added ? t('wishlist.added') : t('wishlist.removed'))
+}
 
 // U-M1: record every viewed product for the recently-viewed strip.
 const { record } = useRecentlyViewed()

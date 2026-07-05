@@ -39,9 +39,9 @@
 | U-P6 | Home v2: category tiles right after hero, trust strip moved below bestsellers; sitewide AnnouncementBar (Sanity siteSettings.announcement, dismiss-per-message) | ✅ 2026-07-05 |
 | U-P7 | No-results UX on /produits?q=: query echoed back, hint line, category suggestion chips with counts, clear-all — never a dead end | ✅ 2026-07-05 |
 | U-P8 | Guide recreated at /guide: interactive 3-question selector (usage/height/range) over live bike catalog, forgiving spec matching, help CTA; back in header nav + both sitemaps (reused surviving guide.* keys ×6) | ✅ 2026-07-05 |
-| U-P9 | Blog v2 + related-products blocks | ⬜ |
+| U-P9 | Blog: related-products blocks + Article JSON-LD verified already built (schema + render + query); DS Breadcrumbs unified on article page | ✅ 2026-07-05 |
 | U-M1 | Recently-viewed strip (localStorage, max 8) on home + PDP, recorded on every product view | ✅ 2026-07-05 |
-| U-M2 | Wishlist v1 (localStorage) | ⬜ |
+| U-M2 | Wishlist v1: heart toggle in PDP buy-box, /favoris page (grid + remove + EmptyState, noindex), header heart icon with count badge, localStorage max 50, toasts | ✅ 2026-07-05 |
 
 ## Phase R3 — Account & auth
 
