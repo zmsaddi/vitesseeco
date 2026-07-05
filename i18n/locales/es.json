@@ -154,6 +154,8 @@
     "free_unlocked": "¡Envío gratuito desbloqueado!"
   },
   "checkout": {
+    "guest_hint": "Compra como invitado — no se requiere cuenta.",
+    "pickup_addr_hint": "Para recogida en tienda, solo se necesita su nombre (y teléfono).",
     "title": "Finalizar pedido",
     "step_shipping": "Envío",
     "step_payment": "Pago",

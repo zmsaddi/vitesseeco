@@ -1,34 +1,18 @@
 <template>
   <div>
-    <!-- Hero band -->
-    <section class="relative pt-10 md:pt-14 pb-6 md:pb-8 overflow-hidden">
-      <div class="absolute inset-0 bg-hero-glow pointer-events-none" />
-      <div class="container-custom relative max-w-4xl">
-        <span class="inline-flex items-center gap-2 px-3 py-1.5 mb-4 bg-accent/10 border border-accent/20 rounded-full backdrop-blur-sm">
-          <Icon name="ph:credit-card" class="w-3.5 h-3.5 text-accent" />
-          <span class="text-accent text-xs font-medium tracking-wider uppercase">{{ $t('cart.checkout') }}</span>
-        </span>
-        <h1 class="font-display text-3xl md:text-5xl font-black text-white leading-[1.1] tracking-tight">{{ $t('checkout.title') }}</h1>
+    <!-- Compact header: title + guest reassurance (no hero band — checkout is for finishing, not browsing) -->
+    <section class="pt-8 md:pt-10 pb-4">
+      <div class="container-custom max-w-6xl">
+        <h1 class="font-display text-2xl md:text-3xl font-black text-white leading-tight tracking-tight">{{ $t('checkout.title') }}</h1>
+        <p class="text-text-secondary text-sm mt-1.5 flex items-center gap-2 flex-wrap">
+          <Icon name="ph:lock-simple" class="w-3.5 h-3.5 text-accent shrink-0" />
+          <span v-if="!auth.isLoggedIn">{{ $t('checkout.guest_hint') }}</span>
+          <span v-else>{{ $t('trust.secure_payment') }}</span>
+        </p>
       </div>
-      <div class="absolute inset-x-0 bottom-0 divider-accent" />
     </section>
-    <div class="container-custom max-w-4xl py-8 md:py-12">
 
-      <!-- Progress Stepper -->
-      <div v-if="!cart.isEmpty" class="flex items-center justify-between mb-8 max-w-xl mx-auto">
-        <template v-for="(step, i) in checkoutSteps" :key="i">
-          <div class="flex flex-col items-center gap-1.5">
-            <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
-              :class="currentStep > i ? 'bg-accent text-primary' : currentStep === i ? 'bg-accent/20 text-accent border-2 border-accent' : 'bg-dark-tertiary text-text-secondary'">
-              <Icon v-if="currentStep > i" name="ph:check-bold" class="w-4 h-4" />
-              <span v-else>{{ i + 1 }}</span>
-            </div>
-            <span class="text-xs font-medium hidden sm:block" :class="currentStep >= i ? 'text-accent' : 'text-text-secondary'">{{ step }}</span>
-          </div>
-          <div v-if="i < checkoutSteps.length - 1" class="flex-1 h-0.5 mx-2 transition-colors" :class="currentStep > i ? 'bg-accent' : 'bg-dark-tertiary'" />
-        </template>
-      </div>
-
+    <div class="container-custom max-w-6xl pb-24 lg:pb-12">
       <!-- Empty cart -->
       <div v-if="cart.isEmpty" class="text-center py-20">
         <Icon name="ph:shopping-cart" class="w-16 h-16 text-dark-tertiary mx-auto mb-4" />
@@ -37,79 +21,49 @@
       </div>
 
       <div v-else class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Left: Forms -->
-        <div class="lg:col-span-2 space-y-6">
+        <!-- ═══ Left column: the 3 blocks ═══ -->
+        <div class="lg:col-span-2 space-y-5">
 
-          <!-- 1. Shipping Method -->
-          <div class="card p-6">
-            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
-              <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">1</span>
-              {{ $t('shipping.title') }}
+          <!-- ① ADRESSE -->
+          <div class="card p-5 md:p-6">
+            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                :class="addressComplete ? 'bg-accent text-primary' : 'bg-accent/20 text-accent'">
+                <Icon v-if="addressComplete" name="ph:check-bold" class="w-4 h-4" />
+                <span v-else>1</span>
+              </span>
+              {{ isPickup ? $t('checkout.pickup_contact_title') : $t('checkout.shipping_address') }}
             </h2>
-            <div v-if="shippingMethods?.length" class="space-y-2">
-              <label
-                v-for="method in shippingMethods"
-                :key="method.code"
-                :for="`ship-${method.code}`"
-                class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
-                :class="selectedShipping === method.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'"
-              >
-                <input :id="`ship-${method.code}`" type="radio" :value="method.code" v-model="selectedShipping" class="mt-1 accent-accent" />
-                <div class="flex-1">
-                  <div class="flex justify-between">
-                    <span class="text-white text-sm font-medium">{{ l(method.name) }}</span>
-                    <span class="text-accent text-sm font-bold">
-                      {{ getShippingPrice(method) === 0 ? $t('shipping.free') : getShippingPrice(method) + $t('common.currency') }}
-                    </span>
+
+            <!-- PICKUP: only name + phone needed -->
+            <div v-if="isPickup" class="space-y-3">
+              <p class="text-text-secondary text-sm flex items-start gap-2">
+                <Icon name="ph:storefront" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                {{ $t('checkout.pickup_addr_hint') }}
+              </p>
+              <template v-if="!auth.isLoggedIn">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
+                    <input id="co-fn" v-model="addr.firstName" @blur="touch('firstName')" type="text" class="input-field" :class="fieldError('firstName', addr.firstName) ? 'border-red-500' : ''" required />
                   </div>
-                  <p class="text-text-secondary text-xs mt-0.5">{{ l(method.description) }}</p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <!-- 2. Address (adapts to shipping type) -->
-          <div class="card p-6">
-            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
-              <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">2</span>
-              {{ isPickup ? $t('contact.address') : $t('checkout.shipping_address') }}
-            </h2>
-
-            <!-- PICKUP: Store info -->
-            <div v-if="isPickup" class="bg-accent/5 border border-accent/20 rounded-lg p-4">
-              <div class="flex items-start gap-3">
-                <Icon name="ph:storefront" class="w-6 h-6 text-accent shrink-0 mt-0.5" />
-                <div>
-                  <p class="text-white font-medium text-sm">Vitesse Eco — Poitiers</p>
-                  <p class="text-text-secondary text-sm mt-1">32 Rue du Faubourg du Pont Neuf<br>86000 Poitiers, France</p>
-                  <p class="text-text-secondary text-xs mt-2">{{ $t('contact.hours_text') }}</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- PICKUP guest: collect name + phone so the store knows who's coming.
-                 No address form — the address is the store's. Logged-in users skip
-                 this since their profile already has the name. -->
-            <div v-if="isPickup && !auth.isLoggedIn" class="space-y-3 mt-4">
-              <p class="text-text-secondary text-sm">{{ $t('checkout.pickup_contact_title') }}</p>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
-                  <input id="co-fn" v-model="addr.firstName" @blur="touch('firstName')" type="text" class="input-field" :class="fieldError('firstName', addr.firstName) ? 'border-red-500' : ''" required />
+                  <div>
+                    <label for="co-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
+                    <input id="co-ln" v-model="addr.lastName" @blur="touch('lastName')" type="text" class="input-field" :class="fieldError('lastName', addr.lastName) ? 'border-red-500' : ''" required />
+                  </div>
                 </div>
                 <div>
-                  <label for="co-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
-                  <input id="co-ln" v-model="addr.lastName" @blur="touch('lastName')" type="text" class="input-field" :class="fieldError('lastName', addr.lastName) ? 'border-red-500' : ''" required />
+                  <label for="co-phone" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.phone') }}</label>
+                  <input id="co-phone" v-model="addr.phone" type="tel" class="input-field" />
                 </div>
-              </div>
-              <div>
-                <label for="co-phone" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.phone') }}</label>
-                <input id="co-phone" v-model="addr.phone" type="tel" class="input-field" />
-              </div>
+              </template>
+              <p v-else class="text-white text-sm flex items-center gap-2">
+                <Icon name="ph:check-circle" class="w-4 h-4 text-accent" /> {{ auth.user?.firstName }} {{ auth.user?.lastName }}
+              </p>
             </div>
 
-            <!-- DELIVERY -->
-            <div v-if="!isPickup">
+            <!-- DELIVERY address -->
+            <div v-else>
               <div v-if="loadingAddresses" class="flex items-center gap-2 text-text-secondary text-sm py-4">
                 <Icon name="ph:spinner" class="w-4 h-4 animate-spin" /> {{ $t('common.loading') }}
               </div>
@@ -117,17 +71,17 @@
               <!-- Saved addresses -->
               <div v-else-if="savedAddresses.length && !showNewForm" class="space-y-2">
                 <label
-                  v-for="addr in savedAddresses" :key="addr.id" :for="`addr-${addr.id}`"
+                  v-for="a in savedAddresses" :key="a.id" :for="`addr-${a.id}`"
                   class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
-                  :class="selectedAddressId === addr.id ? 'border-accent bg-accent/5' : 'border-dark-tertiary'"
+                  :class="selectedAddressId === a.id ? 'border-accent bg-accent/5' : 'border-dark-tertiary'"
                 >
-                  <input :id="`addr-${addr.id}`" type="radio" :value="addr.id" v-model="selectedAddressId" class="mt-1 accent-accent" />
+                  <input :id="`addr-${a.id}`" type="radio" :value="a.id" v-model="selectedAddressId" class="mt-1 accent-accent" />
                   <div class="text-sm flex-1">
-                    <p class="text-white font-medium">{{ addr.firstName }} {{ addr.lastName }}</p>
-                    <p class="text-text-secondary">{{ addr.address }}, {{ addr.postalCode }} {{ addr.city }}</p>
+                    <p class="text-white font-medium">{{ a.firstName }} {{ a.lastName }}</p>
+                    <p class="text-text-secondary">{{ a.address }}, {{ a.postalCode }} {{ a.city }}</p>
                   </div>
                 </label>
-                <button @click="showNewForm = true" class="w-full p-3 rounded-lg border border-dashed border-dark-tertiary text-accent text-sm hover:border-accent transition-colors flex items-center justify-center gap-2">
+                <button @click="showNewForm = true" class="w-full p-3 rounded-lg border border-dashed border-dark-tertiary text-accent text-sm hover:border-accent transition-colors flex items-center justify-center gap-2 min-h-touch">
                   <Icon name="ph:plus" class="w-4 h-4" /> {{ $t('account.add_address') }}
                 </button>
               </div>
@@ -188,69 +142,113 @@
                 </label>
                 <button v-if="savedAddresses.length" @click="showNewForm = false" class="text-text-secondary text-xs hover:text-accent">← {{ $t('common.back') }}</button>
               </div>
+
+              <!-- Billing: folded into block ① so the page stays 3 blocks -->
+              <div class="mt-4 pt-4 border-t border-dark-tertiary">
+                <label class="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" v-model="billingSameAsShipping" class="accent-accent w-4 h-4" />
+                  <span class="text-white text-sm">{{ $t('checkout.same_as_shipping') }}</span>
+                </label>
+                <div v-if="!billingSameAsShipping" class="space-y-3 mt-4">
+                  <div>
+                    <label for="bill-country" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.country') }}</label>
+                    <select id="bill-country" v-model="billing.country" class="input-field">
+                      <option value="FR">🇫🇷 France</option>
+                      <option value="BE">🇧🇪 Belgique</option>
+                      <option value="LU">🇱🇺 Luxembourg</option>
+                      <option value="DE">🇩🇪 Deutschland</option>
+                      <option value="NL">🇳🇱 Nederland</option>
+                      <option value="ES">🇪🇸 España</option>
+                    </select>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label for="bill-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
+                      <input id="bill-fn" v-model="billing.firstName" type="text" class="input-field" required />
+                    </div>
+                    <div>
+                      <label for="bill-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
+                      <input id="bill-ln" v-model="billing.lastName" type="text" class="input-field" required />
+                    </div>
+                  </div>
+                  <div>
+                    <label for="bill-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
+                    <input id="bill-addr" v-model="billing.address" type="text" class="input-field" required />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label for="bill-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
+                      <input id="bill-zip" v-model="billing.postalCode" type="text" class="input-field" required />
+                    </div>
+                    <div>
+                      <label for="bill-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
+                      <input id="bill-city" v-model="billing.city" type="text" class="input-field" required />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 3. Billing Address -->
-          <div v-if="!isPickup" class="card p-6">
-            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
-              <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">3</span>
-              {{ $t('checkout.billing_address') }}
+          <!-- ② LIVRAISON -->
+          <div class="card p-5 md:p-6">
+            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                :class="selectedShipping ? 'bg-accent text-primary' : 'bg-accent/20 text-accent'">
+                <Icon v-if="selectedShipping" name="ph:check-bold" class="w-4 h-4" />
+                <span v-else>2</span>
+              </span>
+              {{ $t('shipping.title') }}
             </h2>
+            <div v-if="shippingMethods?.length" class="space-y-2">
+              <label
+                v-for="method in shippingMethods"
+                :key="method.code"
+                :for="`ship-${method.code}`"
+                class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors min-h-touch"
+                :class="selectedShipping === method.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'"
+              >
+                <input :id="`ship-${method.code}`" type="radio" :value="method.code" v-model="selectedShipping" class="mt-1 accent-accent" />
+                <div class="flex-1">
+                  <div class="flex justify-between gap-2">
+                    <span class="text-white text-sm font-medium">{{ l(method.name) }}</span>
+                    <span class="text-accent text-sm font-bold whitespace-nowrap">
+                      {{ getShippingPrice(method) === 0 ? $t('shipping.free') : getShippingPrice(method) + $t('common.currency') }}
+                    </span>
+                  </div>
+                  <p class="text-text-secondary text-xs mt-0.5">{{ l(method.description) }}</p>
+                </div>
+              </label>
+            </div>
+            <div v-else class="flex items-center gap-2 text-text-secondary text-sm py-2">
+              <Icon name="ph:spinner" class="w-4 h-4 animate-spin" /> {{ $t('common.loading') }}
+            </div>
 
-            <label class="flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors mb-3" :class="billingSameAsShipping ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
-              <input type="checkbox" v-model="billingSameAsShipping" class="accent-accent w-4 h-4" />
-              <span class="text-white text-sm">{{ $t('checkout.same_as_shipping') }}</span>
-            </label>
-
-            <!-- Different billing address -->
-            <div v-if="!billingSameAsShipping" class="space-y-3 mt-4">
-              <div>
-                <label for="bill-country" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.country') }}</label>
-                <select id="bill-country" v-model="billing.country" class="input-field">
-                  <option value="FR">🇫🇷 France</option>
-                  <option value="BE">🇧🇪 Belgique</option>
-                  <option value="LU">🇱🇺 Luxembourg</option>
-                  <option value="DE">🇩🇪 Deutschland</option>
-                  <option value="NL">🇳🇱 Nederland</option>
-                  <option value="ES">🇪🇸 España</option>
-                </select>
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Store info when pickup selected -->
+            <div v-if="isPickup" class="bg-accent/5 border border-accent/20 rounded-lg p-4 mt-3">
+              <div class="flex items-start gap-3">
+                <Icon name="ph:storefront" class="w-6 h-6 text-accent shrink-0 mt-0.5" />
                 <div>
-                  <label for="bill-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
-                  <input id="bill-fn" v-model="billing.firstName" type="text" class="input-field" required />
-                </div>
-                <div>
-                  <label for="bill-ln" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.last_name') }}</label>
-                  <input id="bill-ln" v-model="billing.lastName" type="text" class="input-field" required />
-                </div>
-              </div>
-              <div>
-                <label for="bill-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
-                <input id="bill-addr" v-model="billing.address" type="text" class="input-field" required />
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label for="bill-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                  <input id="bill-zip" v-model="billing.postalCode" type="text" class="input-field" required />
-                </div>
-                <div>
-                  <label for="bill-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
-                  <input id="bill-city" v-model="billing.city" type="text" class="input-field" required />
+                  <p class="text-white font-medium text-sm">Vitesse Eco — Poitiers</p>
+                  <p class="text-text-secondary text-sm mt-1">32 Rue du Faubourg du Pont Neuf<br>86000 Poitiers, France</p>
+                  <p class="text-text-secondary text-xs mt-2">{{ $t('contact.hours_text') }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 4. Payment -->
-          <div class="card p-6">
-            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2">
-              <span class="w-7 h-7 bg-accent/20 rounded-full flex items-center justify-center text-accent text-sm font-bold">{{ isPickup ? '3' : '4' }}</span>
+          <!-- ③ PAIEMENT -->
+          <div class="card p-5 md:p-6">
+            <h2 class="font-display font-semibold text-white mb-4 flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                :class="selectedPayment ? 'bg-accent text-primary' : 'bg-accent/20 text-accent'">
+                <Icon v-if="selectedPayment" name="ph:check-bold" class="w-4 h-4" />
+                <span v-else>3</span>
+              </span>
               {{ $t('checkout.payment_method') }}
             </h2>
             <div v-if="paymentMethods?.length" class="space-y-2">
-              <label v-for="m in paymentMethods" :key="m.code" :for="`pay-${m.code}`" class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors" :class="selectedPayment === m.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
+              <label v-for="m in paymentMethods" :key="m.code" :for="`pay-${m.code}`" class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors min-h-touch" :class="selectedPayment === m.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
                 <input :id="`pay-${m.code}`" type="radio" :value="m.code" v-model="selectedPayment" class="mt-1 accent-accent" />
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
@@ -267,16 +265,16 @@
           </div>
         </div>
 
-        <!-- Right: Summary -->
+        <!-- ═══ Right: summary ═══ -->
         <div>
-          <div class="card p-6 sticky top-24 space-y-4">
+          <div id="checkout-summary" class="card p-5 md:p-6 lg:sticky lg:top-24 space-y-4 scroll-mt-24">
             <h2 class="font-display font-semibold text-white flex items-center gap-2">
               <Icon name="ph:receipt" class="w-5 h-5 text-accent" /> {{ $t('checkout.step_review') }}
             </h2>
             <div class="space-y-2">
               <div v-for="item in cart.items" :key="`${item.productId}-${item.sku}`" class="flex justify-between text-sm">
                 <span class="text-white truncate flex-1">{{ l(item.name) }} <span class="text-text-secondary">× {{ item.quantity }}</span></span>
-                <span class="text-white font-medium ml-2">{{ item.price * item.quantity }}{{ $t('common.currency') }}</span>
+                <span class="text-white font-medium ml-2 whitespace-nowrap">{{ item.price * item.quantity }}{{ $t('common.currency') }}</span>
               </div>
             </div>
             <div class="border-t border-dark-tertiary pt-3 space-y-2 text-sm">
@@ -285,10 +283,9 @@
               <div v-if="cart.discount > 0" class="flex justify-between"><span class="text-accent">{{ $t('cart.discount') }}</span><span class="text-accent">-{{ cart.discount }}{{ $t('common.currency') }}</span></div>
               <div class="flex justify-between text-lg font-bold border-t border-dark-tertiary pt-2"><span class="text-white">{{ $t('cart.total') }}</span><span class="text-accent">{{ orderTotal }}{{ $t('common.currency') }}</span></div>
             </div>
-            <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg">{{ orderError }}</p>
-            <ClientOnly><TurnstileWidget @verify="t => turnstileToken = t" /></ClientOnly>
-            <!-- PayPal Smart Buttons — render directly when payment=paypal so the
-                 PayPal popup is the confirmation step, replacing our inline dialog. -->
+            <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg" role="alert">{{ orderError }}</p>
+            <ClientOnly><TurnstileWidget @verify="tk => turnstileToken = tk" /></ClientOnly>
+            <!-- PayPal Smart Buttons — the PayPal popup IS the confirmation step -->
             <PayPalButtons
               v-if="selectedPayment === 'paypal' && canOrder && paypalOrderPayload"
               :order-payload="paypalOrderPayload"
@@ -298,7 +295,6 @@
               @cancel="orderError = $t('checkout.paypal_cancelled')"
             />
             <template v-else>
-              <!-- Confirmation overlay (in-store + future card methods) -->
               <div v-if="showConfirmation" class="bg-accent/5 border border-accent/30 rounded-lg p-4 space-y-3">
                 <p class="text-white text-sm font-medium">{{ $t('checkout.step_review') }}</p>
                 <p class="text-text-secondary text-xs">{{ cart.items.length }} {{ $t('products.results') }} — {{ orderTotal }}{{ $t('common.currency') }}</p>
@@ -315,12 +311,11 @@
                 <span v-else>{{ $t('checkout.place_order') }}</span>
               </button>
             </template>
-            <!-- P1-08: explicit reason when submit is disabled — never silent. -->
+            <!-- P1-08: never a silently disabled button -->
             <p v-if="disabledReason" class="text-text-secondary text-xs text-center mt-2 flex items-center justify-center gap-1.5" role="status">
               <Icon name="ph:info" class="w-3.5 h-3.5 shrink-0" />
               <span>{{ disabledReason }}</span>
             </p>
-            <!-- Trust badges -->
             <div class="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-dark-tertiary mt-3">
               <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:lock-simple" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.secure_payment') }}</span>
               <span class="flex items-center gap-1.5 text-xs text-text-secondary"><Icon name="ph:shield-check" class="w-3.5 h-3.5 text-accent" /> {{ $t('trust.warranty') }}</span>
@@ -328,6 +323,19 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Mobile sticky pay bar: total always visible; tapping scrolls to the
+         summary (PayPal buttons cannot be duplicated). pe leaves room for the
+         chat launcher. -->
+    <div v-if="!cart.isEmpty" class="lg:hidden fixed bottom-0 inset-x-0 z-header bg-dark-secondary/95 backdrop-blur border-t border-dark-tertiary px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] pe-20">
+      <a href="#checkout-summary" class="flex items-center justify-between gap-3">
+        <span>
+          <span class="block text-xs text-text-secondary leading-tight">{{ $t('cart.total') }}</span>
+          <span class="block text-accent font-bold text-lg leading-tight">{{ orderTotal }}{{ $t('common.currency') }}</span>
+        </span>
+        <span class="btn-primary px-5 py-2.5 text-sm">{{ $t('checkout.place_order') }} ↓</span>
+      </a>
     </div>
   </div>
 </template>
@@ -365,21 +373,13 @@ const billing = reactive({ firstName: '', lastName: '', address: '', postalCode:
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
 
-// Checkout stepper
-const checkoutSteps = computed(() => isPickup.value
-  ? [t('shipping.title'), t('checkout.shipping_address'), t('checkout.payment_method'), t('checkout.step_review')]
-  : [t('shipping.title'), t('checkout.shipping_address'), t('checkout.billing_address'), t('checkout.payment_method')]
-)
-const currentStep = computed(() => {
-  if (!selectedShipping.value) return 0
+// Block ① completion drives its number → checkmark.
+const addressComplete = computed(() => {
   if (isPickup.value) {
-    if (!selectedPayment.value) return 2
-    return 3
+    return auth.isLoggedIn || !!(addr.firstName?.trim() && addr.lastName?.trim())
   }
-  const hasAddr = (selectedAddressId.value && !showNewForm.value) || (showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
-  if (!hasAddr) return 1
-  if (!selectedPayment.value) return isPickup.value ? 2 : 3
-  return 4
+  if (selectedAddressId.value && !showNewForm.value) return true
+  return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
 
 // Shipping — methods follow the customer's destination country (U-X1).
@@ -451,19 +451,10 @@ async function pickCo(s: any) {
 // Can order?
 const canOrder = computed(() => {
   if (!selectedShipping.value || !selectedPayment.value || !turnstileToken.value) return false
-  if (isPickup.value) {
-    // The store needs to know who is coming to pick up. Logged-in users have
-    // their name on file; guests must enter first + last name.
-    if (auth.isLoggedIn) return true
-    return !!(addr.firstName?.trim() && addr.lastName?.trim())
-  }
-  if (selectedAddressId.value && !showNewForm.value) return true
-  return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
+  return addressComplete.value
 })
 
 // P1-08: explicit reason shown to the user when the submit button is disabled.
-// Replaces the previous "silently disabled" UX where the customer could not
-// tell which step was incomplete.
 const disabledReason = computed(() => {
   if (canOrder.value) return ''
   if (!selectedShipping.value) return t('checkout.disabled_no_shipping')
@@ -541,24 +532,12 @@ async function placeOrder() {
   showConfirmation.value = false
   placing.value = true; orderError.value = ''
 
-  let shippingAddress: any
-  if (isPickup.value) {
-    // Logged-in users: take name from profile. Guests: take from the form
-    // gated by canOrder (which requires non-empty firstName/lastName).
-    // No more 'Client' / '' fallback that 400's at server-side validation.
-    const fn = (auth.user?.firstName?.trim() || addr.firstName?.trim() || '')
-    const ln = (auth.user?.lastName?.trim() || addr.lastName?.trim() || '')
-    const ph = (auth.user?.phone?.trim() || addr.phone?.trim() || undefined)
-    shippingAddress = { firstName: fn, lastName: ln, phone: ph, address: '32 Rue du Faubourg du Pont Neuf', city: 'Poitiers', postalCode: '86000', country: 'FR' }
-  } else if (selectedAddressId.value && !showNewForm.value) {
-    const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
-    if (!a) { orderError.value = 'Select address'; placing.value = false; return }
-    shippingAddress = { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, city: a.city, postalCode: a.postalCode, country: a.country }
-  } else {
-    shippingAddress = { ...addr }
-    if (auth.isLoggedIn && saveAddr.value) {
-      try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }) } catch {}
-    }
+  const shippingAddress = resolveShippingAddress()
+  if (!shippingAddress) { orderError.value = t('checkout.disabled_no_address'); placing.value = false; return }
+
+  // Persist a newly typed address for logged-in users before ordering.
+  if (!isPickup.value && !selectedAddressId.value && showNewForm.value && auth.isLoggedIn && saveAddr.value) {
+    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }) } catch {}
   }
 
   try {

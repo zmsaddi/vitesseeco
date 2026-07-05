@@ -154,6 +154,8 @@
     "free_unlocked": "Vous bénéficiez de la livraison gratuite !"
   },
   "checkout": {
+    "guest_hint": "Commande en tant qu'invité — aucune création de compte requise.",
+    "pickup_addr_hint": "Pour le retrait en magasin, indiquez uniquement votre nom (et téléphone).",
     "title": "Finaliser la commande",
     "step_shipping": "Livraison",
     "step_payment": "Paiement",

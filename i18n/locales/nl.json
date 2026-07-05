@@ -154,6 +154,8 @@
     "free_unlocked": "U komt in aanmerking voor gratis verzending!"
   },
   "checkout": {
+    "guest_hint": "Afrekenen als gast — geen account nodig.",
+    "pickup_addr_hint": "Voor afhalen in de winkel zijn alleen uw naam (en telefoon) nodig.",
     "title": "Bestelling afronden",
     "step_shipping": "Verzending",
     "step_payment": "Betaling",

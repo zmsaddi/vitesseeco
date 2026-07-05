@@ -154,6 +154,8 @@
     "free_unlocked": "Kostenloser Versand freigeschaltet!"
   },
   "checkout": {
+    "guest_hint": "Bestellung als Gast — kein Konto erforderlich.",
+    "pickup_addr_hint": "Für die Abholung im Geschäft genügen Name (und Telefon).",
     "title": "Bestellung abschließen",
     "step_shipping": "Versand",
     "step_payment": "Zahlung",

@@ -26,7 +26,7 @@
 
 | Unit | Scope | Status |
 |---|---|---|
-| U-P1 | Checkout `/commande`: one-page 3 blocks, guest-first, PayPal express top, inline validation, §4 error states | ⬜ next |
+| U-P1 | Checkout `/commande`: one-page ①②③ blocks (billing folded into Adresse), guest-first hint, completion checkmarks, mobile sticky pay bar, inline validation, explicit disabled reasons — money logic (PayPal/addresses/Turnstile) preserved verbatim | ✅ 2026-07-05 |
 | U-P2 | PDP `/produits/[slug]`: buy-box, sticky mobile CTA, gallery swipe/zoom, TrustRow, swatches | ⬜ |
 | U-P3 | Header v2 + instant search (suggest endpoint + UI) | ⬜ |
 | U-P4 | Cart drawer + `/panier` v2, toast-undo remove, free-shipping bar | ⬜ |

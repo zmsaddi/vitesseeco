@@ -154,6 +154,8 @@
     "free_unlocked": "You qualify for free delivery!"
   },
   "checkout": {
+    "guest_hint": "Guest checkout — no account required.",
+    "pickup_addr_hint": "For store pickup, only your name (and phone) is needed.",
     "title": "Checkout",
     "step_shipping": "Shipping",
     "step_payment": "Payment",
