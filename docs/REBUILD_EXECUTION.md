@@ -18,7 +18,7 @@
 | U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | ✅ 2026-07-05 |
 | U-A2 | Admin UX pass: bulk status actions, sticky header, keyboard shortcuts | ⬜ |
 | U-A3 | Admin full i18n: 105 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-07-05 |
-| U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry | ⬜ |
+| U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry; checkout quotes by destination country with FR fallback | ✅ 2026-07-05 |
 | U-X2 | Aggregator integration (Sendcloud/Boxtal): labels + tracking webhooks + Bancontact/iDEAL via PSP adapter | ⏸ owner accounts |
 | EXT | Sentry + Resend + Merchant Center + AI key — **with owner, after build** | ⏸ owner |
 

@@ -157,6 +157,7 @@ vitesseeco/
 │   ├── api/places/             ← Google autocomplete + details
 │   ├── api/events/vitals.post.ts
 │   ├── payments/               ← Adapter registry: paypal, stripe, inStore (ENABLE_* flags)
+│   ├── shipping/               ← Carrier adapter registry: manual (SHIPPING_CARRIER env; Sendcloud/Boxtal ready)
 │   ├── database/               ← Drizzle schema + db (Neon)
 │   ├── routes/sitemap.xml      ← Dynamic sitemap with hreflang (+ api/sitemap.xml)
 │   ├── routes/feeds/google-merchant.xml ← Google Shopping feed (item_group_id = modelFamily)

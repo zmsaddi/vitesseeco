@@ -382,8 +382,13 @@ const currentStep = computed(() => {
   return 4
 })
 
-// Shipping
-const { data: shippingData } = useFetch('/api/shipping/methods', { query: { zone: 'FR' } })
+// Shipping — methods follow the customer's destination country (U-X1).
+// The server falls back to FR methods when a zone has no configuration yet,
+// so switching country can never leave the customer with zero options.
+const shippingZone = computed(() => (isPickup.value ? 'FR' : addr.country || 'FR'))
+const { data: shippingData } = useFetch('/api/shipping/methods', {
+  query: computed(() => ({ zone: shippingZone.value })),
+})
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
 function getShippingPrice(m: any) { return m.freeAbove && cart.subtotal >= m.freeAbove ? 0 : m.price || 0 }
 const currentShippingCost = computed(() => { const m = shippingMethods.value.find((m: any) => m.code === selectedShipping.value); return m ? getShippingPrice(m) : 0 })

@@ -1,23 +1,17 @@
-import { createClient } from '@sanity/client'
+/**
+ * Shipping methods for checkout — quotes come from the active carrier
+ * adapter (U-X1). Response shape unchanged ({ methods, zone }) so the
+ * checkout keeps working as before; `zoneFallback` is additive.
+ */
+import { getActiveCarrier } from '~/server/shipping/registry'
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
-  const zone = (query.zone as string || 'FR').toUpperCase()
+  const zone = ((query.zone as string) || 'FR').toUpperCase()
+  const subtotal = Math.max(0, Number(query.subtotal) || 0)
 
-  const config = useRuntimeConfig()
-  const client = createClient({
-    projectId: config.public.sanityProjectId || '2jvnjf0c',
-    dataset: config.public.sanityDataset || 'production',
-    apiVersion: '2024-01-01',
-    useCdn: true,
-  })
+  const carrier = getActiveCarrier()
+  const { rates, zoneFallback } = await carrier.quote({ country: zone, subtotal })
 
-  const methods = await client.fetch(
-    `*[_type == "shippingMethod" && isActive == true && $zone in zones] | order(sortOrder asc) {
-      code, name, description, estimatedDays, price, freeAbove, zones
-    }`,
-    { zone }
-  )
-
-  return { methods, zone }
+  return { methods: rates, zone, zoneFallback: zoneFallback ?? false }
 })
