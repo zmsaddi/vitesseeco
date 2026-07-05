@@ -541,4 +541,11 @@
     "marked_read": "Marqué comme lu",
     "marked_unread": "Marqué comme non lu"
   }
+,
+  "search": {
+    "placeholder": "Rechercher un vélo, une pièce, un accessoire…",
+    "no_results": "Aucun résultat pour « {q} »",
+    "see_all": "Voir tous les résultats",
+    "recent": "Recherches récentes"
+  }
 }

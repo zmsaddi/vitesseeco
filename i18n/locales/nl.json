@@ -541,4 +541,11 @@
     "marked_read": "Gemarkeerd als gelezen",
     "marked_unread": "Gemarkeerd als ongelezen"
   }
+,
+  "search": {
+    "placeholder": "Zoek een fiets, onderdeel, accessoire…",
+    "no_results": "Geen resultaten voor “{q}”",
+    "see_all": "Alle resultaten bekijken",
+    "recent": "Recente zoekopdrachten"
+  }
 }

@@ -541,4 +541,11 @@
     "marked_read": "Als gelesen markiert",
     "marked_unread": "Als ungelesen markiert"
   }
+,
+  "search": {
+    "placeholder": "E-Bike, Ersatzteil, Zubehör suchen…",
+    "no_results": "Keine Ergebnisse für „{q}“",
+    "see_all": "Alle Ergebnisse anzeigen",
+    "recent": "Letzte Suchanfragen"
+  }
 }
