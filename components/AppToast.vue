@@ -26,6 +26,13 @@
           <Icon :name="iconFor(t.type)" class="w-4 h-4 shrink-0" />
           <span class="flex-1">{{ t.message }}</span>
           <button
+            v-if="t.action"
+            @click="t.action.handler(); dismiss(t.id)"
+            class="shrink-0 font-bold underline underline-offset-2 min-h-touch px-1.5 hover:opacity-80"
+          >
+            {{ t.action.label }}
+          </button>
+          <button
             @click="dismiss(t.id)"
             :aria-label="$t('nav.close_menu')"
             class="text-current opacity-60 hover:opacity-100 min-w-touch min-h-touch -mr-2 flex items-center justify-center"

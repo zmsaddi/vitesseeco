@@ -286,6 +286,7 @@
     "address_line": "32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France"
   },
   "common": {
+    "undo": "تراجع",
     "loading": "جاري التحميل...",
     "error": "حدث خطأ",
     "retry": "إعادة المحاولة",

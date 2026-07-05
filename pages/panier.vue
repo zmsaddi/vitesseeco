@@ -230,18 +230,15 @@ const toast = useToast()
 const promoInput = ref('')
 const promoFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
-// P3-03: remove with toast + undo. Replaces the old "instantly remove" UX
-// where an accidental click on a small button cost the user their selection.
+// P3-03: remove with a real Undo action on the toast (U-P4) — an accidental
+// tap costs one more tap, never the selection.
 function removeWithUndo(item: any) {
   const snapshot = { ...item }
   cart.removeItem(item.productId, item.sku)
-  toast.info(t('cart.removed_with_undo', { name: l(item.name) }), 6000)
-  // We don't yet have a queued-action toast; for now the toast is informational.
-  // A future P3 follow-up can add a dedicated undo toast variant.
-  // For now we surface that the item was removed; the user can re-add from the
-  // product page directly. The snapshot is captured to enable a quick undo
-  // without re-fetching from Sanity if we wire the variant later.
-  void snapshot
+  toast.info(t('cart.removed_with_undo', { name: l(item.name) }), 6000, {
+    label: t('common.undo'),
+    handler: () => cart.addItem(snapshot, snapshot.quantity),
+  })
 }
 
 useHead({ title: `${t('cart.title')} — Vitesse Eco` })

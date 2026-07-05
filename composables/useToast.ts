@@ -13,11 +13,18 @@
  * { duration: 0 } for sticky toasts (caller must dismiss).
  */
 
+export interface ToastAction {
+  label: string
+  handler: () => void
+}
+
 export interface ToastEntry {
   id: number
   type: 'success' | 'error' | 'info' | 'warning'
   message: string
   duration: number
+  /** Optional inline action (e.g. "Undo" after a destructive tap). */
+  action?: ToastAction
 }
 
 let nextId = 1
@@ -25,9 +32,9 @@ let nextId = 1
 export function useToast() {
   const toasts = useState<ToastEntry[]>('app-toasts', () => [])
 
-  function push(type: ToastEntry['type'], message: string, duration = 3500) {
+  function push(type: ToastEntry['type'], message: string, duration = 3500, action?: ToastAction) {
     const id = nextId++
-    toasts.value = [...toasts.value, { id, type, message, duration }]
+    toasts.value = [...toasts.value, { id, type, message, duration, action }]
     if (duration > 0) {
       setTimeout(() => dismiss(id), duration)
     }
@@ -44,10 +51,10 @@ export function useToast() {
 
   return {
     toasts,
-    success: (msg: string, duration?: number) => push('success', msg, duration),
-    error:   (msg: string, duration?: number) => push('error', msg, duration),
-    info:    (msg: string, duration?: number) => push('info', msg, duration),
-    warning: (msg: string, duration?: number) => push('warning', msg, duration),
+    success: (msg: string, duration?: number, action?: ToastAction) => push('success', msg, duration, action),
+    error:   (msg: string, duration?: number, action?: ToastAction) => push('error', msg, duration, action),
+    info:    (msg: string, duration?: number, action?: ToastAction) => push('info', msg, duration, action),
+    warning: (msg: string, duration?: number, action?: ToastAction) => push('warning', msg, duration, action),
     dismiss,
     clear,
   }

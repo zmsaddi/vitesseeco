@@ -64,7 +64,7 @@
               <!-- P1-06: every interactive element is now ≥44px hit area on mobile -->
               <div class="flex flex-col items-end gap-2">
                 <button
-                  @click="cart.removeItem(item.productId, item.sku)"
+                  @click="removeWithUndo(item)"
                   :aria-label="$t('cart.remove')"
                   class="text-text-secondary hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 >
@@ -98,6 +98,19 @@
 
           <!-- Footer -->
           <div v-if="!cart.isEmpty" class="border-t border-dark-tertiary p-6 space-y-4">
+            <!-- U-P4: free-shipping progress — the strongest average-basket lever -->
+            <div v-if="freeShippingThreshold > 0 && cart.subtotal < freeShippingThreshold" class="bg-accent/5 border border-accent/20 rounded-lg p-3">
+              <p class="text-xs text-text-secondary mb-1.5">
+                {{ $t('shipping.free_above', { amount: freeShippingThreshold }) }}
+              </p>
+              <div class="h-2 bg-dark-tertiary rounded-full overflow-hidden">
+                <div class="bg-accent h-2 rounded-full transition-all" :style="{ width: Math.min(100, (cart.subtotal / freeShippingThreshold) * 100) + '%' }" />
+              </div>
+              <p class="text-xs text-accent mt-1.5">{{ Math.ceil(freeShippingThreshold - cart.subtotal) }}{{ $t('common.currency') }} {{ $t('shipping.remaining_free') }}</p>
+            </div>
+            <div v-else-if="freeShippingThreshold > 0" class="flex items-center gap-2 text-accent text-xs bg-accent/5 border border-accent/20 rounded-lg p-3">
+              <Icon name="ph:truck" class="w-4 h-4 shrink-0" /> {{ $t('shipping.free_unlocked') }}
+            </div>
             <div class="flex justify-between text-sm">
               <span class="text-text-secondary">{{ $t('cart.subtotal') }}</span>
               <span class="text-white font-semibold">{{ cart.subtotal }}{{ $t('common.currency') }}</span>
@@ -128,18 +141,46 @@
 </template>
 
 <script setup lang="ts">
+const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()
 const cart = useCartStore()
+const toast = useToast()
 const isOpen = useState('cartOpen', () => false)
 
 function close() {
   isOpen.value = false
 }
 
-// Body scroll lock when drawer is open
-watch(isOpen, (open) => {
+// U-P4: remove with Undo on the toast — same pattern as /panier.
+function removeWithUndo(item: any) {
+  const snapshot = { ...item }
+  cart.removeItem(item.productId, item.sku)
+  toast.info(t('cart.removed_with_undo', { name: l(item.name) }), 6000, {
+    label: t('common.undo'),
+    handler: () => cart.addItem(snapshot, snapshot.quantity),
+  })
+}
+
+// U-P4: free-shipping threshold, fetched once the drawer first opens
+// (min freeAbove across active methods — same rule as /panier).
+const shippingMethods = ref<any[]>([])
+const shippingLoaded = ref(false)
+const freeShippingThreshold = computed(() => {
+  const thresholds = shippingMethods.value.filter((m: any) => m.freeAbove).map((m: any) => m.freeAbove)
+  return thresholds.length ? Math.min(...thresholds) : 0
+})
+
+// Body scroll lock when drawer is open + lazy shipping fetch
+watch(isOpen, async (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
+  if (open && !shippingLoaded.value) {
+    shippingLoaded.value = true
+    try {
+      const res: any = await $fetch('/api/shipping/methods', { query: { zone: cart.shippingZone || 'FR' } })
+      shippingMethods.value = res.methods || []
+    } catch { /* progress bar simply stays hidden */ }
+  }
 })
 
 // Close on Escape key

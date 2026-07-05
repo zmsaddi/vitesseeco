@@ -29,7 +29,7 @@
 | U-P1 | Checkout `/commande`: one-page ①②③ blocks (billing folded into Adresse), guest-first hint, completion checkmarks, mobile sticky pay bar, inline validation, explicit disabled reasons — money logic (PayPal/addresses/Turnstile) preserved verbatim | ✅ 2026-07-05 |
 | U-P2 | PDP `/produits/[slug]`: bordered buy-box (PriceTag + StockBadge + swatches + qty + CTA + 4-item trust row), specs/description full-width below fold, DS Breadcrumbs, unified toast, sticky mobile bar with PriceTag | ✅ 2026-07-05 |
 | U-P3 | Header v2: search centered (always visible, both viewports), flat category nav replaces mega-dropdown, instant suggest endpoint (word-prefix GROQ, 60s cache), recent searches, see-all → /produits?q= | ✅ 2026-07-05 |
-| U-P4 | Cart drawer + `/panier` v2, toast-undo remove, free-shipping bar | ⬜ |
+| U-P4 | Cart: toast system gained inline actions; remove-with-real-Undo in drawer + /panier; free-shipping progress bar added to drawer (lazy threshold fetch) | ✅ 2026-07-05 |
 
 ## Phase R2 — Discovery
 
