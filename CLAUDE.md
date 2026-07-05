@@ -234,6 +234,7 @@ vitesseeco/
 - Order processing happens in **/admin** — the Studio order document is read-only
 
 ## Pending (owner accounts session — do TOGETHER)
+> **Full step-by-step playbook:** [docs/OWNER_ACCOUNTS_PLAYBOOK.md](docs/OWNER_ACCOUNTS_PLAYBOOK.md)
 | Service | Purpose | Unlocks |
 |---------|---------|---------|
 | GS1 France prefix | Legal EAN range (~€100-250/yr) | run assign-gtins → Amazon/bol/Kaufland |
