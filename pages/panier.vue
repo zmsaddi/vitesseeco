@@ -107,42 +107,11 @@
               </div>
             </div>
 
-            <!-- Shipping Methods -->
-            <div class="border-t border-dark-tertiary pt-4">
-              <label class="text-text-secondary text-sm block mb-3">{{ $t('shipping.title') }}</label>
-              <div v-if="shippingPending" class="text-text-secondary text-sm">{{ $t('common.loading') }}</div>
-              <div v-else class="space-y-2">
-                <label
-                  v-for="method in shippingMethods"
-                  :key="method.code"
-                  :for="`ship-${method.code}`"
-                  class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors"
-                  :class="cart.shippingCode === method.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary hover:border-dark-tertiary/80'"
-                >
-                  <input
-                    :id="`ship-${method.code}`"
-                    :name="'shipping'"
-                    type="radio"
-                    :value="method.code"
-                    :checked="cart.shippingCode === method.code"
-                    @change="selectShipping(method.code)"
-                    class="mt-1 accent-accent"
-                  />
-                  <div class="flex-1 min-w-0">
-                    <div class="flex justify-between">
-                      <span class="text-white text-sm font-medium">{{ l(method.name) }}</span>
-                      <span class="text-accent text-sm font-bold">
-                        {{ getShippingPrice(method) === 0 ? $t('shipping.free') : getShippingPrice(method) + $t('common.currency') }}
-                      </span>
-                    </div>
-                    <p class="text-text-secondary text-xs mt-0.5">{{ l(method.description) }}</p>
-                    <p class="text-text-secondary text-xs">{{ $t('shipping.estimated', { days: method.estimatedDays }) }}</p>
-                    <p v-if="method.freeAbove && cart.subtotal < method.freeAbove" class="text-gold text-xs mt-1">
-                      {{ $t('shipping.free_above', { amount: method.freeAbove }) }}
-                    </p>
-                  </div>
-                </label>
-              </div>
+            <!-- U-CX1: the shipping DECISION lives at checkout only (address
+                 first, then options). The cart just says where it happens. -->
+            <div class="flex justify-between text-sm border-t border-dark-tertiary pt-4">
+              <span class="text-text-secondary">{{ $t('cart.shipping') }}</span>
+              <span class="text-text-secondary">{{ $t('cart.shipping_calculated') }}</span>
             </div>
 
             <!-- Promo Code -->
@@ -165,12 +134,6 @@
                 <Icon :name="promoFeedback.type === 'success' ? 'ph:check-circle' : 'ph:x-circle'" class="w-3.5 h-3.5" />
                 {{ promoFeedback.message }}
               </p>
-            </div>
-
-            <!-- Summary line: shipping -->
-            <div v-if="cart.shippingCode" class="flex justify-between text-sm">
-              <span class="text-text-secondary">{{ $t('cart.shipping') }}</span>
-              <span class="text-white font-medium">{{ cart.shippingCost === 0 ? $t('shipping.free') : cart.shippingCost + $t('common.currency') }}</span>
             </div>
 
             <!-- Free shipping progress -->
@@ -268,34 +231,17 @@ onMounted(async () => {
   }
 })
 
-// Fetch shipping methods for current zone. Reactive query: the geo plugin
-// may preset the zone (e.g. BE) just after mount — the list must follow.
-const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping/methods', {
+// Zone methods fetched ONLY to compute the free-shipping motivation bar —
+// the shipping decision itself moved to checkout (address first).
+const { data: shippingData } = useFetch('/api/shipping/methods', {
   query: computed(() => ({ zone: cart.shippingZone })),
 })
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
-
-// P3-03 (mirrors P1-01): auto-select shipping when only one option exists so
-// the user is never blocked at checkout by a hidden default.
-watch(shippingMethods, async (methods) => {
-  if (methods.length === 1 && !cart.shippingCode) {
-    await cart.selectShipping(methods[0].code, cart.shippingZone)
-  }
-}, { immediate: true })
 
 const freeShippingThreshold = computed(() => {
   const thresholds = shippingMethods.value.filter((m: any) => m.freeAbove).map((m: any) => m.freeAbove)
   return thresholds.length ? Math.min(...thresholds) : 0
 })
-
-function getShippingPrice(method: any) {
-  if (method.freeAbove && cart.subtotal >= method.freeAbove) return 0
-  return method.price || 0
-}
-
-async function selectShipping(code: string) {
-  await cart.selectShipping(code, cart.shippingZone)
-}
 
 async function applyPromo() {
   if (!promoInput.value.trim()) return
@@ -309,29 +255,23 @@ async function applyPromo() {
 }
 
 async function proceedToCheckout() {
-  if (!cart.shippingCode) {
-    cart.validationError = t('shipping.select_method')
-    return
-  }
-
-  // Final stock check before checkout
+  // Shipping is chosen AT CHECKOUT (address first) — the cart only verifies
+  // that everything is still purchasable before handing over.
   const stockCheck = await cart.checkStock()
-  if (!stockCheck.allValid) {
+  if (!stockCheck.allValid || stockCheck.hasChanges) {
     stockMessages.value = stockCheck.messages
-    cart.validationError = t('cart.stock_updated') || 'Some items are no longer available'
-    return
-  }
-  if (stockCheck.hasChanges) {
-    stockMessages.value = stockCheck.messages
-    cart.validationError = t('cart.stock_updated') || 'Cart updated — please review'
+    cart.validationError = t('cart.stock_updated')
     return
   }
 
-  // Validate prices + shipping + promo
-  const valid = await cart.validateCart()
-  if (valid) {
-    cart.validationError = ''
-    navigateTo(localePath('/commande'))
+  // Legacy selection from an earlier checkout visit: revalidate it so the
+  // totals shown at checkout start correct.
+  if (cart.shippingCode) {
+    const valid = await cart.validateCart()
+    if (!valid) return
   }
+
+  cart.validationError = ''
+  navigateTo(localePath('/commande'))
 }
 </script>

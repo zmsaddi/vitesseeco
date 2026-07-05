@@ -196,7 +196,10 @@
     "order_received_no_number": "Your order has been placed. If the order number is not visible, you'll find it in the confirmation email or in your account.",
     "shipping_dest": "Options for:",
     "shipping_dest_hint": "change the country in step 1 to ship elsewhere",
-    "enter_address_first": "Enter your address in step 1 — delivery options for your country will appear here."
+    "enter_address_first": "Enter your address in step 1 — delivery options for your country will appear here.",
+    "mode_delivery": "Home delivery",
+    "mode_pickup": "Store pickup",
+    "no_delivery_country": "No home delivery for this country yet — choose store pickup or contact us."
   },
   "account": {
     "reorder": "Order again",

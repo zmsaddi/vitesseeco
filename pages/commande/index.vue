@@ -38,6 +38,29 @@
               {{ isPickup ? $t('checkout.pickup_contact_title') : $t('checkout.shipping_address') }}
             </h2>
 
+            <!-- Delivery MODE first — one clear fork instead of pickup hiding
+                 inside the shipping-methods list (owner: page felt scattered) -->
+            <div class="grid grid-cols-2 gap-2 mb-5">
+              <button
+                type="button"
+                @click="setMode('delivery')"
+                class="flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors min-h-touch"
+                :class="mode === 'delivery' ? 'border-accent bg-accent/10 text-white' : 'border-dark-tertiary text-text-secondary hover:border-accent/50'"
+              >
+                <Icon name="ph:truck" class="w-5 h-5 shrink-0" :class="mode === 'delivery' ? 'text-accent' : ''" />
+                {{ $t('checkout.mode_delivery') }}
+              </button>
+              <button
+                type="button"
+                @click="setMode('pickup')"
+                class="flex items-center justify-center gap-2 rounded-lg border p-3 text-sm font-medium transition-colors min-h-touch"
+                :class="mode === 'pickup' ? 'border-accent bg-accent/10 text-white' : 'border-dark-tertiary text-text-secondary hover:border-accent/50'"
+              >
+                <Icon name="ph:storefront" class="w-5 h-5 shrink-0" :class="mode === 'pickup' ? 'text-accent' : ''" />
+                {{ $t('checkout.mode_pickup') }}
+              </button>
+            </div>
+
             <!-- PICKUP: only name + phone needed -->
             <div v-if="isPickup" class="space-y-3">
               <p class="text-text-secondary text-sm flex items-start gap-2">
@@ -205,17 +228,22 @@
             </h2>
             <!-- The methods follow the DESTINATION address entered in step ① —
                  say so, or a gift buyer never realizes options change per country. -->
-            <p v-if="deliveryAddressReady && !isPickup" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
+            <p v-if="!isPickup && deliveryAddressReady" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
               <Icon name="ph:map-pin" class="w-3.5 h-3.5 text-accent shrink-0" />
               {{ $t('checkout.shipping_dest') }} <span class="text-white font-medium">{{ countryLabel(addr.country) }}</span>
               — {{ $t('checkout.shipping_dest_hint') }}
             </p>
             <!-- Address not entered yet → delivery options wait for it -->
-            <div v-if="!deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 mb-3 flex items-start gap-2.5">
+            <div v-if="!isPickup && !deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 mb-3 flex items-start gap-2.5">
               <Icon name="ph:arrow-up" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
               <p class="text-text-secondary text-xs">{{ $t('checkout.enter_address_first') }}</p>
             </div>
-            <div v-if="visibleShippingMethods?.length" class="space-y-2">
+            <!-- Country has no home delivery configured yet -->
+            <div v-if="!isPickup && deliveryAddressReady && !visibleShippingMethods.length" class="bg-gold/10 border border-gold/30 rounded-lg p-3 mb-3 flex items-start gap-2.5">
+              <Icon name="ph:info" class="w-4 h-4 text-gold shrink-0 mt-0.5" />
+              <p class="text-text-secondary text-xs">{{ $t('checkout.no_delivery_country') }}</p>
+            </div>
+            <div v-if="!isPickup && visibleShippingMethods?.length" class="space-y-2">
               <label
                 v-for="method in visibleShippingMethods"
                 :key="method.code"
@@ -437,17 +465,23 @@ const COUNTRY_LABELS: Record<string, string> = {
 }
 const countryLabel = (c: string) => COUNTRY_LABELS[c] || c
 
-// Owner flow (2026-07-05): the customer enters the address FIRST, and only
-// then do delivery options appear — based on that address. Pickup needs no
-// address, so it is always offered.
+// Owner flow (2026-07-05): pickup vs delivery is ONE clear fork up front;
+// in delivery mode the customer enters the address FIRST and only then do
+// the delivery options for that address appear.
+const mode = ref<'delivery' | 'pickup'>(cart.shippingCode === 'pickup' ? 'pickup' : 'delivery')
+function setMode(m: 'delivery' | 'pickup') {
+  mode.value = m
+  if (m === 'pickup') selectedShipping.value = 'pickup'
+  else if (selectedShipping.value === 'pickup') selectedShipping.value = ''
+}
+
 const deliveryAddressReady = computed(() => {
   if (selectedAddressId.value && !showNewForm.value) return true
   return !!(addr.address && addr.city && addr.postalCode)
 })
-const visibleShippingMethods = computed(() => {
-  const all = shippingMethods.value || []
-  return deliveryAddressReady.value ? all : all.filter((m: any) => m.code === 'pickup')
-})
+// Pickup is a MODE now, never a row in the methods list.
+const deliveryMethods = computed(() => (shippingMethods.value || []).filter((m: any) => m.code !== 'pickup'))
+const visibleShippingMethods = computed(() => (deliveryAddressReady.value ? deliveryMethods.value : []))
 const { data: shippingData } = useFetch('/api/shipping/methods', {
   query: computed(() => ({ zone: shippingZone.value })),
 })
@@ -464,8 +498,8 @@ const selectedPaymentData = computed(() => paymentMethods.value.find((m: any) =>
 // P1-01 / P1-02: auto-select when exactly one option is available so the user
 // is never blocked by a hidden default. Only auto-selects if nothing is yet
 // selected (respects manual choice on subsequent renders).
-watch(shippingMethods, (methods) => {
-  if (methods.length === 1 && !selectedShipping.value) {
+watch(visibleShippingMethods, (methods) => {
+  if (mode.value === 'delivery' && methods.length === 1 && !selectedShipping.value) {
     selectedShipping.value = methods[0].code
   }
 }, { immediate: true })

@@ -196,7 +196,10 @@
     "order_received_no_number": "Tu pedido ha sido registrado. Si el número de pedido no aparece, lo encontrarás en el email de confirmación o en tu cuenta.",
     "shipping_dest": "Opciones para:",
     "shipping_dest_hint": "cambia el país en el paso 1 para enviar a otro destino",
-    "enter_address_first": "Introduce tu dirección en el paso 1 — las opciones de entrega para tu país aparecerán aquí."
+    "enter_address_first": "Introduce tu dirección en el paso 1 — las opciones de entrega para tu país aparecerán aquí.",
+    "mode_delivery": "Entrega a domicilio",
+    "mode_pickup": "Recogida en tienda",
+    "no_delivery_country": "Aún no hay entrega a domicilio para este país — elige recogida en tienda o contáctanos."
   },
   "account": {
     "reorder": "Volver a pedir",

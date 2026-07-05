@@ -196,7 +196,10 @@
     "order_received_no_number": "Ihre Bestellung wurde registriert. Falls die Bestellnummer nicht angezeigt wird, finden Sie sie in der Bestätigungs-E-Mail oder in Ihrem Konto.",
     "shipping_dest": "Optionen für:",
     "shipping_dest_hint": "ändern Sie das Land in Schritt 1, um woanders zu liefern",
-    "enter_address_first": "Geben Sie Ihre Adresse in Schritt 1 ein — die Lieferoptionen für Ihr Land erscheinen hier."
+    "enter_address_first": "Geben Sie Ihre Adresse in Schritt 1 ein — die Lieferoptionen für Ihr Land erscheinen hier.",
+    "mode_delivery": "Lieferung nach Hause",
+    "mode_pickup": "Abholung im Geschäft",
+    "no_delivery_country": "Für dieses Land noch keine Lieferung nach Hause — wählen Sie Abholung oder kontaktieren Sie uns."
   },
   "account": {
     "reorder": "Erneut bestellen",

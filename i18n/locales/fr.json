@@ -196,7 +196,10 @@
     "order_received_no_number": "Votre commande a bien été enregistrée. Si le numéro de commande ne s'affiche pas, vous le retrouverez dans l'email de confirmation ou dans votre espace client.",
     "shipping_dest": "Options pour :",
     "shipping_dest_hint": "changez le pays à l’étape 1 pour livrer ailleurs",
-    "enter_address_first": "Renseignez votre adresse à l’étape 1 — les options de livraison pour votre pays apparaîtront ici."
+    "enter_address_first": "Renseignez votre adresse à l’étape 1 — les options de livraison pour votre pays apparaîtront ici.",
+    "mode_delivery": "Livraison à domicile",
+    "mode_pickup": "Retrait en magasin",
+    "no_delivery_country": "Pas encore de livraison à domicile pour ce pays — choisissez le retrait en magasin ou contactez-nous."
   },
   "account": {
     "reorder": "Commander à nouveau",
