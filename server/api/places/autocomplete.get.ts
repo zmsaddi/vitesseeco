@@ -6,6 +6,9 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const input = query.input as string
   const country = (query.country as string || 'fr').toLowerCase().trim()
+  // mode=cities → suggest localities instead of street addresses
+  // (city-first flow in the checkout address form).
+  const types = query.mode === 'cities' ? '(cities)' : 'address'
 
   if (!input || input.length < 3) {
     return { predictions: [] }
@@ -20,7 +23,7 @@ export default defineEventHandler(async (event) => {
         query: {
           input,
           key: apiKey,
-          types: 'address',
+          types,
           components: `country:${country}`,
           language: country === 'de' ? 'de' : country === 'nl' ? 'nl' : country === 'es' ? 'es' : 'fr',
         },

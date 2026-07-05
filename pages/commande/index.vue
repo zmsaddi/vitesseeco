@@ -89,9 +89,16 @@
                   <div>
                     <label for="co-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
                     <div class="relative">
-                      <input id="co-city" v-model="addr.city" @input="cityAuto = false; cityOptions = []" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
-                      <div v-if="cityLookupBusy" class="absolute end-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
+                      <input id="co-city" v-model="addr.city" @input="onCityInput" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" autocomplete="off" required />
+                      <div v-if="cityLookupBusy || citySuggestLoading" class="absolute end-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
                       <Icon v-else-if="cityAuto && addr.city" name="ph:check-circle" class="w-4 h-4 text-accent absolute end-3 top-1/2 -translate-y-1/2" />
+                      <!-- City-first flow: suggestions while typing; picking one
+                           backfills the zip when it is unambiguous. -->
+                      <div v-if="citySuggestions.length" class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                        <button v-for="s in citySuggestions" :key="s.place_id" type="button" @mousedown.prevent="pickCitySuggestion(s)" class="w-full text-start px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white flex items-start gap-2">
+                          <Icon name="ph:map-pin" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" /><span>{{ s.description }}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -535,7 +542,7 @@ const coInput = ref<HTMLInputElement>()
 const coSuggestions = ref<any[]>([])
 const coLoading = ref(false)
 let coTimer: ReturnType<typeof setTimeout>
-watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = [] })
+watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = []; citySuggestions.value = [] })
 
 // Zip-first UX: postal code → city, silently. Never clobbers a city the
 // customer typed themselves (cityAuto tracks provenance).
@@ -570,6 +577,37 @@ function pickCity(c: string) {
   addr.city = c
   cityAuto.value = true
   cityOptions.value = []
+}
+
+// City-first direction: typing a city offers locality suggestions; picking
+// one fills the zip too when the town has exactly one (big cities keep the
+// zip open — the street pick will settle it).
+const citySuggestions = ref<any[]>([])
+const citySuggestLoading = ref(false)
+let cityTimer: ReturnType<typeof setTimeout>
+function onCityInput() {
+  cityAuto.value = false
+  cityOptions.value = []
+  clearTimeout(cityTimer)
+  if (addr.city.length < 2) { citySuggestions.value = []; citySuggestLoading.value = false; return }
+  citySuggestLoading.value = true
+  cityTimer = setTimeout(async () => {
+    try {
+      const d = await $fetch<any>('/api/places/autocomplete', { query: { input: addr.city, country: addr.country.toLowerCase(), mode: 'cities' } })
+      citySuggestions.value = d.predictions || []
+    } catch { citySuggestions.value = [] } finally { citySuggestLoading.value = false }
+  }, 350)
+}
+async function pickCitySuggestion(s: any) {
+  citySuggestions.value = []
+  addr.city = s.structured_formatting?.main_text || s.description
+  cityAuto.value = true
+  if (!addr.postalCode) {
+    try {
+      const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
+      if (d.postalCode) addr.postalCode = d.postalCode
+    } catch {}
+  }
 }
 
 function onCoInput() {
