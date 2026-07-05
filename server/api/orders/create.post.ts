@@ -234,6 +234,7 @@ export default defineEventHandler(async (event) => {
     shippingAddress: body.shippingAddress as Record<string, unknown>,
     billingAddress: (body.billingAddress || body.shippingAddress) as Record<string, unknown>,
     paymentCode: body.paymentCode,
+    shippingCode: body.shippingCode,
     promoCode: body.promoCode || null,
     notes: body.notes || null,
   }

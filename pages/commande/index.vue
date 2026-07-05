@@ -468,8 +468,12 @@ watch(visibleShippingMethods, (methods) => {
       && !methods.some((m: any) => m.code === selectedShipping.value)) {
     selectedShipping.value = ''
   }
-  if (methods.length === 1 && !selectedShipping.value) {
-    selectedShipping.value = methods[0].code
+  // Owner rule: home delivery is the DEFAULT whenever the address
+  // qualifies for it; pickup only defaults when it is the only option.
+  // An explicit customer choice (incl. pickup) is never overridden.
+  if (!selectedShipping.value && methods.length) {
+    const delivery = methods.find((m: any) => m.code !== 'pickup')
+    selectedShipping.value = (delivery || methods[0]).code
   }
 }, { immediate: true })
 
@@ -477,6 +481,8 @@ watch(visibleShippingMethods, (methods) => {
 // collected in cash by our own fleet). Empty/absent list = all countries.
 const visiblePaymentMethods = computed(() =>
   paymentMethods.value.filter((m: any) => {
+    // Pay-at-the-shop is only offered when the order is picked up there.
+    if (m.code === 'in_store' && !isPickup.value) return false
     if (!Array.isArray(m.countries) || m.countries.length === 0) return true
     if (isPickup.value) return false
     return m.countries.includes(activeDestination.value.country)

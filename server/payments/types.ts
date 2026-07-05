@@ -27,6 +27,8 @@ export interface OrderContext {
   shippingAddress: Record<string, unknown>
   billingAddress?: Record<string, unknown>
   paymentCode: string
+  /** Selected shipping/receiving method code ('pickup', 'free-benelux', ...). */
+  shippingCode?: string
   promoCode?: string | null
   notes?: string | null
 }

@@ -12,6 +12,11 @@ export const inStoreAdapter: PaymentAdapter = {
 
   async validate({ context }) {
     if (context.total < 0) return { ok: false, reason: 'negative_total' }
+    // Paying at the shop only makes sense when the order is PICKED UP at
+    // the shop (owner rule 2026-07-06).
+    if (context.shippingCode && context.shippingCode !== 'pickup') {
+      return { ok: false, reason: 'in_store_payment_requires_pickup' }
+    }
     return { ok: true }
   },
 
