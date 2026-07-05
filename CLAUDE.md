@@ -1,7 +1,7 @@
 # Vitesse Eco — Project Documentation
 > **Last updated:** 2026-07-05
 > **System:** B (product per color, no variants)
-> **Active plan:** [docs/EXPERIENCE_RECONSTRUCTION_PLAN.md](docs/EXPERIENCE_RECONSTRUCTION_PLAN.md) (customer + admin experience, 6–8 weeks)
+> **Active plan:** [docs/MASTER_REBUILD_PLAN.md](docs/MASTER_REBUILD_PLAN.md) — full website rebuild, 12 weeks, target #1 in FR/NL/DE/ES
 > **Security backlog:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (remains authoritative for SEC-*/OBS-* items)
 
 ## Project Overview

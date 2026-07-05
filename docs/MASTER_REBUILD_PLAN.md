@@ -1,0 +1,269 @@
+# Vitesse Eco — Master Rebuild Plan
+
+> **Status:** Approved — THE official reference for all work
+> **Created:** 2026-07-05 · **Owner:** zmsaddi
+> **Mission:** Rebuild the entire website experience once, expert-grade, mobile-first —
+> and make Vitesse Eco the #1 e-mobility store result in **France, Netherlands, Germany, Spain**.
+> **Timeline:** 12 weeks, weekly shippable milestones
+> **Supersedes:** [EXPERIENCE_RECONSTRUCTION_PLAN.md](EXPERIENCE_RECONSTRUCTION_PLAN.md) (absorbed).
+> Security backlog in [PRODUCTION_UPGRADE_PLAN.md](PRODUCTION_UPGRADE_PLAN.md) stays authoritative.
+
+---
+
+## 0. Doctrine — how we rebuild
+
+1. **Rebuild, don't patch.** Every page is rewritten from a blank file against this plan's
+   specs. No legacy markup survives by inertia — only by passing review.
+2. **Keep the money engine.** The transactional backend (PG-primary orders, stock locks,
+   PayPal, outbox→Sanity, audit) is proven in production. It is NOT rebuilt. Rebuilding
+   working payment code adds risk and zero customer value. Everything above it is.
+3. **Mobile-first literally.** Every page is designed at 375px first, then expanded.
+   Desktop is the adaptation.
+4. **Familiarity is the UX.** Amazon/Shopify-class conventions everywhere. Brand lives in
+   color/type/imagery — never in navigation or flow. (Owner: site is confusing, not ugly.)
+5. **No silent anything.** Every action gives feedback ≤100ms; every error says what
+   happened and what to do next; every disabled control shows why. Specified in §4.
+6. **Ship weekly behind flags.** Each rebuilt page replaces the old one via its own PR +
+   tests + visual baseline. `ENABLE_NEW_*` env flags where risk warrants instant rollback.
+7. **#1 is a program, not a feature.** Technical SEO gets to the starting line; content,
+   reviews, and per-market operations win the race. §7 is as binding as the code sections.
+
+---
+
+## 1. Current state (what we build on)
+
+| Asset | Status |
+|---|---|
+| Nuxt 3 + Sanity + Neon PG + Vercel | Keep — modern, fits free-tier strategy |
+| PG-primary orders, stock locks, outbox, audit, events | Keep — live and verified |
+| PayPal live + adapter registry (stripe/inStore stubs) | Keep |
+| Admin panel `/admin` (dashboard, orders, stock, messages) | Built 2026-07-05 — extend in §6 |
+| Google Merchant feed `/feeds/google-merchant.xml` | Built 2026-07-05 |
+| hreflang 6 langs, JSON-LD (Product/FAQ/Article/Org/LocalBusiness/WebSite), dynamic sitemap | Keep + harden in CI |
+| i18n 6 locales × 353 keys | Keep; native review required (§7.3) |
+| All customer-facing pages/components | **Rebuilt** (§3) |
+| Email (Resend), password reset, Sentry | **Missing — Week 1 blockers** |
+
+---
+
+## 2. Phase map
+
+```
+R0  Wk 1      Foundation: Sentry, emails, baselines, Design System v2 + feedback kit
+R1  Wk 2-4    Money path rebuild: checkout, product page, cart, header+search
+R2  Wk 5-6    Discovery rebuild: listing, home, search results, guide, FAQ, blog
+R3  Wk 7      Account & auth rebuild + password reset + order tracking
+R4  Wk 8      Market program: NL/DE/ES localization, legal compliance, per-market SEO
+R5  Wk 9-10   Hardening: performance budgets, a11y AA, full E2E matrix, RTL pass
+R6  Wk 11-12  SEO content engine, reviews, launch checklist, monitoring
+ADM continuous Admin v2: promos, notifications, invoices (§6)
+```
+
+Every week ends with: deploy to production, DoD checklist (§9) green for shipped units.
+
+---
+
+## 3. Track A — Full page rebuild (R1–R3)
+
+### 3.1 Design System v2 (R0 — prerequisite for everything)
+
+Component library, built first, used exclusively (no ad-hoc markup in pages):
+
+| Category | Components |
+|---|---|
+| Primitives | Button (5 variants × 6 states), Input, Select, Checkbox, Radio, QuantityStepper, Textarea |
+| Feedback (§4) | AppDialog (modal), ConfirmDialog, AppToast (exists), InlineError, FormError summary, Banner |
+| Loading | Skeleton (exists), SpinnerButton state, PageLoading bar |
+| Commerce | ProductCard v2, PriceTag (sale/regular), StockBadge, ColorSwatches, TrustRow, RatingStars (placeholder until reviews) |
+| Structure | Breadcrumbs, Tabs, Accordion, EmptyState (exists), Pagination, BottomSheet (mobile filters) |
+| Layout | AppHeader v2 (search-centered), AppFooter v2, StickyBar (mobile PDP/checkout CTA) |
+
+Rules: tokens only (no raw hex — CI-enforced already), touch targets ≥44px, one primary
+action per view, `focus-visible` ring on everything, all text via i18n keys (6 locales).
+
+### 3.2 Page rebuild order & specs
+
+| # | Page | Wk | Key spec (each also passes §4 + §5) |
+|---|---|---|---|
+| 1 | Checkout `/commande` | 2 | One page, 3 blocks (①Adresse ②Livraison ③Paiement), guest-first, PayPal express top, auto-select single options, price-lock verified, stepper progress, per-field inline validation on blur |
+| 2 | PDP `/produits/[slug]` | 3 | Amazon buy-box right/sticky-bottom-mobile, gallery with zoom+swipe, color swatches (modelFamily), delivery estimate, TrustRow, specs table, sticky Add-to-Cart, JSON-LD verified in CI |
+| 3 | Header + instant search | 3 | Logo left / search center / account+cart right; search suggests products+categories after 2 chars (<150ms, serverless endpoint over Sanity), recent searches localStorage; flat category nav |
+| 4 | Cart drawer + `/panier` | 4 | Drawer = feedback after add; page = review; quantity stepper with stock ceiling; free-shipping progress bar; single CTA; remove = one tap + toast undo |
+| 5 | Listing `/produits` | 5 | Filters: desktop left rail, mobile BottomSheet; active filters as chips; sort; result count; URL-synced state (shareable/SEO); skeleton grid on load |
+| 6 | Home | 5 | Category tiles → bestsellers → trust strip → current promos → blog teasers; zero decoration that doesn't sell |
+| 7 | Search results page | 6 | Full results for submitted queries, "no results" with suggestions + top categories |
+| 8 | Guide (rebuild — deleted page), Comparatif, FAQ | 6 | Buying guides per category (SEO backbone, §7), comparison table mobile-scrollable, FAQ with FAQPage JSON-LD |
+| 9 | Blog index + article | 6 | Article JSON-LD, related products blocks (internal linking for SEO) |
+| 10 | Auth: connexion/inscription + reset | 7 | Single AuthCard pattern, Google button prominent, password reset flow (P0-06/07/08), explicit error for "account exists via Google — use Google button" (fixes the owner's own confusion this week) |
+| 11 | Account `/compte` + order tracking | 7 | Status timeline (Confirmée→Préparée→Expédiée→Livrée) with carrier link, addresses, profile |
+| 12 | Legal pages + contact + a-propos | 7 | LegalSections kept, contact with Turnstile states, per-market legal variants (§7.4) |
+
+Each page PR contains: the rebuilt page, its e2e spec (FR mobile+desktop minimum),
+a visual baseline, and i18n keys in all 6 locales (`check:langs` gate).
+
+---
+
+## 4. Feedback system spec — "all dialogs, errors, responses"
+
+The complete inventory. Every rebuilt page implements the relevant rows; nothing else invents patterns.
+
+### 4.1 Dialogs (AppDialog / ConfirmDialog)
+
+| Trigger | Type | Content rule |
+|---|---|---|
+| Remove cart item | Toast + undo (NO dialog — low stakes) | "Article retiré · Annuler" 5s |
+| Clear cart / cancel order (admin) | ConfirmDialog | Verb-specific button ("Vider le panier"), never "OK" |
+| Leave checkout with filled form | Browser beforeunload only | No custom nag dialogs |
+| Delete account | ConfirmDialog + typed confirmation | Exists — restyle |
+| Price changed at order create | AppDialog | Old→new price shown, "Continuer" / "Revoir le panier" |
+| Stock dropped below cart qty | AppDialog | Per-item availability, auto-adjust option |
+
+### 4.2 Error responses (client rendering of API errors)
+
+| Status | UX |
+|---|---|
+| 400 field errors | Inline under field + focus first error + form-top summary (a11y: role=alert) |
+| 401 | Redirect to /connexion with `?next=` return path + toast "Connectez-vous pour continuer" |
+| 403 | Friendly page "Accès réservé" |
+| 404 (product/order) | Branded page: search bar + top categories + "continuer mes achats" |
+| 409 stock/promo/duplicate | Specific dialog/inline per §4.1 — never generic |
+| 429 rate limit | Toast "Trop de tentatives — réessayez dans un instant" |
+| 500 / network fail | Retry pattern: inline block with "Réessayer" button; auto-retry once on GET; Sentry captures |
+| Offline | Global banner "Connexion perdue" (navigator.onLine), queued cart ops |
+| Turnstile pending/failed | Existing P0-15 states, restyled into kit |
+
+### 4.3 Response states (success/loading)
+
+- Add to cart → drawer opens (desktop: toast + mini-cart bounce) — never a page jump.
+- Any submit button → SpinnerButton state, disabled WITH visible reason if precondition missing.
+- Order placed → full-screen confirmation with number, next steps (3), email note, tracking link.
+- Every list/detail fetch → skeleton (never blank, never layout shift — CLS budget 0.1).
+- Form saves (account/admin) → toast + optimistic UI where safe.
+
+---
+
+## 5. Non-negotiable quality gates (every page, CI-enforced by R5)
+
+| Gate | Budget |
+|---|---|
+| Lighthouse mobile (perf/a11y/SEO/BP) | ≥90 each, key pages ≥95 SEO |
+| LCP / CLS / INP (p75 field, via vitals endpoint) | <2.5s / <0.1 / <200ms |
+| Initial JS | ≤200KB gzip (script exists — wire to CI) |
+| axe-core | 0 critical/serious |
+| Touch targets | ≥44px |
+| E2E matrix | checkout FR/EN/ES/AR × mobile/desktop green |
+| Visual regression | baselines for all rebuilt pages × 2 viewports |
+| RTL (AR) | dedicated pass — mirrored icons, logical properties only |
+| `check:langs` + `check:hex` | green (existing) |
+
+---
+
+## 6. Track B — Admin v2 (continuous)
+
+Built: dashboard, live orders, stock, messages. Add:
+
+| Wk | Feature |
+|---|---|
+| 3 | New-order notification: email (Resend) + optional Telegram bot |
+| 4 | Status-change → automatic customer email (shipped = tracking link) |
+| 5 | `/admin/promos`: list, toggle, usage counters, create simple codes |
+| 6 | Invoice print view (browser print CSS; PDF later if needed) |
+| 8 | Per-market view: orders/revenue split by shipping country |
+| 10 | Funnel trends chart (7/30d) on dashboard |
+
+Benchmark stays: process an order < 60s; every daily task ≤3 clicks.
+
+---
+
+## 7. Track C — #1 in FR / NL / DE / ES
+
+**Honest model:** rankings = Technical × Content × Authority × Time. Code delivers
+Technical 100%. Content and Authority are operated programs defined here — skipping
+them means not ranking, regardless of code quality.
+
+### 7.1 Technical per-market (code — R4)
+
+- hreflang already live for fr/nl/de/es/en/ar ✅; add x-default; CI check that every
+  indexable page emits complete hreflang cluster + canonical.
+- Per-language Merchant feeds: `/feeds/google-merchant-{nl,de,es}.xml` with translated
+  titles/descriptions (same EUR prices), submitted as separate country feeds.
+- GSC: one property, per-country performance monitoring; Bing Webmaster too.
+- Per-market meta title/description patterns keyword-researched per language
+  (e.g. DE: "E-Bike kaufen", NL: "elektrische fiets kopen", ES: "bicicleta eléctrica").
+- Localized slugs stay French (URL change = SEO reset — NOT worth it); language prefix
+  routing already handles market targeting.
+
+### 7.2 Content engine (operated program — R6 onward, 2-4 pieces/month/language)
+
+- Buying guide per category per language (the rebuilt Guide page is the hub).
+- Comparison pages ("X vs Y") — highest commercial intent, weakest competition.
+- FAQ expansion per market (battery law DE, bike subsidies FR/NL, etc.).
+- Every product: unique 150+ word description per language (no thin/duplicate content).
+- Internal linking: blog→product, guide→category, PDP→guide.
+
+### 7.3 Localization quality (R4)
+
+- Native-speaker review of NL/DE/ES locale files + product/legal content (owner sources
+  reviewers; machine translation alone reads foreign and kills DE/NL conversion).
+- Locale-correct number/date/currency formatting everywhere (Intl APIs).
+
+### 7.4 Market-entry compliance (R4 — legal/ops, owner + code)
+
+| Market | Requirement | Action |
+|---|---|---|
+| DE | Impressum, Widerrufsbelehrung (14-day withdrawal), Preisangabenverordnung (unit pricing), battery-law notice (BattG) | Legal page variants + checkout copy; owner validates with advisor |
+| NL/ES/EU | 14-day withdrawal, ODR platform link, consumer-law delivery promises | CGV additions per language |
+| EU VAT | Distance-selling >€10k/yr → **OSS registration** (one French filing for all EU VAT) | Owner + accountant; site shows TTC prices (already does) |
+| Shipping | Real carrier methods + prices per country in Sanity shippingMethod zones | Configure NL/DE/ES zones; checkout filters by country (adapter exists) |
+| Reviews | Trustpilot (free tier) wired post-purchase email | R6; review stars → JSON-LD aggregateRating → SERP CTR |
+
+### 7.5 Leading indicators (monthly review vs #1 goal)
+
+GSC impressions & CTR per market → indexed pages → CWV field data → conversion per
+market → (lagging) rankings for target keyword set per language (tracked list of 20/market).
+
+---
+
+## 8. Owner dependencies (only you can unblock)
+
+| # | What | Blocks | When |
+|---|---|---|---|
+| 1 | Resend account + DNS verify + `RESEND_API_KEY` | Order emails, reset, notifications | **Week 1** |
+| 2 | Sentry account + DSN | Error visibility | **Week 1** |
+| 3 | Google Merchant Center + submit feed URL(s) | Shopping presence in all 4 markets | Week 1-2 |
+| 4 | Native reviewers NL/DE/ES (freelance ok) | §7.3 | Week 7 |
+| 5 | Accountant: OSS/VAT + DE legal check | §7.4 | Week 7 |
+| 6 | Carrier pricing for NL/DE/ES shipping | Checkout for those markets | Week 7 |
+| 7 | Trustpilot account | Reviews/stars | Week 10 |
+| 8 | Telegram bot token (optional) | Instant order pings | Week 3 |
+| 9 | Content pipeline decision: who writes/reviews monthly content | §7.2 forever | Week 10 |
+
+---
+
+## 9. Definition of Done (per shipped unit + at launch)
+
+Per page: spec §3.2 met · §4 states implemented · §5 gates green · 6-locale keys ·
+e2e + visual tests committed · deployed and manually smoke-tested on real phone.
+
+At launch (end R6): all pages rebuilt · zero legacy components in use · full E2E matrix
+green · CWV field p75 within budget 7 consecutive days · Sentry <1 new error type/day ·
+emails delivering >99% · feeds accepted in Merchant Center (4 markets) · GSC zero
+coverage errors · admin processes order <60s · rollback flags documented.
+
+---
+
+## 10. Risks & mitigations
+
+| Risk | Mitigation |
+|---|---|
+| Big-bang regression | No big bang — page-by-page behind flags, visual+e2e per PR |
+| Free-tier ceilings (Neon/Resend/Vercel Hobby ToS) | Existing free-tier strategy; upgrade triggers documented in PRODUCTION_UPGRADE_PLAN §4; Vercel Pro when orders stabilize |
+| Translation quality kills DE/NL trust | Native review gate before market push (owner dep #4) |
+| Content program stalls after launch | §7.2 cadence reviewed monthly with owner; without it, #1 goal is explicitly at risk |
+| Scope creep into backend rewrite | Doctrine §0.2 — backend changes only via security backlog |
+
+## 11. Change log
+
+| Date | Change |
+|---|---|
+| 2026-07-05 | v1 approved. Full-rebuild mandate from owner ("one time, better than fix every time"; #1 in FR/NL/DE/ES). Absorbs EXPERIENCE_RECONSTRUCTION_PLAN.md. |

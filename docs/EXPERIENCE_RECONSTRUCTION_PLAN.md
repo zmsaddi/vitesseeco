@@ -1,6 +1,6 @@
 # Vitesse Eco — Experience Reconstruction Plan
 
-> **Status:** Approved — official reference for all experience work
+> **Status:** SUPERSEDED (2026-07-05) by [MASTER_REBUILD_PLAN.md](MASTER_REBUILD_PLAN.md) — full-rebuild mandate absorbed this plan. Kept for history only.
 > **Created:** 2026-07-05
 > **Owner:** zmsaddi
 > **Target:** 6–8 weeks, iterative weekly releases
