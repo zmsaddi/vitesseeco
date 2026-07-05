@@ -76,20 +76,23 @@
       </div>
     </section>
 
-    <!-- Trust Badges — refined with subtle accent border + hover -->
-    <section class="py-5 bg-dark-secondary border-y border-dark-tertiary/50 relative">
-      <div class="absolute inset-x-0 top-0 divider-accent" />
+    <!-- U-P6: category tiles — the first thing after the hero. One tap to any
+         department, exactly like the stores customers already know. -->
+    <section class="py-10 md:py-14 bg-primary">
       <div class="container-custom">
-        <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 md:gap-x-12">
-          <div v-for="t in trustBadges" :key="t.label" class="group flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors duration-fast">
-            <div class="w-9 h-9 bg-accent/10 group-hover:bg-accent/20 rounded-lg flex items-center justify-center transition-colors duration-fast">
-              <Icon :name="t.icon" class="w-4 h-4 text-accent" />
-            </div>
-            <span class="font-medium">{{ t.label }}</span>
-          </div>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <NuxtLink
+            v-for="tile in categoryTiles"
+            :key="tile.type"
+            :to="localePath(`/produits?type=${tile.type}`)"
+            class="card card-lift p-5 md:p-6 text-center group focus-ring"
+          >
+            <span class="text-3xl md:text-4xl block mb-3" aria-hidden="true">{{ tile.icon }}</span>
+            <span class="block font-display font-bold text-white text-sm md:text-base group-hover:text-accent transition-colors">{{ tile.label }}</span>
+            <span class="block text-text-secondary text-xs mt-1 hidden md:block">{{ tile.desc }}</span>
+          </NuxtLink>
         </div>
       </div>
-      <div class="absolute inset-x-0 bottom-0 divider-accent" />
     </section>
 
     <!-- Brand Values — premium card lift -->
@@ -150,6 +153,22 @@
           </NuxtLink>
         </div>
       </div>
+    </section>
+
+    <!-- Trust strip — right after the products it needs to reassure about -->
+    <section class="py-5 bg-dark-secondary border-y border-dark-tertiary/50 relative">
+      <div class="absolute inset-x-0 top-0 divider-accent" />
+      <div class="container-custom">
+        <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 md:gap-x-12">
+          <div v-for="tb in trustBadges" :key="tb.label" class="group flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors duration-fast">
+            <div class="w-9 h-9 bg-accent/10 group-hover:bg-accent/20 rounded-lg flex items-center justify-center transition-colors duration-fast">
+              <Icon :name="tb.icon" class="w-4 h-4 text-accent" />
+            </div>
+            <span class="font-medium">{{ tb.label }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="absolute inset-x-0 bottom-0 divider-accent" />
     </section>
 
     <!-- Latest Blog Articles -->
@@ -276,5 +295,13 @@ const trustBadges = computed(() => [
   { icon: 'ph:truck',        label: t('trust.fast_delivery') },
   { icon: 'ph:shield-check', label: t('trust.warranty') },
   { icon: 'ph:headset',      label: t('trust.support') },
+])
+
+// U-P6: one tile per department — same set and order as the header nav.
+const categoryTiles = computed(() => [
+  { type: 'bike',       icon: '🚲', label: t('nav.type_bikes'),       desc: t('nav.type_bikes_desc') },
+  { type: 'spare_part', icon: '🔧', label: t('nav.type_parts'),       desc: t('nav.type_parts_desc') },
+  { type: 'accessory',  icon: '🎒', label: t('nav.type_accessories'), desc: t('nav.type_accessories_desc') },
+  { type: 'kids_car',   icon: '🧸', label: t('nav.type_kids'),        desc: t('nav.type_kids_desc') },
 ])
 </script>

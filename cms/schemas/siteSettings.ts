@@ -35,6 +35,17 @@ export default defineType({
       ],
     },
     { name: 'footerText', title: '📄 نص أسفل الصفحة', type: 'localizedString' },
+    {
+      name: 'announcement',
+      title: '📣 شريط الإعلان (أعلى الموقع)',
+      type: 'object',
+      description: 'رسالة قصيرة تظهر فوق الهيدر في كل الصفحات — عروض، شحن مجاني، إلخ',
+      fields: [
+        { name: 'enabled', title: '✅ مفعّل', type: 'boolean', initialValue: false },
+        { name: 'text', title: '💬 النص', type: 'localizedString' },
+        { name: 'link', title: '🔗 رابط عند النقر (اختياري)', type: 'string', description: 'مثال: /produits?type=bike' },
+      ],
+    },
   ],
   preview: {
     prepare: () => ({ title: '⚙️ إعدادات الموقع' }),
