@@ -49,6 +49,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
 
   interface FeedProduct {
     sku: string | null
+    gtin: string | null
     slug: string | null
     name: string | null
     description: string | null
@@ -64,6 +65,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
   const products = await client.fetch<FeedProduct[]>(
     `*[_type == "product" && isAvailable == true && defined(slug.current) && defined(price) && price > 0]{
       sku,
+      gtin,
       "slug": slug.current,
       "name": coalesce(name[$locale], name.fr),
       "description": coalesce(shortDescription[$locale], shortDescription.fr, name[$locale], name.fr),
@@ -95,8 +97,9 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
     <g:image_link>${esc(p.image)}</g:image_link>
     <g:availability>${availability}</g:availability>
     <g:price>${(p.price as number).toFixed(2)} EUR</g:price>
-    <g:condition>new</g:condition>
-    <g:identifier_exists>no</g:identifier_exists>${p.brand ? `
+    <g:condition>new</g:condition>${p.gtin ? `
+    <g:gtin>${esc(p.gtin)}</g:gtin>` : `
+    <g:identifier_exists>no</g:identifier_exists>`}${p.brand ? `
     <g:brand>${esc(p.brand)}</g:brand>` : ''}${p.color ? `
     <g:color>${esc(p.color)}</g:color>` : ''}${p.modelFamily ? `
     <g:item_group_id>${esc(p.modelFamily)}</g:item_group_id>` : ''}${productType ? `

@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
 
   interface Row {
     sku: string | null
+    gtin: string | null
     slug: string | null
     name: string | null
     description: string | null
@@ -42,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   const products = await client.fetch<Row[]>(`
     *[_type == "product" && isAvailable == true && defined(slug.current) && defined(price) && price > 0]{
-      sku, "slug": slug.current, "name": name.fr,
+      sku, gtin, "slug": slug.current, "name": name.fr,
       "description": coalesce(shortDescription.fr, name.fr),
       price, stock, productType,
       "brand": coalesce(brand->name.fr, brand->name),
@@ -53,7 +54,7 @@ export default defineEventHandler(async (event) => {
 
   const header = [
     'id', 'title', 'description', 'link', 'image_link', 'availability',
-    'price', 'brand', 'condition', 'identifier_exists', 'item_group_id',
+    'price', 'brand', 'condition', 'gtin', 'identifier_exists', 'item_group_id',
     'color', 'product_type',
   ].join(',')
 
@@ -70,7 +71,8 @@ export default defineEventHandler(async (event) => {
         `${(p.price as number).toFixed(2)} EUR`,
         p.brand || '',
         'new',
-        'no',
+        p.gtin || '',
+        p.gtin ? 'yes' : 'no',
         p.modelFamily || '',
         p.color || '',
         p.productType || '',

@@ -45,6 +45,21 @@ export default defineType({
       validation: (Rule) => Rule.regex(/^[A-Z0-9-]+$/, { name: 'SKU format' }).error('حروف كبيرة وأرقام وشرطات فقط'),
     },
     {
+      name: 'gtin', title: '🌐 GTIN / EAN-13', type: 'string', group: 'main',
+      description: 'كود EAN-13 من نطاق GS1 المرخّص — يُعبّأ آلياً بسكربت assign-gtins. مطلوب لـ Amazon/bol/Kaufland',
+      validation: (Rule) =>
+        Rule.custom((val?: string) => {
+          if (!val) return true
+          if (!/^\d{13}$/.test(val)) return 'يجب أن يكون 13 رقماً (EAN-13)'
+          // EAN-13 check digit (mod-10)
+          const digits = val.split('').map(Number)
+          const check = digits.pop() as number
+          const sum = digits.reduce((s, d, i) => s + d * (i % 2 === 0 ? 1 : 3), 0)
+          const expected = (10 - (sum % 10)) % 10
+          return check === expected ? true : `رقم التحقق خاطئ — المتوقع ${expected}`
+        }),
+    },
+    {
       name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
     },
     {
