@@ -52,7 +52,7 @@
 | Database | Neon PostgreSQL + Drizzle ORM (^0.45.2) |
 | Auth | DB sessions (`sessions` table) + httpOnly `auth_token` cookie + Google OAuth |
 | Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (card via stripe, klarna, inStore — scaffolded, flag-gated) |
-| Shipping | Carrier adapter registry (`server/shipping/`, `SHIPPING_CARRIER` env, manual adapter live; Sendcloud/Boxtal-ready) |
+| Shipping | FREE FR/BE/NL (own delivery fleet in BE/NL; NRW-Germany planned — needs postal-code zones). Carrier adapter registry (`server/shipping/`, `SHIPPING_CARRIER` env, manual adapter live; Sendcloud/Boxtal-ready). IP geo presets zone, typed address decides |
 | CAPTCHA | Cloudflare Turnstile |
 | Chat | ChatWidget (rule-based, AI-ready via `ANTHROPIC_API_KEY`) + WhatsApp |
 | PWA | Hand-rolled `public/sw.js` + `offline.html` + manifest (installable) |

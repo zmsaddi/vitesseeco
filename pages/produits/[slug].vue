@@ -422,17 +422,33 @@ useHead(() => {
           // U-S0c: Google merchant-listing structured data (2025/26 recs) —
           // shipping + returns inside the offer is what rich results and AI
           // shopping surfaces (Gemini / ChatGPT shopping) read directly.
-          shippingDetails: {
-            '@type': 'OfferShippingDetails',
-            shippingDestination: ['FR', 'BE', 'LU', 'NL', 'DE', 'ES'].map((c) => ({
-              '@type': 'DefinedRegion', addressCountry: c,
-            })),
-            deliveryTime: {
-              '@type': 'ShippingDeliveryTime',
-              handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
-              transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 3, unitCode: 'DAY' },
+          // Business reality (owner, 2026-07-05): FREE delivery to FR/BE/NL —
+          // own delivery fleet covers BE/NL. Other countries priced at checkout.
+          shippingDetails: [
+            {
+              '@type': 'OfferShippingDetails',
+              shippingRate: { '@type': 'MonetaryAmount', value: 0, currency: 'EUR' },
+              shippingDestination: ['FR', 'BE', 'NL'].map((c) => ({
+                '@type': 'DefinedRegion', addressCountry: c,
+              })),
+              deliveryTime: {
+                '@type': 'ShippingDeliveryTime',
+                handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+                transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 3, unitCode: 'DAY' },
+              },
             },
-          },
+            {
+              '@type': 'OfferShippingDetails',
+              shippingDestination: ['LU', 'DE', 'ES'].map((c) => ({
+                '@type': 'DefinedRegion', addressCountry: c,
+              })),
+              deliveryTime: {
+                '@type': 'ShippingDeliveryTime',
+                handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+                transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 5, unitCode: 'DAY' },
+              },
+            },
+          ],
           hasMerchantReturnPolicy: {
             '@type': 'MerchantReturnPolicy',
             applicableCountry: ['FR', 'BE', 'LU', 'NL', 'DE', 'ES'],

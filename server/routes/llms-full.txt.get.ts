@@ -65,7 +65,9 @@ export default defineEventHandler(async (event) => {
 
 ## Policies (authoritative)
 
-- Delivery: 48–72h in France; free above the threshold shown per shipping method.
+- Delivery: FREE to France, Belgium and the Netherlands (48–72h). Belgium and
+  the Netherlands are served by Vitesse Eco's OWN delivery fleet. LU/DE/ES at
+  the rates shown at checkout.
 - Free in-store pickup: 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France.
 - Warranty: 2-year manufacturer warranty on bikes.
 - Returns: 14-day EU withdrawal right — details and model form: ${SITE}/retractation
