@@ -196,10 +196,13 @@
     "order_received_no_number": "Uw bestelling is geregistreerd. Als het bestelnummer niet zichtbaar is, vindt u het in de bevestigingsmail of in uw account.",
     "shipping_dest": "Opties voor:",
     "shipping_dest_hint": "wijzig het land in stap 1 om elders te laten bezorgen",
-    "enter_address_first": "Vul je adres in bij stap 1 — de bezorgopties voor jouw land verschijnen hier.",
+    "enter_address_first": "Vul je gegevens in bij stap 1 — de beschikbare ontvangstopties voor jouw adres verschijnen hier.",
     "mode_delivery": "Thuisbezorging",
     "mode_pickup": "Afhalen in de winkel",
-    "no_delivery_country": "Nog geen thuisbezorging voor dit adres — kies afhalen in de winkel of neem contact op."
+    "no_delivery_country": "Nog geen thuisbezorging voor dit adres — kies afhalen in de winkel of neem contact op.",
+    "your_details": "Jouw gegevens",
+    "receive_title": "Ontvangstwijze",
+    "choose_option_first": "Kies eerst je ontvangstwijze bij stap 2."
   },
   "account": {
     "reorder": "Opnieuw bestellen",

@@ -35,7 +35,7 @@
                 <Icon v-if="addressComplete" name="ph:check-bold" class="w-4 h-4" />
                 <span v-else>1</span>
               </span>
-              {{ $t('checkout.shipping_address') }}
+              {{ $t('checkout.your_details') }}
             </h2>
 
             <!-- ONE linear flow (owner): the address ALWAYS comes first, with
@@ -176,7 +176,7 @@
                 <Icon v-if="selectedShipping" name="ph:check-bold" class="w-4 h-4" />
                 <span v-else>2</span>
               </span>
-              {{ $t('shipping.title') }}
+              {{ $t('checkout.receive_title') }}
             </h2>
             <!-- Address not entered yet → the ONLY thing shown is where to go -->
             <div v-if="!deliveryAddressReady" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 flex items-start gap-2.5">
@@ -241,7 +241,12 @@
               </span>
               {{ $t('checkout.payment_method') }}
             </h2>
-            <div v-if="visiblePaymentMethods?.length" class="space-y-2">
+            <!-- Progressive disclosure: payment waits for the receiving choice -->
+            <div v-if="!selectedShipping" class="bg-dark-tertiary/30 border border-dark-tertiary rounded-lg p-3 flex items-start gap-2.5">
+              <Icon name="ph:arrow-up" class="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <p class="text-text-secondary text-xs">{{ $t('checkout.choose_option_first') }}</p>
+            </div>
+            <div v-if="selectedShipping && visiblePaymentMethods?.length" class="space-y-2">
               <label v-for="m in visiblePaymentMethods" :key="m.code" :for="`pay-${m.code}`" class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors min-h-touch" :class="selectedPayment === m.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
                 <input :id="`pay-${m.code}`" type="radio" :value="m.code" v-model="selectedPayment" class="mt-1 accent-accent" />
                 <div class="flex-1">
@@ -253,7 +258,7 @@
                 </div>
               </label>
             </div>
-            <div v-if="selectedPaymentData?.instructions" class="mt-4 bg-accent/5 border border-accent/20 rounded-lg p-4">
+            <div v-if="selectedShipping && selectedPaymentData?.instructions" class="mt-4 bg-accent/5 border border-accent/20 rounded-lg p-4">
               <p class="text-text-secondary text-sm whitespace-pre-line">{{ l(selectedPaymentData.instructions) }}</p>
             </div>
           </div>
