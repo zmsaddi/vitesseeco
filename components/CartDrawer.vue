@@ -198,6 +198,10 @@ watch(isOpen, async (open) => {
   }
 })
 
+// Zone changed after the first fetch (geo preset or checkout choice) —
+// invalidate so the next open shows the right thresholds.
+watch(() => cart.shippingZone, () => { shippingLoaded.value = false })
+
 // Close on Escape key
 function onKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape' && isOpen.value) close()

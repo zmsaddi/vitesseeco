@@ -22,6 +22,9 @@ export const useCartStore = defineStore('cart', {
     promoDiscount: 0,
     shippingCode: null as string | null,
     shippingZone: 'FR',
+    // 'default' until the CUSTOMER picks a zone (checkout country / shipping
+    // selection). While 'default', IP geolocation may preset the zone.
+    zoneSource: 'default' as 'default' | 'user',
     shippingCost: 0,
     shippingMethod: null as { code: string; name: Record<string, string>; price: number; freeAbove?: number } | null,
     // Server-validated totals (authoritative)
@@ -225,7 +228,17 @@ export const useCartStore = defineStore('cart', {
     async selectShipping(code: string, zone = 'FR') {
       this.shippingCode = code
       this.shippingZone = zone
+      this.zoneSource = 'user'
       return this.validateCart()
+    },
+
+    // IP-based preset (geo plugin). Applies only while the customer has
+    // never chosen a zone themselves — their explicit choice always wins.
+    initZoneFromGeo(zone: string) {
+      if (this.zoneSource !== 'default') return
+      if (!zone || zone === this.shippingZone) return
+      this.shippingZone = zone
+      this._invalidateServer()
     },
 
     _invalidateServer() {
@@ -236,6 +249,6 @@ export const useCartStore = defineStore('cart', {
 
   persist: {
     // Only persist items and promoCode — NOT server-validated totals
-    pick: ['items', 'promoCode', 'shippingCode', 'shippingZone'],
+    pick: ['items', 'promoCode', 'shippingCode', 'shippingZone', 'zoneSource'],
   },
 })

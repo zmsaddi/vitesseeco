@@ -268,10 +268,10 @@ onMounted(async () => {
   }
 })
 
-// Fetch shipping methods for current zone
+// Fetch shipping methods for current zone. Reactive query: the geo plugin
+// may preset the zone (e.g. BE) just after mount — the list must follow.
 const { data: shippingData, pending: shippingPending } = useFetch('/api/shipping/methods', {
-  query: { zone: cart.shippingZone },
-  key: `shipping-${cart.shippingZone}`,
+  query: computed(() => ({ zone: cart.shippingZone })),
 })
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
 

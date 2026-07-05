@@ -385,7 +385,14 @@ const showNewForm = ref(false)
 const saveAddr = ref(true)
 const loadingAddresses = ref(true)
 
-const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: 'FR' })
+const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: cart.shippingZone || 'FR' })
+
+// IP preset resolving after this page mounted: adopt it only while the
+// form is still untouched — a typed address always wins over geolocation.
+watch(() => cart.shippingZone, (zone) => {
+  if (!zone || selectedAddressId.value) return
+  if (!addr.address && !addr.postalCode && !addr.city) addr.country = zone
+})
 const touched = reactive<Record<string, boolean>>({})
 function touch(field: string) { touched[field] = true }
 function fieldError(field: string, value: string): string {
