@@ -65,7 +65,8 @@
 
 | Unit | Scope | Status |
 |---|---|---|
-| U-Q1 | Lighthouse CI + bundle budget gates | ⬜ |
+| U-Q1 | Verified already built: ci.yml runs bundle budget (13MB gzip, blocking) + Lighthouse CI on master pushes (perf≥85/a11y≥90/seo≥90, continue-on-error while tuning) | ✅ pre-existing |
+| U-Q3a | Known issues closed: #3 Turnstile reset (verified already fixed), #4 guest_email hygiene (fixed both creation paths). #2 hydration mismatch remains open | ✅ 2026-07-05 |
 | U-Q2 | Full E2E matrix (4 langs × 2 viewports) + visual baselines all pages | ⬜ |
 | U-Q3 | axe pass + RTL dedicated pass + hydration-mismatch fix (known-issue #2) | ⬜ |
 | U-M3 | Back-in-stock alerts (needs Resend) · U-M4 PWA | ⬜ |

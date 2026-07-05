@@ -252,7 +252,9 @@ export default defineEventHandler(async (event) => {
         orderNumber,
         customerSnapshot: customerInfo,
         customerId: customerInfo.customerId || null,
-        guestEmail: customerInfo.email || null,
+        // known-issue #4: guest_email is for ANONYMOUS checkouts only —
+        // logged-in orders keep it NULL (email lives in customerSnapshot).
+        guestEmail: customerInfo.customerId ? null : (customerInfo.email || null),
         validatedItems,
         subtotal,
         shippingCost,
@@ -379,7 +381,8 @@ export default defineEventHandler(async (event) => {
       await db.insert(orders).values({
         orderNumber,
         customerId: customerInfo.customerId || null,
-        guestEmail: customerInfo.email || null,
+        // known-issue #4 (same rule as the PG-primary path above)
+        guestEmail: customerInfo.customerId ? null : (customerInfo.email || null),
         status: 'pending',
         paymentMethod: body.paymentCode,
         items: validatedItems,

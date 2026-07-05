@@ -97,5 +97,5 @@ small while PG-primary stabilises. When picked up:
 |---|-------|--------|
 | 1 | Confirmation page orderNumber not visible | ✅ **Fixed** in [a0a9e6e](https://github.com/zmsaddi/vitesseeco/commit/a0a9e6e) |
 | 2 | Hydration mismatch warning | open |
-| 3 | Turnstile widget "Nothing to reset" warning | open |
-| 4 | `orders.guest_email` populated for logged-in customers | open |
+| 3 | Turnstile widget "Nothing to reset" warning | ✅ **Fixed** — retry() wraps `turnstile.remove` in try/catch (verified 2026-07-05, TurnstileWidget.vue:154) |
+| 4 | `orders.guest_email` populated for logged-in customers | ✅ **Fixed** 2026-07-05 — both order-creation paths now NULL guest_email when customerId is set |
