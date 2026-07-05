@@ -199,7 +199,7 @@
     "enter_address_first": "Vul je adres in bij stap 1 — de bezorgopties voor jouw land verschijnen hier.",
     "mode_delivery": "Thuisbezorging",
     "mode_pickup": "Afhalen in de winkel",
-    "no_delivery_country": "Nog geen thuisbezorging voor dit land — kies afhalen in de winkel of neem contact op."
+    "no_delivery_country": "Nog geen thuisbezorging voor dit adres — kies afhalen in de winkel of neem contact op."
   },
   "account": {
     "reorder": "Opnieuw bestellen",
@@ -576,7 +576,8 @@
     "bulk_failed": "{count} mislukt — probeer opnieuw",
     "clear_selection": "Selectie wissen",
     "shortcuts_hint": "Sneltoetsen: / zoeken · N volgende pagina · P vorige pagina · Esc herstellen",
-    "payment_klarna": "Klarna"
+    "payment_klarna": "Klarna",
+    "payment_cod": "Contant bij levering"
   },
   "search": {
     "placeholder": "Zoek een fiets, onderdeel, accessoire…",

@@ -52,7 +52,7 @@
 | Database | Neon PostgreSQL + Drizzle ORM (^0.45.2) |
 | Auth | DB sessions (`sessions` table) + httpOnly `auth_token` cookie + Google OAuth |
 | Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (card via stripe, klarna, inStore — scaffolded, flag-gated) |
-| Shipping | FREE FR/BE/NL (own delivery fleet in BE/NL; NRW-Germany planned — needs postal-code zones). Carrier adapter registry (`server/shipping/`, `SHIPPING_CARRIER` env, manual adapter live; Sendcloud/Boxtal-ready). IP geo presets zone, typed address decides |
+| Shipping | Own fleet, FREE: BE + NL + FR-86 (Poitiers) — postal-prefix scoping LIVE (`postalCodePrefixes` on shippingMethod, filtered in adapter + enforced at order create). NRW-Germany = add prefixes. Elsewhere: pickup. IP geo presets zone; typed/saved address decides (activeDestination) |
 | CAPTCHA | Cloudflare Turnstile |
 | Chat | ChatWidget (rule-based, AI-ready via `ANTHROPIC_API_KEY`) + WhatsApp |
 | PWA | Hand-rolled `public/sw.js` + `offline.html` + manifest (installable) |
@@ -225,6 +225,8 @@ vitesseeco/
 - **PayPal LIVE** (`ENABLE_PAYPAL`): server SDK, capture-order, verified webhook
 - **Card (Stripe)** scaffolded/disabled (`ENABLE_STRIPE`) · **Klarna** scaffolded/disabled
   (`ENABLE_KLARNA` — activate via Stripe payment_method_types OR the direct adapter)
+- **Cash on delivery LIVE** for BE/NL (`cod` adapter + Sanity doc `countries: [BE,NL]` —
+  own fleet collects cash; order stays `pending` until admin marks paid)
 - **In-store** adapter available · checkout handles PSP redirect flows generically
   (`clientPayload.redirectUrl`) · Sanity docs ready via `cms/scripts/add-payment-methods-card-klarna.mjs`
 - JSON-LD declares PayPal + card (Visa/Mastercard/CB) + Klarna + cash

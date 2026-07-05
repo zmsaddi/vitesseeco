@@ -65,9 +65,10 @@ export default defineEventHandler(async (event) => {
 
 ## Policies (authoritative)
 
-- Delivery: FREE to France, Belgium and the Netherlands (48–72h). Belgium and
-  the Netherlands are served by Vitesse Eco's OWN delivery fleet. LU/DE/ES at
-  the rates shown at checkout.
+- Delivery: FREE by Vitesse Eco's OWN fleet to Belgium, the Netherlands and the
+  Poitiers region (France, postal codes starting 86) in 48–72h. Cash on delivery
+  accepted in BE/NL. Other destinations: free store pickup in Poitiers — delivery
+  zones are expanding (Nordrhein-Westfalen next).
 - Free in-store pickup: 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France.
 - Warranty: 2-year manufacturer warranty on bikes.
 - Returns: 14-day EU withdrawal right — details and model form: ${SITE}/retractation

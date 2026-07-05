@@ -43,6 +43,7 @@ export default defineType({
       options: {
         list: [
           { title: '🏪 الدفع في المتجر', value: 'in_store' },
+          { title: '💵 الدفع عند الاستلام', value: 'cod' },
           { title: '💳 بطاقة بنكية (Stripe)', value: 'stripe' },
           { title: '🅿️ PayPal', value: 'paypal' },
           { title: '🛍️ Klarna', value: 'klarna' },
@@ -221,7 +222,7 @@ export default defineType({
       const statusMap: Record<string, string> = {
         pending: '🔴 جديد', paid: '💳 مدفوع', processing: '📦 تحضير', shipped: '🚚 شُحن', delivered: '✅ وصل', cancelled: '❌ ملغى',
       }
-      const payMap: Record<string, string> = { in_store: '🏪', stripe: '💳', paypal: '🅿️', klarna: '🛍️', bank_transfer: '🏦' }
+      const payMap: Record<string, string> = { in_store: '🏪', cod: '💵', stripe: '💳', paypal: '🅿️', klarna: '🛍️', bank_transfer: '🏦' }
       const d = date ? new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
       return {
         title: `${statusMap[status] || '❓'} — ${total || 0}€`,

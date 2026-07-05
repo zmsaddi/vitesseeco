@@ -13,9 +13,11 @@ import { inStoreAdapter } from '~/server/payments/adapters/inStore'
 import { stripeAdapter } from '~/server/payments/adapters/stripe'
 import { paypalAdapter } from '~/server/payments/adapters/paypal'
 import { klarnaAdapter } from '~/server/payments/adapters/klarna'
+import { codAdapter } from '~/server/payments/adapters/cod'
 
 const ADAPTERS: Record<string, PaymentAdapter> = {
   in_store: inStoreAdapter,
+  cod: codAdapter, // cash on delivery — own fleet countries (BE/NL)
   stripe: stripeAdapter, // card payments
   paypal: paypalAdapter,
   klarna: klarnaAdapter,
@@ -24,6 +26,7 @@ const ADAPTERS: Record<string, PaymentAdapter> = {
 
 const FLAGS: Record<string, () => boolean> = {
   in_store: () => true,
+  cod: () => true, // availability is governed per-country by the adapter + Sanity doc
   stripe: () => process.env.ENABLE_STRIPE === 'true',
   paypal: () => process.env.ENABLE_PAYPAL === 'true',
   klarna: () => process.env.ENABLE_KLARNA === 'true',

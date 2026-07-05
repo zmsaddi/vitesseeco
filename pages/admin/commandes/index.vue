@@ -52,6 +52,7 @@
           <option value="in_store">{{ $t('admin.payment_in_store') }}</option>
           <option value="stripe">{{ $t('admin.payment_stripe') }}</option>
           <option value="klarna">{{ $t('admin.payment_klarna') }}</option>
+          <option value="cod">{{ $t('admin.payment_cod') }}</option>
         </select>
       </label>
       <button

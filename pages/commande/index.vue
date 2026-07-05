@@ -230,7 +230,7 @@
                  say so, or a gift buyer never realizes options change per country. -->
             <p v-if="!isPickup && deliveryAddressReady" class="text-text-secondary text-xs mb-3 flex items-center gap-1.5">
               <Icon name="ph:map-pin" class="w-3.5 h-3.5 text-accent shrink-0" />
-              {{ $t('checkout.shipping_dest') }} <span class="text-white font-medium">{{ countryLabel(addr.country) }}</span>
+              {{ $t('checkout.shipping_dest') }} <span class="text-white font-medium">{{ countryLabel(activeDestination.country) }}</span>
               — {{ $t('checkout.shipping_dest_hint') }}
             </p>
             <!-- Address not entered yet → delivery options wait for it -->
@@ -290,8 +290,8 @@
               </span>
               {{ $t('checkout.payment_method') }}
             </h2>
-            <div v-if="paymentMethods?.length" class="space-y-2">
-              <label v-for="m in paymentMethods" :key="m.code" :for="`pay-${m.code}`" class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors min-h-touch" :class="selectedPayment === m.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
+            <div v-if="visiblePaymentMethods?.length" class="space-y-2">
+              <label v-for="m in visiblePaymentMethods" :key="m.code" :for="`pay-${m.code}`" class="flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors min-h-touch" :class="selectedPayment === m.code ? 'border-accent bg-accent/5' : 'border-dark-tertiary'">
                 <input :id="`pay-${m.code}`" type="radio" :value="m.code" v-model="selectedPayment" class="mt-1 accent-accent" />
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
@@ -424,6 +424,7 @@ const showConfirmation = ref(false)
 const showNewForm = ref(false)
 const saveAddr = ref(true)
 const loadingAddresses = ref(true)
+const savedAddresses = ref<any[]>([])
 
 const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: cart.shippingZone || 'FR' })
 
@@ -454,10 +455,22 @@ const addressComplete = computed(() => {
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
 
+// The ACTIVE destination — the selected saved address when one is chosen,
+// otherwise the form. Everything zone/postal-dependent (shipping methods,
+// COD availability, destination label) reads from here, so a saved Belgian
+// address behaves exactly like a typed one.
+const activeDestination = computed(() => {
+  if (selectedAddressId.value && !showNewForm.value) {
+    const a = savedAddresses.value.find((x: any) => x.id === selectedAddressId.value)
+    if (a) return { country: String(a.country || 'FR').toUpperCase(), postalCode: String(a.postalCode || '') }
+  }
+  return { country: addr.country || 'FR', postalCode: addr.postalCode || '' }
+})
+
 // Shipping — methods follow the customer's destination country (U-X1).
 // The server falls back to FR methods when a zone has no configuration yet,
 // so switching country can never leave the customer with zero options.
-const shippingZone = computed(() => (isPickup.value ? 'FR' : addr.country || 'FR'))
+const shippingZone = computed(() => (isPickup.value ? 'FR' : activeDestination.value.country))
 
 const COUNTRY_LABELS: Record<string, string> = {
   FR: '🇫🇷 France', BE: '🇧🇪 Belgique', LU: '🇱🇺 Luxembourg',
@@ -483,7 +496,12 @@ const deliveryAddressReady = computed(() => {
 const deliveryMethods = computed(() => (shippingMethods.value || []).filter((m: any) => m.code !== 'pickup'))
 const visibleShippingMethods = computed(() => (deliveryAddressReady.value ? deliveryMethods.value : []))
 const { data: shippingData } = useFetch('/api/shipping/methods', {
-  query: computed(() => ({ zone: shippingZone.value })),
+  // Postal code included: methods can be scoped to postal prefixes
+  // (e.g. FR own-fleet delivery = dept 86 only for now).
+  query: computed(() => ({
+    zone: shippingZone.value,
+    ...(!isPickup.value && activeDestination.value.postalCode ? { postal: activeDestination.value.postalCode } : {}),
+  })),
 })
 const shippingMethods = computed(() => (shippingData.value as any)?.methods || [])
 function getShippingPrice(m: any) { return m.freeAbove && cart.subtotal >= m.freeAbove ? 0 : m.price || 0 }
@@ -499,19 +517,38 @@ const selectedPaymentData = computed(() => paymentMethods.value.find((m: any) =>
 // is never blocked by a hidden default. Only auto-selects if nothing is yet
 // selected (respects manual choice on subsequent renders).
 watch(visibleShippingMethods, (methods) => {
-  if (mode.value === 'delivery' && methods.length === 1 && !selectedShipping.value) {
+  if (mode.value !== 'delivery') return
+  // Selected method vanished (postal/country change made it ineligible)
+  if (selectedShipping.value && selectedShipping.value !== 'pickup'
+      && deliveryAddressReady.value && !methods.some((m: any) => m.code === selectedShipping.value)) {
+    selectedShipping.value = ''
+  }
+  if (methods.length === 1 && !selectedShipping.value) {
     selectedShipping.value = methods[0].code
   }
 }, { immediate: true })
 
-watch(paymentMethods, (methods) => {
+// A payment method may be restricted to delivery countries (COD = BE/NL,
+// collected in cash by our own fleet). Empty/absent list = all countries.
+const visiblePaymentMethods = computed(() =>
+  paymentMethods.value.filter((m: any) => {
+    if (!Array.isArray(m.countries) || m.countries.length === 0) return true
+    if (isPickup.value) return false
+    return m.countries.includes(activeDestination.value.country)
+  })
+)
+
+watch(visiblePaymentMethods, (methods) => {
+  // Country switch made the selected payment ineligible → deselect
+  if (selectedPayment.value && !methods.some((m: any) => m.code === selectedPayment.value)) {
+    selectedPayment.value = ''
+  }
   if (methods.length === 1 && !selectedPayment.value) {
     selectedPayment.value = methods[0].code
   }
 }, { immediate: true })
 
 // Addresses
-const savedAddresses = ref<any[]>([])
 onMounted(async () => {
   if (auth.isLoggedIn) {
     try {

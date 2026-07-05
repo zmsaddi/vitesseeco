@@ -199,7 +199,7 @@
     "enter_address_first": "Geben Sie Ihre Adresse in Schritt 1 ein — die Lieferoptionen für Ihr Land erscheinen hier.",
     "mode_delivery": "Lieferung nach Hause",
     "mode_pickup": "Abholung im Geschäft",
-    "no_delivery_country": "Für dieses Land noch keine Lieferung nach Hause — wählen Sie Abholung oder kontaktieren Sie uns."
+    "no_delivery_country": "Für diese Adresse noch keine Lieferung nach Hause — wählen Sie Abholung oder kontaktieren Sie uns."
   },
   "account": {
     "reorder": "Erneut bestellen",
@@ -576,7 +576,8 @@
     "bulk_failed": "{count} fehlgeschlagen — bitte erneut versuchen",
     "clear_selection": "Auswahl aufheben",
     "shortcuts_hint": "Kurzbefehle: / Suche · N nächste Seite · P vorherige Seite · Esc zurücksetzen",
-    "payment_klarna": "Klarna"
+    "payment_klarna": "Klarna",
+    "payment_cod": "Barzahlung bei Lieferung"
   },
   "search": {
     "placeholder": "E-Bike, Ersatzteil, Zubehör suchen…",

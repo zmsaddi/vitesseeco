@@ -199,7 +199,7 @@
     "enter_address_first": "Enter your address in step 1 — delivery options for your country will appear here.",
     "mode_delivery": "Home delivery",
     "mode_pickup": "Store pickup",
-    "no_delivery_country": "No home delivery for this country yet — choose store pickup or contact us."
+    "no_delivery_country": "No home delivery for this address yet — choose store pickup or contact us."
   },
   "account": {
     "reorder": "Order again",
@@ -576,7 +576,8 @@
     "bulk_failed": "{count} failed — try again",
     "clear_selection": "Clear selection",
     "shortcuts_hint": "Shortcuts: / search · N next page · P previous page · Esc reset",
-    "payment_klarna": "Klarna"
+    "payment_klarna": "Klarna",
+    "payment_cod": "Cash on delivery"
   },
   "search": {
     "placeholder": "Search a bike, a part, an accessory…",

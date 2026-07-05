@@ -146,9 +146,26 @@ export default defineEventHandler(async (event) => {
 
   // 2. Calculate shipping
   const shippingMethod = await readClient.fetch(
-    `*[_type == "shippingMethod" && code == $code && isActive == true][0]{ code, name, price, freeAbove }`,
+    `*[_type == "shippingMethod" && code == $code && isActive == true][0]{ code, name, price, freeAbove, zones, postalCodePrefixes }`,
     { code: body.shippingCode }
   )
+  // Eligibility guard: the method must actually serve the destination
+  // (zone + postal-prefix scoping, e.g. FR own-fleet = dept 86 only).
+  // Pickup is exempt — its "destination" is our own store.
+  if (shippingMethod && body.shippingCode !== 'pickup') {
+    const destCountry = String(addr.country || '').toUpperCase()
+    if (Array.isArray(shippingMethod.zones) && shippingMethod.zones.length && !shippingMethod.zones.includes(destCountry)) {
+      throw createError({ statusCode: 400, message: 'Shipping method not available for the destination country' })
+    }
+    const prefixes = shippingMethod.postalCodePrefixes
+    if (Array.isArray(prefixes) && prefixes.length) {
+      const pc = String(addr.postalCode || '').replace(/\s/g, '').toUpperCase()
+      const matches = prefixes.some((p: string) => pc.startsWith(String(p).replace(/\s/g, '').toUpperCase()))
+      if (!matches) {
+        throw createError({ statusCode: 400, message: 'Shipping method not available for this postal code' })
+      }
+    }
+  }
   let shippingCost = shippingMethod?.price || 0
   if (shippingMethod?.freeAbove && subtotal >= shippingMethod.freeAbove) shippingCost = 0
 

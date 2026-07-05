@@ -59,7 +59,7 @@
 |---|---|---|
 | U-K1 | Shared merchantFeed builder; feeds live for fr/nl/de/es with localized titles + locale-prefixed links; fr-BE/nl-BE hreflang added (x-default already existed); llms.txt lists all feeds. Owner registers each feed per country in Merchant Center | ✅ 2026-07-05 |
 | U-K2 | DE compliance: /impressum, /retractation (EU withdrawal + model form), /batteries (BattG take-back) — DE text authoritative, 6-locale in-page content, footer links + sitemaps | ✅ 2026-07-05 |
-| U-K3 | Shipping zones: FR/BE/NL live FREE (BE/NL via OWN delivery fleet, free-benelux in Sanity). Remaining: DE/ES/LU pricing (owner) + partial-Germany rollout (Nordrhein-Westfalen first) which needs POSTAL-CODE-scoped zones in the carrier adapter (country-level today) | 🔄 2026-07-05 |
+| U-K3 | Shipping zones LIVE: own fleet FREE to BE + NL + FR dept 86 (postal-prefix scoping built end-to-end: schema field, adapter filter, checkout postal quoting, order-create enforcement). COD payment LIVE for BE/NL. NRW rollout = add prefixes to a DE method. Remaining: DE/ES/LU home-delivery pricing (owner) | 🔄 2026-07-05 |
 | U-K4 | Native review pass NL/DE/ES (BE covered by fr+nl) | ⏸ owner reviewers |
 
 ## Phase R5 — Hardening

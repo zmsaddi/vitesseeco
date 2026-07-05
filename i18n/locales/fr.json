@@ -199,7 +199,7 @@
     "enter_address_first": "Renseignez votre adresse à l’étape 1 — les options de livraison pour votre pays apparaîtront ici.",
     "mode_delivery": "Livraison à domicile",
     "mode_pickup": "Retrait en magasin",
-    "no_delivery_country": "Pas encore de livraison à domicile pour ce pays — choisissez le retrait en magasin ou contactez-nous."
+    "no_delivery_country": "Pas encore de livraison à domicile pour cette adresse — choisissez le retrait en magasin ou contactez-nous."
   },
   "account": {
     "reorder": "Commander à nouveau",
@@ -576,7 +576,8 @@
     "bulk_failed": "{count} échec(s) — réessayez",
     "clear_selection": "Tout désélectionner",
     "shortcuts_hint": "Raccourcis : / rechercher · N page suivante · P page précédente · Échap réinitialiser",
-    "payment_klarna": "Klarna"
+    "payment_klarna": "Klarna",
+    "payment_cod": "Paiement à la livraison"
   },
   "search": {
     "placeholder": "Rechercher un vélo, une pièce, un accessoire…",

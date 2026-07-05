@@ -21,6 +21,10 @@ export interface QuoteInput {
   country: string
   /** Cart subtotal in EUR — used for freeAbove thresholds. */
   subtotal: number
+  /** Destination postal code — methods may be scoped to postal prefixes
+   *  (owner 2026-07-05: FR own-fleet delivery covers dept 86 only for now;
+   *  NRW-Germany will use the same mechanism). */
+  postalCode?: string
 }
 
 export interface ShippingRate {
@@ -31,6 +35,8 @@ export interface ShippingRate {
   price: number
   freeAbove?: number | null
   zones?: string[]
+  /** If set, the rate only applies to postal codes starting with one of these. */
+  postalCodePrefixes?: string[] | null
 }
 
 export interface QuoteResult {

@@ -35,6 +35,21 @@ export default defineType({
       },
       validation: (Rule) => Rule.required().min(1).error('اختر منطقة واحدة على الأقل'),
     },
+    {
+      name: 'postalCodePrefixes',
+      title: '📮 بادئات الرموز البريدية (اختياري)',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: { layout: 'tags' },
+      description:
+        'اتركه فارغاً = كل البلد. عبّئه = الطريقة تظهر فقط للرموز البريدية التي تبدأ بإحدى هذه البادئات. مثال: 86 لمنطقة بواتييه؛ ولألمانيا NRW لاحقاً: 40, 41, 42...',
+      validation: (Rule) =>
+        Rule.custom((vals?: string[]) => {
+          if (!vals) return true
+          const bad = vals.find((v) => !/^[0-9A-Za-z]{1,5}$/.test((v || '').trim()))
+          return bad ? `بادئة غير صالحة: "${bad}" — أرقام/حروف فقط (1-5 خانات)` : true
+        }),
+    },
     { name: 'isActive', title: '✅ نشط', type: 'boolean', initialValue: true, description: 'أوقفه لإخفاء طريقة الشحن' },
     { name: 'sortOrder', title: '🔢 الترتيب', type: 'number', initialValue: 0 },
 

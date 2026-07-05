@@ -44,9 +44,10 @@ Company: VITESSE ECO SAS — SIREN 100 732 247 — VAT FR43 100 732 247
 Store: 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France
 Contact: contact@vitesse-eco.fr — +33 7 45 83 00 49 — WhatsApp https://wa.me/33745830049
 Prices: EUR, VAT included. Payment: PayPal or in store.
-Policies: FREE delivery to France, Belgium and the Netherlands (48–72h; BE/NL served
-by our own delivery fleet). Delivery to LU/DE/ES at checkout rates. 2-year
-manufacturer warranty, 14-day EU withdrawal right.
+Policies: FREE home delivery by our OWN fleet to Belgium, the Netherlands and the
+Poitiers region (France, postal codes 86xxx) in 48–72h. Cash on delivery available
+in BE/NL. Everywhere else: free store pickup in Poitiers (delivery zones expanding).
+2-year manufacturer warranty, 14-day EU withdrawal right.
 
 ## Key pages
 

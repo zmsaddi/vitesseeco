@@ -29,10 +29,21 @@ async function fetchZone(zone: string): Promise<ShippingRate[]> {
   const client = getClient()
   return await client.fetch(
     `*[_type == "shippingMethod" && isActive == true && $zone in zones] | order(sortOrder asc) {
-      code, name, description, estimatedDays, price, freeAbove, zones
+      code, name, description, estimatedDays, price, freeAbove, zones, postalCodePrefixes
     }`,
     { zone }
   )
+}
+
+/** A rate with postalCodePrefixes applies only to matching destinations.
+ *  No postal code yet (cart drawer preview) → keep the rate visible; the
+ *  checkout re-quotes with the real postal code before anything is paid. */
+function matchesPostal(rate: ShippingRate, postalCode?: string): boolean {
+  const prefixes = rate.postalCodePrefixes
+  if (!prefixes || prefixes.length === 0) return true
+  if (!postalCode) return true
+  const normalized = postalCode.replace(/\s/g, '').toUpperCase()
+  return prefixes.some((p) => normalized.startsWith(String(p).replace(/\s/g, '').toUpperCase()))
 }
 
 export const manualAdapter: CarrierAdapter = {
@@ -47,6 +58,8 @@ export const manualAdapter: CarrierAdapter = {
       rates = await fetchZone('FR')
       zoneFallback = true
     }
+
+    rates = rates.filter((r) => matchesPostal(r, input.postalCode))
 
     return { rates, zoneFallback }
   },

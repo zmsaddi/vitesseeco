@@ -15,6 +15,7 @@ export default defineType({
       options: {
         list: [
           { title: '🏪 الدفع في المتجر', value: 'in_store' },
+          { title: '💵 الدفع عند الاستلام', value: 'cod' },
           { title: '💳 بطاقة بنكية (Stripe)', value: 'stripe' },
           { title: '🅿️ PayPal', value: 'paypal' },
           { title: '🛍️ Klarna', value: 'klarna' },
@@ -26,6 +27,23 @@ export default defineType({
     },
     { name: 'description', title: '📄 الوصف', type: 'localizedString', description: 'وصف قصير يظهر للعميل' },
     {
+      name: 'countries',
+      title: '🌍 دول التوصيل المسموحة (اختياري)',
+      type: 'array',
+      of: [{ type: 'string' }],
+      options: {
+        list: [
+          { title: '🇫🇷 فرنسا', value: 'FR' },
+          { title: '🇧🇪 بلجيكا', value: 'BE' },
+          { title: '🇱🇺 لوكسمبورغ', value: 'LU' },
+          { title: '🇩🇪 ألمانيا', value: 'DE' },
+          { title: '🇳🇱 هولندا', value: 'NL' },
+          { title: '🇪🇸 إسبانيا', value: 'ES' },
+        ],
+      },
+      description: 'اتركه فارغاً = كل الدول. مثال: الدفع عند الاستلام = بلجيكا وهولندا فقط (أسطولنا يقبض نقداً)',
+    },
+    {
       name: 'icon',
       title: '🖼️ أيقونة',
       type: 'string',
@@ -33,6 +51,7 @@ export default defineType({
       options: {
         list: [
           { title: '🏪 متجر', value: 'ph:storefront' },
+          { title: '💵 نقود (عند الاستلام)', value: 'ph:money' },
           { title: '💳 بطاقة', value: 'ph:credit-card' },
           { title: '🅿️ PayPal', value: 'ph:paypal-logo' },
           { title: '🛍️ Klarna (حقيبة تسوق)', value: 'ph:shopping-bag' },

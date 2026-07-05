@@ -20,7 +20,7 @@ export default defineEventHandler(async () => {
 
   const all = await client.fetch(
     `*[_type == "paymentMethod" && isActive == true] | order(sortOrder asc) {
-      code, name, description, icon, instructions
+      code, name, description, icon, instructions, countries
     }`
   )
 
