@@ -286,7 +286,33 @@ them means not ranking, regardless of code quality.
   questions completely — technical access is now 100% open; content depth is
   the ongoing battle.
 
-### 7.6 Leading indicators (monthly review vs #1 goal)
+### 7.6 Marketplace & social-commerce program — owner directive 2026-07-05
+
+> Goal: presence on TikTok, marketplaces and each country's leading platforms,
+> until platforms come to US. Honest model: platforms chase stores with
+> volume, reviews and traffic — the flywheel starts by shipping on them first.
+
+**One pipe, many channels.** `/feeds/catalog.csv` (Google-spec columns) plugs
+into a channel manager (Channable ≈ €29/mo, or Lengow/Shoppingfeed/BaseLinker),
+which pushes to everything below. Never build N integrations by hand.
+
+| Channel | Countries | Requirements (owner) |
+|---|---|---|
+| TikTok Shop / Catalog ads | all | TikTok Business account; accepts our Google-format feed URL directly |
+| Meta (FB/IG Shops + Marketplace) | all | Meta Business + Commerce Manager; feed URL directly |
+| Pinterest | all | Business account; feed URL directly |
+| Amazon | FR/BE/NL/DE/ES | Seller Central (€39/mo pro) + **EAN/GTIN per product (BLOCKER — none in catalog; source from supplier or GS1)** + VAT/OSS |
+| eBay | FR/DE/ES/BE/NL | Seller account; EANs strongly recommended |
+| bol.com | NL/BE | Retailer account + **EAN required** + NL/BE returns address |
+| Cdiscount (Octopia) | FR | Seller account; EAN required |
+| Kaufland.de | DE | Seller account + EAN + DE compliance (§7.4: BattG/WEEE for e-bikes!) |
+| Leboncoin (pro) / Marktplaats / 2dehands / Wallapop | FR / NL / BE / ES | Pro accounts; classifieds-style, good for local demand capture |
+
+**Sequencing:** 1) EANs sourced → 2) channel manager trial with catalog.csv →
+3) TikTok+Meta (free listings, no EAN wall) → 4) bol+Kaufland (Benelux/DE
+e-bike demand) → 5) Amazon last (fees + competition highest).
+
+### 7.7 Leading indicators (monthly review vs #1 goal)
 
 GSC impressions & CTR per market → indexed pages → CWV field data → conversion per
 market → (lagging) rankings for target keyword set per language (tracked list of 20/market).

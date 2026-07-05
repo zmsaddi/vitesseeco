@@ -419,6 +419,28 @@ useHead(() => {
           availability: p.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
           url: `https://vitesse-eco.fr/produits/${p.slug?.current}`,
           seller: { '@type': 'Organization', name: 'Vitesse Eco' },
+          // U-S0c: Google merchant-listing structured data (2025/26 recs) —
+          // shipping + returns inside the offer is what rich results and AI
+          // shopping surfaces (Gemini / ChatGPT shopping) read directly.
+          shippingDetails: {
+            '@type': 'OfferShippingDetails',
+            shippingDestination: ['FR', 'BE', 'LU', 'NL', 'DE', 'ES'].map((c) => ({
+              '@type': 'DefinedRegion', addressCountry: c,
+            })),
+            deliveryTime: {
+              '@type': 'ShippingDeliveryTime',
+              handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+              transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 3, unitCode: 'DAY' },
+            },
+          },
+          hasMerchantReturnPolicy: {
+            '@type': 'MerchantReturnPolicy',
+            applicableCountry: ['FR', 'BE', 'LU', 'NL', 'DE', 'ES'],
+            returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+            merchantReturnDays: 14,
+            returnMethod: 'https://schema.org/ReturnByMail',
+            returnFees: 'https://schema.org/ReturnFeesCustomerResponsibility',
+          },
         },
       }) },
       { type: 'application/ld+json', innerHTML: JSON.stringify({
