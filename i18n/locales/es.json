@@ -565,7 +565,8 @@
     "bulk_done": "{count} pedido(s) actualizado(s)",
     "bulk_failed": "{count} error(es) — inténtalo de nuevo",
     "clear_selection": "Quitar selección",
-    "shortcuts_hint": "Atajos: / buscar · N página siguiente · P página anterior · Esc restablecer"
+    "shortcuts_hint": "Atajos: / buscar · N página siguiente · P página anterior · Esc restablecer",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "Buscar una bici, una pieza, un accesorio…",

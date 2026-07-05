@@ -15,8 +15,9 @@ export default defineType({
       options: {
         list: [
           { title: '🏪 الدفع في المتجر', value: 'in_store' },
-          { title: '💳 Stripe (بطاقة بنكية)', value: 'stripe' },
+          { title: '💳 بطاقة بنكية (Stripe)', value: 'stripe' },
           { title: '🅿️ PayPal', value: 'paypal' },
+          { title: '🛍️ Klarna', value: 'klarna' },
           { title: '📱 Apple Pay', value: 'apple_pay' },
           { title: '📱 Google Pay', value: 'google_pay' },
           { title: '🏦 تحويل بنكي', value: 'bank_transfer' },
@@ -34,6 +35,7 @@ export default defineType({
           { title: '🏪 متجر', value: 'ph:storefront' },
           { title: '💳 بطاقة', value: 'ph:credit-card' },
           { title: '🅿️ PayPal', value: 'ph:paypal-logo' },
+          { title: '🛍️ Klarna (حقيبة تسوق)', value: 'ph:shopping-bag' },
           { title: '📱 هاتف', value: 'ph:device-mobile' },
           { title: '🏦 بنك', value: 'ph:bank' },
         ],

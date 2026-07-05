@@ -565,7 +565,8 @@
     "bulk_done": "تم تحديث {count} طلب",
     "bulk_failed": "فشل {count} — أعد المحاولة",
     "clear_selection": "إلغاء التحديد",
-    "shortcuts_hint": "الاختصارات: / بحث · N الصفحة التالية · P الصفحة السابقة · Esc إعادة تعيين"
+    "shortcuts_hint": "الاختصارات: / بحث · N الصفحة التالية · P الصفحة السابقة · Esc إعادة تعيين",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "ابحث عن دراجة، قطعة، إكسسوار…",

@@ -565,7 +565,8 @@
     "bulk_done": "{count} commande(s) mise(s) à jour",
     "bulk_failed": "{count} échec(s) — réessayez",
     "clear_selection": "Tout désélectionner",
-    "shortcuts_hint": "Raccourcis : / rechercher · N page suivante · P page précédente · Échap réinitialiser"
+    "shortcuts_hint": "Raccourcis : / rechercher · N page suivante · P page précédente · Échap réinitialiser",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "Rechercher un vélo, une pièce, un accessoire…",

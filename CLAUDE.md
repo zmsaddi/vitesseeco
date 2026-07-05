@@ -51,7 +51,7 @@
 | Fonts | @nuxt/fonts | ^0.14.0 |
 | Database | Neon PostgreSQL + Drizzle ORM (^0.45.2) |
 | Auth | DB sessions (`sessions` table) + httpOnly `auth_token` cookie + Google OAuth |
-| Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (stripe/inStore scaffolded) |
+| Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (card via stripe, klarna, inStore — scaffolded, flag-gated) |
 | Shipping | Carrier adapter registry (`server/shipping/`, `SHIPPING_CARRIER` env, manual adapter live; Sendcloud/Boxtal-ready) |
 | CAPTCHA | Cloudflare Turnstile |
 | Chat | ChatWidget (rule-based, AI-ready via `ANTHROPIC_API_KEY`) + WhatsApp |
@@ -223,7 +223,11 @@ vitesseeco/
 
 ## Payments & Orders
 - **PayPal LIVE** (`ENABLE_PAYPAL`): server SDK, capture-order, verified webhook
-- **Stripe** scaffolded/disabled (`ENABLE_STRIPE`) · **In-store** adapter available
+- **Card (Stripe)** scaffolded/disabled (`ENABLE_STRIPE`) · **Klarna** scaffolded/disabled
+  (`ENABLE_KLARNA` — activate via Stripe payment_method_types OR the direct adapter)
+- **In-store** adapter available · checkout handles PSP redirect flows generically
+  (`clientPayload.redirectUrl`) · Sanity docs ready via `cms/scripts/add-payment-methods-card-klarna.mjs`
+- JSON-LD `paymentAccepted` is computed from the ENABLE_* flags at build — always truthful
 - Orders: **PG-primary** (`ENABLE_PG_PRIMARY_ORDERS`) → Sanity mirror via outbox + cron
 - Order processing happens in **/admin** — the Studio order document is read-only
 
@@ -236,8 +240,9 @@ vitesseeco/
 | Bing Webmaster | Activate IndexNow | Bing/Copilot reach |
 | ANTHROPIC_API_KEY | Upgrade ChatWidget to real AI | chatbot |
 | Sentry / Trustpilot / Hotjar / GTM+GA4 | Observability, reviews, analytics | — |
+| Stripe + Klarna contracts | Card & BNPL at checkout | flip ENABLE_STRIPE / ENABLE_KLARNA + wire adapters |
 | Sendcloud or Boxtal | Labels + tracking + Bancontact/iDEAL via PSP | U-X2 |
-| sanity login session | Run 3 cms scripts + `sanity deploy` (Studio v2) | content + GTIN |
+| sanity login session | Run 4 cms scripts + `sanity deploy` (Studio v2) | content + GTIN + payment docs |
 | Native reviewers NL/DE/ES | Professional translation gate | U-K4 |
 
 ## Environment Variables
@@ -252,7 +257,8 @@ GOOGLE_PLACES_API_KEY=
 TURNSTILE_SITE_KEY= / TURNSTILE_SECRET_KEY=
 ADMIN_EMAILS=                  ← Comma-separated admin allowlist (/admin)
 PAYPAL_MODE= / PAYPAL_CLIENT_ID= / PAYPAL_CLIENT_SECRET= / PAYPAL_WEBHOOK_ID=
-ENABLE_PAYPAL= / ENABLE_STRIPE= / ENABLE_PG_PRIMARY_ORDERS=
+ENABLE_PAYPAL= / ENABLE_STRIPE= / ENABLE_KLARNA= / ENABLE_PG_PRIMARY_ORDERS=
+KLARNA_USERNAME= / KLARNA_PASSWORD= / KLARNA_API_BASE=   ← only if direct Klarna route
 CRON_SECRET=                   ← Outbox cron auth
 SHIPPING_CARRIER=              ← manual (default) | sendcloud | boxtal (when built)
 ANTHROPIC_API_KEY=             ← ChatWidget AI mode (pending)

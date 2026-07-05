@@ -571,6 +571,14 @@ async function placeOrder() {
         turnstileToken: turnstileToken.value,
       },
     })
+    // PSP redirect flows (card/Klarna when wired): the adapter returns a
+    // hosted-payment URL in clientPayload — hand the browser over BEFORE
+    // clearing the cart, so an abandoned payment keeps the cart intact.
+    const redirectUrl = result?.clientPayload?.redirectUrl
+    if (typeof redirectUrl === 'string' && redirectUrl.startsWith('https://')) {
+      window.location.href = redirectUrl
+      return
+    }
     cart.clearCart()
     navigateTo(localePath(`/commande/confirmation?order=${result.orderNumber}`))
   } catch (e: any) { orderError.value = e.data?.message || 'Order failed' }

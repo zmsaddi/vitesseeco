@@ -161,8 +161,14 @@ export default defineNuxtConfig({
           },
           priceRange: '€€',
           currenciesAccepted: 'EUR',
-          // Reality: PayPal live + in-store payment. Update when Stripe goes live.
-          paymentAccepted: 'PayPal, Cash',
+          // Computed at build from the payment feature flags, so the
+          // structured data can never claim a method that is not live.
+          paymentAccepted: [
+            'Cash',
+            process.env.ENABLE_PAYPAL === 'true' && 'PayPal',
+            process.env.ENABLE_STRIPE === 'true' && 'Credit Card',
+            process.env.ENABLE_KLARNA === 'true' && 'Klarna',
+          ].filter(Boolean).join(', '),
           areaServed: [
             { '@type': 'Country', name: 'France' },
             { '@type': 'Country', name: 'Belgium' },

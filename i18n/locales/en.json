@@ -565,7 +565,8 @@
     "bulk_done": "{count} order(s) updated",
     "bulk_failed": "{count} failed — try again",
     "clear_selection": "Clear selection",
-    "shortcuts_hint": "Shortcuts: / search · N next page · P previous page · Esc reset"
+    "shortcuts_hint": "Shortcuts: / search · N next page · P previous page · Esc reset",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "Search a bike, a part, an accessory…",

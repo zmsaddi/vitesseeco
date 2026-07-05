@@ -12,18 +12,21 @@ import type { PaymentAdapter } from '~/server/payments/types'
 import { inStoreAdapter } from '~/server/payments/adapters/inStore'
 import { stripeAdapter } from '~/server/payments/adapters/stripe'
 import { paypalAdapter } from '~/server/payments/adapters/paypal'
+import { klarnaAdapter } from '~/server/payments/adapters/klarna'
 
 const ADAPTERS: Record<string, PaymentAdapter> = {
   in_store: inStoreAdapter,
-  stripe: stripeAdapter,
+  stripe: stripeAdapter, // card payments
   paypal: paypalAdapter,
-  // Future: apple_pay, google_pay, bank_transfer, klarna
+  klarna: klarnaAdapter,
+  // Future: apple_pay, google_pay, bank_transfer
 }
 
 const FLAGS: Record<string, () => boolean> = {
   in_store: () => true,
   stripe: () => process.env.ENABLE_STRIPE === 'true',
   paypal: () => process.env.ENABLE_PAYPAL === 'true',
+  klarna: () => process.env.ENABLE_KLARNA === 'true',
 }
 
 /** Throws if the code is unknown or its feature flag is off. */

@@ -565,7 +565,8 @@
     "bulk_done": "{count} bestelling(en) bijgewerkt",
     "bulk_failed": "{count} mislukt — probeer opnieuw",
     "clear_selection": "Selectie wissen",
-    "shortcuts_hint": "Sneltoetsen: / zoeken · N volgende pagina · P vorige pagina · Esc herstellen"
+    "shortcuts_hint": "Sneltoetsen: / zoeken · N volgende pagina · P vorige pagina · Esc herstellen",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "Zoek een fiets, onderdeel, accessoire…",

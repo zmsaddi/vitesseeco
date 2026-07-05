@@ -565,7 +565,8 @@
     "bulk_done": "{count} Bestellung(en) aktualisiert",
     "bulk_failed": "{count} fehlgeschlagen — bitte erneut versuchen",
     "clear_selection": "Auswahl aufheben",
-    "shortcuts_hint": "Kurzbefehle: / Suche · N nächste Seite · P vorherige Seite · Esc zurücksetzen"
+    "shortcuts_hint": "Kurzbefehle: / Suche · N nächste Seite · P vorherige Seite · Esc zurücksetzen",
+    "payment_klarna": "Klarna"
   },
   "search": {
     "placeholder": "E-Bike, Ersatzteil, Zubehör suchen…",
