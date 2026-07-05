@@ -276,7 +276,16 @@
             </h2>
             <div class="space-y-2">
               <div v-for="item in cart.items" :key="`${item.productId}-${item.sku}`" class="flex justify-between text-sm">
-                <span class="text-white truncate flex-1">{{ l(item.name) }} <span class="text-text-secondary">× {{ item.quantity }}</span></span>
+                <!-- New tab: re-checking a product must never lose the typed
+                     address / checkout state. -->
+                <span class="text-white truncate flex-1">
+                  <NuxtLink
+                    :to="localePath(`/produits/${item.slug}`)"
+                    target="_blank"
+                    class="hover:text-accent transition-colors"
+                  >{{ l(item.name) }}</NuxtLink>
+                  <span class="text-text-secondary">× {{ item.quantity }}</span>
+                </span>
                 <span class="text-white font-medium ml-2 whitespace-nowrap">{{ item.price * item.quantity }}{{ $t('common.currency') }}</span>
               </div>
             </div>

@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   const orders = await client.fetch(
     `*[_type == "order" && customer.customerId == $customerId] | order(createdAt desc) [$offset...$end] {
       orderNumber, status, paymentMethod, total, shippingMethod, trackingNumber,
-      items[]{ productName, color, quantity, price },
+      items[]{ productName, color, quantity, price, sku },
       createdAt
     }`,
     { customerId: session.customerId, offset, end: offset + limit }

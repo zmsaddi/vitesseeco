@@ -82,7 +82,16 @@
           <ul class="divide-y divide-dark-tertiary/50">
             <li v-for="(item, i) in data.items" :key="i" class="px-4 py-3 flex items-start gap-3">
               <div class="flex-1 min-w-0">
-                <p class="text-white text-sm font-medium">{{ item.productName }}</p>
+                <!-- Order item sku IS the product slug (System B) — always give
+                     the customer a way back to the product page. -->
+                <NuxtLink
+                  v-if="item.sku"
+                  :to="localePath(`/produits/${item.sku}`)"
+                  class="text-white text-sm font-medium hover:text-accent transition-colors"
+                >
+                  {{ item.productName }}
+                </NuxtLink>
+                <p v-else class="text-white text-sm font-medium">{{ item.productName }}</p>
                 <p v-if="item.color" class="text-text-secondary text-xs">{{ item.color }}</p>
                 <p class="text-text-secondary text-xs mt-0.5">× {{ item.quantity }}</p>
               </div>

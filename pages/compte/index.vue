@@ -246,7 +246,15 @@
               <!-- Items -->
               <div class="space-y-1 mb-3">
                 <div v-for="item in order.items" :key="item.productName + item.color" class="flex justify-between text-xs text-text-secondary">
-                  <span>{{ item.productName }} ({{ item.color }}) × {{ item.quantity }}</span>
+                  <span>
+                    <NuxtLink
+                      v-if="item.sku"
+                      :to="localePath(`/produits/${item.sku}`)"
+                      class="hover:text-accent transition-colors"
+                    >{{ item.productName }}</NuxtLink>
+                    <template v-else>{{ item.productName }}</template>
+                    ({{ item.color }}) × {{ item.quantity }}
+                  </span>
                   <span>{{ item.price * item.quantity }}€</span>
                 </div>
               </div>

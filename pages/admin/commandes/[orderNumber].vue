@@ -43,7 +43,18 @@
             <tbody>
               <tr v-for="(item, i) in items" :key="i" class="border-t border-surface-2">
                 <td class="px-4 py-3">
-                  <div class="font-medium">{{ item.productName || item.name || item.sku }}</div>
+                  <!-- sku == product slug (System B): one click to verify the
+                       actual product while processing the order (new tab). -->
+                  <NuxtLink
+                    v-if="item.sku"
+                    :to="localePath(`/produits/${item.sku}`)"
+                    target="_blank"
+                    class="font-medium hover:text-accent transition-colors inline-flex items-center gap-1"
+                  >
+                    {{ item.productName || item.name || item.sku }}
+                    <Icon name="heroicons:arrow-top-right-on-square" class="w-3.5 h-3.5 opacity-60" />
+                  </NuxtLink>
+                  <div v-else class="font-medium">{{ item.productName || item.name || item.sku }}</div>
                   <div class="text-xs text-on-surface-muted">
                     <span v-if="item.color">{{ item.color }} · </span>
                     <span v-if="item.sku">SKU {{ item.sku }}</span>
