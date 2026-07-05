@@ -77,6 +77,36 @@
                     <option value="ES">🇪🇸 España</option>
                   </select>
                 </div>
+                <!-- Zip-first UX (owner 2026-07-06): postal code right after the
+                     country — the city fills itself, then the street
+                     autocomplete is biased by that city. -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label for="co-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
+                    <input id="co-zip" v-model="addr.postalCode" @input="onZipInput" @blur="touch('postalCode')" type="text" inputmode="numeric" class="input-field" :class="fieldError('postalCode', addr.postalCode) ? 'border-red-500' : ''" required />
+                    <p v-if="fieldError('postalCode', addr.postalCode)" class="text-red-400 text-xs mt-1">{{ $t('checkout.postal_code') }} {{ $t('common.error') }}</p>
+                  </div>
+                  <div>
+                    <label for="co-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
+                    <div class="relative">
+                      <input id="co-city" v-model="addr.city" @input="cityAuto = false" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
+                      <div v-if="cityLookupBusy" class="absolute end-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
+                      <Icon v-else-if="cityAuto && addr.city" name="ph:check-circle" class="w-4 h-4 text-accent absolute end-3 top-1/2 -translate-y-1/2" />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label for="co-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
+                  <div class="relative">
+                    <input id="co-addr" ref="coInput" v-model="addr.address" @input="onCoInput" @blur="touch('address')" type="text" class="input-field" :class="fieldError('address', addr.address) ? 'border-red-500' : ''" autocomplete="off" required />
+                    <div v-if="coLoading" class="absolute right-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
+                    <div v-if="coSuggestions.length" class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      <button v-for="s in coSuggestions" :key="s.place_id" type="button" @mousedown.prevent="pickCo(s)" class="w-full text-start px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white flex items-start gap-2">
+                        <Icon name="ph:map-pin" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" /><span>{{ s.description }}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label for="co-fn" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.first_name') }}</label>
@@ -91,29 +121,6 @@
                 <div>
                   <label for="co-phone" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.phone') }}</label>
                   <input id="co-phone" v-model="addr.phone" type="tel" class="input-field" />
-                </div>
-                <div>
-                  <label for="co-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
-                  <div class="relative">
-                    <input id="co-addr" ref="coInput" v-model="addr.address" @input="onCoInput" @blur="touch('address')" type="text" class="input-field" :class="fieldError('address', addr.address) ? 'border-red-500' : ''" autocomplete="off" required />
-                    <div v-if="coLoading" class="absolute right-3 top-1/2 -translate-y-1/2"><Icon name="ph:spinner" class="w-4 h-4 text-accent animate-spin" /></div>
-                    <div v-if="coSuggestions.length" class="absolute z-50 left-0 right-0 mt-1 bg-dark-secondary border border-dark-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                      <button v-for="s in coSuggestions" :key="s.place_id" type="button" @mousedown.prevent="pickCo(s)" class="w-full text-start px-3 py-2.5 text-sm text-text-secondary hover:bg-dark-tertiary hover:text-white flex items-start gap-2">
-                        <Icon name="ph:map-pin" class="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent" /><span>{{ s.description }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <div>
-                    <label for="co-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                    <input id="co-zip" v-model="addr.postalCode" @blur="touch('postalCode')" type="text" class="input-field" :class="fieldError('postalCode', addr.postalCode) ? 'border-red-500' : ''" required />
-                    <p v-if="fieldError('postalCode', addr.postalCode)" class="text-red-400 text-xs mt-1">{{ $t('checkout.postal_code') }} {{ $t('common.error') }}</p>
-                  </div>
-                  <div>
-                    <label for="co-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
-                    <input id="co-city" v-model="addr.city" @blur="touch('city')" type="text" class="input-field" :class="fieldError('city', addr.city) ? 'border-red-500' : ''" required />
-                  </div>
                 </div>
                 <label v-if="auth.isLoggedIn" class="flex items-center gap-2 text-text-secondary text-xs cursor-pointer">
                   <input type="checkbox" v-model="saveAddr" class="accent-accent" /> {{ $t('common.save') }}
@@ -517,19 +524,52 @@ const coInput = ref<HTMLInputElement>()
 const coSuggestions = ref<any[]>([])
 const coLoading = ref(false)
 let coTimer: ReturnType<typeof setTimeout>
-watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = [] })
+watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false })
+
+// Zip-first UX: postal code → city, silently. Never clobbers a city the
+// customer typed themselves (cityAuto tracks provenance).
+const { lookup: lookupCity } = usePostalCity()
+const cityLookupBusy = ref(false)
+const cityAuto = ref(false)
+let zipTimer: ReturnType<typeof setTimeout>
+function onZipInput() {
+  clearTimeout(zipTimer)
+  const code = (addr.postalCode || '').replace(/\s/g, '')
+  if (code.length < 4) return
+  zipTimer = setTimeout(async () => {
+    if (addr.city && !cityAuto.value) return
+    cityLookupBusy.value = true
+    const city = await lookupCity(addr.country, code)
+    cityLookupBusy.value = false
+    if (city && (!addr.city || cityAuto.value)) {
+      addr.city = city
+      cityAuto.value = true
+    }
+  }, 350)
+}
+
 function onCoInput() {
   clearTimeout(coTimer)
   if (addr.address.length < 3) { coSuggestions.value = []; coLoading.value = false; return }
   coLoading.value = true
   coTimer = setTimeout(async () => {
-    try { const d = await $fetch<any>('/api/places/autocomplete', { query: { input: addr.address, country: addr.country.toLowerCase() } }); coSuggestions.value = d.predictions || [] }
+    // Bias the street search with the known city — dramatically better
+    // matches once the zip has resolved it.
+    const input = addr.city ? `${addr.address}, ${addr.city}` : addr.address
+    try { const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: addr.country.toLowerCase() } }); coSuggestions.value = d.predictions || [] }
     catch { coSuggestions.value = [] } finally { coLoading.value = false }
   }, 400)
 }
 async function pickCo(s: any) {
   coSuggestions.value = []; addr.address = s.structured_formatting?.main_text || s.description
-  try { const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } }); if (d.address) { addr.address = d.address; addr.city = d.city || ''; addr.postalCode = d.postalCode || '' } } catch {}
+  try {
+    const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
+    if (d.address) {
+      addr.address = d.address
+      if (d.city) { addr.city = d.city; cityAuto.value = true }
+      if (d.postalCode) addr.postalCode = d.postalCode
+    }
+  } catch {}
 }
 
 // Can order?

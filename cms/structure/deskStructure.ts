@@ -180,6 +180,30 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem().title('🏷️ العلامات التجارية').schemaType('brand').child(S.documentTypeList('brand').title('العلامات')),
               S.divider(),
               S.listItem().title('🚚 طرق الشحن').schemaType('shippingMethod').child(S.documentTypeList('shippingMethod').title('طرق الشحن')),
+              S.listItem()
+                .title('🗺️ تغطية التوصيل حسب الدولة')
+                .child(
+                  S.list()
+                    .title('أي طرق تخدم كل دولة؟ (البادئات البريدية تظهر في السطر الثاني)')
+                    .items([
+                      ['FR', '🇫🇷 فرنسا'],
+                      ['BE', '🇧🇪 بلجيكا'],
+                      ['NL', '🇳🇱 هولندا'],
+                      ['DE', '🇩🇪 ألمانيا'],
+                      ['ES', '🇪🇸 إسبانيا'],
+                      ['LU', '🇱🇺 لوكسمبورغ'],
+                    ].map(([code, label]) =>
+                      S.listItem()
+                        .title(label)
+                        .child(
+                          S.documentList()
+                            .title(`طرق ${label}`)
+                            .filter('_type == "shippingMethod" && $z in zones')
+                            .params({ z: code })
+                            .defaultOrdering([{ field: 'sortOrder', direction: 'asc' }])
+                        )
+                    ))
+                ),
               S.listItem().title('💳 طرق الدفع').schemaType('paymentMethod').child(S.documentTypeList('paymentMethod').title('طرق الدفع')),
               S.listItem().title('🎟️ أكواد الخصم').schemaType('promoCode').child(S.documentTypeList('promoCode').title('أكواد الخصم')),
             ])

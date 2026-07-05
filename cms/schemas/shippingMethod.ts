@@ -84,12 +84,15 @@ export default defineType({
     },
   ],
   preview: {
-    select: { title: 'name.fr', price: 'price', active: 'isActive', provider: 'carrier.provider' },
-    prepare({ title, price, active, provider }) {
+    select: { title: 'name.fr', price: 'price', active: 'isActive', provider: 'carrier.provider', zones: 'zones', prefixes: 'postalCodePrefixes' },
+    prepare({ title, price, active, provider, zones, prefixes }) {
       const carriers: Record<string, string> = { colissimo: '📮', chronopost: '⚡', mondial_relay: '📍', dpd: '📦', dhl: '🟡', ups: '🟤', gls: '🔵', manual: '✋' }
+      const flags: Record<string, string> = { FR: '🇫🇷', BE: '🇧🇪', LU: '🇱🇺', DE: '🇩🇪', NL: '🇳🇱', ES: '🇪🇸' }
+      const zoneStr = (zones || []).map((z: string) => flags[z] || z).join('')
+      const prefixStr = prefixes?.length ? ` · 📮 ${prefixes.join(',')}xx` : ''
       return {
         title: `${active ? '✅' : '❌'} ${title || 'بدون اسم'}`,
-        subtitle: `${price === 0 ? 'مجاني' : price + '€'} ${carriers[provider || 'manual'] || ''} ${provider || 'يدوي'}`,
+        subtitle: `${price === 0 ? 'مجاني' : price + '€'} · ${zoneStr}${prefixStr} ${carriers[provider || 'manual'] || ''}`,
       }
     },
   },
