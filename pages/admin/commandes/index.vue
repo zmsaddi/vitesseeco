@@ -15,7 +15,7 @@
     </div>
 
     <!-- Status filter chips -->
-    <div class="flex flex-wrap gap-2 mb-6">
+    <div class="flex flex-wrap gap-2 mb-4">
       <button
         v-for="chip in statusChips"
         :key="chip.value"
@@ -31,6 +31,42 @@
           {{ counts[chip.value === '' ? 'all' : chip.value] }}
         </span>
       </button>
+    </div>
+
+    <!-- Advanced filters -->
+    <div class="flex flex-wrap items-end gap-3 mb-6">
+      <label class="text-xs text-on-surface-muted">
+        Du
+        <input v-model="dateFrom" type="date" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
+      </label>
+      <label class="text-xs text-on-surface-muted">
+        Au
+        <input v-model="dateTo" type="date" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
+      </label>
+      <label class="text-xs text-on-surface-muted">
+        Paiement
+        <select v-model="payment" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
+          <option value="">Tous</option>
+          <option value="paypal">PayPal</option>
+          <option value="in_store">En magasin</option>
+          <option value="stripe">Carte</option>
+        </select>
+      </label>
+      <button
+        v-if="hasActiveFilters"
+        type="button"
+        class="text-sm text-on-surface-muted underline underline-offset-2 pb-2.5"
+        @click="resetFilters"
+      >
+        Réinitialiser
+      </button>
+      <a
+        :href="exportUrl"
+        class="ms-auto inline-flex items-center gap-2 rounded-lg bg-surface border border-surface-2 px-3.5 py-2 text-sm font-medium hover:border-accent transition-colors duration-200"
+      >
+        <Icon name="heroicons:arrow-down-tray" class="w-4 h-4" />
+        Exporter CSV
+      </a>
     </div>
 
     <!-- Table -->
@@ -51,9 +87,17 @@
             <tr class="text-start text-on-surface-muted border-b border-surface-2">
               <th class="text-start font-medium px-4 py-3">Commande</th>
               <th class="text-start font-medium px-4 py-3">Client</th>
-              <th class="text-start font-medium px-4 py-3 hidden lg:table-cell">Date</th>
+              <th class="text-start font-medium px-4 py-3 hidden lg:table-cell">
+                <button type="button" class="inline-flex items-center gap-1 hover:text-on-surface" @click="toggleSort('created')">
+                  Date <Icon :name="sortIcon('created')" class="w-3.5 h-3.5" />
+                </button>
+              </th>
               <th class="text-start font-medium px-4 py-3 hidden sm:table-cell">Articles</th>
-              <th class="text-start font-medium px-4 py-3">Total</th>
+              <th class="text-start font-medium px-4 py-3">
+                <button type="button" class="inline-flex items-center gap-1 hover:text-on-surface" @click="toggleSort('total')">
+                  Total <Icon :name="sortIcon('total')" class="w-3.5 h-3.5" />
+                </button>
+              </th>
               <th class="text-start font-medium px-4 py-3">Statut</th>
             </tr>
           </thead>
@@ -122,6 +166,10 @@ const page = ref(1)
 const status = ref(typeof route.query.status === 'string' ? route.query.status : '')
 const search = ref('')
 const searchInput = ref('')
+const dateFrom = ref('')
+const dateTo = ref('')
+const payment = ref('')
+const sort = ref('created_desc')
 
 let searchTimer: ReturnType<typeof setTimeout> | undefined
 watch(searchInput, (val) => {
@@ -137,13 +185,51 @@ function setStatus(value: string) {
   page.value = 1
 }
 
-const query = computed(() => ({
-  page: page.value,
+const filterParams = computed(() => ({
   ...(status.value ? { status: status.value } : {}),
   ...(search.value ? { q: search.value } : {}),
+  ...(dateFrom.value ? { dateFrom: dateFrom.value } : {}),
+  ...(dateTo.value ? { dateTo: dateTo.value } : {}),
+  ...(payment.value ? { payment: payment.value } : {}),
+  ...(sort.value !== 'created_desc' ? { sort: sort.value } : {}),
 }))
 
+const query = computed(() => ({ page: page.value, ...filterParams.value }))
+
 const { data, pending } = await useFetch('/api/admin/orders', { query })
+
+const hasActiveFilters = computed(
+  () => Boolean(status.value || search.value || dateFrom.value || dateTo.value || payment.value)
+)
+
+const exportUrl = computed(() => {
+  const params = new URLSearchParams(filterParams.value as Record<string, string>)
+  const qs = params.toString()
+  return `/api/admin/orders-export${qs ? `?${qs}` : ''}`
+})
+
+function resetFilters() {
+  status.value = ''
+  searchInput.value = ''
+  search.value = ''
+  dateFrom.value = ''
+  dateTo.value = ''
+  payment.value = ''
+  page.value = 1
+}
+
+function toggleSort(col: 'created' | 'total') {
+  const desc = `${col}_desc`
+  const asc = `${col}_asc`
+  sort.value = sort.value === desc ? asc : desc
+  page.value = 1
+}
+
+function sortIcon(col: 'created' | 'total') {
+  if (sort.value === `${col}_asc`) return 'heroicons:chevron-up'
+  if (sort.value === `${col}_desc`) return 'heroicons:chevron-down'
+  return 'heroicons:chevron-up-down'
+}
 
 const rows = computed(() => data.value?.orders ?? [])
 const totalPages = computed(() => data.value?.totalPages ?? 1)

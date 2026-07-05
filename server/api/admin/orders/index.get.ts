@@ -1,15 +1,15 @@
 /**
  * Admin orders list — reads PG directly (live, no Sanity sync lag).
- * Supports: pagination, status filter, free-text search on order number /
- * customer name / email. Also returns per-status counts for the filter chips.
+ * Filters/sort (status, q, payment, dateFrom/dateTo, sort) come from the
+ * shared builder so the CSV export matches exactly. Also returns per-status
+ * counts for the filter chips.
  */
-import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm'
+import { count, sql } from 'drizzle-orm'
 import { useDBHttp } from '~/server/database/db'
 import { orders } from '~/server/database/schema'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { requireAdmin } from '~/server/utils/adminAuth'
-
-const STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
+import { buildAdminOrderFilters, ORDER_SORTS } from '~/server/utils/adminOrderQuery'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 120, windowMs: 60_000 })
@@ -18,23 +18,7 @@ export default defineEventHandler(async (event) => {
   const q = getQuery(event)
   const page = Math.max(1, parseInt(q.page as string) || 1)
   const limit = Math.min(50, Math.max(1, parseInt(q.limit as string) || 20))
-  const status = typeof q.status === 'string' && STATUSES.includes(q.status) ? q.status : null
-  const search = typeof q.q === 'string' ? q.q.trim().slice(0, 100) : ''
-
-  const conds = []
-  if (status) conds.push(eq(orders.status, status))
-  if (search) {
-    const pattern = `%${search}%`
-    conds.push(
-      or(
-        ilike(orders.orderNumber, pattern),
-        ilike(orders.guestEmail, pattern),
-        sql`${orders.customerSnapshot}->>'email' ILIKE ${pattern}`,
-        sql`${orders.customerSnapshot}->>'name' ILIKE ${pattern}`
-      )
-    )
-  }
-  const where = conds.length ? and(...conds) : undefined
+  const { where, sort } = buildAdminOrderFilters(q)
 
   const db = useDBHttp()
 
@@ -52,7 +36,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(orders)
     .where(where)
-    .orderBy(desc(orders.createdAt))
+    .orderBy(...ORDER_SORTS[sort])
     .limit(limit)
     .offset((page - 1) * limit)
 

@@ -3,7 +3,8 @@
 > **Status:** Approved — THE official reference for all work
 > **Created:** 2026-07-05 · **Owner:** zmsaddi
 > **Mission:** Rebuild the entire website experience once, expert-grade, mobile-first —
-> and make Vitesse Eco the #1 e-mobility store result in **France, Netherlands, Germany, Spain**.
+> and make Vitesse Eco the #1 e-mobility store result in **France, Belgium, Netherlands, Germany, Spain**.
+> (Belgium added 2026-07-05 — cheapest market entry: fr + nl locales already cover both Belgian language communities.)
 > **Timeline:** 12 weeks, weekly shippable milestones
 > **Supersedes:** [EXPERIENCE_RECONSTRUCTION_PLAN.md](EXPERIENCE_RECONSTRUCTION_PLAN.md) (absorbed).
 > Security backlog in [PRODUCTION_UPGRADE_PLAN.md](PRODUCTION_UPGRADE_PLAN.md) stays authoritative.
@@ -192,7 +193,7 @@ Benchmark stays: process an order < 60s; every daily task ≤3 clicks.
 
 ---
 
-## 7. Track C — #1 in FR / NL / DE / ES
+## 7. Track C — #1 in FR / BE / NL / DE / ES
 
 **Honest model:** rankings = Technical × Content × Authority × Time. Code delivers
 Technical 100%. Content and Authority are operated programs defined here — skipping
@@ -200,10 +201,13 @@ them means not ranking, regardless of code quality.
 
 ### 7.1 Technical per-market (code — R4)
 
-- hreflang already live for fr/nl/de/es/en/ar ✅; add x-default; CI check that every
-  indexable page emits complete hreflang cluster + canonical.
+- hreflang already live for fr/nl/de/es/en/ar ✅; add x-default plus fr-BE / nl-BE
+  regional variants; CI check that every indexable page emits complete hreflang
+  cluster + canonical.
 - Per-language Merchant feeds: `/feeds/google-merchant-{nl,de,es}.xml` with translated
   titles/descriptions (same EUR prices), submitted as separate country feeds.
+  Belgium: submit the FR feed for country BE (fr-BE) and the NL feed for BE (nl-BE) —
+  no new feed generation needed.
 - GSC: one property, per-country performance monitoring; Bing Webmaster too.
 - Per-market meta title/description patterns keyword-researched per language
   (e.g. DE: "E-Bike kaufen", NL: "elektrische fiets kopen", ES: "bicicleta eléctrica").
@@ -229,9 +233,10 @@ them means not ranking, regardless of code quality.
 | Market | Requirement | Action |
 |---|---|---|
 | DE | Impressum, Widerrufsbelehrung (14-day withdrawal), Preisangabenverordnung (unit pricing), battery-law notice (BattG) | Legal page variants + checkout copy; owner validates with advisor |
-| NL/ES/EU | 14-day withdrawal, ODR platform link, consumer-law delivery promises | CGV additions per language |
+| BE/NL/ES/EU | 14-day withdrawal, ODR platform link, consumer-law delivery promises | CGV additions per language |
+| BE | Bilingual customer service expectation (fr/nl both live) + BE shipping zone | Shipping config + contact copy |
 | EU VAT | Distance-selling >€10k/yr → **OSS registration** (one French filing for all EU VAT) | Owner + accountant; site shows TTC prices (already does) |
-| Shipping | Real carrier methods + prices per country in Sanity shippingMethod zones | Configure NL/DE/ES zones; checkout filters by country (adapter exists) |
+| Shipping | Real carrier methods + prices per country in Sanity shippingMethod zones | Configure BE/NL/DE/ES zones; checkout filters by country (adapter exists) |
 | Reviews | Trustpilot (free tier) wired post-purchase email | R6; review stars → JSON-LD aggregateRating → SERP CTR |
 
 ### 7.5 Leading indicators (monthly review vs #1 goal)
