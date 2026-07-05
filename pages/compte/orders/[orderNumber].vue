@@ -37,6 +37,34 @@
           </span>
         </div>
 
+        <!-- U-P11: status timeline — the customer sees exactly where the order is -->
+        <section v-if="data.status !== 'cancelled'" class="card p-5 mb-6">
+          <ol class="flex items-start">
+            <template v-for="(step, i) in timelineSteps" :key="step.key">
+              <li class="flex flex-col items-center text-center flex-1 min-w-0">
+                <span
+                  class="w-9 h-9 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors"
+                  :class="i <= currentStep
+                    ? 'bg-accent border-accent text-primary'
+                    : i === currentStep + 1
+                      ? 'border-accent/50 text-accent bg-accent/10'
+                      : 'border-dark-tertiary text-text-secondary'"
+                >
+                  <Icon v-if="i <= currentStep" name="ph:check-bold" class="w-4 h-4" />
+                  <Icon v-else :name="step.icon" class="w-4 h-4" />
+                </span>
+                <span class="text-xs mt-2 leading-tight" :class="i <= currentStep ? 'text-accent font-medium' : 'text-text-secondary'">
+                  {{ step.label }}
+                </span>
+              </li>
+              <li v-if="i < timelineSteps.length - 1" aria-hidden="true" class="flex-1 h-0.5 mt-[1.1rem] -mx-4" :class="i < currentStep ? 'bg-accent' : 'bg-dark-tertiary'" />
+            </template>
+          </ol>
+          <p v-if="data.status === 'pending'" class="text-gold text-xs text-center mt-4 flex items-center justify-center gap-1.5">
+            <Icon name="ph:clock" class="w-3.5 h-3.5" /> {{ statusLabel }}
+          </p>
+        </section>
+
         <!-- Tracking -->
         <div v-if="data.trackingNumber" class="card p-4 mb-6 flex items-center gap-3">
           <Icon name="ph:package" class="w-5 h-5 text-accent shrink-0" />
@@ -84,6 +112,17 @@
             <span class="text-accent font-display font-bold text-lg">{{ Number(data.total).toFixed(2) }}€</span>
           </div>
         </section>
+
+        <!-- U-P11: one-click reorder -->
+        <button
+          type="button"
+          class="btn-primary w-full py-3.5 mb-6 flex items-center justify-center gap-2 disabled:opacity-50"
+          :disabled="reordering"
+          @click="reorder"
+        >
+          <Icon :name="reordering ? 'ph:spinner' : 'ph:arrow-clockwise'" class="w-5 h-5" :class="{ 'animate-spin': reordering }" />
+          {{ $t('account.reorder') }}
+        </button>
 
         <!-- Address -->
         <section v-if="data.shippingAddress" class="card p-4 mb-6">
@@ -146,6 +185,74 @@ const statusInfo = computed(() => {
 const statusIcon = computed(() => statusInfo.value.icon)
 const statusClass = computed(() => statusInfo.value.class)
 const statusLabel = computed(() => t(`account.order_status.${data.value?.status || 'pending'}`))
+
+// U-P11: timeline. pending sits before the first milestone (awaiting payment).
+const timelineSteps = computed(() => [
+  { key: 'paid',       icon: 'ph:credit-card', label: t('account.order_status.paid') },
+  { key: 'processing', icon: 'ph:package',     label: t('account.order_status.processing') },
+  { key: 'shipped',    icon: 'ph:truck',       label: t('account.order_status.shipped') },
+  { key: 'delivered',  icon: 'ph:house',       label: t('account.order_status.delivered') },
+])
+const currentStep = computed(() => {
+  const order = ['paid', 'processing', 'shipped', 'delivered']
+  return order.indexOf(data.value?.status || '')
+})
+
+// U-P11: one-click reorder — items carry sku (== product slug in System B),
+// so we refetch live product docs and rebuild cart lines from fresh data
+// (current price/stock, not the historical snapshot).
+const sanity = useSanity()
+const cart = useCartStore()
+const toast = useToast()
+const cartOpen = useState('cartOpen', () => false)
+const reordering = ref(false)
+
+async function reorder() {
+  const items: any[] = data.value?.items || []
+  if (!items.length || reordering.value) return
+  reordering.value = true
+  try {
+    const skus = items.map((i) => i.sku).filter(Boolean)
+    const products: any[] = await sanity.fetch(
+      groq`*[_type == "product" && slug.current in $skus && isAvailable == true]{
+        _id, name, slug, price, color, colorHex, stock, "images": images[0..0]{asset}
+      }`,
+      { skus }
+    )
+    const bySku = new Map(products.map((p) => [p.slug?.current, p]))
+    let added = 0
+    for (const item of items) {
+      const p = bySku.get(item.sku)
+      if (!p || (p.stock || 0) <= 0) continue
+      const qty = Math.min(item.quantity || 1, p.stock, 10)
+      const imgUrl = p.images?.[0]?.asset ? useSanityImageUrl(p.images[0], 150, 150) : ''
+      cart.addItem({
+        productId: p._id,
+        name: p.name,
+        slug: p.slug?.current || '',
+        price: p.price,
+        colorHex: p.colorHex || '#000',
+        colorName: p.color || { fr: '' },
+        sku: p.slug?.current || p._id,
+        image: imgUrl,
+      }, qty)
+      added += qty
+    }
+    if (added > 0) {
+      toast.success(t('account.reorder_done', { n: added }))
+      if (added < items.reduce((s, i) => s + (i.quantity || 1), 0)) {
+        toast.warning(t('account.reorder_partial'))
+      }
+      cartOpen.value = true
+    } else {
+      toast.error(t('account.reorder_partial'))
+    }
+  } catch {
+    toast.error(t('account.reorder_partial'))
+  } finally {
+    reordering.value = false
+  }
+}
 
 const paymentMethodLabel = computed(() => {
   const code = data.value?.paymentMethod

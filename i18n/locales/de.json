@@ -196,6 +196,9 @@
     "order_received_no_number": "Ihre Bestellung wurde registriert. Falls die Bestellnummer nicht angezeigt wird, finden Sie sie in der Bestätigungs-E-Mail oder in Ihrem Konto."
   },
   "account": {
+    "reorder": "Erneut bestellen",
+    "reorder_done": "{n} Artikel in den Warenkorb gelegt",
+    "reorder_partial": "Einige Artikel sind nicht mehr verfügbar",
     "title": "Mein Konto",
     "orders": "Meine Bestellungen",
     "profile": "Mein Profil",
@@ -226,6 +229,7 @@
     "tracking": "Sendungsverfolgung"
   },
   "auth": {
+    "google_hint": "Tipp: Konto mit Google erstellt? Nutzen Sie den Google-Button oben — es gibt kein Passwort.",
     "login_title": "Anmelden",
     "register_title": "Konto erstellen",
     "email": "Email",

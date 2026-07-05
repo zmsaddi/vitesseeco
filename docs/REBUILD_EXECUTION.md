@@ -48,8 +48,8 @@
 
 | Unit | Scope | Status |
 |---|---|---|
-| U-P10 | Auth pages v2 + "Google account" hint + password reset UI (endpoints P0-06/07) | ⬜ |
-| U-P11 | Account v2 + order tracking timeline + one-click reorder | ⬜ |
+| U-P10 | Login: Google-account hint shown with any auth error (generic, no enumeration) — password reset UI waits on Resend (owner accounts session) | ✅ partial 2026-07-05 |
+| U-P11 | Order detail: 4-step status timeline (paid→processing→shipped→delivered, hidden when cancelled, pending note) + one-click reorder rebuilding cart lines from LIVE product data (fresh price/stock, qty capped, partial-availability toasts) | ✅ 2026-07-05 |
 | U-P12 | Contact/a-propos/legal v2 | ⬜ |
 
 ## Phase R4 — Markets (BE/NL/DE/ES)

@@ -19,7 +19,14 @@
         </div>
 
         <p v-if="googleError" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">Google: {{ googleError }}</p>
-        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-4 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
+        <p v-if="auth.error" class="text-red-400 text-sm text-center mb-2 bg-red-900/20 p-3 rounded-lg">{{ auth.error }}</p>
+        <!-- U-P10: Google accounts have a random password — point the user to
+             the right door instead of leaving them retrying (generic hint so
+             we never reveal whether the email exists). -->
+        <p v-if="auth.error" class="text-accent text-xs mb-4 bg-accent/5 border border-accent/20 p-3 rounded-lg flex items-start gap-2 text-start">
+          <Icon name="ph:lightbulb" class="w-4 h-4 shrink-0 mt-0.5" />
+          <span>{{ $t('auth.google_hint') }}</span>
+        </p>
 
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>

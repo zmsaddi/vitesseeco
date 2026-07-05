@@ -196,6 +196,9 @@
     "order_received_no_number": "Uw bestelling is geregistreerd. Als het bestelnummer niet zichtbaar is, vindt u het in de bevestigingsmail of in uw account."
   },
   "account": {
+    "reorder": "Opnieuw bestellen",
+    "reorder_done": "{n} artikel(en) toegevoegd aan winkelwagen",
+    "reorder_partial": "Sommige artikelen zijn niet meer beschikbaar",
     "title": "Mijn Account",
     "orders": "Mijn Bestellingen",
     "profile": "Mijn Profiel",
@@ -226,6 +229,7 @@
     "tracking": "Tracking nummer"
   },
   "auth": {
+    "google_hint": "Tip: account met Google aangemaakt? Gebruik de Google-knop hierboven — er is geen wachtwoord.",
     "login_title": "Inloggen",
     "register_title": "Account aanmaken",
     "email": "Email",

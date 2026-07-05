@@ -196,6 +196,9 @@
     "order_received_no_number": "Your order has been placed. If the order number is not visible, you'll find it in the confirmation email or in your account."
   },
   "account": {
+    "reorder": "Order again",
+    "reorder_done": "{n} item(s) added to cart",
+    "reorder_partial": "Some items are no longer available",
     "title": "My Account",
     "orders": "My Orders",
     "profile": "My Profile",
@@ -226,6 +229,7 @@
     "tracking": "Tracking number"
   },
   "auth": {
+    "google_hint": "Tip: created your account with Google? Use the Google button above — it has no password.",
     "login_title": "Log In",
     "register_title": "Create an account",
     "email": "Email",

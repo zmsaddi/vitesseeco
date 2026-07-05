@@ -196,6 +196,9 @@
     "order_received_no_number": "Votre commande a bien été enregistrée. Si le numéro de commande ne s'affiche pas, vous le retrouverez dans l'email de confirmation ou dans votre espace client."
   },
   "account": {
+    "reorder": "Commander à nouveau",
+    "reorder_done": "{n} article(s) ajouté(s) au panier",
+    "reorder_partial": "Certains articles ne sont plus disponibles",
     "title": "Mon Compte",
     "orders": "Mes Commandes",
     "profile": "Mon Profil",
@@ -226,6 +229,7 @@
     "tracking": "Suivi de livraison"
   },
   "auth": {
+    "google_hint": "Astuce : compte créé avec Google ? Utilisez le bouton « Google » ci-dessus — il n'a pas de mot de passe.",
     "login_title": "Connexion",
     "register_title": "Créer un compte",
     "email": "Email",

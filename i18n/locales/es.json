@@ -196,6 +196,9 @@
     "order_received_no_number": "Tu pedido ha sido registrado. Si el número de pedido no aparece, lo encontrarás en el email de confirmación o en tu cuenta."
   },
   "account": {
+    "reorder": "Volver a pedir",
+    "reorder_done": "{n} artículo(s) añadidos al carrito",
+    "reorder_partial": "Algunos artículos ya no están disponibles",
     "title": "Mi Cuenta",
     "orders": "Mis Pedidos",
     "profile": "Mi Perfil",
@@ -226,6 +229,7 @@
     "tracking": "Número de seguimiento"
   },
   "auth": {
+    "google_hint": "Consejo: ¿creaste tu cuenta con Google? Usa el botón de Google de arriba — no tiene contraseña.",
     "login_title": "Iniciar Sesión",
     "register_title": "Crear una cuenta",
     "email": "Email",
