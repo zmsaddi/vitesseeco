@@ -398,4 +398,35 @@
     "retry": "Erneut versuchen",
     "verified": "Verifiziert"
   }
+,
+  "chat": {
+    "open": "Chat öffnen",
+    "title": "Vitesse Eco Assistent",
+    "subtitle": "Sofortige Antwort, 7 Tage die Woche",
+    "placeholder": "Nachricht eingeben…",
+    "send": "Senden",
+    "whatsapp": "Weiter auf WhatsApp",
+    "greeting": "Hallo 👋 Wie kann ich Ihnen helfen?",
+    "quick_track": "Bestellung verfolgen",
+    "quick_shipping": "Versand & Lieferzeit",
+    "quick_warranty": "Garantie & Rückgabe",
+    "quick_human": "Mit einem Berater sprechen",
+    "ask_order": "Bitte geben Sie Ihre Bestellnummer ein (z. B. ORD-ABC123).",
+    "ask_email": "Zur Überprüfung: E-Mail-Adresse der Bestellung eingeben.",
+    "invalid_order": "Ungültiges Format — die Nummer sieht aus wie ORD-ABC123.",
+    "order_not_found": "Bestellung nicht gefunden. Nummer und E-Mail prüfen.",
+    "order_status": "Bestellung {number}: {status}.",
+    "order_tracking": "Sendungsnummer: {tracking}",
+    "order_no_tracking": "Noch keine Sendungsnummer — erscheint nach dem Versand.",
+    "fallback": "Ich habe keine genaue Antwort gefunden. Ein Berater hilft Ihnen:",
+    "human_msg": "Gerne! Kontaktieren Sie uns direkt:",
+    "error": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+    "typing": "Schreibt…",
+    "status_pending": "Zahlung ausstehend",
+    "status_paid": "bezahlt",
+    "status_processing": "in Vorbereitung",
+    "status_shipped": "versandt",
+    "status_delivered": "zugestellt",
+    "status_cancelled": "storniert"
+  }
 }

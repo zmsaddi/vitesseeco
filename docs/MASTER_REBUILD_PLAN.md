@@ -101,6 +101,19 @@ action per view, `focus-visible` ring on everything, all text via i18n keys (6 l
 Each page PR contains: the rebuilt page, its e2e spec (FR mobile+desktop minimum),
 a visual baseline, and i18n keys in all 6 locales (`check:langs` gate).
 
+### 3.3 Modern commerce layer (market-standard features)
+
+| Feature | Status / Wk |
+|---|---|
+| **WhatsApp chat** (floating widget, prefilled context) | ✅ Delivered 2026-07-05 |
+| **Assistant chatbot**: live order tracking (PG, ownership-verified), FAQ answers in visitor's language, product suggestions, human handoff; auto-upgrades to Claude AI when `ANTHROPIC_API_KEY` is set | ✅ Delivered 2026-07-05 (rules engine) · AI key wired with owner post-build |
+| Recently-viewed products strip (localStorage) | Wk 5 |
+| Wishlist (localStorage v1, account-synced v2) | Wk 6 |
+| Back-in-stock email alert (needs Resend) | Wk 8 |
+| Sitewide promo/announcement bar (Sanity-driven) | Wk 5 |
+| One-click reorder from order history | Wk 7 |
+| PWA (installable, offline shell) | Wk 10 |
+
 ---
 
 ## 4. Feedback system spec — "all dialogs, errors, responses"
@@ -162,8 +175,12 @@ The complete inventory. Every rebuilt page implements the relevant rows; nothing
 
 Built: dashboard, live orders, stock, messages. Add:
 
+Owner feedback 2026-07-05: "more professional, easier, needs filters" — rows 2-3 below address it directly.
+
 | Wk | Feature |
 |---|---|
+| 2 | Orders: date-range + payment-method filters, column sort, sticky table header, CSV export |
+| 2 | UX pass: bulk status actions, keyboard shortcuts (/, Esc), denser table option, empty-state guidance |
 | 3 | New-order notification: email (Resend) + optional Telegram bot |
 | 4 | Status-change → automatic customer email (shipped = tracking link) |
 | 5 | `/admin/promos`: list, toggle, usage counters, create simple codes |

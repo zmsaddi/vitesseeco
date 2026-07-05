@@ -398,4 +398,35 @@
     "retry": "Reintentar",
     "verified": "Verificado"
   }
+,
+  "chat": {
+    "open": "Abrir el chat",
+    "title": "Asistente Vitesse Eco",
+    "subtitle": "Respuesta inmediata, 7 días",
+    "placeholder": "Escribe tu mensaje…",
+    "send": "Enviar",
+    "whatsapp": "Continuar en WhatsApp",
+    "greeting": "Hola 👋 ¿En qué puedo ayudarte?",
+    "quick_track": "Seguir mi pedido",
+    "quick_shipping": "Envío y plazos",
+    "quick_warranty": "Garantía y devoluciones",
+    "quick_human": "Hablar con un asesor",
+    "ask_order": "Indica tu número de pedido (ej.: ORD-ABC123).",
+    "ask_email": "Para verificar, indica el email usado en el pedido.",
+    "invalid_order": "Formato no válido — el número es como ORD-ABC123.",
+    "order_not_found": "Pedido no encontrado. Verifica el número y el email.",
+    "order_status": "Pedido {number}: {status}.",
+    "order_tracking": "Número de seguimiento: {tracking}",
+    "order_no_tracking": "Aún sin número de seguimiento — aparecerá al enviarse.",
+    "fallback": "No encontré una respuesta precisa. Un asesor puede ayudarte:",
+    "human_msg": "¡Claro! Contáctanos directamente:",
+    "error": "Ocurrió un error. Inténtalo de nuevo.",
+    "typing": "Escribiendo…",
+    "status_pending": "pendiente de pago",
+    "status_paid": "pagado",
+    "status_processing": "en preparación",
+    "status_shipped": "enviado",
+    "status_delivered": "entregado",
+    "status_cancelled": "cancelado"
+  }
 }

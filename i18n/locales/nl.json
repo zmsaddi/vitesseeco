@@ -398,4 +398,35 @@
     "retry": "Opnieuw proberen",
     "verified": "Geverifieerd"
   }
+,
+  "chat": {
+    "open": "Chat openen",
+    "title": "Vitesse Eco Assistent",
+    "subtitle": "Direct antwoord, 7 dagen per week",
+    "placeholder": "Typ je bericht…",
+    "send": "Versturen",
+    "whatsapp": "Verder via WhatsApp",
+    "greeting": "Hallo 👋 Waarmee kan ik je helpen?",
+    "quick_track": "Mijn bestelling volgen",
+    "quick_shipping": "Verzending & levertijd",
+    "quick_warranty": "Garantie & retouren",
+    "quick_human": "Met een medewerker praten",
+    "ask_order": "Voer je bestelnummer in (bijv. ORD-ABC123).",
+    "ask_email": "Ter verificatie: voer het e-mailadres van de bestelling in.",
+    "invalid_order": "Ongeldig formaat — het nummer lijkt op ORD-ABC123.",
+    "order_not_found": "Bestelling niet gevonden. Controleer nummer en e-mail.",
+    "order_status": "Bestelling {number}: {status}.",
+    "order_tracking": "Trackingnummer: {tracking}",
+    "order_no_tracking": "Nog geen trackingnummer — verschijnt zodra verzonden.",
+    "fallback": "Ik vond geen precies antwoord. Een adviseur helpt je graag:",
+    "human_msg": "Natuurlijk! Neem direct contact op:",
+    "error": "Er ging iets mis. Probeer opnieuw.",
+    "typing": "Aan het typen…",
+    "status_pending": "wacht op betaling",
+    "status_paid": "betaald",
+    "status_processing": "wordt voorbereid",
+    "status_shipped": "verzonden",
+    "status_delivered": "bezorgd",
+    "status_cancelled": "geannuleerd"
+  }
 }

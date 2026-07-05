@@ -398,4 +398,35 @@
     "retry": "Réessayer",
     "verified": "Vérification réussie"
   }
+,
+  "chat": {
+    "open": "Ouvrir le chat",
+    "title": "Assistant Vitesse Eco",
+    "subtitle": "Réponse immédiate, 7j/7",
+    "placeholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "whatsapp": "Continuer sur WhatsApp",
+    "greeting": "Bonjour 👋 Comment puis-je vous aider ?",
+    "quick_track": "Suivre ma commande",
+    "quick_shipping": "Livraison & délais",
+    "quick_warranty": "Garantie & retours",
+    "quick_human": "Parler à un conseiller",
+    "ask_order": "Indiquez votre numéro de commande (ex : ORD-ABC123).",
+    "ask_email": "Pour vérifier, indiquez l'email utilisé lors de la commande.",
+    "invalid_order": "Format invalide — le numéro ressemble à ORD-ABC123.",
+    "order_not_found": "Commande introuvable. Vérifiez le numéro et l'email.",
+    "order_status": "Commande {number} : {status}.",
+    "order_tracking": "Numéro de suivi : {tracking}",
+    "order_no_tracking": "Pas encore de numéro de suivi — il apparaîtra dès l'expédition.",
+    "fallback": "Je n'ai pas trouvé de réponse précise. Un conseiller peut vous aider :",
+    "human_msg": "Bien sûr ! Contactez-nous directement :",
+    "error": "Une erreur est survenue. Réessayez.",
+    "typing": "En train d’écrire…",
+    "status_pending": "en attente de paiement",
+    "status_paid": "payée",
+    "status_processing": "en préparation",
+    "status_shipped": "expédiée",
+    "status_delivered": "livrée",
+    "status_cancelled": "annulée"
+  }
 }

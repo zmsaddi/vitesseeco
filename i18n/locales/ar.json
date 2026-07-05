@@ -398,4 +398,35 @@
     "retry": "إعادة المحاولة",
     "verified": "تم التحقق"
   }
+,
+  "chat": {
+    "open": "فتح المحادثة",
+    "title": "مساعد فيتيس إيكو",
+    "subtitle": "رد فوري، طوال أيام الأسبوع",
+    "placeholder": "اكتب رسالتك…",
+    "send": "إرسال",
+    "whatsapp": "المتابعة عبر واتساب",
+    "greeting": "مرحباً 👋 كيف يمكنني مساعدتك؟",
+    "quick_track": "تتبع طلبي",
+    "quick_shipping": "الشحن والتوصيل",
+    "quick_warranty": "الضمان والإرجاع",
+    "quick_human": "التحدث مع مستشار",
+    "ask_order": "أدخل رقم طلبك (مثال: ORD-ABC123).",
+    "ask_email": "للتحقق، أدخل البريد الإلكتروني المستخدم في الطلب.",
+    "invalid_order": "صيغة غير صحيحة — الرقم يشبه ORD-ABC123.",
+    "order_not_found": "الطلب غير موجود. تحقق من الرقم والبريد الإلكتروني.",
+    "order_status": "الطلب {number}: {status}.",
+    "order_tracking": "رقم التتبع: {tracking}",
+    "order_no_tracking": "لا يوجد رقم تتبع بعد — سيظهر فور الشحن.",
+    "fallback": "لم أجد إجابة دقيقة. يمكن لمستشارنا مساعدتك:",
+    "human_msg": "بالتأكيد! تواصل معنا مباشرة:",
+    "error": "حدث خطأ. حاول مرة أخرى.",
+    "typing": "يكتب…",
+    "status_pending": "بانتظار الدفع",
+    "status_paid": "مدفوع",
+    "status_processing": "قيد التحضير",
+    "status_shipped": "تم الشحن",
+    "status_delivered": "تم التوصيل",
+    "status_cancelled": "ملغى"
+  }
 }

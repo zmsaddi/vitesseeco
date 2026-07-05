@@ -12,6 +12,7 @@
       <CartDrawer />
       <CookieConsent />
       <AppToast />
+      <ChatWidget />
     </ClientOnly>
   </div>
 </template>

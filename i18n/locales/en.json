@@ -398,4 +398,35 @@
     "retry": "Retry",
     "verified": "Verified"
   }
+,
+  "chat": {
+    "open": "Open chat",
+    "title": "Vitesse Eco Assistant",
+    "subtitle": "Instant answers, 7 days a week",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "whatsapp": "Continue on WhatsApp",
+    "greeting": "Hello 👋 How can I help you?",
+    "quick_track": "Track my order",
+    "quick_shipping": "Shipping & delivery",
+    "quick_warranty": "Warranty & returns",
+    "quick_human": "Talk to a human",
+    "ask_order": "Please enter your order number (e.g. ORD-ABC123).",
+    "ask_email": "To verify, enter the email used for the order.",
+    "invalid_order": "Invalid format — the number looks like ORD-ABC123.",
+    "order_not_found": "Order not found. Check the number and email.",
+    "order_status": "Order {number}: {status}.",
+    "order_tracking": "Tracking number: {tracking}",
+    "order_no_tracking": "No tracking number yet — it will appear once shipped.",
+    "fallback": "I couldn't find a precise answer. An advisor can help you:",
+    "human_msg": "Of course! Contact us directly:",
+    "error": "Something went wrong. Please try again.",
+    "typing": "Typing…",
+    "status_pending": "awaiting payment",
+    "status_paid": "paid",
+    "status_processing": "being prepared",
+    "status_shipped": "shipped",
+    "status_delivered": "delivered",
+    "status_cancelled": "cancelled"
+  }
 }
