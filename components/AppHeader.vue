@@ -133,6 +133,7 @@ const navItems = computed(() => [
   { path: '/produits?type=accessory', label: t('nav.type_accessories'), icon: '🎒', type: 'accessory' },
   { path: '/produits?type=kids_car', label: t('nav.type_kids'), icon: '🧸', type: 'kids_car' },
   { path: '/produits', label: t('nav.all_products'), icon: '', type: '' },
+  { path: '/guide', label: t('nav.guide'), icon: '', type: null },
   { path: '/comparatif', label: t('compare.title'), icon: '', type: null },
   { path: '/blog', label: t('blog.title'), icon: '', type: null },
 ])
