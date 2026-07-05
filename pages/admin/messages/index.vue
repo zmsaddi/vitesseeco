@@ -1,19 +1,19 @@
 <template>
   <div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <h1 class="text-2xl font-display font-bold">Messages</h1>
+      <h1 class="text-2xl font-display font-bold">{{ $t('admin.nav_messages') }}</h1>
       <div class="flex gap-2">
         <button
-          v-for="t in tabs"
-          :key="t.value"
+          v-for="tb in tabs"
+          :key="tb.value"
           type="button"
           class="rounded-full px-3.5 py-1.5 text-sm border transition-colors duration-200"
-          :class="tab === t.value
+          :class="tab === tb.value
             ? 'bg-accent/10 border-accent text-accent font-semibold'
             : 'bg-surface border-surface-2 text-on-surface-muted hover:text-on-surface'"
-          @click="tab = t.value"
+          @click="tab = tb.value"
         >
-          {{ t.label }}<span v-if="t.count" class="ms-1 text-xs opacity-75">{{ t.count }}</span>
+          {{ $t(tb.label) }}<span v-if="tb.count" class="ms-1 text-xs opacity-75">{{ tb.count }}</span>
         </button>
       </div>
     </div>
@@ -24,7 +24,7 @@
 
     <div v-else-if="!filtered.length" class="bg-surface border border-surface-2 rounded-xl p-12 text-center text-on-surface-muted">
       <Icon name="heroicons:envelope-open" class="w-10 h-10 mx-auto mb-3 opacity-50" />
-      <p>{{ tab === 'unread' ? 'Aucun message non lu. 🎉' : 'Aucun message.' }}</p>
+      <p>{{ tab === 'unread' ? $t('admin.msg_empty_unread') : $t('admin.msg_empty') }}</p>
     </div>
 
     <div v-else class="space-y-3">
@@ -41,7 +41,7 @@
         >
           <span class="w-2 h-2 rounded-full shrink-0" :class="msg.isRead ? 'bg-surface-2' : 'bg-accent'" />
           <span class="flex-1 min-w-0">
-            <span class="block font-medium truncate">{{ msg.subject || '(sans objet)' }}</span>
+            <span class="block font-medium truncate">{{ msg.subject || $t('admin.no_subject') }}</span>
             <span class="block text-xs text-on-surface-muted truncate">{{ msg.name }} · {{ msg.email }} · {{ formatDate(msg.createdAt) }}</span>
           </span>
           <Icon :name="expanded === msg._id ? 'heroicons:chevron-up' : 'heroicons:chevron-down'" class="w-5 h-5 text-on-surface-muted shrink-0" />
@@ -55,8 +55,8 @@
               :href="mailtoLink(msg)"
               class="rounded-lg bg-accent text-primary px-4 py-2 text-sm font-semibold inline-flex items-center gap-2"
             >
-              <Icon name="heroicons:arrow-uturn-right" class="w-4 h-4" />
-              Répondre par email
+              <Icon name="heroicons:arrow-uturn-right" class="w-4 h-4 rtl:-scale-x-100" />
+              {{ $t('admin.reply_email') }}
             </a>
             <button
               type="button"
@@ -64,18 +64,18 @@
               :disabled="savingId === msg._id"
               @click="toggleRead(msg)"
             >
-              {{ msg.isRead ? 'Marquer comme non lu' : 'Marquer comme lu' }}
+              {{ msg.isRead ? $t('admin.mark_unread') : $t('admin.mark_read') }}
             </button>
           </div>
 
-          <label class="block text-xs text-on-surface-muted mb-1.5" :for="`note-${msg._id}`">Note interne</label>
+          <label class="block text-xs text-on-surface-muted mb-1.5" :for="`note-${msg._id}`">{{ $t('admin.internal_note') }}</label>
           <div class="flex gap-2">
             <input
               :id="`note-${msg._id}`"
               v-model="notes[msg._id]"
               type="text"
               maxlength="2000"
-              placeholder="Ex : répondu le 05/07, devis envoyé"
+              :placeholder="$t('admin.note_placeholder')"
               class="flex-1 bg-bg border border-surface-2 rounded-lg px-3 py-2 text-sm placeholder:text-on-surface-muted focus:outline-none focus:border-accent"
             >
             <button
@@ -84,7 +84,7 @@
               :disabled="savingId === msg._id || (notes[msg._id] ?? '') === (msg.reply ?? '')"
               @click="saveNote(msg)"
             >
-              Enregistrer
+              {{ $t('admin.save') }}
             </button>
           </div>
         </div>
@@ -95,7 +95,9 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin', layout: 'admin' })
-useHead({ title: 'Messages — Admin Vitesse Eco' })
+
+const { t, locale } = useI18n()
+useHead({ title: computed(() => `${t('admin.nav_messages')} — Admin Vitesse Eco`) })
 
 const toast = useToast()
 const { data, pending, refresh } = await useFetch('/api/admin/messages')
@@ -118,8 +120,8 @@ watch(
 )
 
 const tabs = computed(() => [
-  { value: 'unread' as const, label: 'Non lus', count: data.value?.unread ?? 0 },
-  { value: 'all' as const, label: 'Tous', count: messages.value.length },
+  { value: 'unread' as const, label: 'admin.msg_unread', count: data.value?.unread ?? 0 },
+  { value: 'all' as const, label: 'admin.msg_all', count: messages.value.length },
 ])
 
 const filtered = computed(() =>
@@ -136,11 +138,11 @@ function toggleExpand(id: string) {
 }
 
 function toggleRead(msg: any) {
-  patch(msg, { isRead: !msg.isRead }, msg.isRead ? 'Marqué comme non lu' : 'Marqué comme lu')
+  patch(msg, { isRead: !msg.isRead }, msg.isRead ? t('admin.marked_unread') : t('admin.marked_read'))
 }
 
 function saveNote(msg: any) {
-  patch(msg, { reply: notes[msg._id] ?? '' }, 'Note enregistrée')
+  patch(msg, { reply: notes[msg._id] ?? '' }, t('admin.note_saved'))
 }
 
 async function patch(msg: any, body: Record<string, unknown>, successMessage: string) {
@@ -150,7 +152,7 @@ async function patch(msg: any, body: Record<string, unknown>, successMessage: st
     await refresh()
     if (successMessage) toast.success(successMessage)
   } catch (e: any) {
-    toast.error(e?.data?.message || 'La mise à jour a échoué')
+    toast.error(e?.data?.message || t('admin.update_failed'))
   } finally {
     savingId.value = null
   }
@@ -162,6 +164,6 @@ function mailtoLink(msg: any) {
 }
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>

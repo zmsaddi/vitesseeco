@@ -117,6 +117,27 @@ a visual baseline, and i18n keys in all 6 locales (`check:langs` gate).
 
 ---
 
+### 3.4 Payments & shipping — API-ready by architecture
+
+> Owner directive 2026-07-05: the site must be ready to plug in ANY payment API and
+> ANY shipping-carrier API.
+
+**Payments (already architected — ADR-07):** `server/payments/registry.ts` maps
+`paymentMethod.code → adapter`. Adding a PSP = one adapter module + one Sanity document
++ one env flag. Live today: PayPal. Stubbed: Stripe, in-store. Planned per market:
+**Bancontact (BE)** and **iDEAL (NL)** — both available through Stripe or Mollie with a
+single adapter each; these are must-haves (majority local payment preference in BE/NL).
+
+**Shipping (mirror the same pattern):**
+- `server/shipping/` carrier adapter interface: `quote(cart, address)`,
+  `createLabel(order)`, `track(trackingNumber)`, `onWebhook?()`.
+- Expert route: integrate ONE **shipping aggregator API** (Sendcloud or Boxtal) instead
+  of N carrier integrations — a single adapter yields Colissimo, Chronopost, Mondial
+  Relay, bpost (BE), PostNL (NL), DHL, DPD + label PDF + tracking webhooks. Direct
+  per-carrier adapters remain possible through the same interface if ever needed.
+- Tracking webhooks update `orders.status` → existing outbox syncs Sanity → customer
+  email fires automatically (§6).
+
 ## 4. Feedback system spec — "all dialogs, errors, responses"
 
 The complete inventory. Every rebuilt page implements the relevant rows; nothing else invents patterns.
@@ -222,11 +243,18 @@ them means not ranking, regardless of code quality.
 - Every product: unique 150+ word description per language (no thin/duplicate content).
 - Internal linking: blog→product, guide→category, PDP→guide.
 
-### 7.3 Localization quality (R4)
+### 7.3 Localization quality (R4) — HARD GATE
 
-- Native-speaker review of NL/DE/ES locale files + product/legal content (owner sources
-  reviewers; machine translation alone reads foreign and kills DE/NL conversion).
-- Locale-correct number/date/currency formatting everywhere (Intl APIs).
+> Owner directive 2026-07-05: translations must be **professional, market-native copy —
+> not generic translation**. This is a release gate, not a nice-to-have.
+
+- Professional native-speaker review (e-commerce experience required) of NL/DE/ES locale
+  files + product/legal content BEFORE any marketing push in that country. No market
+  launches on unreviewed copy.
+- Terminology per market researched, not translated (e.g. DE "E-Bike" not "elektrisches
+  Fahrrad" in headlines; NL "e-bike"/"elektrische fiets" per search volume).
+- Locale-correct number/date/currency formatting everywhere (Intl APIs) — admin panel
+  included (fully i18n since 2026-07-05, 6 languages + language switcher).
 
 ### 7.4 Market-entry compliance (R4 — legal/ops, owner + code)
 

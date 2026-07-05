@@ -15,8 +15,11 @@
 | U-D1 | Design System v2 batch 1: AppDialog, ConfirmDialog, BottomSheet, Breadcrumbs, PriceTag, StockBadge | 🔄 |
 | U-D2 | DS batch 2: AppSelect, QuantityStepper, Tabs, Accordion, Pagination, InlineError, Banner | ⬜ |
 | U-D3 | DS batch 3: ProductCard v2, TrustRow, StickyBar, PageLoading | ⬜ |
-| U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | 🔄 |
+| U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | ✅ 2026-07-05 |
 | U-A2 | Admin UX pass: bulk status actions, sticky header, keyboard shortcuts | ⬜ |
+| U-A3 | Admin full i18n: 105 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-07-05 |
+| U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry | ⬜ |
+| U-X2 | Aggregator integration (Sendcloud/Boxtal): labels + tracking webhooks + Bancontact/iDEAL via PSP adapter | ⏸ owner accounts |
 | EXT | Sentry + Resend + Merchant Center + AI key — **with owner, after build** | ⏸ owner |
 
 ## Phase R1 — Money path (rebuild from blank file)

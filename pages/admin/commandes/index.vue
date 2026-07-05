@@ -1,15 +1,15 @@
 <template>
   <div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-      <h1 class="text-2xl font-display font-bold">Commandes</h1>
+      <h1 class="text-2xl font-display font-bold">{{ $t('admin.orders_title') }}</h1>
       <div class="relative w-full sm:w-72">
         <Icon name="heroicons:magnifying-glass" class="w-5 h-5 absolute start-3 top-1/2 -translate-y-1/2 text-on-surface-muted pointer-events-none" />
         <input
           v-model="searchInput"
           type="search"
-          placeholder="N° commande, nom ou email…"
+          :placeholder="$t('admin.search_placeholder')"
           class="w-full bg-surface border border-surface-2 rounded-lg ps-10 pe-3 py-2.5 text-sm placeholder:text-on-surface-muted focus:outline-none focus:border-accent"
-          aria-label="Rechercher une commande"
+          :aria-label="$t('admin.search_placeholder')"
         >
       </div>
     </div>
@@ -26,7 +26,7 @@
           : 'bg-surface border-surface-2 text-on-surface-muted hover:text-on-surface'"
         @click="setStatus(chip.value)"
       >
-        {{ chip.label }}
+        {{ $t(chip.label) }}
         <span v-if="counts[chip.value === '' ? 'all' : chip.value]" class="ms-1 text-xs opacity-75">
           {{ counts[chip.value === '' ? 'all' : chip.value] }}
         </span>
@@ -36,20 +36,20 @@
     <!-- Advanced filters -->
     <div class="flex flex-wrap items-end gap-3 mb-6">
       <label class="text-xs text-on-surface-muted">
-        Du
+        {{ $t('admin.from') }}
         <input v-model="dateFrom" type="date" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
       </label>
       <label class="text-xs text-on-surface-muted">
-        Au
+        {{ $t('admin.to') }}
         <input v-model="dateTo" type="date" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
       </label>
       <label class="text-xs text-on-surface-muted">
-        Paiement
+        {{ $t('admin.payment') }}
         <select v-model="payment" class="block mt-1 bg-surface border border-surface-2 rounded-lg px-2.5 py-2 text-sm text-on-surface focus:outline-none focus:border-accent" @change="page = 1">
-          <option value="">Tous</option>
-          <option value="paypal">PayPal</option>
-          <option value="in_store">En magasin</option>
-          <option value="stripe">Carte</option>
+          <option value="">{{ $t('admin.payment_all') }}</option>
+          <option value="paypal">{{ $t('admin.payment_paypal') }}</option>
+          <option value="in_store">{{ $t('admin.payment_in_store') }}</option>
+          <option value="stripe">{{ $t('admin.payment_stripe') }}</option>
         </select>
       </label>
       <button
@@ -58,14 +58,14 @@
         class="text-sm text-on-surface-muted underline underline-offset-2 pb-2.5"
         @click="resetFilters"
       >
-        Réinitialiser
+        {{ $t('admin.reset') }}
       </button>
       <a
         :href="exportUrl"
         class="ms-auto inline-flex items-center gap-2 rounded-lg bg-surface border border-surface-2 px-3.5 py-2 text-sm font-medium hover:border-accent transition-colors duration-200"
       >
         <Icon name="heroicons:arrow-down-tray" class="w-4 h-4" />
-        Exporter CSV
+        {{ $t('admin.export_csv') }}
       </a>
     </div>
 
@@ -77,28 +77,28 @@
 
       <div v-else-if="!rows.length" class="p-12 text-center text-on-surface-muted">
         <Icon name="heroicons:inbox" class="w-10 h-10 mx-auto mb-3 opacity-50" />
-        <p v-if="searchInput || status">Aucune commande ne correspond à ces critères.</p>
-        <p v-else>Aucune commande pour le moment.</p>
+        <p v-if="hasActiveFilters">{{ $t('admin.empty_filtered') }}</p>
+        <p v-else>{{ $t('admin.empty_orders') }}</p>
       </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-start text-on-surface-muted border-b border-surface-2">
-              <th class="text-start font-medium px-4 py-3">Commande</th>
-              <th class="text-start font-medium px-4 py-3">Client</th>
+              <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_order') }}</th>
+              <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_customer') }}</th>
               <th class="text-start font-medium px-4 py-3 hidden lg:table-cell">
                 <button type="button" class="inline-flex items-center gap-1 hover:text-on-surface" @click="toggleSort('created')">
-                  Date <Icon :name="sortIcon('created')" class="w-3.5 h-3.5" />
+                  {{ $t('admin.th_date') }} <Icon :name="sortIcon('created')" class="w-3.5 h-3.5" />
                 </button>
               </th>
-              <th class="text-start font-medium px-4 py-3 hidden sm:table-cell">Articles</th>
+              <th class="text-start font-medium px-4 py-3 hidden sm:table-cell">{{ $t('admin.th_items') }}</th>
               <th class="text-start font-medium px-4 py-3">
                 <button type="button" class="inline-flex items-center gap-1 hover:text-on-surface" @click="toggleSort('total')">
-                  Total <Icon :name="sortIcon('total')" class="w-3.5 h-3.5" />
+                  {{ $t('admin.th_total') }} <Icon :name="sortIcon('total')" class="w-3.5 h-3.5" />
                 </button>
               </th>
-              <th class="text-start font-medium px-4 py-3">Statut</th>
+              <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_status') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -106,10 +106,10 @@
               v-for="order in rows"
               :key="order.orderNumber ?? ''"
               class="border-b border-surface-2 last:border-0 hover:bg-surface-2/50 cursor-pointer transition-colors duration-200"
-              @click="navigateTo(`/admin/commandes/${order.orderNumber}`)"
+              @click="navigateTo(localePath(`/admin/commandes/${order.orderNumber}`))"
             >
               <td class="px-4 py-3.5">
-                <NuxtLink :to="`/admin/commandes/${order.orderNumber}`" class="font-mono font-semibold text-accent" @click.stop>
+                <NuxtLink :to="localePath(`/admin/commandes/${order.orderNumber}`)" class="font-mono font-semibold text-accent" @click.stop>
                   {{ order.orderNumber }}
                 </NuxtLink>
               </td>
@@ -139,16 +139,16 @@
         :disabled="page <= 1"
         @click="page--"
       >
-        Précédent
+        {{ $t('admin.prev') }}
       </button>
-      <span class="text-on-surface-muted">Page {{ page }} / {{ totalPages }}</span>
+      <span class="text-on-surface-muted">{{ $t('admin.page_of', { page, total: totalPages }) }}</span>
       <button
         type="button"
         class="rounded-lg border border-surface-2 bg-surface px-4 py-2 disabled:opacity-40"
         :disabled="page >= totalPages"
         @click="page++"
       >
-        Suivant
+        {{ $t('admin.next') }}
       </button>
     </div>
   </div>
@@ -158,7 +158,10 @@
 import { STATUS_LABELS, STATUS_CLASSES } from '~/utils/adminOrderStatus'
 
 definePageMeta({ middleware: 'admin', layout: 'admin' })
-useHead({ title: 'Commandes — Admin Vitesse Eco' })
+
+const { t, locale } = useI18n()
+const localePath = useLocalePath()
+useHead({ title: computed(() => `${t('admin.orders_title')} — Admin Vitesse Eco`) })
 
 const route = useRoute()
 const page = ref(1)
@@ -236,7 +239,7 @@ const totalPages = computed(() => data.value?.totalPages ?? 1)
 const counts = computed<Record<string, number>>(() => data.value?.counts ?? {})
 
 const statusChips = [
-  { value: '', label: 'Toutes' },
+  { value: '', label: 'admin.chip_all' },
   { value: 'pending', label: STATUS_LABELS.pending },
   { value: 'paid', label: STATUS_LABELS.paid },
   { value: 'processing', label: STATUS_LABELS.processing },
@@ -245,13 +248,13 @@ const statusChips = [
   { value: 'cancelled', label: STATUS_LABELS.cancelled },
 ]
 
-const statusLabel = (s: string) => STATUS_LABELS[s] ?? s
+const statusLabel = (s: string) => (STATUS_LABELS[s] ? t(STATUS_LABELS[s]) : s)
 const statusClass = (s: string) => STATUS_CLASSES[s] ?? 'bg-surface-2 text-on-surface-muted'
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 function formatPrice(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })
 }
 </script>

@@ -1,20 +1,20 @@
 <template>
   <div>
     <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
-      <h1 class="text-2xl font-display font-bold">Stock</h1>
+      <h1 class="text-2xl font-display font-bold">{{ $t('admin.nav_stock') }}</h1>
       <div class="relative w-full sm:w-72">
         <Icon name="heroicons:magnifying-glass" class="w-5 h-5 absolute start-3 top-1/2 -translate-y-1/2 text-on-surface-muted pointer-events-none" />
         <input
           v-model="search"
           type="search"
-          placeholder="Produit ou SKU…"
+          :placeholder="$t('admin.stock_search')"
           class="w-full bg-surface border border-surface-2 rounded-lg ps-10 pe-3 py-2.5 text-sm placeholder:text-on-surface-muted focus:outline-none focus:border-accent"
-          aria-label="Rechercher un produit"
+          :aria-label="$t('admin.stock_search')"
         >
       </div>
     </div>
     <p class="text-sm text-on-surface-muted mb-6">
-      Le stock est décompté dans PostgreSQL (source de vérité) et synchronisé vers Sanity automatiquement.
+      {{ $t('admin.stock_hint') }}
     </p>
 
     <div class="flex flex-wrap gap-2 mb-6">
@@ -28,7 +28,7 @@
           : 'bg-surface border-surface-2 text-on-surface-muted hover:text-on-surface'"
         @click="filter = f.value"
       >
-        {{ f.label }}<span v-if="f.count !== null" class="ms-1 text-xs opacity-75">{{ f.count }}</span>
+        {{ $t(f.label) }}<span v-if="f.count !== null" class="ms-1 text-xs opacity-75">{{ f.count }}</span>
       </button>
     </div>
 
@@ -39,24 +39,24 @@
 
       <div v-else-if="!filtered.length" class="p-12 text-center text-on-surface-muted">
         <Icon name="heroicons:cube-transparent" class="w-10 h-10 mx-auto mb-3 opacity-50" />
-        <p>Aucun produit ne correspond.</p>
+        <p>{{ $t('admin.stock_empty') }}</p>
       </div>
 
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-on-surface-muted border-b border-surface-2">
-              <th class="text-start font-medium px-4 py-3">Produit</th>
+              <th class="text-start font-medium px-4 py-3">{{ $t('admin.th_product') }}</th>
               <th class="text-start font-medium px-4 py-3 hidden md:table-cell">SKU</th>
-              <th class="text-start font-medium px-4 py-3 hidden sm:table-cell">Prix</th>
-              <th class="text-start font-medium px-4 py-3 w-44">Stock</th>
+              <th class="text-start font-medium px-4 py-3 hidden sm:table-cell">{{ $t('admin.th_price') }}</th>
+              <th class="text-start font-medium px-4 py-3 w-44">{{ $t('admin.th_stock') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="p in filtered" :key="p.productId" class="border-b border-surface-2 last:border-0">
               <td class="px-4 py-3">
                 <div class="font-medium" :class="{ 'opacity-50': !p.isAvailable }">{{ p.name }}</div>
-                <div v-if="!p.isAvailable" class="text-xs text-on-surface-muted">indisponible sur le site</div>
+                <div v-if="!p.isAvailable" class="text-xs text-on-surface-muted">{{ $t('admin.unavailable') }}</div>
               </td>
               <td class="px-4 py-3 font-mono text-on-surface-muted hidden md:table-cell">{{ p.sku }}</td>
               <td class="px-4 py-3 hidden sm:table-cell whitespace-nowrap">{{ p.price !== null ? formatPrice(p.price) : '—' }}</td>
@@ -78,10 +78,10 @@
                     :disabled="savingId === p.productId"
                     @click="save(p)"
                   >
-                    OK
+                    {{ $t('admin.ok') }}
                   </button>
-                  <span v-else-if="!p.tracked" class="text-[10px] uppercase text-on-surface-muted" title="Aucune ligne d'inventaire PG — enregistrez une valeur pour activer le suivi">
-                    non suivi
+                  <span v-else-if="!p.tracked" class="text-[10px] uppercase text-on-surface-muted" :title="$t('admin.untracked_tip')">
+                    {{ $t('admin.untracked_label') }}
                   </span>
                 </div>
               </td>
@@ -95,7 +95,9 @@
 
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin', layout: 'admin' })
-useHead({ title: 'Stock — Admin Vitesse Eco' })
+
+const { t, locale } = useI18n()
+useHead({ title: computed(() => `${t('admin.nav_stock')} — Admin Vitesse Eco`) })
 
 const toast = useToast()
 const { data, pending, refresh } = await useFetch('/api/admin/stock')
@@ -127,9 +129,9 @@ const lowCount = computed(() => products.value.filter((p) => p.tracked && p.stoc
 const untrackedCount = computed(() => products.value.filter((p) => !p.tracked).length)
 
 const filters = computed(() => [
-  { value: 'all' as const, label: 'Tous', count: products.value.length || null },
-  { value: 'low' as const, label: 'Stock faible', count: lowCount.value || null },
-  { value: 'untracked' as const, label: 'Non suivis', count: untrackedCount.value || null },
+  { value: 'all' as const, label: 'admin.stock_all', count: products.value.length || null },
+  { value: 'low' as const, label: 'admin.stock_low', count: lowCount.value || null },
+  { value: 'untracked' as const, label: 'admin.stock_untracked', count: untrackedCount.value || null },
 ])
 
 const filtered = computed(() => {
@@ -157,22 +159,22 @@ function stockInputClass(p: any) {
 async function save(p: any) {
   const stock = edits[p.productId]
   if (!Number.isInteger(stock) || stock < 0) {
-    toast.error('Valeur de stock invalide')
+    toast.error(t('admin.invalid_stock'))
     return
   }
   savingId.value = p.productId
   try {
     await $fetch(`/api/admin/stock/${p.productId}`, { method: 'PATCH', body: { stock, sku: p.sku } })
     await refresh()
-    toast.success(`${p.name} : stock enregistré (${stock})`)
+    toast.success(t('admin.stock_saved', { name: p.name, n: stock }))
   } catch (e: any) {
-    toast.error(e?.data?.message || "L'enregistrement a échoué")
+    toast.error(e?.data?.message || t('admin.update_failed'))
   } finally {
     savingId.value = null
   }
 }
 
 function formatPrice(n: number) {
-  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
+  return n.toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })
 }
 </script>
