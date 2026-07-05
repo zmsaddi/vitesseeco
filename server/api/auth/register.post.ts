@@ -50,7 +50,10 @@ export default defineEventHandler(async (event) => {
     // returning a registration-shaped success and emailing the existing
     // account holder ("someone tried to register with your email — reset
     // password if it was you"). That fully closes the enumeration surface.
-    if (e.code === '23505') {
+    // drizzle-orm ≥0.44 wraps driver errors in DrizzleQueryError; the
+    // NeonDbError carrying the PG code lives on `.cause`.
+    const pgCode = e?.code ?? e?.cause?.code
+    if (pgCode === '23505') {
       await logEvent({ type: 'auth_register_duplicate', payload: { emailHash: email.slice(0, 3) + '***' }, event })
       throw createError({
         statusCode: 409,
