@@ -38,6 +38,7 @@
 | U-P5 | Listing `/produits`: removable active-filter chips row, mobile filters in DS BottomSheet with live "show N products" footer, desktop rail unchanged (URL-sync/sort/counts were already solid) | ✅ 2026-07-05 |
 | U-P6 | Home v2: category tiles right after hero, trust strip moved below bestsellers; sitewide AnnouncementBar (Sanity siteSettings.announcement, dismiss-per-message) | ✅ 2026-07-05 |
 | U-P7 | No-results UX on /produits?q=: query echoed back, hint line, category suggestion chips with counts, clear-all — never a dead end | ✅ 2026-07-05 |
+| U-P8b | Comparatif full review + rebuild: rows grouped by modelFamily (one row per MODEL, color dots link to each variant, min–max price, summed stock), dead category filter → working brand filter, RTL logical props on sticky column/search, sv() on all spec cells, accessible stock indicator, Breadcrumbs, no-results clear button | ✅ 2026-07-05 |
 | U-P8 | Guide recreated at /guide: interactive 3-question selector (usage/height/range) over live bike catalog, forgiving spec matching, help CTA; back in header nav + both sitemaps (reused surviving guide.* keys ×6) | ✅ 2026-07-05 |
 | U-P9 | Blog: related-products blocks + Article JSON-LD verified already built (schema + render + query); DS Breadcrumbs unified on article page | ✅ 2026-07-05 |
 | U-M1 | Recently-viewed strip (localStorage, max 8) on home + PDP, recorded on every product view | ✅ 2026-07-05 |
