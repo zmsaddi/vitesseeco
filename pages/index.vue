@@ -155,6 +155,9 @@
       </div>
     </section>
 
+    <!-- Recently viewed (U-M1) — pick up where they left off -->
+    <ClientOnly><RecentlyViewed /></ClientOnly>
+
     <!-- Trust strip — right after the products it needs to reassure about -->
     <section class="py-5 bg-dark-secondary border-y border-dark-tertiary/50 relative">
       <div class="absolute inset-x-0 top-0 divider-accent" />

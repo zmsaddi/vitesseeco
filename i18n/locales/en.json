@@ -50,6 +50,7 @@
     "value4_desc": "Technical support available 6 days a week by phone and email."
   },
   "products": {
+    "no_results_hint": "Try another search or browse our categories:",
     "show_results": "Show {n} products",
     "title": "Our Products",
     "subtitle": "Find the perfect product for your needs.",
@@ -80,6 +81,7 @@
     "show_out_of_stock": "Include out-of-stock items"
   },
   "product": {
+    "recently_viewed": "Recently viewed",
     "add_to_cart": "Add to cart",
     "out_of_stock": "Out of stock",
     "low_stock": "Only {count} left in stock!",

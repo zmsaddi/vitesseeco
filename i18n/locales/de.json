@@ -50,6 +50,7 @@
     "value4_desc": "Technischer Support 6 Tage die Woche per Telefon und E-Mail erreichbar."
   },
   "products": {
+    "no_results_hint": "Versuchen Sie eine andere Suche oder stöbern Sie in unseren Kategorien:",
     "show_results": "{n} Produkte anzeigen",
     "title": "Unsere Produkte",
     "subtitle": "Finden Sie das perfekte Produkt für Ihre Bedürfnisse.",
@@ -80,6 +81,7 @@
     "show_out_of_stock": "Ausverkaufte Artikel einbeziehen"
   },
   "product": {
+    "recently_viewed": "Zuletzt angesehen",
     "add_to_cart": "In den Warenkorb",
     "out_of_stock": "Ausverkauft",
     "low_stock": "Nur noch {count} auf Lager!",

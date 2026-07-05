@@ -168,6 +168,9 @@
         </div>
       </section>
 
+      <!-- Recently viewed (U-M1) -->
+      <ClientOnly><RecentlyViewed :exclude-slug="slug" /></ClientOnly>
+
       <!-- Testimonials -->
       <section class="mt-16" v-if="testimonials?.length">
         <h2 class="section-title mb-8">{{ $t('product.reviews') }}</h2>
@@ -283,6 +286,20 @@ if (import.meta.server && status.value === 'success' && !product.value) throw cr
 if (import.meta.client) { watch([status, product], () => { if (status.value === 'success' && !product.value) showError({ statusCode: 404 }) }) }
 
 watch(() => product.value?._id, () => { selectedImage.value = 0; qty.value = 1 })
+
+// U-M1: record every viewed product for the recently-viewed strip.
+const { record } = useRecentlyViewed()
+watch(product, (p) => {
+  if (!p || import.meta.server) return
+  record({
+    id: p._id,
+    name: l(p.name) || '',
+    slug: p.slug?.current || '',
+    price: p.price,
+    image: p.images?.[0]?.asset ? useSanityImageUrl(p.images[0], 320, 320) : '',
+    stock: p.stock ?? 0,
+  })
+}, { immediate: true })
 
 // Specs
 const specRows = computed(() => {

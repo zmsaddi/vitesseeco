@@ -37,10 +37,11 @@
 |---|---|---|
 | U-P5 | Listing `/produits`: removable active-filter chips row, mobile filters in DS BottomSheet with live "show N products" footer, desktop rail unchanged (URL-sync/sort/counts were already solid) | ✅ 2026-07-05 |
 | U-P6 | Home v2: category tiles right after hero, trust strip moved below bestsellers; sitewide AnnouncementBar (Sanity siteSettings.announcement, dismiss-per-message) | ✅ 2026-07-05 |
-| U-P7 | Search results page + no-results UX | ⬜ |
+| U-P7 | No-results UX on /produits?q=: query echoed back, hint line, category suggestion chips with counts, clear-all — never a dead end | ✅ 2026-07-05 |
 | U-P8 | Guide (recreate) + Comparatif + FAQ v2 | ⬜ |
 | U-P9 | Blog v2 + related-products blocks | ⬜ |
-| U-M1 | Recently-viewed strip · U-M2 Wishlist v1 | ⬜ |
+| U-M1 | Recently-viewed strip (localStorage, max 8) on home + PDP, recorded on every product view | ✅ 2026-07-05 |
+| U-M2 | Wishlist v1 (localStorage) | ⬜ |
 
 ## Phase R3 — Account & auth
 

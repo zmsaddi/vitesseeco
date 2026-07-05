@@ -202,14 +202,27 @@
             </NuxtLink>
           </div>
 
-          <div v-else class="card">
-            <EmptyState
-              icon="ph:magnifying-glass"
-              :message="$t('products.no_results')"
-              :cta-label="$t('products.clear_filters')"
-              cta-icon="ph:x"
-              :cta-action="clearAll"
-            />
+          <!-- U-P7: no-results with a way forward — never a dead end -->
+          <div v-else class="card p-8 md:p-12 text-center">
+            <Icon name="ph:magnifying-glass" class="w-12 h-12 text-dark-tertiary mx-auto mb-4" />
+            <p class="text-white font-medium mb-1">
+              {{ debouncedSearch ? $t('search.no_results', { q: debouncedSearch }) : $t('products.no_results') }}
+            </p>
+            <p class="text-text-secondary text-sm mb-6">{{ $t('products.no_results_hint') }}</p>
+            <div class="flex flex-wrap justify-center gap-2 mb-6">
+              <button
+                v-for="tf in typeFilters"
+                :key="tf.value"
+                type="button"
+                class="rounded-full px-4 py-2 text-sm bg-dark-secondary border-2 border-dark-tertiary text-text-secondary hover:text-white hover:border-accent/40 transition-all min-h-touch"
+                @click="clearAll(); selectedType = tf.value"
+              >
+                {{ tf.icon }} {{ tf.label }} ({{ typeCounts[tf.value] || 0 }})
+              </button>
+            </div>
+            <button type="button" class="btn-outline px-6" @click="clearAll">
+              {{ $t('products.clear_filters') }}
+            </button>
           </div>
 
           <div v-if="filteredProducts.length > showCount" class="text-center mt-8">

@@ -50,6 +50,7 @@
     "value4_desc": "Technische ondersteuning 6 dagen per week beschikbaar per telefoon en email."
   },
   "products": {
+    "no_results_hint": "Probeer een andere zoekopdracht of bekijk onze categorieën:",
     "show_results": "Toon {n} producten",
     "title": "Onze Producten",
     "subtitle": "Vind het perfecte product voor uw behoeften.",
@@ -80,6 +81,7 @@
     "show_out_of_stock": "Inclusief uitverkochte artikelen"
   },
   "product": {
+    "recently_viewed": "Onlangs bekeken",
     "add_to_cart": "In winkelwagen",
     "out_of_stock": "Uitverkocht",
     "low_stock": "Nog maar {count} op voorraad!",
