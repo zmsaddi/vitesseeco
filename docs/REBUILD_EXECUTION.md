@@ -12,7 +12,7 @@
 | U-F2 | Google Merchant feed `/feeds/google-merchant.xml` | ✅ 2026-07-05 |
 | U-F3 | Chat assistant + WhatsApp widget, 6 langs, AI-ready | ✅ 2026-07-05 |
 | U-F4 | Register 500 fix (DrizzleQueryError unwrap) | ✅ 2026-07-05 |
-| U-D1 | Design System v2 batch 1: AppDialog, ConfirmDialog, BottomSheet, Breadcrumbs, PriceTag, StockBadge | 🔄 |
+| U-D1 | Design System v2 batch 1 — shipped: BottomSheet, Breadcrumbs, PriceTag, StockBadge (all in production use). AppDialog + ConfirmDialog built but never adopted → removed in 2026-07-05 cleanup (git history keeps them) | ✅ 2026-07-05 |
 | U-D2 | DS batch 2: AppSelect, QuantityStepper, Tabs, Accordion, Pagination, InlineError, Banner | ⬜ |
 | U-D3 | DS batch 3: ProductCard v2, TrustRow, StickyBar, PageLoading | ⬜ |
 | U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | ✅ 2026-07-05 |

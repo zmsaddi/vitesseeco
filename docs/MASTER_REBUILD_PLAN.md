@@ -301,14 +301,14 @@ which pushes to everything below. Never build N integrations by hand.
 | TikTok Shop / Catalog ads | all | TikTok Business account; accepts our Google-format feed URL directly |
 | Meta (FB/IG Shops + Marketplace) | all | Meta Business + Commerce Manager; feed URL directly |
 | Pinterest | all | Business account; feed URL directly |
-| Amazon | FR/BE/NL/DE/ES | Seller Central (€39/mo pro) + **EAN/GTIN per product (BLOCKER — none in catalog; source from supplier or GS1)** + VAT/OSS |
+| Amazon | FR/BE/NL/DE/ES | Seller Central (€39/mo pro) + **EAN/GTIN per product (pipeline BUILT 2026-07-05: `gtin` field + `cms/scripts/assign-gtins.mjs` + feeds emit gtin — blocked only on owner buying a GS1 France prefix)** + VAT/OSS |
 | eBay | FR/DE/ES/BE/NL | Seller account; EANs strongly recommended |
 | bol.com | NL/BE | Retailer account + **EAN required** + NL/BE returns address |
 | Cdiscount (Octopia) | FR | Seller account; EAN required |
 | Kaufland.de | DE | Seller account + EAN + DE compliance (§7.4: BattG/WEEE for e-bikes!) |
 | Leboncoin (pro) / Marktplaats / 2dehands / Wallapop | FR / NL / BE / ES | Pro accounts; classifieds-style, good for local demand capture |
 
-**Sequencing:** 1) EANs sourced → 2) channel manager trial with catalog.csv →
+**Sequencing:** 1) EANs sourced (automation ready — GS1 prefix pending) → 2) channel manager trial with catalog.csv →
 3) TikTok+Meta (free listings, no EAN wall) → 4) bol+Kaufland (Benelux/DE
 e-bike demand) → 5) Amazon last (fees + competition highest).
 
