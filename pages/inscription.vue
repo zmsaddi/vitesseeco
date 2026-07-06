@@ -105,11 +105,11 @@
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                  <input id="reg-postal" name="postalCode" v-model="form.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
+                  <input id="reg-postal" name="postalCode" v-model="form.postalCode" @input="onRegZipInput" type="text" class="input-field" required autocomplete="postal-code" />
                 </div>
                 <div>
                   <label for="reg-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
-                  <input id="reg-city" name="city" v-model="form.city" type="text" class="input-field" required autocomplete="address-level2" />
+                  <input id="reg-city" name="city" v-model="form.city" @input="regCityAuto = false" type="text" class="input-field" required autocomplete="address-level2" />
                 </div>
               </div>
             </div>
@@ -211,7 +211,27 @@ watch(() => form.country, () => {
   form.city = ''
   form.postalCode = ''
   addressSuggestions.value = []
+  regCityAuto.value = false
 })
+
+// Zip-first here too (same brain as checkout): a single-commune postal
+// code fills the city; ambiguous codes fill nothing — never guess.
+const { lookup: lookupRegCity } = usePostalCity()
+const regCityAuto = ref(false)
+let regZipTimer: ReturnType<typeof setTimeout>
+function onRegZipInput() {
+  clearTimeout(regZipTimer)
+  const code = (form.postalCode || '').replace(/\s/g, '')
+  if (code.length < 4) return
+  regZipTimer = setTimeout(async () => {
+    if (form.city && !regCityAuto.value) return
+    const res = await lookupRegCity(form.country, code)
+    if (res.city && (!form.city || regCityAuto.value)) {
+      form.city = res.city
+      regCityAuto.value = true
+    }
+  }, 350)
+}
 
 function onAddressInput() {
   clearTimeout(addressTimer)

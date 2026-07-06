@@ -197,11 +197,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="addr-postal" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.postal_code') }}</label>
-                <input id="addr-postal" name="postalCode" v-model="addressForm.postalCode" type="text" class="input-field" required autocomplete="postal-code" />
+                <input id="addr-postal" name="postalCode" v-model="addressForm.postalCode" @input="onAcZipInput" type="text" class="input-field" required autocomplete="postal-code" />
               </div>
               <div>
                 <label for="addr-city" class="text-sm font-medium text-text-secondary block mb-2 required">{{ $t('checkout.city') }}</label>
-                <input id="addr-city" name="city" v-model="addressForm.city" type="text" class="input-field" required autocomplete="address-level2" />
+                <input id="addr-city" name="city" v-model="addressForm.city" @input="acCityAuto = false" type="text" class="input-field" required autocomplete="address-level2" />
               </div>
             </div>
             <label class="flex items-center gap-2 text-sm text-text-secondary cursor-pointer">
@@ -471,7 +471,27 @@ watch(() => addressForm.country, () => {
   addressForm.city = ''
   addressForm.postalCode = ''
   addrSuggestions.value = []
+  acCityAuto.value = false
 })
+
+// Zip-first here too (same brain as checkout): single-commune codes fill
+// the city; ambiguous ones fill nothing — never guess.
+const { lookup: lookupAcCity } = usePostalCity()
+const acCityAuto = ref(false)
+let acZipTimer: ReturnType<typeof setTimeout>
+function onAcZipInput() {
+  clearTimeout(acZipTimer)
+  const code = (addressForm.postalCode || '').replace(/\s/g, '')
+  if (code.length < 4) return
+  acZipTimer = setTimeout(async () => {
+    if (addressForm.city && !acCityAuto.value) return
+    const res = await lookupAcCity(addressForm.country, code)
+    if (res.city && (!addressForm.city || acCityAuto.value)) {
+      addressForm.city = res.city
+      acCityAuto.value = true
+    }
+  }, 350)
+}
 
 function onAddrInput() {
   clearTimeout(addrTimer)
