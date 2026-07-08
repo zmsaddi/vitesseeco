@@ -102,16 +102,23 @@
                     </div>
                   </div>
                 </div>
-                <!-- One zip, several communes → the customer taps theirs -->
-                <div v-if="cityOptions.length" class="flex flex-wrap items-center gap-2">
-                  <span class="text-text-secondary text-xs">{{ $t('checkout.pick_city') }}</span>
-                  <button
-                    v-for="c in cityOptions" :key="c" type="button"
-                    @click="pickCity(c)"
-                    class="px-3 py-1.5 rounded-full border border-dark-tertiary text-xs text-text-secondary hover:border-accent hover:text-white transition-colors"
-                  >
-                    {{ c }}
-                  </button>
+                <!-- One zip, several communes → the customer taps theirs.
+                     Accent-tinted buttons: unmistakably interactive on the
+                     dark theme (owner legibility revision 2026-07-06). -->
+                <div v-if="cityOptions.length" class="bg-accent/5 border border-accent/30 rounded-lg p-3">
+                  <p class="text-white text-sm font-medium mb-2 flex items-center gap-1.5">
+                    <Icon name="ph:map-pin" class="w-4 h-4 text-accent shrink-0" />
+                    {{ $t('checkout.pick_city') }}
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="c in cityOptions" :key="c" type="button"
+                      @click="pickCity(c)"
+                      class="px-3.5 py-2 rounded-lg border border-accent/50 bg-accent/10 text-sm font-medium text-white hover:bg-accent hover:text-primary transition-colors min-h-touch"
+                    >
+                      {{ c }}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label for="co-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>

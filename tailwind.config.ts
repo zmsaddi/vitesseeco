@@ -10,21 +10,29 @@ export default {
   ],
   theme: {
     extend: {
-      // ─── Colors (Vitesse Eco identity — DO NOT change values, P2-01) ───
+      // ─── Colors (Vitesse Eco identity — brand values P2-01 unchanged) ───
       colors: {
         primary: '#0A1628',
         'dark-secondary': '#1E293B',
         'dark-tertiary': '#334155',
         accent: '#4ADE80',
         gold: '#D4A843',
-        'text-secondary': '#94A3B8',
+        // Legibility revision (owner directive 2026-07-06: muted text was
+        // unreadable on the dark theme). #94A3B8 measured only 4.0:1 on
+        // dark-tertiary surfaces — below WCAG AA for small text. #B6C3D6
+        // gives ~9.9:1 on the page, ~8:1 on cards, ~5.5:1 on tertiary:
+        // AA everywhere, AAA on the two main surfaces.
+        'text-secondary': '#B6C3D6',
         // Semantic aliases — use these in new code instead of color names
         // when the meaning is the intent (e.g. `bg-surface`, `text-on-surface`).
         surface: '#1E293B',         // = dark-secondary
         'surface-2': '#334155',     // = dark-tertiary
         bg: '#0A1628',              // = primary (page background)
         'on-surface': '#FFFFFF',
-        'on-surface-muted': '#94A3B8',
+        'on-surface-muted': '#B6C3D6',
+        // Border that is actually VISIBLE against cards (dark-tertiary on
+        // dark-secondary was 1.4:1 — form fields had invisible edges).
+        'border-strong': '#4A5C74',
         success: '#16A34A',
         danger: '#DC2626',
         warning: '#D97706',

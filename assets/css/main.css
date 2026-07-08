@@ -80,7 +80,9 @@
 
   /* ─── Inputs (P2-08) ─────────────────────────────────────────────── */
   .input-field {
-    @apply w-full bg-dark-secondary border border-dark-tertiary text-white
+    /* border-strong: dark-tertiary edges were ~1.4:1 against the card —
+       fields looked borderless (owner legibility revision 2026-07-06). */
+    @apply w-full bg-dark-secondary border border-border-strong text-white
            rounded-lg px-4 py-3
            placeholder-text-secondary
            transition-colors duration-normal ease-soft
