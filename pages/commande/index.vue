@@ -641,11 +641,12 @@ function onCoInput() {
   }, 400)
 }
 async function pickCo(s: any) {
-  coSuggestions.value = []; addr.address = s.structured_formatting?.main_text || s.description
-  // Keyless fallback providers (BAN/Photon) resolve everything inline —
+  const typed = addr.address
+  coSuggestions.value = []; addr.address = preserveHouseNumber(s.structured_formatting?.main_text || s.description, typed, addr.country)
+  // Keyless fallback providers (BAN/PDOK/Photon) resolve everything inline —
   // no /details round-trip needed.
   if (s.inline) {
-    if (s.inline.address) addr.address = s.inline.address
+    if (s.inline.address) addr.address = preserveHouseNumber(s.inline.address, typed, addr.country)
     if (s.inline.city) { addr.city = s.inline.city; cityAuto.value = true; cityOptions.value = [] }
     if (s.inline.postalCode) addr.postalCode = s.inline.postalCode
     return
@@ -653,7 +654,7 @@ async function pickCo(s: any) {
   try {
     const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (d.address) {
-      addr.address = d.address
+      addr.address = preserveHouseNumber(d.address, typed, addr.country)
       if (d.city) { addr.city = d.city; cityAuto.value = true; cityOptions.value = [] }
       if (d.postalCode) addr.postalCode = d.postalCode
     }

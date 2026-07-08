@@ -266,13 +266,14 @@ function onAddressInput() {
 }
 
 async function pickAddress(s: any) {
+  const typed = form.address
   addressFocused.value = false
   addressSuggestions.value = []
-  form.address = s.structured_formatting?.main_text || s.description
+  form.address = preserveHouseNumber(s.structured_formatting?.main_text || s.description, typed, form.country)
 
   // Keyless fallback providers resolve everything inline.
   if (s.inline) {
-    if (s.inline.address) form.address = s.inline.address
+    if (s.inline.address) form.address = preserveHouseNumber(s.inline.address, typed, form.country)
     if (s.inline.city) form.city = s.inline.city
     if (s.inline.postalCode) form.postalCode = s.inline.postalCode
     return
@@ -280,7 +281,7 @@ async function pickAddress(s: any) {
   try {
     const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (data.address) {
-      form.address = data.address
+      form.address = preserveHouseNumber(data.address, typed, form.country)
       form.city = data.city || ''
       form.postalCode = data.postalCode || ''
       form.country = data.country || 'FR'

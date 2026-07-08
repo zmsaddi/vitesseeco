@@ -520,12 +520,13 @@ function onAddrInput() {
 }
 
 async function pickAddr(s: any) {
+  const typed = addressForm.address
   addrFocused.value = false
   addrSuggestions.value = []
-  addressForm.address = s.structured_formatting?.main_text || s.description
+  addressForm.address = preserveHouseNumber(s.structured_formatting?.main_text || s.description, typed, addressForm.country)
   // Keyless fallback providers resolve everything inline.
   if (s.inline) {
-    if (s.inline.address) addressForm.address = s.inline.address
+    if (s.inline.address) addressForm.address = preserveHouseNumber(s.inline.address, typed, addressForm.country)
     if (s.inline.city) addressForm.city = s.inline.city
     if (s.inline.postalCode) addressForm.postalCode = s.inline.postalCode
     return
@@ -533,7 +534,7 @@ async function pickAddr(s: any) {
   try {
     const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (data.address) {
-      addressForm.address = data.address
+      addressForm.address = preserveHouseNumber(data.address, typed, addressForm.country)
       addressForm.city = data.city || ''
       addressForm.postalCode = data.postalCode || ''
     }
