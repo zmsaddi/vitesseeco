@@ -56,7 +56,7 @@
                   <input :id="`addr-${a.id}`" type="radio" :value="a.id" v-model="selectedAddressId" class="mt-1 accent-accent" />
                   <div class="text-sm flex-1">
                     <p class="text-white font-medium">{{ a.firstName }} {{ a.lastName }}</p>
-                    <p class="text-text-secondary">{{ a.address }}, {{ a.postalCode }} {{ a.city }}</p>
+                    <p class="text-text-secondary">{{ a.address }}<template v-if="a.addressLine2">, {{ a.addressLine2 }}</template>, {{ a.postalCode }} {{ a.city }}</p>
                   </div>
                 </label>
                 <button @click="showNewForm = true" class="w-full p-3 rounded-lg border border-dashed border-dark-tertiary text-accent text-sm hover:border-accent transition-colors flex items-center justify-center gap-2 min-h-touch">
@@ -124,6 +124,12 @@
                       </button>
                     </div>
                   </div>
+                </div>
+                <!-- Apartment / floor / building — optional, same field the
+                     account form already has (addressLine2 end-to-end) -->
+                <div>
+                  <label for="co-addr2" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.address') }} 2</label>
+                  <input id="co-addr2" v-model="addr.addressLine2" type="text" class="input-field" :placeholder="$t('checkout.address_line2_placeholder')" />
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -407,7 +413,7 @@ const saveAddr = ref(true)
 const loadingAddresses = ref(true)
 const savedAddresses = ref<any[]>([])
 
-const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', postalCode: '', city: '', country: cart.shippingZone || 'FR' })
+const addr = reactive({ firstName: auth.user?.firstName || '', lastName: auth.user?.lastName || '', phone: '', address: '', addressLine2: '', postalCode: '', city: '', country: cart.shippingZone || 'FR' })
 
 // IP preset resolving after this page mounted: adopt it only while the
 // form is still untouched — a typed address always wins over geolocation.
@@ -542,7 +548,7 @@ const coInput = ref<HTMLInputElement>()
 const coSuggestions = ref<any[]>([])
 const coLoading = ref(false)
 let coTimer: ReturnType<typeof setTimeout>
-watch(() => addr.country, () => { addr.address = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = []; citySuggestions.value = [] })
+watch(() => addr.country, () => { addr.address = ''; addr.addressLine2 = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = []; citySuggestions.value = [] })
 
 // Zip-first UX: postal code → city, silently. Never clobbers a city the
 // customer typed themselves (cityAuto tracks provenance).
@@ -602,6 +608,11 @@ async function pickCitySuggestion(s: any) {
   citySuggestions.value = []
   addr.city = s.structured_formatting?.main_text || s.description
   cityAuto.value = true
+  if (s.inline) {
+    if (s.inline.city) addr.city = s.inline.city
+    if (!addr.postalCode && s.inline.postalCode) addr.postalCode = s.inline.postalCode
+    return
+  }
   if (!addr.postalCode) {
     try {
       const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
@@ -616,14 +627,22 @@ function onCoInput() {
   coLoading.value = true
   coTimer = setTimeout(async () => {
     // Bias the street search with the known city — dramatically better
-    // matches once the zip has resolved it.
+    // matches once the zip has resolved it (BAN also uses the postcode).
     const input = addr.city ? `${addr.address}, ${addr.city}` : addr.address
-    try { const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: addr.country.toLowerCase() } }); coSuggestions.value = d.predictions || [] }
+    try { const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: addr.country.toLowerCase(), ...(addr.postalCode ? { postal: addr.postalCode } : {}) } }); coSuggestions.value = d.predictions || [] }
     catch { coSuggestions.value = [] } finally { coLoading.value = false }
   }, 400)
 }
 async function pickCo(s: any) {
   coSuggestions.value = []; addr.address = s.structured_formatting?.main_text || s.description
+  // Keyless fallback providers (BAN/Photon) resolve everything inline —
+  // no /details round-trip needed.
+  if (s.inline) {
+    if (s.inline.address) addr.address = s.inline.address
+    if (s.inline.city) { addr.city = s.inline.city; cityAuto.value = true; cityOptions.value = [] }
+    if (s.inline.postalCode) addr.postalCode = s.inline.postalCode
+    return
+  }
   try {
     const d = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (d.address) {
@@ -669,7 +688,7 @@ function requestConfirmation() {
 function resolveCustomerAddress(): any {
   if (selectedAddressId.value && !showNewForm.value) {
     const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
-    if (a) return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, city: a.city, postalCode: a.postalCode, country: a.country }
+    if (a) return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, addressLine2: a.addressLine2 || '', city: a.city, postalCode: a.postalCode, country: a.country }
   }
   return { ...addr }
 }
@@ -685,7 +704,7 @@ function resolveShippingAddress(): any | null {
   if (selectedAddressId.value && !showNewForm.value) {
     const a = savedAddresses.value.find(a => a.id === selectedAddressId.value)
     if (!a) return null
-    return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, city: a.city, postalCode: a.postalCode, country: a.country }
+    return { firstName: a.firstName, lastName: a.lastName, phone: a.phone, address: a.address, addressLine2: a.addressLine2 || '', city: a.city, postalCode: a.postalCode, country: a.country }
   }
   return { ...addr }
 }

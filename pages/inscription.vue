@@ -102,6 +102,11 @@
                 </div>
               </div>
 
+              <div>
+                <label for="reg-addr2" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.address') }} 2</label>
+                <input id="reg-addr2" name="addressLine2" v-model="form.addressLine2" type="text" class="input-field" :placeholder="$t('checkout.address_line2_placeholder')" />
+              </div>
+
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label for="reg-postal" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
@@ -171,7 +176,7 @@ const regErrorText = computed(() => {
 
 const form = reactive({
   firstName: '', lastName: '', email: '', phone: '',
-  address: '', postalCode: '', city: '', country: 'FR',
+  address: '', addressLine2: '', postalCode: '', city: '', country: 'FR',
   password: '', confirmPassword: '',
 })
 
@@ -208,6 +213,7 @@ const addressPlaceholder = computed(() => {
 // Clear address when country changes
 watch(() => form.country, () => {
   form.address = ''
+  form.addressLine2 = ''
   form.city = ''
   form.postalCode = ''
   addressSuggestions.value = []
@@ -244,7 +250,11 @@ function onAddressInput() {
   addressTimer = setTimeout(async () => {
     try {
       const data = await $fetch<any>('/api/places/autocomplete', {
-        query: { input: form.address, country: form.country.toLowerCase() },
+        query: {
+          input: form.city ? `${form.address}, ${form.city}` : form.address,
+          country: form.country.toLowerCase(),
+          ...(form.postalCode ? { postal: form.postalCode } : {}),
+        },
       })
       addressSuggestions.value = data.predictions || []
     } catch {
@@ -260,6 +270,13 @@ async function pickAddress(s: any) {
   addressSuggestions.value = []
   form.address = s.structured_formatting?.main_text || s.description
 
+  // Keyless fallback providers resolve everything inline.
+  if (s.inline) {
+    if (s.inline.address) form.address = s.inline.address
+    if (s.inline.city) form.city = s.inline.city
+    if (s.inline.postalCode) form.postalCode = s.inline.postalCode
+    return
+  }
   try {
     const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (data.address) {
@@ -299,7 +316,7 @@ async function handleRegister() {
         body: {
           firstName: form.firstName, lastName: form.lastName,
           phone: form.phone || undefined,
-          address: form.address, city: form.city,
+          address: form.address, addressLine2: form.addressLine2 || undefined, city: form.city,
           postalCode: form.postalCode, country: form.country,
           isDefault: true,
         },

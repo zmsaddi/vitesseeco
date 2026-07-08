@@ -504,7 +504,11 @@ function onAddrInput() {
   addrTimer = setTimeout(async () => {
     try {
       const data = await $fetch<any>('/api/places/autocomplete', {
-        query: { input: addressForm.address, country: addressForm.country.toLowerCase() },
+        query: {
+          input: addressForm.city ? `${addressForm.address}, ${addressForm.city}` : addressForm.address,
+          country: addressForm.country.toLowerCase(),
+          ...(addressForm.postalCode ? { postal: addressForm.postalCode } : {}),
+        },
       })
       addrSuggestions.value = data.predictions || []
     } catch {
@@ -519,6 +523,13 @@ async function pickAddr(s: any) {
   addrFocused.value = false
   addrSuggestions.value = []
   addressForm.address = s.structured_formatting?.main_text || s.description
+  // Keyless fallback providers resolve everything inline.
+  if (s.inline) {
+    if (s.inline.address) addressForm.address = s.inline.address
+    if (s.inline.city) addressForm.city = s.inline.city
+    if (s.inline.postalCode) addressForm.postalCode = s.inline.postalCode
+    return
+  }
   try {
     const data = await $fetch<any>('/api/places/details', { query: { place_id: s.place_id } })
     if (data.address) {
