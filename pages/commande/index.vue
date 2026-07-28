@@ -191,14 +191,18 @@
                     <label for="bill-addr" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.address') }}</label>
                     <input id="bill-addr" v-model="billing.address" type="text" class="input-field" required />
                   </div>
+                  <div>
+                    <label for="bill-addr2" class="text-sm font-medium text-text-secondary block mb-1.5">{{ $t('checkout.address') }} 2</label>
+                    <input id="bill-addr2" v-model="billing.addressLine2" type="text" class="input-field" :placeholder="$t('checkout.address_line2_placeholder')" />
+                  </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div>
                       <label for="bill-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                      <input id="bill-zip" v-model="billing.postalCode" type="text" class="input-field" required />
+                      <input id="bill-zip" v-model="billing.postalCode" @input="onBillZipInput" type="text" inputmode="numeric" class="input-field" required />
                     </div>
                     <div>
                       <label for="bill-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
-                      <input id="bill-city" v-model="billing.city" type="text" class="input-field" required />
+                      <input id="bill-city" v-model="billing.city" @input="billCityAuto = false" type="text" class="input-field" required />
                     </div>
                   </div>
                 </div>
@@ -436,7 +440,25 @@ function fieldError(field: string, value: string): string {
   return ''
 }
 const billingSameAsShipping = ref(true)
-const billing = reactive({ firstName: '', lastName: '', address: '', postalCode: '', city: '', country: 'FR' })
+const billing = reactive({ firstName: '', lastName: '', address: '', addressLine2: '', postalCode: '', city: '', country: 'FR' })
+
+// Billing form gets the SAME smart zip→city as every other address form.
+const billCityAuto = ref(false)
+let billZipTimer: ReturnType<typeof setTimeout>
+function onBillZipInput() {
+  clearTimeout(billZipTimer)
+  const code = (billing.postalCode || '').replace(/\s/g, '')
+  if (code.length < 4) return
+  billZipTimer = setTimeout(async () => {
+    if (billing.city && !billCityAuto.value) return
+    const res = await lookupCity(billing.country, code)
+    if (res.city && (!billing.city || billCityAuto.value)) {
+      billing.city = res.city
+      billCityAuto.value = true
+    }
+  }, 350)
+}
+watch(() => billing.country, () => { billing.city = ''; billing.postalCode = ''; billCityAuto.value = false })
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
 
@@ -728,7 +750,9 @@ const paypalOrderPayload = computed(() => {
     items: cart.items.map(i => ({ productId: i.productId, sku: i.sku, quantity: i.quantity })),
     shippingCode: selectedShipping.value,
     shippingAddress,
-    billingAddress: billingSameAsShipping.value || isPickup.value ? shippingAddress : { ...billing },
+    // An explicitly filled billing form always wins; the customer address only
+    // replaces the store address in the same-as-above case during pickup.
+    billingAddress: billingSameAsShipping.value ? (isPickup.value ? resolveCustomerAddress() : shippingAddress) : { ...billing },
     promoCode: cart.promoCode || undefined,
     turnstileToken: turnstileToken.value,
   }
@@ -769,7 +793,7 @@ async function placeOrder() {
         shippingCode: selectedShipping.value,
         paymentCode: selectedPayment.value,
         shippingAddress,
-        billingAddress: isPickup.value ? resolveCustomerAddress() : (billingSameAsShipping.value ? shippingAddress : { ...billing }),
+        billingAddress: billingSameAsShipping.value ? (isPickup.value ? resolveCustomerAddress() : shippingAddress) : { ...billing },
         promoCode: cart.promoCode || undefined,
         turnstileToken: turnstileToken.value,
       },
