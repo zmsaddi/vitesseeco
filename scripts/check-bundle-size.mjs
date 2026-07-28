@@ -13,8 +13,13 @@ import { readdirSync, statSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { gzipSync } from 'node:zlib'
 
-const BUDGET = Number.parseInt(process.env.BUNDLE_BUDGET_BYTES || String(13 * 1024 * 1024), 10)
+const BUDGET = Number.parseInt(process.env.BUNDLE_BUDGET_BYTES || String(6.5 * 1024 * 1024), 10)
 const ROOTS = ['.output/public', '.output/server']
+
+// Native platform binaries (sharp/libvips .so/.node) are runtime infrastructure,
+// not code we control — their size moves with dependency releases, not with our
+// changes, so they are tracked separately and excluded from the budget.
+const NATIVE_BINARY = /\.(so(\.[\d.]+)?|node|dll|dylib)$/
 
 function* walk(dir) {
   let entries
@@ -42,9 +47,14 @@ function gzipSize(filePath) {
 }
 
 let total = 0
+let nativeTotal = 0
 const top = []
 for (const root of ROOTS) {
   for (const f of walk(root)) {
+    if (NATIVE_BINARY.test(f.full)) {
+      nativeTotal += gzipSize(f.full)
+      continue
+    }
     const gz = gzipSize(f.full)
     total += gz
     if (gz > 50_000) top.push({ ...f, gz })
@@ -54,7 +64,8 @@ for (const root of ROOTS) {
 const totalMb = (total / 1024 / 1024).toFixed(2)
 const budgetMb = (BUDGET / 1024 / 1024).toFixed(2)
 
-console.log(`Bundle gzip total: ${totalMb} MB (budget: ${budgetMb} MB)`)
+console.log(`Bundle gzip total (code): ${totalMb} MB (budget: ${budgetMb} MB)`)
+console.log(`Native binaries (informational, not budgeted): ${(nativeTotal / 1024 / 1024).toFixed(2)} MB`)
 console.log('Top contributors (>50KB gzip):')
 top.sort((a, b) => b.gz - a.gz).slice(0, 10).forEach((f) => {
   console.log(`  ${(f.gz / 1024).toFixed(1).padStart(7)} KB  ${f.full.replace(/^\.output\//, '')}`)

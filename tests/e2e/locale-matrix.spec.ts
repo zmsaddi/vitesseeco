@@ -69,7 +69,11 @@ test.describe('mobile chrome', () => {
 
   test('menu button and search visible on mobile home', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' })
-    await expect(page.locator('header button[aria-expanded]')).toBeVisible()
-    await expect(page.locator('header input[type="search"], header [role="searchbox"], header input[type="text"]').first()).toBeVisible()
+    // The language switcher also carries aria-expanded — target the burger
+    // (the only md:hidden disclosure button) to stay strict-mode safe.
+    await expect(page.locator('header button[class*="md:hidden"][aria-expanded]')).toBeVisible()
+    // Two SearchBar instances render (desktop row, hidden on phones, comes
+    // first in the DOM) — assert the mobile row's own instance.
+    await expect(page.locator('header div[class*="md:hidden"] input[type="search"]')).toBeVisible()
   })
 })

@@ -129,25 +129,33 @@ test('guest pickup checkout requires first + last name', async ({ browser }) => 
 
   await page.goto('/commande', { waitUntil: 'domcontentloaded' })
   await page.locator('h1').first().waitFor({ state: 'visible', timeout: 15_000 })
-  // Wait for cart hydration so the form/shipping section renders, not the empty-cart fallback
+
+  // One-straight-line flow (owner decision 2026-07-05): the address always
+  // comes first — shipping options (pickup included) only render once the
+  // address block is filled, because it doubles as the customer/billing record.
+  await page.locator('input#co-zip').waitFor({ state: 'visible', timeout: 15_000 })
+  await page.locator('input#co-zip').fill('86000')
+  await page.locator('input#co-city').fill('Poitiers')
+  await page.locator('input#co-addr').fill('1 Rue de Test')
+
+  // Names left EMPTY on purpose — that is the regression under test.
   await page.locator('input#ship-pickup, input[id^="ship-"]').first().waitFor({ state: 'attached', timeout: 15_000 })
 
-  // Select pickup (auto-selected when it's the only option; otherwise click it)
+  // Select pickup (delivery is the default when the address qualifies)
   const pickupRadio = page.locator('input#ship-pickup')
+  if (!(await pickupRadio.isVisible().catch(() => false))) {
+    test.skip(true, 'no pickup shipping method available — Sanity catalog has no entry with code=pickup')
+  }
   if (!(await pickupRadio.isChecked().catch(() => false))) {
-    if (!(await pickupRadio.isVisible().catch(() => false))) {
-      test.skip(true, 'no pickup shipping method available — Sanity catalog has no entry with code=pickup')
-    }
     await pickupRadio.check({ force: true })
   }
   await expect(pickupRadio).toBeChecked({ timeout: 10_000 })
 
-  // The guest pickup form fields must be present (first name + last name).
-  // Address fields are intentionally not shown — pickup uses the store address.
+  // The guest form must still collect first + last name under pickup —
+  // the address block stays visible (it doubles as the billing record).
   await expect(page.locator('input#co-fn')).toBeVisible()
   await expect(page.locator('input#co-ln')).toBeVisible()
-  // Address field for delivery is hidden under pickup
-  await expect(page.locator('input#co-addr')).toHaveCount(0)
+  await expect(page.locator('input#co-addr')).toBeVisible()
 
   // Submit must be disabled while names are empty.
   // The button text comes from i18n key checkout.place_order which renders as
@@ -155,19 +163,19 @@ test('guest pickup checkout requires first + last name', async ({ browser }) => 
   const submitBtn = page.getByRole('button', { name: /confirmer|confirm/i }).first()
   await expect(submitBtn).toBeDisabled()
 
-  // The disabled-reason paragraph is one of several p[role="status"] on the
-  // page (Turnstile widget also uses that role for its loading state). Find
-  // the one that mentions name fields instead of relying on DOM order.
-  const nameReason = page.locator('p[role="status"]').filter({ hasText: /prénom|nom|name/i })
-  await expect(nameReason).toHaveCount(1, { timeout: 10_000 })
+  // With names missing, the disabled-reason is the incomplete-address message
+  // ("Complétez votre adresse de livraison" — names are part of the address
+  // block). Several p[role="status"] can exist (Turnstile) — filter by text.
+  const addressReason = page.locator('p[role="status"]').filter({ hasText: /adresse|address/i })
+  await expect(addressReason).toHaveCount(1, { timeout: 10_000 })
 
-  // Fill the name fields; the disabled-reason for "no name" must disappear.
+  // Fill the name fields; the address-incomplete reason must disappear
+  // (the button may stay disabled on payment/Turnstile — not under test here).
   await page.locator('input#co-fn').fill('Test')
   await page.locator('input#co-ln').fill('Acheteur')
-  await page.locator('input#co-fn').blur()
   await page.locator('input#co-ln').blur()
 
-  await expect(nameReason).toHaveCount(0, { timeout: 10_000 })
+  await expect(addressReason).toHaveCount(0, { timeout: 10_000 })
 
   await ctx.close()
 })

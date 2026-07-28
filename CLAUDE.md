@@ -26,7 +26,7 @@
 1. **DO NOT use Nuxt 4** — IPC bug on Windows
 2. **`ssr: process.env.VERCEL === '1'`** — SSR on Vercel, SPA locally
 3. **Standard Nuxt 3 structure** — files in ROOT, no `app/` directory
-4. **i18n:** `langDir: 'locales'`, `baseUrl: 'https://vitesse-eco.fr'` — **526 keys × 6 locales, must stay in sync**
+4. **i18n:** `langDir: 'locales'`, `baseUrl: 'https://vitesse-eco.fr'` — **542 keys × 6 locales, must stay in sync**
 5. **Sanity Studio** in `cms/` — excluded from Vercel via `.vercelignore`
 6. **`sanity`** as devDependency in root — required by `@nuxtjs/sanity`
 7. **Always answer user in Arabic**
@@ -57,7 +57,7 @@
 | Chat | ChatWidget (rule-based, AI-ready via `ANTHROPIC_API_KEY`) + WhatsApp |
 | PWA | Hand-rolled `public/sw.js` + `offline.html` + manifest (installable) |
 | Tests | Playwright (e2e + locale matrix + visual + a11y via @axe-core/playwright) |
-| CI/CD | GitHub Actions (langs, hex, typecheck, build, bundle budget 13MB gzip, e2e, Lighthouse) |
+| CI/CD | GitHub Actions (langs, hex, typecheck, build, bundle budget 6.5MB gzip code-only — native binaries excluded, e2e, Lighthouse) |
 
 ## Product System (System B)
 Each product is a **single color**. No `variants[]` array.

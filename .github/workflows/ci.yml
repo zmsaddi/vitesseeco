@@ -47,7 +47,7 @@ jobs:
       - name: Bundle size budget
         run: node scripts/check-bundle-size.mjs
         env:
-          BUNDLE_BUDGET_BYTES: '13631488' # 13 MB gzip total
+          BUNDLE_BUDGET_BYTES: '6815744' # 6.5 MB gzip, code only (native sharp/libvips binaries excluded by the script)
 
   e2e:
     runs-on: ubuntu-latest

@@ -62,7 +62,9 @@ test.describe('Products Listing', () => {
   test('search updates URL with debounce', async ({ page }) => {
     await page.goto(`${BASE}/produits`, LOAD)
     await page.waitForTimeout(2_000)
-    const searchInput = page.locator('input[placeholder]').first()
+    // Scope to main: the header SearchBar (suggest dropdown, no URL sync) is
+    // the first placeholder input in the DOM since the search-centered header.
+    const searchInput = page.locator('main input[placeholder]').first()
     if (await searchInput.isVisible({ timeout: 5_000 })) {
       await searchInput.fill('ouxi')
       await page.waitForTimeout(500)
