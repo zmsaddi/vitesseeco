@@ -465,7 +465,11 @@ const isPickup = computed(() => selectedShipping.value === 'pickup')
 // Block ① completion drives its number → checkmark. One rule for everyone:
 // the address always comes first (pickup included — it doubles as billing).
 const addressComplete = computed(() => {
-  if (selectedAddressId.value && !showNewForm.value) return true
+  // The id alone is not enough — the address may have been deleted in another
+  // tab; a vanished selection must not let an order through with blank billing.
+  if (selectedAddressId.value && !showNewForm.value) {
+    return savedAddresses.value.some((a: any) => a.id === selectedAddressId.value)
+  }
   return !!(showNewForm.value && addr.address && addr.city && addr.postalCode && addr.firstName && addr.lastName)
 })
 
@@ -496,7 +500,9 @@ const countryLabel = (c: string) => COUNTRY_LABELS[c] || c
 // the address, then step ② shows EVERY option for that address together:
 // eligible home-delivery methods AND store pickup, side by side.
 const deliveryAddressReady = computed(() => {
-  if (selectedAddressId.value && !showNewForm.value) return true
+  if (selectedAddressId.value && !showNewForm.value) {
+    return savedAddresses.value.some((a: any) => a.id === selectedAddressId.value)
+  }
   return !!(addr.address && addr.city && addr.postalCode)
 })
 const visibleShippingMethods = computed(() => (deliveryAddressReady.value ? (shippingMethods.value || []) : []))
