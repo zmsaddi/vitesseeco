@@ -23,6 +23,12 @@ jobs:
           node-version: 24
           cache: 'npm'
       - run: npm ci
+      # Six locale files that drift are six pages that render a key instead of a
+      # sentence. Enforced here rather than remembered before each commit.
+      - name: Locale key parity
+        run: npm run check:langs
+      - name: No raw hex colours in templates
+        run: npm run check:hex
       - name: Type check
         run: npx nuxi typecheck
         env:

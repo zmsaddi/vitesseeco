@@ -87,6 +87,13 @@ export default defineRoute({
       `
     )
 
+    // An unanswered customer is as much a queue as an unshipped parcel, so it
+    // is counted here rather than costing the panel a second request per page.
+    const [messages] = await queryRows<{ unread: string }>(
+      db(),
+      sql`SELECT COUNT(*)::text AS unread FROM contact_messages WHERE is_read = false`
+    )
+
     return {
       period: query.period,
       placed,
@@ -107,6 +114,7 @@ export default defineRoute({
         toProcess: Number(queue?.to_process ?? 0),
         toShip: Number(queue?.to_ship ?? 0),
         cashAwaitingCollection: Number(queue?.cash_unpaid ?? 0),
+        unreadMessages: Number(messages?.unread ?? 0),
       },
     }
   },

@@ -10,14 +10,19 @@ const localePath = useLocalePath()
 const route = useRoute()
 
 const { data: dashboard } = await useFetch<{
-  queue: { toProcess: number; toShip: number; cashAwaitingCollection: number }
+  queue: {
+    toProcess: number
+    toShip: number
+    cashAwaitingCollection: number
+    unreadMessages: number
+  }
 }>('/api/admin/dashboard', { query: { period: '7d' } })
 
 const links = computed(() => [
   { to: '/admin', label: 'admin.overview', badge: 0 },
   { to: '/admin/commandes', label: 'admin.orders', badge: dashboard.value?.queue.toProcess ?? 0 },
   { to: '/admin/stock', label: 'admin.stock', badge: 0 },
-  { to: '/admin/messages', label: 'admin.messages', badge: 0 },
+  { to: '/admin/messages', label: 'admin.messages', badge: dashboard.value?.queue.unreadMessages ?? 0 },
 ])
 
 const isActive = (to: string) => route.path === localePath(to)

@@ -17,10 +17,19 @@
  * Run: npm run check:hex
  * CI:  add to the build job before nuxi build.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOTS = ['pages', 'components', 'layouts', 'app.vue']
+/**
+ * Where the app lives. Both layouts are listed because the rebuild moved
+ * everything under app/ — and a gate that silently finds nothing to check is
+ * worse than no gate, so anything missing is skipped by walk() but the two
+ * entry files are asserted below.
+ */
+const ROOTS = [
+  'pages', 'components', 'layouts', 'app.vue',
+  'app/pages', 'app/components', 'app/layouts', 'app/app.vue',
+]
 const HEX_PATTERN = /#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?\b/g
 
 // Lines we tolerate. Each entry is a substring that must appear on the line.
@@ -78,11 +87,13 @@ function check(filePath) {
 
 function main() {
   let total = 0
+  let scanned = 0
   const allViolations = []
   for (const root of ROOTS) {
     let files = []
-    if (root.endsWith('.vue')) files = [root]
+    if (root.endsWith('.vue')) files = existsSync(root) ? [root] : []
     else files = [...walk(root)]
+    scanned += files.length
     for (const f of files) {
       const v = check(f)
       if (v.length) {
@@ -92,8 +103,17 @@ function main() {
     }
   }
 
+  // A gate that scans nothing passes everything. This one broke exactly that
+  // way when the rebuild moved the app under app/ — it kept reporting success
+  // while reading no files at all.
+  if (scanned === 0) {
+    console.error('❌ check-hex-colors scanned 0 files — the roots below match nothing:')
+    console.error(`   ${ROOTS.join(', ')}`)
+    process.exit(1)
+  }
+
   if (total === 0) {
-    console.log('✅ No raw hex colors found in .vue templates')
+    console.log(`✅ No raw hex colors in ${scanned} .vue file(s)`)
     process.exit(0)
   }
 
