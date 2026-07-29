@@ -42,6 +42,7 @@
     "@axe-core/playwright": "^4.11.2",
     "@playwright/test": "^1.59.1",
     "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^24.13.3",
     "drizzle-kit": "^0.31.10",
     "franc-min": "^6.2.0",
     "sanity": "^5.20.0",
