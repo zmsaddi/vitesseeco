@@ -2,10 +2,10 @@
   "a11y": {
     "skip_to_content": "Skip to content"
   },
-  "home": {
-    "eyebrow": "Electric mobility",
-    "title": "Electric bikes we choose, deliver and stand behind.",
-    "description": "Fatbikes, accessories and spare parts. Free delivery by our own team in Belgium, the Netherlands and the Vienne."
+  "common": {
+    "loading": "Loading…",
+    "previous": "Previous",
+    "next": "Next"
   },
   "errors": {
     "page_not_found": "This page does not exist.",
@@ -32,5 +32,53 @@
     "internal": "Something went wrong on our side.",
     "payment_provider": "The payment could not be processed.",
     "service_unavailable": "Service temporarily unavailable."
+  },
+  "footer": {
+    "tagline": "Electric bikes we choose, deliver and stand behind.",
+    "contact": "Contact",
+    "legal": "Legal",
+    "legal_notice": "Legal notice",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "withdrawal": "Right of withdrawal",
+    "delivery": "Delivery",
+    "delivery_note": "Free delivery by our own team in Belgium, the Netherlands and the Vienne."
+  },
+  "home": {
+    "eyebrow": "Electric mobility",
+    "title": "Electric bikes we choose, deliver and stand behind.",
+    "description": "Fatbikes, accessories and spare parts. Free delivery by our own team in Belgium, the Netherlands and the Vienne."
+  },
+  "nav": {
+    "primary": "Main navigation",
+    "products": "Products",
+    "about": "About",
+    "contact": "Contact",
+    "cart": "Basket",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "change_language": "Change language"
+  },
+  "product": {
+    "quantity": "Quantity",
+    "add_to_cart": "Add to basket",
+    "added": "Added",
+    "in_stock": "In stock ({count} available)",
+    "other_colours": "Other colours",
+    "description": "Description",
+    "view_image": "View photo"
+  },
+  "products": {
+    "title": "Our products",
+    "description": "Electric bikes, accessories and spare parts.",
+    "search": "Search products",
+    "sort": "Sort",
+    "sort_relevance": "Relevance",
+    "sort_price_asc": "Price: low to high",
+    "sort_price_desc": "Price: high to low",
+    "sort_newest": "Newest",
+    "no_results": "No products match your search.",
+    "out_of_stock": "Out of stock",
+    "pagination": "Pagination"
   }
 }

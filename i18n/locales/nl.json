@@ -2,10 +2,10 @@
   "a11y": {
     "skip_to_content": "Naar de inhoud"
   },
-  "home": {
-    "eyebrow": "Elektrische mobiliteit",
-    "title": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen.",
-    "description": "Fatbikes, accessoires en onderdelen. Gratis bezorging door ons eigen team in België, Nederland en de Vienne."
+  "common": {
+    "loading": "Laden…",
+    "previous": "Vorige",
+    "next": "Volgende"
   },
   "errors": {
     "page_not_found": "Deze pagina bestaat niet.",
@@ -32,5 +32,53 @@
     "internal": "Er ging iets mis aan onze kant.",
     "payment_provider": "De betaling kon niet worden verwerkt.",
     "service_unavailable": "Dienst tijdelijk niet beschikbaar."
+  },
+  "footer": {
+    "tagline": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen.",
+    "contact": "Contact",
+    "legal": "Juridisch",
+    "legal_notice": "Juridische kennisgeving",
+    "privacy": "Privacy",
+    "terms": "Voorwaarden",
+    "withdrawal": "Herroepingsrecht",
+    "delivery": "Bezorging",
+    "delivery_note": "Gratis bezorging door ons eigen team in België, Nederland en de Vienne."
+  },
+  "home": {
+    "eyebrow": "Elektrische mobiliteit",
+    "title": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen.",
+    "description": "Fatbikes, accessoires en onderdelen. Gratis bezorging door ons eigen team in België, Nederland en de Vienne."
+  },
+  "nav": {
+    "primary": "Hoofdnavigatie",
+    "products": "Producten",
+    "about": "Over ons",
+    "contact": "Contact",
+    "cart": "Winkelmand",
+    "open_menu": "Menu openen",
+    "close_menu": "Menu sluiten",
+    "change_language": "Taal wijzigen"
+  },
+  "product": {
+    "quantity": "Aantal",
+    "add_to_cart": "In winkelmand",
+    "added": "Toegevoegd",
+    "in_stock": "Op voorraad ({count} beschikbaar)",
+    "other_colours": "Andere kleuren",
+    "description": "Omschrijving",
+    "view_image": "Foto bekijken"
+  },
+  "products": {
+    "title": "Onze producten",
+    "description": "Elektrische fietsen, accessoires en onderdelen.",
+    "search": "Producten zoeken",
+    "sort": "Sorteren",
+    "sort_relevance": "Relevantie",
+    "sort_price_asc": "Prijs: laag naar hoog",
+    "sort_price_desc": "Prijs: hoog naar laag",
+    "sort_newest": "Nieuwste",
+    "no_results": "Geen producten gevonden.",
+    "out_of_stock": "Uitverkocht",
+    "pagination": "Paginering"
   }
 }

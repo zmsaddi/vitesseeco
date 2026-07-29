@@ -2,10 +2,10 @@
   "a11y": {
     "skip_to_content": "Zum Inhalt springen"
   },
-  "home": {
-    "eyebrow": "Elektromobilität",
-    "title": "E-Bikes, die wir auswählen, liefern und betreuen.",
-    "description": "Fatbikes, Zubehör und Ersatzteile. Kostenlose Lieferung durch unser eigenes Team in Belgien, den Niederlanden und im Département Vienne."
+  "common": {
+    "loading": "Wird geladen…",
+    "previous": "Zurück",
+    "next": "Weiter"
   },
   "errors": {
     "page_not_found": "Diese Seite existiert nicht.",
@@ -32,5 +32,53 @@
     "internal": "Auf unserer Seite ist ein Fehler aufgetreten.",
     "payment_provider": "Die Zahlung konnte nicht verarbeitet werden.",
     "service_unavailable": "Dienst vorübergehend nicht verfügbar."
+  },
+  "footer": {
+    "tagline": "E-Bikes, die wir auswählen, liefern und betreuen.",
+    "contact": "Kontakt",
+    "legal": "Rechtliches",
+    "legal_notice": "Impressum",
+    "privacy": "Datenschutz",
+    "terms": "AGB",
+    "withdrawal": "Widerrufsrecht",
+    "delivery": "Lieferung",
+    "delivery_note": "Kostenlose Lieferung durch unser Team in Belgien, den Niederlanden und im Département Vienne."
+  },
+  "home": {
+    "eyebrow": "Elektromobilität",
+    "title": "E-Bikes, die wir auswählen, liefern und betreuen.",
+    "description": "Fatbikes, Zubehör und Ersatzteile. Kostenlose Lieferung durch unser eigenes Team in Belgien, den Niederlanden und im Département Vienne."
+  },
+  "nav": {
+    "primary": "Hauptnavigation",
+    "products": "Produkte",
+    "about": "Über uns",
+    "contact": "Kontakt",
+    "cart": "Warenkorb",
+    "open_menu": "Menü öffnen",
+    "close_menu": "Menü schließen",
+    "change_language": "Sprache wechseln"
+  },
+  "product": {
+    "quantity": "Menge",
+    "add_to_cart": "In den Warenkorb",
+    "added": "Hinzugefügt",
+    "in_stock": "Auf Lager ({count} verfügbar)",
+    "other_colours": "Weitere Farben",
+    "description": "Beschreibung",
+    "view_image": "Foto ansehen"
+  },
+  "products": {
+    "title": "Unsere Produkte",
+    "description": "E-Bikes, Zubehör und Ersatzteile.",
+    "search": "Produkte suchen",
+    "sort": "Sortieren",
+    "sort_relevance": "Relevanz",
+    "sort_price_asc": "Preis aufsteigend",
+    "sort_price_desc": "Preis absteigend",
+    "sort_newest": "Neuheiten",
+    "no_results": "Keine Produkte gefunden.",
+    "out_of_stock": "Ausverkauft",
+    "pagination": "Seitennummerierung"
   }
 }

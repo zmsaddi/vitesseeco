@@ -1,0 +1,98 @@
+/**
+ * The sitemap.
+ *
+ * Every URL and every alternate is generated from the locales manifest, so the
+ * sitemap, the canonical tags and the router can never disagree — and moving a
+ * market onto its own domain rewrites this file's output without editing it.
+ *
+ * Entries with no slug are dropped rather than allowed to fail: one article
+ * saved without one took the whole sitemap down in the previous build, which
+ * cost every URL its indexing rather than one.
+ */
+import { defineEventHandler, setResponseHeader } from 'h3'
+import { LOCALES, alternatesFor, localizedUrl, DEFAULT_LOCALE } from '../../shared/locales'
+import { listProducts, listCategories } from '../catalog'
+
+/** Pages that exist in every language regardless of the catalogue. */
+const STATIC_PATHS = [
+  { path: '/', priority: '1.0', changefreq: 'daily' },
+  { path: '/produits', priority: '0.9', changefreq: 'daily' },
+  { path: '/a-propos', priority: '0.6', changefreq: 'monthly' },
+  { path: '/contact', priority: '0.6', changefreq: 'monthly' },
+  { path: '/faq', priority: '0.6', changefreq: 'monthly' },
+  { path: '/cgv', priority: '0.3', changefreq: 'yearly' },
+  { path: '/mentions-legales', priority: '0.3', changefreq: 'yearly' },
+  { path: '/politique-confidentialite', priority: '0.3', changefreq: 'yearly' },
+] as const
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
+
+function urlEntry(path: string, priority: string, changefreq: string, lastmod: string): string {
+  const alternates = alternatesFor(path)
+    .map(
+      (alternate) =>
+        `    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${escapeXml(alternate.href)}"/>`
+    )
+    .join('\n')
+
+  // One <url> per locale, each declaring the full set of alternates — which is
+  // what Google requires for a bidirectional hreflang cluster.
+  return LOCALES.map((locale) => {
+    const loc = escapeXml(localizedUrl(path, locale.code))
+    return [
+      '  <url>',
+      `    <loc>${loc}</loc>`,
+      `    <lastmod>${lastmod}</lastmod>`,
+      `    <changefreq>${changefreq}</changefreq>`,
+      `    <priority>${locale.code === DEFAULT_LOCALE ? priority : String(Math.max(0.1, Number(priority) - 0.1))}</priority>`,
+      alternates,
+      '  </url>',
+    ].join('\n')
+  }).join('\n')
+}
+
+export default defineEventHandler(async (event) => {
+  const lastmod = new Date().toISOString().slice(0, 10)
+  const entries: string[] = []
+
+  for (const page of STATIC_PATHS) {
+    entries.push(urlEntry(page.path, page.priority, page.changefreq, lastmod))
+  }
+
+  // The catalogue is fetched defensively: a sitemap missing its products is
+  // recoverable, a sitemap that 500s is not.
+  try {
+    const [products, categories] = await Promise.all([
+      listProducts({ locale: DEFAULT_LOCALE, page: 1, perPage: 48 }),
+      listCategories(DEFAULT_LOCALE),
+    ])
+
+    for (const product of products.items) {
+      if (!product.slug) continue
+      entries.push(urlEntry(`/produits/${product.slug}`, '0.8', 'weekly', lastmod))
+    }
+    for (const category of categories) {
+      if (!category.slug) continue
+      entries.push(urlEntry(`/produits?categorie=${category.slug}`, '0.7', 'weekly', lastmod))
+    }
+  } catch (error) {
+    console.error('[sitemap] catalogue unavailable, serving static pages only', error)
+  }
+
+  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+    entries.join('\n'),
+    '</urlset>',
+  ].join('\n')
+})

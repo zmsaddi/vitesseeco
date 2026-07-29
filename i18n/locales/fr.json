@@ -2,10 +2,10 @@
   "a11y": {
     "skip_to_content": "Aller au contenu"
   },
-  "home": {
-    "eyebrow": "Mobilité électrique",
-    "title": "Des vélos électriques choisis, livrés et suivis par nous.",
-    "description": "Fatbikes, accessoires et pièces détachées. Livraison gratuite par notre propre équipe en Belgique, aux Pays-Bas et dans la Vienne."
+  "common": {
+    "loading": "Chargement…",
+    "previous": "Précédent",
+    "next": "Suivant"
   },
   "errors": {
     "page_not_found": "Cette page n'existe pas.",
@@ -32,5 +32,53 @@
     "internal": "Une erreur est survenue de notre côté.",
     "payment_provider": "Le paiement n'a pas pu être traité.",
     "service_unavailable": "Service temporairement indisponible."
+  },
+  "footer": {
+    "tagline": "Vélos électriques choisis, livrés et suivis par notre équipe.",
+    "contact": "Contact",
+    "legal": "Informations légales",
+    "legal_notice": "Mentions légales",
+    "privacy": "Confidentialité",
+    "terms": "CGV",
+    "withdrawal": "Droit de rétractation",
+    "delivery": "Livraison",
+    "delivery_note": "Livraison gratuite par notre équipe en Belgique, aux Pays-Bas et dans la Vienne."
+  },
+  "home": {
+    "eyebrow": "Mobilité électrique",
+    "title": "Des vélos électriques choisis, livrés et suivis par nous.",
+    "description": "Fatbikes, accessoires et pièces détachées. Livraison gratuite par notre propre équipe en Belgique, aux Pays-Bas et dans la Vienne."
+  },
+  "nav": {
+    "primary": "Navigation principale",
+    "products": "Produits",
+    "about": "À propos",
+    "contact": "Contact",
+    "cart": "Panier",
+    "open_menu": "Ouvrir le menu",
+    "close_menu": "Fermer le menu",
+    "change_language": "Changer de langue"
+  },
+  "product": {
+    "quantity": "Quantité",
+    "add_to_cart": "Ajouter au panier",
+    "added": "Ajouté !",
+    "in_stock": "En stock ({count} disponibles)",
+    "other_colours": "Autres coloris",
+    "description": "Description",
+    "view_image": "Voir la photo"
+  },
+  "products": {
+    "title": "Nos produits",
+    "description": "Vélos électriques, accessoires et pièces détachées.",
+    "search": "Rechercher un produit",
+    "sort": "Trier",
+    "sort_relevance": "Pertinence",
+    "sort_price_asc": "Prix croissant",
+    "sort_price_desc": "Prix décroissant",
+    "sort_newest": "Nouveautés",
+    "no_results": "Aucun produit ne correspond à votre recherche.",
+    "out_of_stock": "Épuisé",
+    "pagination": "Pagination"
   }
 }

@@ -2,10 +2,10 @@
   "a11y": {
     "skip_to_content": "Ir al contenido"
   },
-  "home": {
-    "eyebrow": "Movilidad eléctrica",
-    "title": "Bicicletas eléctricas que elegimos, entregamos y respaldamos.",
-    "description": "Fatbikes, accesorios y repuestos. Entrega gratuita por nuestro propio equipo en Bélgica, los Países Bajos y Vienne."
+  "common": {
+    "loading": "Cargando…",
+    "previous": "Anterior",
+    "next": "Siguiente"
   },
   "errors": {
     "page_not_found": "Esta página no existe.",
@@ -32,5 +32,53 @@
     "internal": "Ha ocurrido un error por nuestra parte.",
     "payment_provider": "No se ha podido procesar el pago.",
     "service_unavailable": "Servicio no disponible temporalmente."
+  },
+  "footer": {
+    "tagline": "Bicicletas eléctricas que elegimos, entregamos y respaldamos.",
+    "contact": "Contacto",
+    "legal": "Legal",
+    "legal_notice": "Aviso legal",
+    "privacy": "Privacidad",
+    "terms": "Condiciones",
+    "withdrawal": "Derecho de desistimiento",
+    "delivery": "Entrega",
+    "delivery_note": "Entrega gratuita por nuestro equipo en Bélgica, los Países Bajos y Vienne."
+  },
+  "home": {
+    "eyebrow": "Movilidad eléctrica",
+    "title": "Bicicletas eléctricas que elegimos, entregamos y respaldamos.",
+    "description": "Fatbikes, accesorios y repuestos. Entrega gratuita por nuestro propio equipo en Bélgica, los Países Bajos y Vienne."
+  },
+  "nav": {
+    "primary": "Navegación principal",
+    "products": "Productos",
+    "about": "Nosotros",
+    "contact": "Contacto",
+    "cart": "Cesta",
+    "open_menu": "Abrir menú",
+    "close_menu": "Cerrar menú",
+    "change_language": "Cambiar idioma"
+  },
+  "product": {
+    "quantity": "Cantidad",
+    "add_to_cart": "Añadir a la cesta",
+    "added": "Añadido",
+    "in_stock": "En stock ({count} disponibles)",
+    "other_colours": "Otros colores",
+    "description": "Descripción",
+    "view_image": "Ver foto"
+  },
+  "products": {
+    "title": "Nuestros productos",
+    "description": "Bicicletas eléctricas, accesorios y repuestos.",
+    "search": "Buscar productos",
+    "sort": "Ordenar",
+    "sort_relevance": "Relevancia",
+    "sort_price_asc": "Precio: de menor a mayor",
+    "sort_price_desc": "Precio: de mayor a menor",
+    "sort_newest": "Novedades",
+    "no_results": "No hay productos que coincidan.",
+    "out_of_stock": "Agotado",
+    "pagination": "Paginación"
   }
 }
