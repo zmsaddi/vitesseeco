@@ -46,6 +46,18 @@ export interface SqlExecutor {
 }
 
 /**
+ * Anything that can run work inside a transaction.
+ *
+ * Services take one of these rather than calling `withTransaction` directly,
+ * for the same reason they take a `SqlExecutor`: a service that opens its own
+ * connection to a hardwired URL cannot be pointed at a test database, and a
+ * service that cannot be pointed at a test database is one whose tests never
+ * ran. This project has now learned that three times — the rate limiter, the
+ * stock reads, and the order service — so it is a type here, not a habit.
+ */
+export type TransactionRunner = <T>(work: (tx: Transaction) => Promise<T>) => Promise<T>
+
+/**
  * Run a raw statement and read its rows under the shape the caller expects.
  *
  * The cast is real and deliberate: no driver can know what a hand-written

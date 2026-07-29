@@ -13,7 +13,14 @@
  */
 import { and, eq, sql } from 'drizzle-orm'
 import { orderItems, orders } from '../db/schema'
-import { db, queryRows, withTransaction, type Transaction } from '../db/client'
+import {
+  db,
+  queryRows,
+  withTransaction,
+  type SqlExecutor,
+  type Transaction,
+  type TransactionRunner,
+} from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import { generateOrderNumber } from '../security/crypto'
 import type { OrderStatus } from '../../shared/schemas'
@@ -38,6 +45,9 @@ export interface PlaceOrderInput {
   idempotencyKey: string
   customer: { id: string; email: string; firstName: string; lastName: string } | null
   guestEmail?: string
+  /** Injectable so the whole path can be exercised against a test database. */
+  runTransaction?: TransactionRunner
+  read?: SqlExecutor
 }
 
 export interface PlacedOrder {
@@ -55,7 +65,9 @@ export interface PlacedOrder {
  * resolve to the same order rather than three.
  */
 export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
-  const existing = await findByIdempotencyKey(input.idempotencyKey)
+  const run = input.runTransaction ?? withTransaction
+
+  const existing = await findByIdempotencyKey(input.idempotencyKey, input.read)
   if (existing) return existing
 
   // Priced before the transaction opens: it reads the catalogue over the
@@ -89,7 +101,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   const initialStatus: OrderStatus = 'awaiting_payment'
 
   try {
-    return await withTransaction(async (tx) => {
+    return await run(async (tx) => {
       const [row] = await tx
         .insert(orders)
         .values({
@@ -159,7 +171,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
     // A racing request with the same key committed first. Its order is the
     // answer, not an error.
     if (isUniqueViolation(error, 'orders_idempotency_key')) {
-      const raced = await findByIdempotencyKey(input.idempotencyKey)
+      const raced = await findByIdempotencyKey(input.idempotencyKey, input.read)
       if (raced) return raced
     }
     throw error
@@ -175,8 +187,9 @@ function isUniqueViolation(error: unknown, constraint: string): boolean {
   })
 }
 
-async function findByIdempotencyKey(key: string): Promise<PlacedOrder | null> {
-  const [row] = await db()
+async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<PlacedOrder | null> {
+  const handle = (read ?? db()) as ReturnType<typeof db>
+  const [row] = await handle
     .select({
       id: orders.id,
       orderNumber: orders.orderNumber,
@@ -194,10 +207,7 @@ async function findByIdempotencyKey(key: string): Promise<PlacedOrder | null> {
 
   if (!row) return null
 
-  const items = await db()
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.orderId, row.id))
+  const items = await handle.select().from(orderItems).where(eq(orderItems.orderId, row.id))
 
   return {
     id: row.id,
@@ -237,9 +247,10 @@ async function findByIdempotencyKey(key: string): Promise<PlacedOrder | null> {
 export async function transitionOrder(
   orderNumber: string,
   to: OrderStatus,
-  options: { expectFrom?: OrderStatus } = {}
+  options: { expectFrom?: OrderStatus; runTransaction?: TransactionRunner } = {}
 ): Promise<{ changed: boolean; from: OrderStatus }> {
-  return withTransaction(async (tx) => {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx) => {
     const [current] = await tx
       .select({ id: orders.id, status: orders.status })
       .from(orders)

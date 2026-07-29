@@ -14,6 +14,14 @@ import { closePool, hasDatabase, inTransaction, resetDatabase, seedOrder, seedPr
 
 const BIKE = 'product-v20-noir'
 
+/**
+ * The order service opens its own transaction, so the suite hands it one that
+ * runs against the scratch database. Without this the service would reach for
+ * the production connection string and the tests would never exercise it — the
+ * same coupling the rate limiter and the stock reads already taught us about.
+ */
+const runInTest = { runTransaction: inTransaction }
+
 /** An order that already holds stock, as a real one does the moment it exists. */
 async function orderHolding(quantity: number, overrides = {}) {
   const orderId = await seedOrder({ status: 'awaiting_payment', ...overrides })
@@ -57,7 +65,7 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
       expect(await onHand()).toBe(10)
       expect(await available()).toBe(8)
 
-      const result = await transitionOrder(orderNumber, 'paid')
+      const result = await transitionOrder(orderNumber, 'paid', runInTest)
       expect(result.changed).toBe(true)
       expect(await onHand()).toBe(8)
       expect(await available()).toBe(8)
@@ -66,21 +74,21 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
     it('is a no-op when the event is redelivered', async () => {
       // Stripe retries for three days. The second delivery must change nothing.
       const { orderNumber } = await orderHolding(2)
-      await transitionOrder(orderNumber, 'paid')
+      await transitionOrder(orderNumber, 'paid', runInTest)
 
-      const replay = await transitionOrder(orderNumber, 'paid')
+      const replay = await transitionOrder(orderNumber, 'paid', runInTest)
       expect(replay.changed).toBe(false)
       expect(await onHand()).toBe(8)
     })
 
     it('does not resurrect an order that has already shipped', async () => {
       const { orderNumber } = await orderHolding(1)
-      await transitionOrder(orderNumber, 'paid')
-      await transitionOrder(orderNumber, 'processing')
-      await transitionOrder(orderNumber, 'shipped')
+      await transitionOrder(orderNumber, 'paid', runInTest)
+      await transitionOrder(orderNumber, 'processing', runInTest)
+      await transitionOrder(orderNumber, 'shipped', runInTest)
 
       // A late webhook for an order already on the van.
-      const late = await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+      const late = await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment', ...runInTest })
       expect(late.changed).toBe(false)
       expect(await statusOf(orderNumber)).toBe('shipped')
     })
@@ -89,8 +97,8 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
       const { orderNumber } = await orderHolding(3)
 
       const results = await Promise.allSettled([
-        transitionOrder(orderNumber, 'paid'),
-        transitionOrder(orderNumber, 'paid'),
+        transitionOrder(orderNumber, 'paid', runInTest),
+        transitionOrder(orderNumber, 'paid', runInTest),
       ])
       const changes = results.filter((r) => r.status === 'fulfilled' && r.value.changed)
 
@@ -100,7 +108,7 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
 
     it('stamps the moment it was paid', async () => {
       const { orderNumber } = await orderHolding(1)
-      await transitionOrder(orderNumber, 'paid')
+      await transitionOrder(orderNumber, 'paid', runInTest)
       const rows = await testDb().execute<{ paid_at: string | null }>(
         sql`SELECT paid_at FROM orders WHERE order_number = ${orderNumber}`
       )
@@ -113,17 +121,17 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
       const { orderNumber } = await orderHolding(4)
       expect(await available()).toBe(6)
 
-      await transitionOrder(orderNumber, 'cancelled')
+      await transitionOrder(orderNumber, 'cancelled', runInTest)
       expect(await available()).toBe(10)
       expect(await onHand()).toBe(10)
     })
 
     it('gives the units back after payment, without crediting twice', async () => {
       const { orderNumber } = await orderHolding(4)
-      await transitionOrder(orderNumber, 'paid')
+      await transitionOrder(orderNumber, 'paid', runInTest)
       expect(await onHand()).toBe(6)
 
-      await transitionOrder(orderNumber, 'cancelled')
+      await transitionOrder(orderNumber, 'cancelled', runInTest)
       // The hold was already consumed at payment, so cancelling restores
       // nothing a second time — the units left with the sale.
       expect(await onHand()).toBe(6)
@@ -131,18 +139,18 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
 
     it('is a no-op when cancelled twice', async () => {
       const { orderNumber } = await orderHolding(2)
-      expect((await transitionOrder(orderNumber, 'cancelled')).changed).toBe(true)
-      expect((await transitionOrder(orderNumber, 'cancelled')).changed).toBe(false)
+      expect((await transitionOrder(orderNumber, 'cancelled', runInTest)).changed).toBe(true)
+      expect((await transitionOrder(orderNumber, 'cancelled', runInTest)).changed).toBe(false)
       expect(await available()).toBe(10)
     })
 
     it('refuses to cancel an order that has shipped', async () => {
       const { orderNumber } = await orderHolding(1)
-      await transitionOrder(orderNumber, 'paid')
-      await transitionOrder(orderNumber, 'processing')
-      await transitionOrder(orderNumber, 'shipped')
+      await transitionOrder(orderNumber, 'paid', runInTest)
+      await transitionOrder(orderNumber, 'processing', runInTest)
+      await transitionOrder(orderNumber, 'shipped', runInTest)
 
-      const error = await transitionOrder(orderNumber, 'cancelled').catch((e: unknown) => e)
+      const error = await transitionOrder(orderNumber, 'cancelled', runInTest).catch((e: unknown) => e)
       expect(error).toBeInstanceOf(AppError)
       expect((error as AppError).code).toBe(ERROR_CODES.INVALID_STATE_TRANSITION)
     })
@@ -158,7 +166,7 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
         inTransaction((tx) => reserveStock(tx, second, [{ productId: BIKE, quantity: 1 }]))
       ).rejects.toBeInstanceOf(AppError)
 
-      await transitionOrder(first.orderNumber, 'cancelled')
+      await transitionOrder(first.orderNumber, 'cancelled', runInTest)
 
       await expect(
         inTransaction((tx) => reserveStock(tx, second, [{ productId: BIKE, quantity: 1 }]))
@@ -169,21 +177,21 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
   describe('guards', () => {
     it('refuses to skip payment', async () => {
       const { orderNumber } = await orderHolding(1)
-      await expect(transitionOrder(orderNumber, 'shipped')).rejects.toBeInstanceOf(AppError)
+      await expect(transitionOrder(orderNumber, 'shipped', runInTest)).rejects.toBeInstanceOf(AppError)
       expect(await statusOf(orderNumber)).toBe('awaiting_payment')
     })
 
     it('does nothing when the expected starting status does not match', async () => {
       const { orderNumber } = await orderHolding(1)
-      await transitionOrder(orderNumber, 'paid')
+      await transitionOrder(orderNumber, 'paid', runInTest)
 
-      const result = await transitionOrder(orderNumber, 'cancelled', { expectFrom: 'awaiting_payment' })
+      const result = await transitionOrder(orderNumber, 'cancelled', { expectFrom: 'awaiting_payment', ...runInTest })
       expect(result.changed).toBe(false)
       expect(await statusOf(orderNumber)).toBe('paid')
     })
 
     it('reports an unknown order rather than failing quietly', async () => {
-      const error = await transitionOrder('ORD-DOESNOTEXIST', 'paid').catch((e: unknown) => e)
+      const error = await transitionOrder('ORD-DOESNOTEXIST', 'paid', runInTest).catch((e: unknown) => e)
       expect((error as AppError).code).toBe(ERROR_CODES.NOT_FOUND)
     })
   })
