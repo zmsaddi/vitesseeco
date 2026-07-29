@@ -2,8 +2,8 @@ import { defineConfig } from 'vitest/config'
 
 /**
  * Unit and integration suites. Playwright owns the browser tests
- * (playwright.config.ts) — this config deliberately excludes tests/e2e and
- * tests/visual so the two runners never fight over the same files.
+ * (playwright.config.ts), so tests/e2e is deliberately outside this config and
+ * the two runners never fight over the same files.
  *
  *   npm run test:unit         pure logic, no I/O
  *   npm run test:integration  needs TEST_DATABASE_URL
@@ -11,15 +11,20 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     include: ['tests/unit/**/*.spec.ts', 'tests/integration/**/*.spec.ts'],
-    exclude: ['tests/e2e/**', 'tests/visual/**', 'node_modules/**'],
+    exclude: ['tests/e2e/**', 'node_modules/**'],
     environment: 'node',
+    globalSetup: ['tests/integration/globalSetup.ts'],
+    // Integration files share one database and truncate between cases, so they
+    // must not overlap. The unit suite is small enough that running it in the
+    // same serial pass costs a couple of seconds.
+    fileParallelism: false,
     // A test that hangs is a failing test.
-    testTimeout: 15_000,
+    testTimeout: 20_000,
     hookTimeout: 30_000,
     coverage: {
       provider: 'v8',
       include: ['shared/**/*.ts', 'server/**/*.ts'],
-      exclude: ['**/*.spec.ts', 'server/database/migrations/**'],
+      exclude: ['**/*.spec.ts', 'server/db/migrations/**'],
       reporter: ['text-summary', 'lcov'],
     },
   },

@@ -17,7 +17,7 @@ import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
 import { drizzle as drizzlePool } from 'drizzle-orm/neon-serverless'
 import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless'
 import type { PgTransaction } from 'drizzle-orm/pg-core'
-import type { ExtractTablesWithRelations } from 'drizzle-orm'
+import type { ExtractTablesWithRelations, SQL } from 'drizzle-orm'
 import ws from 'ws'
 import * as schema from './schema'
 
@@ -29,6 +29,33 @@ if (typeof globalThis.WebSocket === 'undefined') {
 
 export type Schema = typeof schema
 export type Transaction = PgTransaction<NeonQueryResultHKT, Schema, ExtractTablesWithRelations<Schema>>
+
+/**
+ * Anything that can run a statement and hand back rows.
+ *
+ * Described structurally rather than derived from one driver, so a service can
+ * take a handle without being welded to Neon. That matters for more than
+ * tidiness: a service that reaches for a hardwired client cannot be exercised
+ * against an ordinary Postgres, which is how a rate limiter ends up shipping
+ * with no test that ever ran.
+ */
+export interface SqlExecutor {
+  // Rows from raw SQL are untyped whichever driver runs them, so the shape is
+  // asserted once in `queryRows` below rather than at every call site.
+  execute: (query: SQL) => PromiseLike<{ rows: unknown[] }>
+}
+
+/**
+ * Run a raw statement and read its rows under the shape the caller expects.
+ *
+ * The cast is real and deliberate: no driver can know what a hand-written
+ * SELECT returns. Naming it here means there is one place to look when a query
+ * and its type drift apart, instead of an `as` scattered through the services.
+ */
+export async function queryRows<T>(executor: SqlExecutor, query: SQL): Promise<T[]> {
+  const result = await executor.execute(query)
+  return result.rows as T[]
+}
 
 function connectionString(): string {
   const url = process.env.DATABASE_URL

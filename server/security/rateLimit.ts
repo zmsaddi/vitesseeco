@@ -12,10 +12,18 @@
  */
 import { sql } from 'drizzle-orm'
 import { setResponseHeader, type H3Event } from 'h3'
-import { db } from '../db/client'
+import { db, queryRows, type SqlExecutor } from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import { clientIp, routeKey } from './request'
 import { hashIp } from './crypto'
+
+/**
+ * The limiter takes its database handle rather than reaching for the global
+ * one, matching how the stock service takes a transaction. That is what makes
+ * it exercisable against any Postgres — the coupling to one driver showed up as
+ * a failing test rather than as a surprise in production.
+ */
+export type Executor = SqlExecutor
 
 export interface RateLimitOptions {
   /** Requests permitted inside the window. */
@@ -65,7 +73,8 @@ export type RateLimitPreset = keyof typeof RATE_LIMITS
  */
 export async function consumeRateLimit(
   event: H3Event,
-  options: RateLimitOptions
+  options: RateLimitOptions,
+  database: Executor = db()
 ): Promise<RateLimitResult> {
   const identity = hashIp(clientIp(event))
   const scope = options.scope ?? routeKey(event)
@@ -75,7 +84,7 @@ export async function consumeRateLimit(
   // One statement: insert the bucket, or — if the window has rolled over —
   // restart it, otherwise increment. The returned count is authoritative
   // because the row is locked for the duration of the upsert.
-  const rows = await db().execute<{ count: number; expires_at: string }>(sql`
+  const rows = await queryRows<{ count: number; expires_at: string }>(database, sql`
     INSERT INTO rate_limits (bucket, count, window_started_at, expires_at)
     VALUES (
       ${bucket},
@@ -100,7 +109,7 @@ export async function consumeRateLimit(
     RETURNING count, expires_at
   `)
 
-  const row = rows.rows[0]
+  const row = rows[0]
   if (!row) {
     // The limiter must never be the reason an order cannot be placed.
     return { allowed: true, remaining: options.limit, retryAfterSeconds: 0 }
@@ -129,12 +138,13 @@ export async function consumeRateLimit(
 export async function enforceRateLimit(
   event: H3Event,
   preset: RateLimitPreset,
-  extra: Omit<RateLimitOptions, 'limit' | 'windowMs'> = {}
+  extra: Omit<RateLimitOptions, 'limit' | 'windowMs'> = {},
+  database: Executor = db()
 ): Promise<void> {
   const config = RATE_LIMITS[preset]
   let result: RateLimitResult
   try {
-    result = await consumeRateLimit(event, { ...config, ...extra })
+    result = await consumeRateLimit(event, { ...config, ...extra }, database)
   } catch (error) {
     console.error('[rate-limit] store unavailable, allowing request', error)
     return
@@ -154,13 +164,16 @@ export async function enforceRateLimit(
 }
 
 /** Housekeeping. Expired buckets are already ignored; this keeps the table small. */
-export async function pruneRateLimits(limit = 1000): Promise<number> {
-  const deleted = await db().execute<{ bucket: string }>(sql`
-    DELETE FROM rate_limits
-     WHERE bucket IN (
-       SELECT bucket FROM rate_limits WHERE expires_at <= NOW() LIMIT ${limit}
-     )
-    RETURNING bucket
-  `)
-  return deleted.rows.length
+export async function pruneRateLimits(limit = 1000, database: Executor = db()): Promise<number> {
+  const deleted = await queryRows<{ bucket: string }>(
+    database,
+    sql`
+      DELETE FROM rate_limits
+       WHERE bucket IN (
+         SELECT bucket FROM rate_limits WHERE expires_at <= NOW() LIMIT ${limit}
+       )
+      RETURNING bucket
+    `
+  )
+  return deleted.length
 }

@@ -13,8 +13,6 @@
  * Set TEST_DATABASE_URL to a scratch database. A URL that looks like production
  * is refused outright, because the suite truncates tables.
  */
-import { readFileSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
 import pg from 'pg'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { sql } from 'drizzle-orm'
@@ -25,8 +23,6 @@ export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 
 /** Integration tests skip rather than fail when no scratch database is configured. */
 export const hasDatabase = TEST_DATABASE_URL.length > 0
-
-const MIGRATIONS_DIR = join(process.cwd(), 'server', 'db', 'migrations')
 
 function assertSafeTarget(url: string): void {
   const lowered = url.toLowerCase()
@@ -52,34 +48,17 @@ function getPool(): pg.Pool {
   return sharedPool
 }
 
-function client() {
+/**
+ * The shared database handle. Also what services under test receive, so they
+ * exercise the same driver the suite uses — the rate limiter reaching for a
+ * hardwired Neon client instead of accepting one is exactly the coupling these
+ * tests caught.
+ */
+export function testDb() {
   return drizzle(getPool(), { schema })
 }
 
-/** Apply every migration in order. Idempotent enough to run before each suite. */
-export async function migrate(): Promise<void> {
-  const db = client()
-  const files = readdirSync(MIGRATIONS_DIR)
-    .filter((name) => name.endsWith('.sql'))
-    .sort()
-
-  for (const file of files) {
-    const contents = readFileSync(join(MIGRATIONS_DIR, file), 'utf8')
-    // drizzle-kit separates statements with this marker.
-    for (const statement of contents.split('--> statement-breakpoint')) {
-      const trimmed = statement.trim()
-      if (!trimmed) continue
-      try {
-        await db.execute(sql.raw(trimmed))
-      } catch (error) {
-        // Re-running migrations against an already-migrated database is normal
-        // in a watch loop; anything else is a real failure worth surfacing.
-        const message = error instanceof Error ? error.message : String(error)
-        if (!/already exists/i.test(message)) throw error
-      }
-    }
-  }
-}
+const client = testDb
 
 /** Run work in a transaction against the scratch database. */
 export async function inTransaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {

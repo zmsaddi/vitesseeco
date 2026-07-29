@@ -6,7 +6,7 @@
  * distinction is the whole point: the previous build had a locking function
  * that was written, documented and unreachable, and no test noticed.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 import {
   consumeReservations,
@@ -22,7 +22,6 @@ import {
   closePool,
   hasDatabase,
   inTransaction,
-  migrate,
   resetDatabase,
   schema,
   seedOrder,
@@ -33,10 +32,6 @@ const BIKE = 'product-v20-noir'
 const HELMET = 'product-helmet-m'
 
 describe.skipIf(!hasDatabase)('stock', () => {
-  beforeAll(async () => {
-    await migrate()
-  })
-
   afterAll(async () => {
     await closePool()
   })
