@@ -52,15 +52,12 @@ export const manualAdapter: CarrierAdapter = {
   async quote(input: QuoteInput): Promise<QuoteResult> {
     const zone = KNOWN_ZONES.includes(input.country?.toUpperCase()) ? input.country.toUpperCase() : 'FR'
 
-    let rates = await fetchZone(zone)
-    let zoneFallback = false
-    if (rates.length === 0 && zone !== 'FR') {
-      rates = await fetchZone('FR')
-      zoneFallback = true
-    }
+    // No FR fallback: order creation rejects a method whose zones exclude the
+    // destination, so quoting one would walk the customer all the way to
+    // payment before failing. An empty list is the honest answer — checkout
+    // then shows the "no home delivery here" notice with pickup underneath.
+    const rates = (await fetchZone(zone)).filter((r) => matchesPostal(r, input.postalCode))
 
-    rates = rates.filter((r) => matchesPostal(r, input.postalCode))
-
-    return { rates, zoneFallback }
+    return { rates, zoneFallback: false }
   },
 }

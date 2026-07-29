@@ -9,7 +9,9 @@ import { and, asc, desc, eq, gte, ilike, lt, or, sql, type SQL } from 'drizzle-o
 import { orders } from '~/server/database/schema'
 
 export const ORDER_STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
-export const PAYMENT_CODES = ['paypal', 'in_store', 'stripe']
+// Must stay in sync with the adapter registry (server/payments/registry.ts):
+// an unlisted code silently drops the filter and returns every order.
+export const PAYMENT_CODES = ['paypal', 'in_store', 'stripe', 'klarna', 'cod']
 
 export const ORDER_SORTS = {
   created_desc: [desc(orders.createdAt)],

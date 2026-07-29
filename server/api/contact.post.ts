@@ -33,9 +33,15 @@ export default defineEventHandler(async (event) => {
   const valid = await verifyTurnstile(body.turnstileToken)
   if (!valid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
-  // Save to Sanity (visible in control panel)
+  // Save to Sanity (visible in control panel). Without the token the message
+  // would be dropped on the floor while the customer is told it was sent, so
+  // this fails loudly instead and the page can offer another channel.
   const sanityToken = process.env.SANITY_TOKEN
-  if (sanityToken) {
+  if (!sanityToken) {
+    console.error('[CONTACT] SANITY_TOKEN missing — message from', normalizeEmail(body.email), 'was not stored')
+    throw createError({ statusCode: 503, message: 'Contact form temporarily unavailable' })
+  }
+  {
     const client = createClient({
       projectId: '2jvnjf0c',
       dataset: 'production',

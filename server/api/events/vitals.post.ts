@@ -34,11 +34,11 @@ export default defineEventHandler(async (event) => {
     payload: {
       vital: body.name,
       value: Math.round(body.value),
-      rating: body.rating,
+      rating: String(body.rating || '').slice(0, 20),
       path: String(body.path || '').slice(0, 200),
-      navigationType: body.navigationType,
+      navigationType: String(body.navigationType || '').slice(0, 40),
     },
-    sessionId: body.sessionId || null,
+    sessionId: String(body.sessionId || '').slice(0, 100) || null,
     event,
   })
 

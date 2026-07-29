@@ -12,7 +12,11 @@ import { audit } from '~/server/utils/audit'
 import { buildAdminOrderFilters, ORDER_SORTS } from '~/server/utils/adminOrderQuery'
 
 function csvCell(v: unknown): string {
-  const s = String(v ?? '')
+  // Excel/Sheets evaluate a cell starting with = + - @ (or tab/CR) as a
+  // formula, so customer-controlled text could run DDE/HYPERLINK on the
+  // admin's machine. Prefixing an apostrophe forces it back to literal text.
+  let s = String(v ?? '')
+  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 

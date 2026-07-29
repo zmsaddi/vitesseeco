@@ -1,6 +1,6 @@
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
-import { isValidProductId } from '~/server/utils/validation'
+import { isValidProductId, LIMITS } from '~/server/utils/validation'
 import type { StockCheckResult, SanityProductForCart } from '~/server/utils/types'
 
 export default defineEventHandler(async (event) => {
@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ items: CartItem[] }>(event)
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
+  if (body.items.length > LIMITS.MAX_CART_ITEMS) throw createError({ statusCode: 400, message: 'Too many items' })
 
   for (const item of body.items) {
     if (!isValidProductId(item.productId)) throw createError({ statusCode: 400, message: 'Invalid productId' })

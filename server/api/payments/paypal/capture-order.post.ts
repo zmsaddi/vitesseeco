@@ -16,12 +16,13 @@
  * tab, browser crash) — both paths are idempotent.
  */
 import { createClient } from '@sanity/client'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { getOrdersController, isPayPalEnabled } from '~/server/utils/paypal'
 import { useDBHttp } from '~/server/database/db'
 import { orders } from '~/server/database/schema'
 import { audit } from '~/server/utils/audit'
+import { enqueueOutbox } from '~/server/utils/outbox'
 import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
@@ -86,9 +87,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 402, message: `Payment not completed (status: ${status || 'unknown'})` })
   }
 
-  // 3. Flip local order to paid (PG + Sanity). Idempotent — if the webhook
-  //    already did this, the WHERE clause harmlessly updates an already-paid
-  //    row.
+  // 3. Flip local order to paid (PG + Sanity). Idempotent and forward-only —
+  //    if the webhook already did this, or an admin has since advanced the
+  //    order, the write is a no-op.
   await markOrderPaid({ orderNumber: body.orderNumber, paypalOrderId: body.paypalOrderId, captureId })
 
   await audit({
@@ -107,18 +108,21 @@ export default defineEventHandler(async (event) => {
 })
 
 async function markOrderPaid(input: { orderNumber: string; paypalOrderId: string; captureId?: string }) {
-  // PG
+  // PG — the status predicate makes this forward-only. PayPal redelivers
+  // capture events for up to 3 days, so a late redelivery must never pull an
+  // order an admin already moved to processing/shipped/cancelled back to
+  // 'paid'.
   try {
     const db = useDBHttp()
     await db
       .update(orders)
       .set({ status: 'paid', updatedAt: new Date() })
-      .where(eq(orders.orderNumber, input.orderNumber))
+      .where(and(eq(orders.orderNumber, input.orderNumber), eq(orders.status, 'pending')))
   } catch (err) {
     console.error('[PAYPAL] PG mark paid failed', err)
   }
 
-  // Sanity — patch by querying for the order doc id first. paymentMethod stays
+  // Sanity — patch by querying for the order doc first. paymentMethod stays
   // 'paypal'; we add paypalOrderId / paypalCaptureId for admin visibility.
   const token = process.env.SANITY_TOKEN
   if (!token) return
@@ -130,13 +134,25 @@ async function markOrderPaid(input: { orderNumber: string; paypalOrderId: string
       useCdn: false,
       token,
     })
-    const docId = await client.fetch<string | null>(
-      `*[_type == "order" && orderNumber == $on][0]._id`,
+    const doc = await client.fetch<{ _id: string; status: string | null } | null>(
+      `*[_type == "order" && orderNumber == $on][0]{ _id, status }`,
       { on: input.orderNumber }
     )
-    if (!docId) return
+    if (!doc?._id) {
+      // Mirror doc not created yet — this capture raced the outbox cron that
+      // creates it. Hand the flip to the outbox so its retry/backoff converges
+      // once the doc exists, instead of dropping it and leaving Studio on
+      // 'pending' forever.
+      await enqueueOutbox(useDBHttp(), {
+        kind: 'sanity.order.patch',
+        payload: { orderNumber: input.orderNumber },
+      })
+      return
+    }
+    // Same forward-only rule as PG.
+    if (doc.status !== 'pending') return
     await client
-      .patch(docId)
+      .patch(doc._id)
       .set({
         status: 'paid',
         paypalOrderId: input.paypalOrderId,

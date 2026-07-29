@@ -11,6 +11,7 @@
 
 import { drainOutbox } from '~/server/utils/outbox'
 import { dispatchOutboxEntry } from '~/server/utils/sanitySync'
+import { sweepAbandonedOrders, pruneTelemetry, type SweepResult } from '~/server/utils/abandonedOrders'
 
 export default defineEventHandler(async (event) => {
   // Auth: require CRON_SECRET header to match env var. Without this, anyone
@@ -29,5 +30,20 @@ export default defineEventHandler(async (event) => {
     process: dispatchOutboxEntry,
   })
 
-  return { ok: true, ...result }
+  // Housekeeping rides along on the same schedule. Failures here must not fail
+  // the outbox drain, which is the part that keeps Sanity converged.
+  let abandoned: SweepResult | null = null
+  let pruned: Awaited<ReturnType<typeof pruneTelemetry>> | null = null
+  try {
+    abandoned = await sweepAbandonedOrders()
+  } catch (err) {
+    console.error('[CRON] abandoned-order sweep failed', err)
+  }
+  try {
+    pruned = await pruneTelemetry()
+  } catch (err) {
+    console.error('[CRON] telemetry prune failed', err)
+  }
+
+  return { ok: true, ...result, abandoned, pruned }
 })

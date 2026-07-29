@@ -13,12 +13,13 @@
  * events return 400.
  */
 import { createClient } from '@sanity/client'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { paypalAdapter } from '~/server/payments/adapters/paypal'
 import { isPayPalEnabled } from '~/server/utils/paypal'
 import { useDBHttp } from '~/server/database/db'
 import { orders } from '~/server/database/schema'
 import { audit } from '~/server/utils/audit'
+import { enqueueOutbox } from '~/server/utils/outbox'
 
 export default defineEventHandler(async (event) => {
   if (!isPayPalEnabled()) {
@@ -57,14 +58,16 @@ export default defineEventHandler(async (event) => {
     return { ok: true, handled: false }
   }
 
-  // Idempotent paid flip — PG + Sanity. The capture endpoint may have already
-  // run; updating a row whose status is already 'paid' is harmless.
+  // Idempotent, forward-only paid flip — PG + Sanity. The capture endpoint may
+  // have already run, and PayPal redelivers this event for up to 3 days, so the
+  // status predicate keeps a late redelivery from pulling an order an admin
+  // already moved to processing/shipped/cancelled back to 'paid'.
   try {
     const db = useDBHttp()
     await db
       .update(orders)
       .set({ status: 'paid', updatedAt: new Date() })
-      .where(eq(orders.orderNumber, result.orderNumber))
+      .where(and(eq(orders.orderNumber, result.orderNumber), eq(orders.status, 'pending')))
   } catch (err) {
     console.error('[PAYPAL webhook] PG update failed', err)
   }
@@ -79,12 +82,21 @@ export default defineEventHandler(async (event) => {
         useCdn: false,
         token,
       })
-      const docId = await client.fetch<string | null>(
-        `*[_type == "order" && orderNumber == $on][0]._id`,
+      const doc = await client.fetch<{ _id: string; status: string | null } | null>(
+        `*[_type == "order" && orderNumber == $on][0]{ _id, status }`,
         { on: result.orderNumber }
       )
-      if (docId) {
-        await client.patch(docId).set({ status: 'paid' }).commit()
+      if (!doc?._id) {
+        // Mirror doc not created yet — this webhook raced the outbox cron that
+        // creates it. Hand the flip to the outbox so its retry/backoff converges
+        // once the doc exists, instead of dropping it and leaving Studio on
+        // 'pending' forever.
+        await enqueueOutbox(useDBHttp(), {
+          kind: 'sanity.order.patch',
+          payload: { orderNumber: result.orderNumber },
+        })
+      } else if (doc.status === 'pending') {
+        await client.patch(doc._id).set({ status: 'paid' }).commit()
       }
     } catch (err) {
       console.error('[PAYPAL webhook] Sanity update failed', err)
