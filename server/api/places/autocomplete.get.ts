@@ -22,7 +22,26 @@ interface Prediction {
   inline?: { address: string; city: string; postalCode: string }
 }
 
-const PHOTON_LANG: Record<string, string> = { fr: 'fr', de: 'de', nl: 'nl', es: 'es', be: 'fr', lu: 'fr' }
+/**
+ * Photon supports exactly four languages: default, de, en and fr. Asking it for
+ * anything else is a 400 with an empty result, not a graceful fallback — which
+ * is why Spanish address suggestions returned nothing from the day this was
+ * written. Dutch was spared only because the Netherlands is served by PDOK
+ * before Photon is reached.
+ *
+ * Spain and the Netherlands therefore map to English, which Photon does speak.
+ */
+const PHOTON_LANG: Record<string, string> = {
+  fr: 'fr',
+  de: 'de',
+  nl: 'en',
+  es: 'en',
+  be: 'fr',
+  lu: 'fr',
+}
+
+/** Anything not listed above still has to be a language Photon accepts. */
+const PHOTON_FALLBACK_LANG = 'en'
 
 /**
  * EU house-number conventions (owner 2026-07-06: "Rue du Maine 15" lost
@@ -58,7 +77,7 @@ async function googlePredictions(input: string, country: string, types: string):
           key: apiKey,
           types,
           components: `country:${country}`,
-          language: PHOTON_LANG[country] || 'fr',
+          language: PHOTON_LANG[country] || PHOTON_FALLBACK_LANG,
         },
         timeout: 4000,
       }
@@ -139,7 +158,7 @@ async function pdokPredictions(input: string, mode: string, postal?: string, hou
 async function photonPredictions(input: string, country: string, mode: string, houseNo?: string | null): Promise<Prediction[]> {
   try {
     const res = await $fetch<any>('https://photon.komoot.io/api/', {
-      query: { q: input, limit: 10, lang: PHOTON_LANG[country] || 'fr' },
+      query: { q: input, limit: 10, lang: PHOTON_LANG[country] || PHOTON_FALLBACK_LANG },
       timeout: 4000,
     })
     const cc = country.toUpperCase()
