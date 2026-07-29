@@ -63,6 +63,22 @@ export function fromDecimalString(value: string): Cents {
   return cents(sign === '-' ? -total : total)
 }
 
+/**
+ * Read an amount out of a form field.
+ *
+ * A blank field returns null, and null is not zero. `Number('')` is 0, and a
+ * screen that took that literally published a bike at 0.00 € the moment someone
+ * cleared the price cell and tabbed away — into the shop, into the feed, and
+ * into a basket. Anything unparseable returns null for the same reason: the
+ * absence of a number must never be read as the number zero.
+ */
+export function parseAmountInput(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  const value = Number(trimmed)
+  return Number.isFinite(value) ? value : null
+}
+
 export function add(...amounts: Cents[]): Cents {
   return cents(amounts.reduce<number>((sum, a) => sum + a, 0))
 }

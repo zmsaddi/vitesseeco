@@ -109,8 +109,7 @@
     "totals_pending": "Elija un método de entrega.",
     "pay_online": "Pagar en línea",
     "pay_cash": "Pagar en efectivo al recibir",
-    "pay_in_store": "Pagar en la tienda",
-    "vat_included": "IVA {rate} % incluido"
+    "pay_in_store": "Pagar en la tienda"
   },
   "common": {
     "close": "Cerrar",

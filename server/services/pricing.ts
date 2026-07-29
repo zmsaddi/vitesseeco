@@ -63,10 +63,12 @@ export interface PriceBreakdown {
    * Which price list was used, and the VAT already inside the total.
    *
    * EU consumer prices are quoted gross, so this extracts rather than adds — the
-   * customer pays `total` either way. It is carried because an invoice has to
-   * state the rate that applied, and because the figure must be frozen at the
-   * moment of sale rather than recomputed later from whatever the rate has since
-   * become.
+   * customer pays `total` either way, and this figure cannot change it.
+   *
+   * It is the rate baked into the price list, NOT a determination of the VAT
+   * owed: that turns on the destination, on whether the order was collected
+   * rather than delivered, and on OSS registration. Frozen at the moment of sale
+   * so it stays the figure that applied.
    */
   market: {
     country: string

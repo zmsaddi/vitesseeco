@@ -76,10 +76,12 @@ export default defineType({
           fields: [
             {
               name: 'country', title: 'البلد', type: 'string',
+              // بلجيكا ولوكسمبورغ غير مذكورتين عمداً: لا يوجد رابط يخصّهما بعد
+              // (تقرآن الصفحات الفرنسية)، وسعر لسوق بلا رابط لا تعرضه أي صفحة
+              // ولا يشير إليه أي feed. تُضافان يوم يصبح vitesse-eco.be جاهزاً.
               options: {
                 list: [
                   { title: '🇫🇷 فرنسا', value: 'FR' },
-                  { title: '🇧🇪 بلجيكا', value: 'BE' },
                   { title: '🇳🇱 هولندا', value: 'NL' },
                   { title: '🇩🇪 ألمانيا', value: 'DE' },
                   { title: '🇪🇸 إسبانيا', value: 'ES' },

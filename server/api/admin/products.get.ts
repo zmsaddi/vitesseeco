@@ -20,10 +20,11 @@ import { db } from '../../db/client'
 import { readAvailability } from '../../services/stock'
 import { fromEuros, toEuros } from '../../../shared/money'
 import {
-  MARKET_COUNTRIES,
   defaultMarket,
   getMarket,
+  isServableMarket,
   marketPrice,
+  servableMarkets,
   vatNeutralPrice,
 } from '../../../shared/markets'
 
@@ -47,12 +48,16 @@ export default defineRoute({
     .object({
       search: z.string().trim().max(80).optional(),
       lowStockOnly: z.coerce.boolean().optional(),
-      /** Which market's prices to show alongside the base ones. */
+      /**
+       * Which market's prices to show alongside the base ones. Restricted to
+       * markets a URL can reach — pricing one that cannot be addressed would
+       * write a number nothing is able to display.
+       */
       market: z
         .string()
         .trim()
         .toUpperCase()
-        .refine((value) => (MARKET_COUNTRIES as readonly string[]).includes(value), 'unknown market')
+        .refine((value) => isServableMarket(value), 'unknown or unaddressable market')
         .optional(),
     })
     .strict(),
@@ -120,7 +125,7 @@ export default defineRoute({
     return {
       items: query.lowStockOnly ? items.filter((item) => item.available <= 5) : items,
       total: items.length,
-      markets: MARKET_COUNTRIES,
+      markets: servableMarkets().map((entry) => entry.country),
     }
   },
 })

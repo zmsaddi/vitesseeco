@@ -109,8 +109,7 @@
     "totals_pending": "Kies een bezorgwijze.",
     "pay_online": "Online betalen",
     "pay_cash": "Contant bij levering",
-    "pay_in_store": "In de winkel betalen",
-    "vat_included": "waarvan {rate} % btw"
+    "pay_in_store": "In de winkel betalen"
   },
   "common": {
     "close": "Sluiten",

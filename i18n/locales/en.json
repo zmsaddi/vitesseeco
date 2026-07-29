@@ -109,8 +109,7 @@
     "totals_pending": "Choose a delivery method.",
     "pay_online": "Pay online",
     "pay_cash": "Pay cash on delivery",
-    "pay_in_store": "Pay in the shop",
-    "vat_included": "includes {rate} % VAT"
+    "pay_in_store": "Pay in the shop"
   },
   "common": {
     "close": "Close",

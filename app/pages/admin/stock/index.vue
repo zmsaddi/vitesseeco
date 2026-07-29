@@ -15,6 +15,8 @@
  * the base price; once it is typed in it is pinned, and re-pricing everything
  * else later leaves it where it is. The 🔗 button gives it back to the rule.
  */
+import { parseAmountInput } from '~~/shared/money'
+
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
@@ -87,8 +89,8 @@ async function save(key: string, request: () => Promise<unknown>): Promise<void>
 }
 
 function savePrice(row: CatalogueRow, raw: string): void {
-  const price = Number(raw)
-  if (!Number.isFinite(price) || price < 0 || price === row.price) return
+  const price = parseAmountInput(raw)
+  if (price === null || price <= 0 || price === row.price) return
   void save(`${row.id}:price`, () =>
     $fetch<unknown>(`/api/admin/products/${row.id}`, { method: 'PATCH', body: { price } })
   )
@@ -96,8 +98,8 @@ function savePrice(row: CatalogueRow, raw: string): void {
 
 function saveMarketPrice(row: CatalogueRow, raw: string): void {
   if (!row.market) return
-  const price = Number(raw)
-  if (!Number.isFinite(price) || price < 0 || price === row.market.price) return
+  const price = parseAmountInput(raw)
+  if (price === null || price <= 0 || price === row.market.price) return
   void save(`${row.id}:market`, () =>
     $fetch<unknown>(`/api/admin/products/${row.id}`, {
       method: 'PATCH',
@@ -118,8 +120,9 @@ function clearMarketPrice(row: CatalogueRow): void {
 }
 
 function saveStock(row: CatalogueRow, raw: string): void {
-  const onHand = Number(raw)
-  if (!Number.isInteger(onHand) || onHand < 0 || onHand === row.onHand) return
+  // Zero IS a meaningful stock level, so only a blank cell is ignored here.
+  const onHand = parseAmountInput(raw)
+  if (onHand === null || !Number.isInteger(onHand) || onHand < 0 || onHand === row.onHand) return
   void save(`${row.id}:stock`, () =>
     $fetch<unknown>('/api/admin/stock', { method: 'PATCH', body: { productId: row.id, onHand } })
   )
@@ -204,8 +207,9 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
                 <input
                   :value="row.price"
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
+                  required
                   class="field h-10 w-28"
                   :disabled="saving === `${row.id}:price`"
                   @blur="savePrice(row, ($event.target as HTMLInputElement).value)"
@@ -225,8 +229,9 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
                 <input
                   :value="row.market.price"
                   type="number"
-                  min="0"
+                  min="0.01"
                   step="0.01"
+                  required
                   class="field h-10 w-28"
                   :class="row.market.isOverride ? 'font-semibold' : 'text-content-muted'"
                   :title="`${$t('admin.vat_neutral')}: ${row.market.vatNeutral} €`"

@@ -49,12 +49,13 @@ export default defineType({
           fields: [
             {
               name: 'country', title: 'السوق', type: 'string',
+              // بلجيكا خارج القائمة عمداً — تقرأ الصفحات الفرنسية وتُسعَّر معها
+              // حتى يصبح لها دومين خاص.
               options: {
                 list: [
                   { title: '🇳🇱 هولندا', value: 'NL' },
                   { title: '🇩🇪 ألمانيا', value: 'DE' },
                   { title: '🇪🇸 إسبانيا', value: 'ES' },
-                  { title: '🇧🇪 بلجيكا', value: 'BE' },
                   { title: '🇫🇷 فرنسا', value: 'FR' },
                 ],
               },

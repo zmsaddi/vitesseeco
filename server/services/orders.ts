@@ -119,8 +119,16 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
           guestEmail: input.customer ? null : (input.guestEmail ?? null),
           status: initialStatus,
           locale: input.locale,
-          // Frozen here rather than derived later: VAT rates change by law, and
-          // an invoice has to say what applied on the day, not what applies now.
+          // Frozen here rather than derived later: rates change by law, and a
+          // figure recomputed next year would not be the one that applied.
+          //
+          // This is the VAT contained in the PRICE LIST that was used. It is not
+          // yet the VAT owed on the sale — that also depends on whether the
+          // parcel crossed a border, whether it was collected in Poitiers, and
+          // whether we are registered for OSS. The destination sits on this same
+          // row, so the owed figure stays computable; whoever builds invoicing
+          // has to decide that rule, and must not read this column as if it
+          // already had.
           marketCountry: breakdown.market.country,
           vatRateBp: breakdown.market.vatRateBp,
           vatCents: breakdown.market.vatCents,

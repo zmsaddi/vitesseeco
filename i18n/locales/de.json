@@ -109,8 +109,7 @@
     "totals_pending": "Wählen Sie eine Lieferart.",
     "pay_online": "Online bezahlen",
     "pay_cash": "Barzahlung bei Lieferung",
-    "pay_in_store": "Im Laden bezahlen",
-    "vat_included": "inkl. {rate} % MwSt."
+    "pay_in_store": "Im Laden bezahlen"
   },
   "common": {
     "close": "Schließen",

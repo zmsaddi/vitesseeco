@@ -109,8 +109,7 @@
     "totals_pending": "Choisissez un mode de livraison.",
     "pay_online": "Payer en ligne",
     "pay_cash": "Payer en espèces à la livraison",
-    "pay_in_store": "Payer en magasin",
-    "vat_included": "dont TVA {rate} %"
+    "pay_in_store": "Payer en magasin"
   },
   "common": {
     "close": "Fermer",

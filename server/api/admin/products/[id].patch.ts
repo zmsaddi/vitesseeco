@@ -25,15 +25,22 @@ import { invalidateCatalogCache, sanity } from '../../../catalog/client'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { audit } from '../../../services/audit'
 import { fromEuros } from '../../../../shared/money'
-import { MARKET_COUNTRIES } from '../../../../shared/markets'
+import { isServableMarket } from '../../../../shared/markets'
 
 const euros = z.number().min(0).max(1_000_000).multipleOf(0.01)
+
+/**
+ * A sellable price. Zero is refused rather than merely discouraged: nothing in
+ * this catalogue is free, so a zero is always a slip — an emptied field, a
+ * mis-parse — and one that reaches the feed as a 0.00 EUR offer.
+ */
+const sellableEuros = euros.positive()
 
 const bodySchema = z
   .object({
     // Authored in euros, as the owner thinks of it. Two decimals maximum:
     // anything finer cannot be charged.
-    price: euros.optional(),
+    price: sellableEuros.optional(),
     compareAtPrice: euros.nullable().optional(),
     isAvailable: z.boolean().optional(),
     /** A hand-set price for one market. `price: null` removes the override. */
@@ -43,8 +50,11 @@ const bodySchema = z
           .string()
           .trim()
           .toUpperCase()
-          .refine((value) => (MARKET_COUNTRIES as readonly string[]).includes(value), 'unknown market'),
-        price: euros.nullable(),
+          // Only a market a URL can reach. Storing a price for one that cannot
+          // be addressed leaves the owner sure they have priced a country they
+          // have not.
+          .refine((value) => isServableMarket(value), 'unknown or unaddressable market'),
+        price: sellableEuros.nullable(),
       })
       .strict()
       .optional(),

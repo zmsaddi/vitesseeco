@@ -7,8 +7,10 @@ import {
   marketForHost,
   marketForLocale,
   marketForVisitorCountry,
+  isServableMarket,
   marketPrice,
   resolveMarket,
+  servableMarkets,
   vatNeutralPrice,
   type MarketPriceRule,
 } from '../../shared/markets'
@@ -44,6 +46,41 @@ describe('the market table', () => {
     expect(isMarketCountry('  de  ')).toBe(true)
     expect(isMarketCountry('US')).toBe(false)
     expect(isMarketCountry(undefined)).toBe(false)
+  })
+})
+
+describe('which markets can actually be priced', () => {
+  it('offers only markets a URL can reach while routing by prefix', () => {
+    // A price set for a market nothing resolves to is a number the owner types,
+    // saves, and never sees again — no page shows it, no feed points at it.
+    expect(servableMarkets('prefix').map((m) => m.country).sort()).toEqual(['DE', 'ES', 'FR', 'NL'])
+    expect(isServableMarket('BE', 'prefix')).toBe(false)
+    expect(isServableMarket('LU', 'prefix')).toBe(false)
+  })
+
+  it('lets Belgium in the moment its domain is the thing serving it', () => {
+    expect(isServableMarket('BE', 'domain')).toBe(true)
+    // Luxembourg still has no domain declared, so it still cannot be addressed.
+    expect(isServableMarket('LU', 'domain')).toBe(false)
+  })
+
+  it('refuses anything that is not a market at all', () => {
+    expect(isServableMarket('US')).toBe(false)
+    expect(isServableMarket('')).toBe(false)
+    expect(isServableMarket(undefined)).toBe(false)
+    expect(isServableMarket(42)).toBe(false)
+  })
+
+  it('never offers a market it could not resolve a request to', () => {
+    for (const mode of ['prefix', 'domain'] as const) {
+      for (const market of servableMarkets(mode)) {
+        const reached = resolveMarket(
+          { host: market.domain, locale: market.locale },
+          mode
+        )
+        expect(reached.country).toBe(market.country)
+      }
+    }
   })
 })
 

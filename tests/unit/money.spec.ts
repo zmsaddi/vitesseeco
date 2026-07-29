@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  parseAmountInput,
   ZERO,
   MoneyError,
   add,
@@ -182,5 +183,30 @@ describe('presentation', () => {
     expect(fr).toBe('1 249,00 €')
     const de = format(cents(124900), 'de-DE').replace(/ | /g, ' ')
     expect(de).toBe('1.249,00 €')
+  })
+})
+
+describe('parseAmountInput', () => {
+  it('reads a number', () => {
+    expect(parseAmountInput('950')).toBe(950)
+    expect(parseAmountInput(' 1249.99 ')).toBe(1249.99)
+  })
+
+  it('returns null for a blank field rather than zero', () => {
+    // Number('') is 0. Taking that literally published a bike at 0.00 EUR the
+    // moment someone cleared the price cell and tabbed away.
+    expect(parseAmountInput('')).toBeNull()
+    expect(parseAmountInput('   ')).toBeNull()
+    expect(parseAmountInput('\t\n')).toBeNull()
+  })
+
+  it('returns null for anything that is not a number', () => {
+    expect(parseAmountInput('abc')).toBeNull()
+    expect(parseAmountInput('12,50,00')).toBeNull()
+  })
+
+  it('still reads a deliberate zero', () => {
+    // Zero typed on purpose is a real answer — for stock, if never for a price.
+    expect(parseAmountInput('0')).toBe(0)
   })
 })

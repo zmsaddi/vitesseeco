@@ -22,8 +22,9 @@
  * The visitor's own country is used for exactly one thing: offering them a
  * switch they are free to decline.
  *
- * The price displayed is the price charged. Where the parcel goes changes how
- * VAT is *declared*, not what the customer pays.
+ * The price displayed is the price charged. Where the parcel goes does not
+ * change that — it bears only on how the VAT inside it is later declared, which
+ * is a question for invoicing and OSS registration and is not decided here.
  */
 import { DEFAULT_LOCALE, ROUTING_MODE, type LocaleCode, type RoutingMode } from './locales'
 import {
@@ -74,6 +75,28 @@ export const MARKETS: readonly MarketDefinition[] = [
 ] as const
 
 export const MARKET_COUNTRIES: readonly string[] = MARKETS.map((m) => m.country)
+
+/**
+ * The markets a URL can actually reach today.
+ *
+ * The table above declares every market we intend to serve, including ones that
+ * have no address yet. Those must not be offered for pricing: a price set for a
+ * market no URL resolves to is a number the owner types, saves, and never sees
+ * again — no page can show it and no feed can point at it.
+ *
+ * Under prefix routing that means the four locales with a country of their own.
+ * Under domain routing it also means every market whose domain is live, which is
+ * how Belgium joins the moment vitesse-eco.be exists.
+ */
+export function servableMarkets(mode: RoutingMode = ROUTING_MODE): MarketDefinition[] {
+  return MARKETS.filter((m) => m.primary || (mode === 'domain' && !!m.domain))
+}
+
+export function isServableMarket(country: unknown, mode: RoutingMode = ROUTING_MODE): boolean {
+  if (typeof country !== 'string') return false
+  const upper = country.trim().toUpperCase()
+  return servableMarkets(mode).some((m) => m.country === upper)
+}
 
 const BY_COUNTRY = new Map<string, MarketDefinition>(MARKETS.map((m) => [m.country, m]))
 

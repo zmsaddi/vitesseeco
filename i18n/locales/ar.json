@@ -109,8 +109,7 @@
     "totals_pending": "اختر طريقة التوصيل.",
     "pay_online": "الدفع إلكترونياً",
     "pay_cash": "الدفع نقداً عند التسليم",
-    "pay_in_store": "الدفع في المتجر",
-    "vat_included": "منها {rate} ٪ ضريبة"
+    "pay_in_store": "الدفع في المتجر"
   },
   "common": {
     "close": "إغلاق",

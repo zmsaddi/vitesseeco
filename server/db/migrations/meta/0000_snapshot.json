@@ -1,5 +1,5 @@
 {
-  "id": "18be5f4d-89b4-4524-96ba-4e236afb524d",
+  "id": "bcfd275b-9905-4e2d-979c-51df7aa0b930",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -942,6 +942,27 @@
           "notNull": true,
           "default": "'EUR'"
         },
+        "market_country": {
+          "name": "market_country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'FR'"
+        },
+        "vat_rate_bp": {
+          "name": "vat_rate_bp",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 2000
+        },
+        "vat_cents": {
+          "name": "vat_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "subtotal_cents": {
           "name": "subtotal_cents",
           "type": "integer",
@@ -1213,6 +1234,14 @@
         "orders_total_non_negative": {
           "name": "orders_total_non_negative",
           "value": "\"orders\".\"total_cents\" >= 0"
+        },
+        "orders_vat_rate_sane": {
+          "name": "orders_vat_rate_sane",
+          "value": "\"orders\".\"vat_rate_bp\" >= 0 and \"orders\".\"vat_rate_bp\" <= 10000"
+        },
+        "orders_vat_within_total": {
+          "name": "orders_vat_within_total",
+          "value": "\"orders\".\"vat_cents\" >= 0 and \"orders\".\"vat_cents\" <= \"orders\".\"total_cents\""
         },
         "orders_total_is_consistent": {
           "name": "orders_total_is_consistent",
