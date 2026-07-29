@@ -123,6 +123,11 @@ export const PRODUCT_BY_SLUG_QUERY = `
   *[${AVAILABLE} && slug.current == $slug][0] ${PRODUCT_DETAIL}
 `
 
+/** Exactly the products a basket refers to, in one round trip. */
+export const PRODUCTS_BY_IDS_QUERY = `
+  *[${AVAILABLE} && _id in $ids] ${PRODUCT_SUMMARY}
+`
+
 export const CATEGORIES_QUERY = `
   *[_type == "category" && defined(slug.current)] | order(coalesce(sortOrder, 0) asc) ${CATEGORY}
 `

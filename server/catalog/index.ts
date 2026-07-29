@@ -21,6 +21,7 @@ import {
 import {
   BRANDS_QUERY,
   CATEGORIES_QUERY,
+  PRODUCTS_BY_IDS_QUERY,
   PRODUCT_BY_SLUG_QUERY,
   PROMO_BY_CODE_QUERY,
   SHIPPING_METHODS_QUERY,
@@ -106,6 +107,36 @@ export async function listProducts(query: ProductQuery): Promise<Paginated<Produ
     perPage,
     totalPages: Math.max(1, Math.ceil(total / perPage)),
   }
+}
+
+/**
+ * Products by id, for pricing a basket.
+ *
+ * Anything absent from the result is not purchasable — retired, unpublished, or
+ * never real — and the caller is expected to treat that as a rejected line
+ * rather than a zero-priced one.
+ */
+export async function getProductsByIds(
+  productIds: string[],
+  locale: LocaleCode
+): Promise<Map<string, ProductSummary>> {
+  const unique = [...new Set(productIds)]
+  if (unique.length === 0) return new Map()
+
+  const documents = await cachedFetch<unknown[]>(
+    `by-ids:${unique.slice().sort().join(',')}`,
+    PRODUCTS_BY_IDS_QUERY,
+    { ids: unique },
+    30_000
+  )
+  const availability = await availabilityFor(unique)
+
+  const result = new Map<string, ProductSummary>()
+  for (const document of documents) {
+    const product = parseProductSummary(document, { locale, availability })
+    if (product) result.set(product.id, product)
+  }
+  return result
 }
 
 export async function getProduct(slug: string, locale: LocaleCode): Promise<ProductDetail> {
