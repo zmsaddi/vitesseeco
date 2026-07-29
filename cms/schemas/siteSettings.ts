@@ -6,6 +6,36 @@ export default defineType({
   type: 'document',
   icon: () => '⚙️',
   fields: [
+    {
+      name: 'assembly',
+      title: '🔧 خدمة التركيب',
+      type: 'object',
+      description:
+        'تسليم الدراجة جاهزة للركوب بدل صندوقها. حين تُفعَّل، تُعرض كخيار في الدفع ' +
+        'وتظهر في Google كعرض ثانٍ برقم EAN الخاص بها — لذلك لا تفعّلها قبل أن ' +
+        'تكون قادراً على تنفيذها فعلاً.',
+      options: { collapsible: true, collapsed: true },
+      fields: [
+        {
+          name: 'isOffered',
+          title: 'نعرض التركيب',
+          type: 'boolean',
+          initialValue: false,
+        },
+        {
+          name: 'feeEuros',
+          title: 'رسوم التركيب (€)',
+          type: 'number',
+          validation: (Rule) => Rule.min(0).max(500),
+        },
+        {
+          name: 'label',
+          title: 'التسمية المعروضة',
+          type: 'localizedString',
+          description: 'مثال: «Livrée montée, prête à rouler»',
+        },
+      ],
+    },
     { name: 'logo', title: '🖼️ الشعار', type: 'image' },
     { name: 'siteName', title: '📝 اسم الموقع', type: 'string', initialValue: 'Vitesse Eco' },
     { name: 'tagline', title: '📝 الشعار النصي', type: 'localizedString' },

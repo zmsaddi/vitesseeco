@@ -76,6 +76,15 @@ async function deliverableShipping(client: ReturnType<typeof createClient>): Pro
   return rules
 }
 
+/** Suffix that tells a shopper which of the two offers they are looking at. */
+const ASSEMBLED_LABEL: Record<FeedLocale, string> = {
+  fr: 'Livrée montée',
+  nl: 'Rijklaar geleverd',
+  de: 'Montiert geliefert',
+  es: 'Entregada montada',
+  en: 'Delivered assembled',
+}
+
 const CHANNEL_DESC: Record<FeedLocale, string> = {
   fr: 'Vélos électriques, pièces et accessoires — Vitesse Eco, Poitiers',
   nl: 'Elektrische fietsen, onderdelen en accessoires — Vitesse Eco, Poitiers (FR)',
@@ -127,6 +136,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
   interface FeedProduct {
     sku: string | null
     gtin: string | null
+    gtinAssembled: string | null
     manufacturerMpn: string | null
     slug: string | null
     name: string | null
@@ -150,6 +160,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
     `*[_type == "product" && isAvailable == true && defined(slug.current) && defined(price) && price > 0]{
       sku,
       gtin,
+      gtinAssembled,
       manufacturerMpn,
       "slug": slug.current,
       "name": coalesce(name[$locale], name.fr),
@@ -176,9 +187,21 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
   const prefix = PREFIX[locale]
   const typeLabels = PRODUCT_TYPE_LABELS[locale]
 
+  /**
+   * Assembly, delivered ready to ride, is a SECOND offer with its own barcode
+   * and its own price — the distributor numbers it separately for that reason.
+   * It is emitted only when the shop genuinely offers it, because a listing the
+   * checkout cannot fulfil is the misrepresentation that suspends an account.
+   */
+  const assembly = await client.fetch<{ isOffered: boolean | null; feeEuros: number | null } | null>(
+    `*[_type == "siteSettings"][0].assembly`
+  )
+  const assemblyOffered = assembly?.isOffered === true && (assembly.feeEuros ?? 0) >= 0
+  const assemblyFee = assembly?.feeEuros ?? 0
+
   const items = products
     .filter((p) => p.slug && p.name && p.image)
-    .map((p) => {
+    .flatMap((p) => {
       const id = p.sku || p.slug
       const availability = (p.stock ?? 0) > 0 ? 'in_stock' : 'out_of_stock'
       const productType = typeLabels[p.productType ?? ''] ?? ''
@@ -221,22 +244,53 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
         )
         .join('')
 
-      return `  <item>
-    <g:id>${esc(id)}</g:id>
-    <g:title>${esc(p.name)}</g:title>
+      /**
+       * One offer. Called twice for a bike sold both boxed and assembled: same
+       * product page, same item_group_id, different id, barcode and price —
+       * which is exactly how the distributor numbered them.
+       */
+      const offer = (variant: {
+        idSuffix: string
+        titleSuffix: string
+        gtin: string | null
+        priceEuros: number
+        saleEuros: number | null
+      }) => `  <item>
+    <g:id>${esc(id)}${variant.idSuffix}</g:id>
+    <g:title>${esc(p.name)}${variant.titleSuffix}</g:title>
     <g:description>${esc(description)}</g:description>
     <g:link>${SITE}${prefix}/produits/${esc(p.slug)}</g:link>
     <g:image_link>${esc(p.image)}</g:image_link>${extraImages}
     <g:availability>${availability}</g:availability>
-    <g:price>${listPrice.toFixed(2)} EUR</g:price>${salePrice !== null ? `
-    <g:sale_price>${salePrice.toFixed(2)} EUR</g:sale_price>` : ''}
-    <g:condition>new</g:condition>${identifiers(p)}${p.color ? `
+    <g:price>${variant.priceEuros.toFixed(2)} EUR</g:price>${variant.saleEuros !== null ? `
+    <g:sale_price>${variant.saleEuros.toFixed(2)} EUR</g:sale_price>` : ''}
+    <g:condition>new</g:condition>${identifiers({ ...p, gtin: variant.gtin })}${p.color ? `
     <g:color>${esc(p.color)}</g:color>` : ''}${p.modelFamily ? `
     <g:item_group_id>${esc(p.modelFamily)}</g:item_group_id>` : ''}
     <g:google_product_category>${esc(googleCategory)}</g:google_product_category>${productType ? `
     <g:product_type>${esc(productType)}</g:product_type>` : ''}${p.weight ? `
     <g:shipping_weight>${p.weight} kg</g:shipping_weight>` : ''}${shipping}
   </item>`
+
+      const offers = [
+        offer({ idSuffix: '', titleSuffix: '', gtin: p.gtin, priceEuros: listPrice, saleEuros: salePrice }),
+      ]
+
+      // Only when the shop can actually deliver it ready to ride, and only when
+      // the distributor gave that configuration its own barcode.
+      if (assemblyOffered && p.gtinAssembled) {
+        offers.push(
+          offer({
+            idSuffix: '-MONTE',
+            titleSuffix: ` — ${ASSEMBLED_LABEL[locale]}`,
+            gtin: p.gtinAssembled,
+            priceEuros: listPrice + assemblyFee,
+            saleEuros: salePrice === null ? null : salePrice + assemblyFee,
+          })
+        )
+      }
+
+      return offers
     })
     .join('\n')
 
