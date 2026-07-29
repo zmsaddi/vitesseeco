@@ -2,6 +2,33 @@
   "a11y": {
     "skip_to_content": "انتقل إلى المحتوى"
   },
+  "account": {
+    "title": "حسابي",
+    "sign_out": "تسجيل الخروج",
+    "orders": "طلباتي",
+    "no_orders": "لا توجد طلبات بعد.",
+    "tracking": "التتبّع:",
+    "addresses": "عناويني",
+    "manage_addresses": "إدارة العناوين"
+  },
+  "auth": {
+    "sign_in": "تسجيل الدخول",
+    "create_account": "إنشاء حساب",
+    "continue_with_google": "المتابعة عبر Google",
+    "or": "أو",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "first_name": "الاسم",
+    "last_name": "اسم العائلة",
+    "phone_optional": "الهاتف (اختياري)",
+    "password_hint": "{min} حرفاً على الأقل",
+    "no_account": "ليس لديك حساب؟",
+    "have_account": "لديك حساب بالفعل؟",
+    "oauth_invalid_state": "انتهت الجلسة، يرجى المحاولة مجدداً.",
+    "oauth_email_unverified": "عنوان Google الخاص بك غير مُتحقَّق منه.",
+    "oauth_oauth_failed": "فشل تسجيل الدخول عبر Google.",
+    "oauth_oauth_unavailable": "تسجيل الدخول عبر Google غير متاح."
+  },
   "cart": {
     "title": "سلتك",
     "empty": "سلتك فارغة.",
@@ -99,6 +126,15 @@
     "open_menu": "فتح القائمة",
     "close_menu": "إغلاق القائمة",
     "change_language": "تغيير اللغة"
+  },
+  "order_status": {
+    "draft": "مسودة",
+    "awaiting_payment": "بانتظار الدفع",
+    "paid": "مدفوع",
+    "processing": "قيد التحضير",
+    "shipped": "تم الشحن",
+    "delivered": "تم التسليم",
+    "cancelled": "ملغى"
   },
   "product": {
     "quantity": "الكمية",

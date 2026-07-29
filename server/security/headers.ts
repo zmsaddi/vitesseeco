@@ -15,14 +15,16 @@ const CONNECT_SOURCES = [
   "'self'",
   'https://api.stripe.com', // payment session updates
   'https://cdn.sanity.io', // catalogue images
+  'https://challenges.cloudflare.com', // CAPTCHA verification round trip
 ]
 
 const FRAME_SOURCES = [
   'https://js.stripe.com', // embedded payment form
   'https://hooks.stripe.com', // 3-D Secure challenge
+  'https://challenges.cloudflare.com', // the CAPTCHA renders in an iframe
 ]
 
-const SCRIPT_SOURCES = ['https://js.stripe.com']
+const SCRIPT_SOURCES = ['https://js.stripe.com', 'https://challenges.cloudflare.com']
 
 const IMAGE_SOURCES = ["'self'", 'data:', 'blob:', 'https://cdn.sanity.io']
 

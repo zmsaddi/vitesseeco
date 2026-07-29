@@ -2,6 +2,33 @@
   "a11y": {
     "skip_to_content": "Skip to content"
   },
+  "account": {
+    "title": "My account",
+    "sign_out": "Sign out",
+    "orders": "My orders",
+    "no_orders": "You have no orders yet.",
+    "tracking": "Tracking:",
+    "addresses": "My addresses",
+    "manage_addresses": "Manage addresses"
+  },
+  "auth": {
+    "sign_in": "Sign in",
+    "create_account": "Create account",
+    "continue_with_google": "Continue with Google",
+    "or": "or",
+    "email": "Email",
+    "password": "Password",
+    "first_name": "First name",
+    "last_name": "Last name",
+    "phone_optional": "Phone (optional)",
+    "password_hint": "At least {min} characters",
+    "no_account": "No account yet?",
+    "have_account": "Already have an account?",
+    "oauth_invalid_state": "Session expired, please try again.",
+    "oauth_email_unverified": "Your Google address is not verified.",
+    "oauth_oauth_failed": "Google sign-in failed.",
+    "oauth_oauth_unavailable": "Google sign-in unavailable."
+  },
   "cart": {
     "title": "Your basket",
     "empty": "Your basket is empty.",
@@ -99,6 +126,15 @@
     "open_menu": "Open menu",
     "close_menu": "Close menu",
     "change_language": "Change language"
+  },
+  "order_status": {
+    "draft": "Draft",
+    "awaiting_payment": "Awaiting payment",
+    "paid": "Paid",
+    "processing": "Being prepared",
+    "shipped": "Shipped",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
   },
   "product": {
     "quantity": "Quantity",

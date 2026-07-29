@@ -35,8 +35,15 @@ const email = ref(me.value?.email ?? '')
 const selectedShipping = ref<string | null>(null)
 const selectedPayment = ref<'stripe' | 'cod' | 'in_store'>('stripe')
 
+interface Totals {
+  subtotal: string
+  discount: string
+  shipping: string
+  total: string
+}
+
 const shippingOptions = ref<ShippingOption[]>([])
-const pricing = ref<{ subtotal: string; discount: string; shipping: string; total: string } | null>(null)
+const pricing = ref<Totals | null>(null)
 const stripeContainer = ref<HTMLElement | null>(null)
 const embedded = shallowRef<StripeEmbeddedCheckout | null>(null)
 const submitting = ref(false)
@@ -95,7 +102,9 @@ async function refreshTotals(): Promise<void> {
     pricing.value = null
     return
   }
-  pricing.value = await $fetch('/api/cart/price', {
+  // Typed explicitly: leaving Nuxt to infer the response from its route table
+  // sends the checker into a recursion it cannot finish.
+  pricing.value = await $fetch<Totals>('/api/cart/price', {
     method: 'POST',
     body: {
       cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },

@@ -2,6 +2,33 @@
   "a11y": {
     "skip_to_content": "Zum Inhalt springen"
   },
+  "account": {
+    "title": "Mein Konto",
+    "sign_out": "Abmelden",
+    "orders": "Meine Bestellungen",
+    "no_orders": "Sie haben noch keine Bestellungen.",
+    "tracking": "Sendungsverfolgung:",
+    "addresses": "Meine Adressen",
+    "manage_addresses": "Adressen verwalten"
+  },
+  "auth": {
+    "sign_in": "Anmelden",
+    "create_account": "Konto erstellen",
+    "continue_with_google": "Weiter mit Google",
+    "or": "oder",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "first_name": "Vorname",
+    "last_name": "Nachname",
+    "phone_optional": "Telefon (optional)",
+    "password_hint": "Mindestens {min} Zeichen",
+    "no_account": "Noch kein Konto?",
+    "have_account": "Sie haben bereits ein Konto?",
+    "oauth_invalid_state": "Sitzung abgelaufen, bitte erneut versuchen.",
+    "oauth_email_unverified": "Ihre Google-Adresse ist nicht bestätigt.",
+    "oauth_oauth_failed": "Google-Anmeldung fehlgeschlagen.",
+    "oauth_oauth_unavailable": "Google-Anmeldung nicht verfügbar."
+  },
   "cart": {
     "title": "Ihr Warenkorb",
     "empty": "Ihr Warenkorb ist leer.",
@@ -99,6 +126,15 @@
     "open_menu": "Menü öffnen",
     "close_menu": "Menü schließen",
     "change_language": "Sprache wechseln"
+  },
+  "order_status": {
+    "draft": "Entwurf",
+    "awaiting_payment": "Zahlung ausstehend",
+    "paid": "Bezahlt",
+    "processing": "Wird vorbereitet",
+    "shipped": "Versandt",
+    "delivered": "Zugestellt",
+    "cancelled": "Storniert"
   },
   "product": {
     "quantity": "Menge",

@@ -2,6 +2,33 @@
   "a11y": {
     "skip_to_content": "Ir al contenido"
   },
+  "account": {
+    "title": "Mi cuenta",
+    "sign_out": "Cerrar sesión",
+    "orders": "Mis pedidos",
+    "no_orders": "Todavía no tiene pedidos.",
+    "tracking": "Seguimiento:",
+    "addresses": "Mis direcciones",
+    "manage_addresses": "Gestionar direcciones"
+  },
+  "auth": {
+    "sign_in": "Iniciar sesión",
+    "create_account": "Crear cuenta",
+    "continue_with_google": "Continuar con Google",
+    "or": "o",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "first_name": "Nombre",
+    "last_name": "Apellidos",
+    "phone_optional": "Teléfono (opcional)",
+    "password_hint": "Mínimo {min} caracteres",
+    "no_account": "¿Aún no tiene cuenta?",
+    "have_account": "¿Ya tiene una cuenta?",
+    "oauth_invalid_state": "Sesión caducada, inténtelo de nuevo.",
+    "oauth_email_unverified": "Su dirección de Google no está verificada.",
+    "oauth_oauth_failed": "El inicio de sesión con Google ha fallado.",
+    "oauth_oauth_unavailable": "Inicio de sesión con Google no disponible."
+  },
   "cart": {
     "title": "Su cesta",
     "empty": "Su cesta está vacía.",
@@ -99,6 +126,15 @@
     "open_menu": "Abrir menú",
     "close_menu": "Cerrar menú",
     "change_language": "Cambiar idioma"
+  },
+  "order_status": {
+    "draft": "Borrador",
+    "awaiting_payment": "Pendiente de pago",
+    "paid": "Pagado",
+    "processing": "En preparación",
+    "shipped": "Enviado",
+    "delivered": "Entregado",
+    "cancelled": "Cancelado"
   },
   "product": {
     "quantity": "Cantidad",
