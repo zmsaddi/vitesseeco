@@ -35,6 +35,8 @@
 10. **PowerShell 5.1:** never put `"` characters inside git commit messages (breaks arg passing)
 11. **Money engine is sacred:** PayPal payload building, address resolution and Turnstile flows are preserved verbatim during any page rework
 12. **EAN/GTIN:** NEVER invent codes — assignment only inside the owner's licensed GS1 prefix via `cms/scripts/assign-gtins.mjs`
+13. **The Sanity dataset is PUBLICLY readable** (the storefront reads the catalog without a token) — never write customer PII into it. The order mirror carries operational fields only; identity and addresses live in Postgres and are served through authenticated routes + `/admin`
+14. **Turnstile is verified server-side** on contact, checkout, login and register — a page that renders the widget must send the token, and clear + `retry()` it after every failed attempt (tokens are single-use)
 
 ## Tech Stack
 | Layer | Package | Version |
@@ -166,7 +168,9 @@ vitesseeco/
 │   ├── api/addresses/ cart/ orders/ payments/paypal/ shipping/ payment/ places/
 │   ├── api/chat/               ← ask (rule-based; Claude when ANTHROPIC_API_KEY set), track-order
 │   ├── api/webhooks/paypal.post.ts ← signature verification + audit log
-│   ├── api/cron/process-outbox.post.ts ← Outbox worker (CRON_SECRET)
+│   ├── api/cron/process-outbox.post.ts ← Outbox worker (CRON_SECRET) + abandoned-order
+│   │                             sweep (unpaid online orders → cancel + restock) +
+│   │                             bounded telemetry retention
 │   ├── payments/               ← Adapter registry: paypal (live), stripe, inStore
 │   ├── shipping/               ← CarrierAdapter registry: manual (Sanity zones, FR fallback)
 │   ├── database/               ← Drizzle schema + Neon
@@ -180,8 +184,9 @@ vitesseeco/
 │                                 events, validation, adminOrderQuery, merchantFeed
 │
 ├── i18n/locales/               ← 6 files × 526 keys (check:langs enforces sync)
-├── scripts/                    ← check-languages, check-hex-colors, check-bundle-size,
-│                                 backfill-inventory
+├── scripts/                    ← check-languages (keys + no "|" + placeholder parity),
+│                                 check-hex-colors, check-bundle-size, backfill-inventory,
+│                                 redact-sanity-order-pii (owner-run, --apply to write)
 ├── public/                     ← robots.txt (AI crawlers welcomed, private paths blocked),
 │                                 sw.js, offline.html, manifest.webmanifest, opensearch.xml,
 │                                 IndexNow key file, favicon, logo, poster, GSC verification
@@ -219,7 +224,11 @@ vitesseeco/
 - bcrypt 12 rounds · httpOnly cookies · Server-side price validation (priceLock)
 - `requireAdmin` on every /api/admin route (ADMIN_EMAILS allowlist)
 - PayPal webhook signature verification + full audit log
-- Sanity Studio: singletons undeletable, order mirror read-only
+- Sanity Studio: singletons undeletable, order mirror read-only, product duplication only
+  via 🎨 Duplicate-as-Color (creates a DRAFT; never copies the GTIN)
+- Order mirror carries NO customer PII (public dataset) · forward-only paid transitions
+  (a redelivered PayPal webhook cannot reset a shipped order)
+- Rate limits keyed on the route path, not the caller-controlled query string
 
 ## Payments & Orders
 - **PayPal LIVE** (`ENABLE_PAYPAL`): server SDK, capture-order, verified webhook

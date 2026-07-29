@@ -208,6 +208,10 @@
               <input type="checkbox" v-model="addressForm.isDefault" class="accent-accent" />
               {{ $t('account.set_default') }}
             </label>
+            <p v-if="addressError" role="alert" class="text-red-400 text-sm flex items-center gap-1.5">
+              <Icon name="ph:warning-circle" class="w-4 h-4 shrink-0" />
+              {{ addressError }}
+            </p>
             <div class="flex gap-3">
               <button type="submit" :disabled="savingAddress" class="btn-primary py-2 px-6 text-sm disabled:opacity-50">
                 {{ savingAddress ? $t('common.loading') : $t('common.save') }}
@@ -558,6 +562,7 @@ async function fetchAddresses() {
 
 async function saveAddress() {
   savingAddress.value = true
+  addressError.value = ''
   try {
     await $fetch('/api/addresses', { method: 'POST', body: addressForm })
     addingAddress.value = false
@@ -575,8 +580,13 @@ async function saveAddress() {
 }
 
 async function deleteAddress(id: string) {
-  await $fetch(`/api/addresses/${id}`, { method: 'DELETE' })
-  await fetchAddresses()
+  addressError.value = ''
+  try {
+    await $fetch(`/api/addresses/${id}`, { method: 'DELETE' })
+    await fetchAddresses()
+  } catch (e: any) {
+    addressError.value = e.data?.message || t('common.error')
+  }
 }
 
 async function handleLogout() {

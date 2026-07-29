@@ -232,6 +232,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   paypal: 'admin.payment_paypal',
   in_store: 'admin.payment_in_store',
   stripe: 'admin.payment_stripe',
+  klarna: 'admin.payment_klarna',
+  cod: 'admin.payment_cod',
 }
 const paymentLabel = (code: string) => (PAYMENT_LABELS[code] ? t(PAYMENT_LABELS[code]) : code)
 

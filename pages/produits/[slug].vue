@@ -272,16 +272,20 @@ useSwipe(galleryContainer, {
 
 const specVal = (v: any) => typeof v === 'object' && v !== null ? l(v) : v
 
-// Single query: product + other colors + testimonials
+// Single query: product + other colors + testimonials.
+// isAvailable mirrors the listing filter — a retired product must 404, not keep a live buy box.
+// defined(modelFamily) is required: in GROQ null == null, so family-less
+// products would otherwise list each other as colors of the same model.
 const productQuery = groq`{
-  "product": *[_type == "product" && slug.current == $slug][0] {
-    _id, name, slug, shortDescription, description, price, compareAtPrice,
+  "product": *[_type == "product" && slug.current == $slug && isAvailable == true][0] {
+    _id, name, slug, shortDescription, description, price,
+    "compareAtPrice": select(compareAtPrice > price => compareAtPrice, null),
     isOnSale, isNew, isFeatured, isAvailable, warranty, highlights, videoUrl,
     productType, color, colorHex, stock, modelFamily, seo,
     specifications, brand->{ name },
     "images": images[]{asset, altText}
   },
-  "otherColors": *[_type == "product" && modelFamily == *[_type == "product" && slug.current == $slug][0].modelFamily && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
+  "otherColors": *[_type == "product" && defined(modelFamily) && modelFamily == *[_type == "product" && slug.current == $slug][0].modelFamily && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
     _id, name, slug, price, color, colorHex, stock, brand->{ name },
     "images": images[0..0]{asset}
   },
@@ -289,15 +293,16 @@ const productQuery = groq`{
     _id, customerName, rating, text
   }
 }`
-const { data: pageData, status } = useSanityFetch(() => `product-page-${slug.value}`, productQuery, { slug })
+const { data: pageData, status } = await useSanityFetch(() => `product-page-${slug.value}`, productQuery, { slug })
 
 const product = computed(() => pageData.value?.product || null)
 const otherColors = computed(() => pageData.value?.otherColors || [])
 const testimonials = computed(() => pageData.value?.testimonials || [])
 
-// 404
+// 404 — the fetch is awaited, so status is already settled here. On the client
+// the watcher must run immediately too: in SPA mode nothing changes afterwards.
 if (import.meta.server && status.value === 'success' && !product.value) throw createError({ statusCode: 404 })
-if (import.meta.client) { watch([status, product], () => { if (status.value === 'success' && !product.value) showError({ statusCode: 404 }) }) }
+if (import.meta.client) { watch([status, product], () => { if (status.value === 'success' && !product.value) showError({ statusCode: 404 }) }, { immediate: true }) }
 
 watch(() => product.value?._id, () => { selectedImage.value = 0; qty.value = 1 })
 

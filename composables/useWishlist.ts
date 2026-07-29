@@ -15,7 +15,10 @@ export function useWishlist() {
     if (import.meta.server || loaded.value) return
     loaded.value = true
     try {
-      items.value = JSON.parse(localStorage.getItem(KEY) || '[]')
+      // A hand-edited or half-written value must not reach the render path,
+      // where every consumer assumes an array of products.
+      const parsed = JSON.parse(localStorage.getItem(KEY) || '[]')
+      items.value = Array.isArray(parsed) ? parsed.filter((i) => i && typeof i.id === 'string') : []
     } catch {
       items.value = []
     }

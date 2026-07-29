@@ -22,7 +22,8 @@ export function useRecentlyViewed() {
   function load() {
     if (import.meta.server) return
     try {
-      items.value = JSON.parse(localStorage.getItem(KEY) || '[]')
+      const parsed = JSON.parse(localStorage.getItem(KEY) || '[]')
+      items.value = Array.isArray(parsed) ? parsed.filter((i) => i && typeof i.slug === 'string') : []
     } catch {
       items.value = []
     }

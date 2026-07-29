@@ -293,6 +293,9 @@ function clearSelection() {
 
 async function applyBulk() {
   if (!bulkStatus.value || !selected.value.length || applying.value) return
+  // One click can rewrite a whole page of orders — name the count and the target first.
+  const summary = `${t('admin.bulk_status')} : ${statusLabel(bulkStatus.value)} — ${t('admin.selected_count', { count: selected.value.length })}`
+  if (!window.confirm(summary)) return
   applying.value = true
   let ok = 0
   let fail = 0
@@ -314,10 +317,12 @@ async function applyBulk() {
 // ── U-A2: keyboard shortcuts (/, N, P, Escape) ────────────────────────
 function onKeydown(e: KeyboardEvent) {
   const target = e.target as HTMLElement | null
-  const typing = target && ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName)
+  const typing = Boolean(
+    target && (['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName) || target.isContentEditable)
+  )
   if (e.metaKey || e.ctrlKey || e.altKey) return
   if (e.key === 'Escape') {
-    if (typing) (target as HTMLElement).blur()
+    if (typing) target?.blur()
     else if (selected.value.length) clearSelection()
     else resetFilters()
     return

@@ -301,15 +301,19 @@ const l = useLocalizedField()
 const route = useRoute()
 const router = useRouter()
 
+// A repeated param (?q=a&q=b) arrives as an array — every filter is a single string.
+type QueryValue = string | null | undefined
+const firstQuery = (v: QueryValue | QueryValue[]): string => (Array.isArray(v) ? v[0] : v) || ''
+
 // URL-synced filter state
-const selectedType = ref((route.query.type as string) || '')
-const selectedBrand = ref((route.query.brand as string) || '')
-const selectedColor = ref((route.query.color as string) || '')
-const selectedPrice = ref((route.query.price as string) || '')
-const selectedTire = ref((route.query.tire as string) || '')
-const searchQuery = ref((route.query.q as string) || '')
-const sortBy = ref((route.query.sort as string) || 'sortOrder')
-const showOutOfStock = ref(route.query.oos === '1')
+const selectedType = ref(firstQuery(route.query.type))
+const selectedBrand = ref(firstQuery(route.query.brand))
+const selectedColor = ref(firstQuery(route.query.color))
+const selectedPrice = ref(firstQuery(route.query.price))
+const selectedTire = ref(firstQuery(route.query.tire))
+const searchQuery = ref(firstQuery(route.query.q))
+const sortBy = ref(firstQuery(route.query.sort) || 'sortOrder')
+const showOutOfStock = ref(firstQuery(route.query.oos) === '1')
 const viewMode = ref<'grid' | 'list'>('grid')
 const sheetOpen = ref(false)
 const pageSize = 24
@@ -342,15 +346,15 @@ watch(searchQuery, () => { showCount.value = pageSize; updateUrl() })
 
 // Restore from URL on navigation
 watch(() => route.query, (q) => {
-  selectedType.value = (q.type as string) || ''
-  selectedBrand.value = (q.brand as string) || ''
-  selectedColor.value = (q.color as string) || ''
-  selectedPrice.value = (q.price as string) || ''
-  selectedTire.value = (q.tire as string) || ''
-  searchQuery.value = (q.q as string) || ''
-  debouncedSearch.value = (q.q as string) || ''
-  sortBy.value = (q.sort as string) || 'sortOrder'
-  showOutOfStock.value = q.oos === '1'
+  selectedType.value = firstQuery(q.type)
+  selectedBrand.value = firstQuery(q.brand)
+  selectedColor.value = firstQuery(q.color)
+  selectedPrice.value = firstQuery(q.price)
+  selectedTire.value = firstQuery(q.tire)
+  searchQuery.value = firstQuery(q.q)
+  debouncedSearch.value = firstQuery(q.q)
+  sortBy.value = firstQuery(q.sort) || 'sortOrder'
+  showOutOfStock.value = firstQuery(q.oos) === '1'
 })
 
 function setType(type: string) { selectedType.value = type; selectedBrand.value = ''; selectedColor.value = ''; selectedTire.value = '' }
@@ -403,12 +407,16 @@ useSeoMeta({
   description: () => `${pageSubtitle.value} — Vitesse Eco`,
 })
 
+// compareAtPrice below the price is a data-entry slip, not a discount — drop it
+// at the source so no card can strike through a higher price than it sells for.
 const prodQuery = groq`*[_type == "product" && isAvailable == true] | order(stock desc, sortOrder asc) {
-  _id, name, slug, shortDescription, price, compareAtPrice, isOnSale, isNew, isFeatured, sortOrder,
+  _id, name, slug, shortDescription, price,
+  "compareAtPrice": select(compareAtPrice > price => compareAtPrice, null),
+  isOnSale, isNew, isFeatured, sortOrder,
   productType, color, colorHex, stock, modelFamily, specifications,
   brand->{ name }, "images": images[]{asset}
 }`
-const { data: products } = useSanityFetch('all-products-v3', prodQuery)
+const { data: products } = useSanityFetch('all-products-v4', prodQuery)
 
 // Counts respect stock filter — show only in-stock counts when filter is active
 const stockFilteredProducts = computed(() => {

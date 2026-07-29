@@ -70,7 +70,7 @@
       <div class="flex items-baseline justify-between mt-auto pt-3 gap-2">
         <div v-if="product.stock > 0" class="flex items-baseline gap-2 min-w-0">
           <span class="text-accent font-bold text-lg leading-none">{{ product.price }}€</span>
-          <span v-if="product.compareAtPrice" class="text-text-secondary line-through text-xs">{{ product.compareAtPrice }}€</span>
+          <span v-if="product.compareAtPrice && product.compareAtPrice > product.price" class="text-text-secondary line-through text-xs">{{ product.compareAtPrice }}€</span>
         </div>
         <span v-else class="text-red-400 text-xs font-medium flex items-center gap-1">
           <Icon name="ph:x-circle" class="w-3 h-3" />

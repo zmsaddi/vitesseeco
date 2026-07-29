@@ -82,7 +82,9 @@ export default defineConfig({
         return prev.filter(({ action }) => action !== 'duplicate')
       }
       if (context.schemaType === 'product') {
-        return [...prev, duplicateAsColorAction]
+        // The built-in duplicate copies sku/gtin/slug verbatim — two products
+        // behind one licensed EAN. 🎨 لون جديد is the only sanctioned copy.
+        return [...prev.filter(({ action }) => action !== 'duplicate'), duplicateAsColorAction]
       }
       return prev
     },

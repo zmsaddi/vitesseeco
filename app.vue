@@ -35,7 +35,10 @@ const pathWithoutLocale = computed(() => {
 })
 
 useHead(() => {
-  const path = pathWithoutLocale.value
+  // A prefixed home resolves to "/en" + "/" = "/en/", which contradicts the
+  // "/en" the sitemap publishes; a locale prefix already IS the page.
+  const rawPath = pathWithoutLocale.value
+  const path = rawPath === '/' ? '' : rawPath
   const links: any[] = []
 
   // Canonical

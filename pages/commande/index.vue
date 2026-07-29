@@ -83,7 +83,9 @@
                 <div class="grid grid-cols-2 gap-3">
                   <div>
                     <label for="co-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                    <input id="co-zip" v-model="addr.postalCode" @input="onZipInput" @blur="touch('postalCode')" type="text" inputmode="numeric" class="input-field" :class="fieldError('postalCode', addr.postalCode) ? 'border-red-500' : ''" required />
+                    <!-- Dutch postcodes carry letters (1234 AB): a numeric keypad
+                         would make them impossible to type on mobile. -->
+                    <input id="co-zip" v-model="addr.postalCode" @input="onZipInput" @blur="touch('postalCode')" type="text" :inputmode="addr.country === 'NL' ? 'text' : 'numeric'" class="input-field" :class="fieldError('postalCode', addr.postalCode) ? 'border-red-500' : ''" required />
                     <p v-if="fieldError('postalCode', addr.postalCode)" class="text-red-400 text-xs mt-1">{{ $t('checkout.postal_code') }} {{ $t('common.error') }}</p>
                   </div>
                   <div>
@@ -198,7 +200,7 @@
                   <div class="grid grid-cols-2 gap-3">
                     <div>
                       <label for="bill-zip" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.postal_code') }}</label>
-                      <input id="bill-zip" v-model="billing.postalCode" @input="onBillZipInput" type="text" inputmode="numeric" class="input-field" required />
+                      <input id="bill-zip" v-model="billing.postalCode" @input="onBillZipInput" type="text" :inputmode="billing.country === 'NL' ? 'text' : 'numeric'" class="input-field" required />
                     </div>
                     <div>
                       <label for="bill-city" class="text-sm font-medium text-text-secondary block mb-1.5 required">{{ $t('checkout.city') }}</label>
@@ -334,15 +336,22 @@
               <div class="flex justify-between text-lg font-bold border-t border-dark-tertiary pt-2"><span class="text-white">{{ $t('cart.total') }}</span><span class="text-accent">{{ orderTotal }}{{ $t('common.currency') }}</span></div>
             </div>
             <p v-if="orderError" class="text-red-400 text-sm bg-red-900/20 p-3 rounded-lg" role="alert">{{ orderError }}</p>
-            <ClientOnly><TurnstileWidget @verify="tk => turnstileToken = tk" /></ClientOnly>
+            <ClientOnly>
+              <TurnstileWidget
+                ref="turnstile"
+                @verify="tk => turnstileToken = tk"
+                @expired="turnstileToken = ''"
+                @error="turnstileToken = ''"
+              />
+            </ClientOnly>
             <!-- PayPal Smart Buttons — the PayPal popup IS the confirmation step -->
             <PayPalButtons
               v-if="selectedPayment === 'paypal' && canOrder && paypalOrderPayload"
               :order-payload="paypalOrderPayload"
               :disabled="placing"
               @success="onPayPalSuccess"
-              @error="(m) => orderError = m"
-              @cancel="orderError = $t('checkout.paypal_cancelled')"
+              @error="onPayPalFailure"
+              @cancel="onPayPalFailure($t('checkout.paypal_cancelled'))"
             />
             <template v-else>
               <div v-if="showConfirmation" class="bg-accent/5 border border-accent/30 rounded-lg p-4 space-y-3">
@@ -418,9 +427,15 @@ const selectedPayment = ref('')
 const placing = ref(false)
 const orderError = ref('')
 const turnstileToken = ref('')
+// Cloudflare tokens are single-use: a burnt one is worthless, the widget has to
+// issue a fresh challenge before the customer can try again.
+const turnstile = ref<{ retry: () => void } | null>(null)
 const showConfirmation = ref(false)
 const showNewForm = ref(false)
 const saveAddr = ref(true)
+// A typed address is saved once per checkout — a retried attempt must not
+// leave the customer with the same address stored twice.
+const addressPersisted = ref(false)
 const loadingAddresses = ref(true)
 const savedAddresses = ref<any[]>([])
 
@@ -445,20 +460,24 @@ const billing = reactive({ firstName: '', lastName: '', address: '', addressLine
 // Billing form gets the SAME smart zip→city as every other address form.
 const billCityAuto = ref(false)
 let billZipTimer: ReturnType<typeof setTimeout>
+let billZipGen = 0
 function onBillZipInput() {
   clearTimeout(billZipTimer)
   const code = (billing.postalCode || '').replace(/\s/g, '')
   if (code.length < 4) return
+  const gen = ++billZipGen
+  const country = billing.country
   billZipTimer = setTimeout(async () => {
     if (billing.city && !billCityAuto.value) return
-    const res = await lookupCity(billing.country, code)
+    const res = await lookupCity(country, code)
+    if (gen !== billZipGen) return
     if (res.city && (!billing.city || billCityAuto.value)) {
       billing.city = res.city
       billCityAuto.value = true
     }
   }, 350)
 }
-watch(() => billing.country, () => { billing.city = ''; billing.postalCode = ''; billCityAuto.value = false })
+watch(() => billing.country, () => { clearTimeout(billZipTimer); billZipGen++; billing.city = ''; billing.postalCode = ''; billCityAuto.value = false })
 
 const isPickup = computed(() => selectedShipping.value === 'pickup')
 
@@ -520,6 +539,50 @@ function getShippingPrice(m: any) { return m.freeAbove && cart.subtotal >= m.fre
 const currentShippingCost = computed(() => { const m = shippingMethods.value.find((m: any) => m.code === selectedShipping.value); return m ? getShippingPrice(m) : 0 })
 const orderTotal = computed(() => Math.max(0, cart.subtotal - cart.discount + currentShippingCost.value))
 
+// P3-05: /api/cart/validate signs the prices the customer is looking at, and
+// /api/orders/create commits that snapshot instead of re-reading the catalog.
+// The page carries the lock as an opaque token — only the server reads it.
+type PriceLock = { payload: unknown; sig: string }
+const priceLock = ref<PriceLock | null>(null)
+const priceLockKey = ref('')
+
+// Everything the signature covers: change any of it and the lock is void.
+const pricedState = computed(() => JSON.stringify({
+  items: cart.items.map(i => [i.productId, i.sku, i.quantity, i.price]),
+  promo: cart.promoCode || null,
+  shipping: selectedShipping.value || null,
+  zone: activeDestination.value.country,
+}))
+
+function invalidatePriceLock() {
+  priceLock.value = null
+  priceLockKey.value = ''
+}
+
+async function ensurePriceLock(): Promise<PriceLock | null> {
+  if (cart.isEmpty) return null
+  const key = pricedState.value
+  if (priceLock.value && priceLockKey.value === key) return priceLock.value
+  try {
+    const res = await $fetch<{ priceLock: PriceLock | null }>('/api/cart/validate', {
+      method: 'POST',
+      body: {
+        items: cart.items.map(i => ({ productId: i.productId, sku: i.sku, quantity: i.quantity })),
+        promoCode: cart.promoCode || undefined,
+        shippingCode: selectedShipping.value || undefined,
+        zone: activeDestination.value.country,
+      },
+    })
+    priceLock.value = res.priceLock || null
+    priceLockKey.value = res.priceLock ? key : ''
+  } catch { invalidatePriceLock() }
+  return priceLock.value
+}
+
+// The PayPal payload is built synchronously when the customer clicks, so the
+// lock must already be there — keep it in step with the priced state.
+watch(pricedState, () => { invalidatePriceLock(); ensurePriceLock() }, { immediate: true })
+
 // Payment
 const { data: paymentData } = useFetch('/api/payment/methods')
 const paymentMethods = computed(() => (paymentData.value as any)?.methods || [])
@@ -565,25 +628,33 @@ watch(visiblePaymentMethods, (methods) => {
   }
 }, { immediate: true })
 
-// Addresses
-onMounted(async () => {
-  if (auth.isLoggedIn) {
-    try {
-      const { addresses } = await $fetch<any>('/api/addresses')
-      savedAddresses.value = addresses
-      if (addresses.length) { selectedAddressId.value = (addresses.find((a: any) => a.isDefault) || addresses[0]).id }
-      else { showNewForm.value = true }
-    } catch {}
-  } else { showNewForm.value = true }
+// Addresses — auth.client.ts probes the httpOnly session only AFTER mount, so
+// the login state arrives late: react to it instead of deciding once on mount,
+// otherwise a customer landing straight on /commande is treated as a guest.
+watch(() => auth.isLoggedIn, async (loggedIn) => {
+  if (!loggedIn) { showNewForm.value = true; loadingAddresses.value = false; return }
+  loadingAddresses.value = true
+  try {
+    const { addresses } = await $fetch<any>('/api/addresses')
+    savedAddresses.value = addresses
+    // Late login must never wipe a form the customer already started filling.
+    const untouched = !addr.address && !addr.postalCode && !addr.city
+    if (addresses.length && untouched) {
+      selectedAddressId.value = (addresses.find((a: any) => a.isDefault) || addresses[0]).id
+      showNewForm.value = false
+    } else if (!addresses.length) {
+      showNewForm.value = true
+    }
+  } catch {}
   loadingAddresses.value = false
-})
+}, { immediate: true })
 
 // Autocomplete
 const coInput = ref<HTMLInputElement>()
 const coSuggestions = ref<any[]>([])
 const coLoading = ref(false)
 let coTimer: ReturnType<typeof setTimeout>
-watch(() => addr.country, () => { addr.address = ''; addr.addressLine2 = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = []; citySuggestions.value = [] })
+watch(() => addr.country, () => { resetAddressLookups(); addr.address = ''; addr.addressLine2 = ''; addr.city = ''; addr.postalCode = ''; coSuggestions.value = []; cityAuto.value = false; cityOptions.value = []; citySuggestions.value = [] })
 
 // Zip-first UX: postal code → city, silently. Never clobbers a city the
 // customer typed themselves (cityAuto tracks provenance).
@@ -592,15 +663,30 @@ const cityLookupBusy = ref(false)
 const cityAuto = ref(false)
 let zipTimer: ReturnType<typeof setTimeout>
 const cityOptions = ref<string[]>([])
+// A lookup belongs to the country/input it was fired for: bump the generation
+// so a slow answer landing after a country switch is dropped, not written in.
+let zipGen = 0
+let cityGen = 0
+let coGen = 0
+function resetAddressLookups() {
+  zipGen++; cityGen++; coGen++
+  clearTimeout(zipTimer); clearTimeout(cityTimer); clearTimeout(coTimer)
+  cityLookupBusy.value = false
+  citySuggestLoading.value = false
+  coLoading.value = false
+}
 function onZipInput() {
   clearTimeout(zipTimer)
   cityOptions.value = []
   const code = (addr.postalCode || '').replace(/\s/g, '')
   if (code.length < 4) return
+  const gen = ++zipGen
+  const country = addr.country
   zipTimer = setTimeout(async () => {
     if (addr.city && !cityAuto.value) return
     cityLookupBusy.value = true
-    const res = await lookupCity(addr.country, code)
+    const res = await lookupCity(country, code)
+    if (gen !== zipGen) return
     cityLookupBusy.value = false
     if (res.city && (!addr.city || cityAuto.value)) {
       // Exactly one commune — fill silently.
@@ -630,13 +716,17 @@ function onCityInput() {
   cityAuto.value = false
   cityOptions.value = []
   clearTimeout(cityTimer)
-  if (addr.city.length < 2) { citySuggestions.value = []; citySuggestLoading.value = false; return }
+  if (addr.city.length < 2) { cityGen++; citySuggestions.value = []; citySuggestLoading.value = false; return }
   citySuggestLoading.value = true
+  const gen = ++cityGen
+  const country = addr.country
   cityTimer = setTimeout(async () => {
     try {
-      const d = await $fetch<any>('/api/places/autocomplete', { query: { input: addr.city, country: addr.country.toLowerCase(), mode: 'cities' } })
+      const d = await $fetch<any>('/api/places/autocomplete', { query: { input: addr.city, country: country.toLowerCase(), mode: 'cities' } })
+      if (gen !== cityGen) return
       citySuggestions.value = d.predictions || []
-    } catch { citySuggestions.value = [] } finally { citySuggestLoading.value = false }
+    } catch { if (gen === cityGen) citySuggestions.value = [] }
+    finally { if (gen === cityGen) citySuggestLoading.value = false }
   }, 350)
 }
 async function pickCitySuggestion(s: any) {
@@ -656,16 +746,25 @@ async function pickCitySuggestion(s: any) {
   }
 }
 
+// Same gate the server applies: in NL a postcode + house number IS the whole
+// address, so a single digit is already a complete query there.
+const addressMinLen = computed(() => (addr.country === 'NL' && addr.postalCode ? 1 : 3))
 function onCoInput() {
   clearTimeout(coTimer)
-  if (addr.address.length < 3) { coSuggestions.value = []; coLoading.value = false; return }
+  if (addr.address.length < addressMinLen.value) { coGen++; coSuggestions.value = []; coLoading.value = false; return }
   coLoading.value = true
+  const gen = ++coGen
+  const country = addr.country
   coTimer = setTimeout(async () => {
     // Bias the street search with the known city — dramatically better
     // matches once the zip has resolved it (BAN also uses the postcode).
     const input = addr.city ? `${addr.address}, ${addr.city}` : addr.address
-    try { const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: addr.country.toLowerCase(), ...(addr.postalCode ? { postal: addr.postalCode } : {}) } }); coSuggestions.value = d.predictions || [] }
-    catch { coSuggestions.value = [] } finally { coLoading.value = false }
+    try {
+      const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: country.toLowerCase(), ...(addr.postalCode ? { postal: addr.postalCode } : {}) } })
+      if (gen !== coGen) return
+      coSuggestions.value = d.predictions || []
+    } catch { if (gen === coGen) coSuggestions.value = [] }
+    finally { if (gen === coGen) coLoading.value = false }
   }, 400)
 }
 async function pickCo(s: any) {
@@ -761,15 +860,31 @@ const paypalOrderPayload = computed(() => {
     billingAddress: billingSameAsShipping.value ? (isPickup.value ? resolveCustomerAddress() : shippingAddress) : { ...billing },
     promoCode: cart.promoCode || undefined,
     turnstileToken: turnstileToken.value,
+    priceLock: priceLock.value || undefined,
   }
 })
+
+// Any attempt that reached the server burned the CAPTCHA token and may have
+// raced a catalog price change — hand the customer a fresh challenge and a
+// fresh lock, otherwise every retry fails until the page is reloaded.
+function resetAfterFailedAttempt() {
+  turnstileToken.value = ''
+  turnstile.value?.retry()
+  invalidatePriceLock()
+  ensurePriceLock()
+}
+
+function onPayPalFailure(message: string) {
+  orderError.value = message
+  resetAfterFailedAttempt()
+}
 
 async function onPayPalSuccess(orderNumber: string) {
   // The PayPal flow does not pre-save the new address (we don't know if the
   // user will complete the PayPal popup until they do). Save it now on a
   // successful capture, same condition placeOrder() uses for the in-store path.
-  if (!isPickup.value && auth.isLoggedIn && saveAddr.value && showNewForm.value && !selectedAddressId.value) {
-    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }) } catch {}
+  if (!isPickup.value && auth.isLoggedIn && saveAddr.value && showNewForm.value && !selectedAddressId.value && !addressPersisted.value) {
+    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }); addressPersisted.value = true } catch {}
   }
   cart.clearCart()
   navigateTo(localePath(`/commande/confirmation?order=${orderNumber}`))
@@ -784,14 +899,25 @@ async function placeOrder() {
   const shippingAddress = resolveShippingAddress()
   if (!shippingAddress) { orderError.value = t('checkout.disabled_no_address'); placing.value = false; return }
 
-  // Persist a newly typed address for logged-in users before ordering.
-  if (!isPickup.value && !selectedAddressId.value && showNewForm.value && auth.isLoggedIn && saveAddr.value) {
-    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }) } catch {}
+  // Persist a newly typed address for logged-in users before ordering. A
+  // retried attempt must not save it a second time.
+  if (!isPickup.value && !selectedAddressId.value && showNewForm.value && auth.isLoggedIn && saveAddr.value && !addressPersisted.value) {
+    try { await $fetch('/api/addresses', { method: 'POST', body: { ...addr, isDefault: !savedAddresses.value.length } }); addressPersisted.value = true } catch {}
   }
 
   try {
+    const totalBefore = orderTotal.value
     const stockCheck = await cart.checkStock()
     if (!stockCheck.allValid) { orderError.value = stockCheck.messages.join(', '); placing.value = false; return }
+    // Stock or prices moved while the customer was deciding: never charge a
+    // total they have not seen — show what changed and let them confirm again.
+    if (stockCheck.hasChanges || orderTotal.value !== totalBefore) {
+      orderError.value = [...stockCheck.messages, `${t('cart.total')}: ${orderTotal.value}${t('common.currency')}`].join(' — ')
+      placing.value = false
+      return
+    }
+    // The signed snapshot is what /api/orders/create prices the order from.
+    const lock = await ensurePriceLock()
     const result = await $fetch<any>('/api/orders/create', {
       method: 'POST',
       body: {
@@ -802,6 +928,7 @@ async function placeOrder() {
         billingAddress: billingSameAsShipping.value ? (isPickup.value ? resolveCustomerAddress() : shippingAddress) : { ...billing },
         promoCode: cart.promoCode || undefined,
         turnstileToken: turnstileToken.value,
+        priceLock: lock || undefined,
       },
     })
     // PSP redirect flows (card/Klarna when wired): the adapter returns a
@@ -814,7 +941,10 @@ async function placeOrder() {
     }
     cart.clearCart()
     navigateTo(localePath(`/commande/confirmation?order=${result.orderNumber}`))
-  } catch (e: any) { orderError.value = e.data?.message || t('common.error') }
+  } catch (e: any) {
+    orderError.value = e.data?.message || t('common.error')
+    resetAfterFailedAttempt()
+  }
   finally { placing.value = false }
 }
 </script>

@@ -336,8 +336,17 @@ test.describe('API', () => {
     expect((await request.get(`${BASE}/api/orders/my-orders`)).status()).toBe(401)
   })
 
-  test('login rejects wrong password', async ({ request }) => {
-    expect((await request.post(`${BASE}/api/auth/login`, { data: { email: 'fake@test.com', password: 'wrong' } })).status()).toBe(401)
+  test('login rejects a tokenless attempt before it reaches bcrypt', async ({ request }) => {
+    // CAPTCHA is checked first, so a scripted credential-stuffing request is
+    // turned away at 400 and never gets to distinguish a wrong password (401).
+    expect((await request.post(`${BASE}/api/auth/login`, { data: { email: 'fake@test.com', password: 'wrong' } })).status()).toBe(400)
+  })
+
+  test('register rejects a tokenless attempt', async ({ request }) => {
+    const r = await request.post(`${BASE}/api/auth/register`, {
+      data: { email: 'fake@test.com', password: 'wrongpassword', firstName: 'A', lastName: 'B' },
+    })
+    expect(r.status()).toBe(400)
   })
 
   test('delete-account rejects unauthenticated', async ({ request }) => {

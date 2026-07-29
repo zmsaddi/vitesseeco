@@ -124,8 +124,12 @@ const tabs = computed(() => [
   { value: 'all' as const, label: 'admin.msg_all', count: messages.value.length },
 ])
 
+// Opening a message marks it read, so the unread filter would pull the row out
+// from under the admin mid-read — the expanded one stays until it is collapsed.
 const filtered = computed(() =>
-  tab.value === 'unread' ? messages.value.filter((m) => !m.isRead) : messages.value
+  tab.value === 'unread'
+    ? messages.value.filter((m) => !m.isRead || m._id === expanded.value)
+    : messages.value
 )
 
 function toggleExpand(id: string) {
@@ -160,7 +164,9 @@ async function patch(msg: any, body: Record<string, unknown>, successMessage: st
 
 function mailtoLink(msg: any) {
   const subject = encodeURIComponent(`Re: ${msg.subject || 'Votre message — Vitesse Eco'}`)
-  return `mailto:${msg.email}?subject=${subject}`
+  // Encoded: a crafted address would otherwise inject cc/bcc/body into the compose window.
+  const to = encodeURIComponent(msg.email || '').replace(/%40/g, '@')
+  return `mailto:${to}?subject=${subject}`
 }
 
 function formatDate(d: string | Date) {

@@ -8,17 +8,26 @@ const localesDir = join(__dirname, '..', 'i18n', 'locales')
 const languages = ['fr', 'en', 'es', 'nl', 'de', 'ar']
 let hasErrors = false
 
-function getKeys(obj, prefix = '') {
-  const keys = []
+function getEntries(obj, prefix = '') {
+  const entries = []
   for (const key of Object.keys(obj)) {
     const fullKey = prefix ? `${prefix}.${key}` : key
     if (typeof obj[key] === 'object' && obj[key] !== null) {
-      keys.push(...getKeys(obj[key], fullKey))
+      entries.push(...getEntries(obj[key], fullKey))
     } else {
-      keys.push(fullKey)
+      entries.push([fullKey, String(obj[key])])
     }
   }
-  return keys
+  return entries
+}
+
+function getKeys(obj, prefix = '') {
+  return getEntries(obj, prefix).map(([key]) => key)
+}
+
+// vue-i18n reads "{name}" as an interpolation slot
+function getPlaceholders(value) {
+  return [...new Set(value.match(/\{[^{}]*\}/g) || [])].sort()
 }
 
 // Load all locale files
@@ -57,6 +66,47 @@ if (!hasErrors) {
     if (missingInLang.length === 0 && extraInLang.length === 0) {
       console.log(`✅ ${lang.toUpperCase()} — ${langKeys.length} keys (matches FR)`)
     }
+  }
+
+  const entries = {}
+  for (const lang of languages) {
+    entries[lang] = new Map(getEntries(locales[lang]))
+  }
+
+  // vue-i18n splits a message on "|" as a plural-form separator and renders only the
+  // first segment — a literal pipe silently truncates the string at runtime
+  let pipedCount = 0
+  for (const lang of languages) {
+    const piped = [...entries[lang]].filter(([, value]) => value.includes('|'))
+    if (piped.length > 0) {
+      console.error(`\n❌ ${lang.toUpperCase()} has ${piped.length} values containing "|" (plural separator — use " · "):`)
+      piped.forEach(([key, value]) => console.error(`   - ${key}: ${value}`))
+      pipedCount += piped.length
+      hasErrors = true
+    }
+  }
+  if (pipedCount === 0) {
+    console.log(`\n✅ No "|" plural separators in any locale`)
+  }
+
+  let placeholderMismatches = 0
+  for (const [key, frValue] of entries.fr) {
+    const expected = getPlaceholders(frValue).join(' ')
+    for (const lang of languages) {
+      if (lang === 'fr') continue
+      const value = entries[lang].get(key)
+      if (value === undefined) continue
+      const actual = getPlaceholders(value).join(' ')
+      if (actual !== expected) {
+        if (placeholderMismatches === 0) console.error('\n❌ Placeholder mismatches (must be identical across locales):')
+        console.error(`   - ${key} — FR [${expected}] vs ${lang.toUpperCase()} [${actual}]`)
+        placeholderMismatches++
+        hasErrors = true
+      }
+    }
+  }
+  if (placeholderMismatches === 0) {
+    console.log('✅ Placeholders match FR in every locale')
   }
 }
 

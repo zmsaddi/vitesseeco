@@ -8,8 +8,8 @@ export default defineEventHandler(async (event) => {
     useCdn: true,
   })
 
-  const products = await client.fetch('*[_type == "product" && isAvailable == true]{ "slug": slug.current }')
-  const articles = await client.fetch('*[_type == "article" && isPublished == true]{ "slug": slug.current }')
+  const products = await client.fetch('*[_type == "product" && isAvailable == true && defined(slug.current)]{ "slug": slug.current }')
+  const articles = await client.fetch('*[_type == "article" && isPublished == true && defined(slug.current)]{ "slug": slug.current }')
   const landings = await client.fetch('*[_type == "landingPage" && isPublished == true && defined(slug.current)]{ "slug": slug.current }')
   const baseUrl = 'https://vitesse-eco.fr'
 
