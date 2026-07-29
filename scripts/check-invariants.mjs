@@ -26,6 +26,31 @@ function pass(rule, note) {
   console.log(`✅ ${rule}${note ? ` — ${note}` : ''}`)
 }
 
+const suppressed = []
+
+/**
+ * A justified exception, declared where the code is rather than hidden in this
+ * file. Write `invariant-ok: <reason>` on the line or the one above it.
+ *
+ * The reason is required and must be a real sentence: an exception nobody
+ * explained is one nobody can review. Every suppression is printed at the end
+ * of a run, so they stay countable rather than accumulating in silence.
+ */
+function isSuppressed(lines, index, rule, file) {
+  const pattern = /invariant-ok:\s*(.+?)\s*(?:\*\/|-->|$)/
+  // A few lines of lookback, because a reason worth writing is usually longer
+  // than one line and sits in a comment block above the code it explains.
+  for (let i = index; i >= Math.max(0, index - 4); i--) {
+    const match = pattern.exec(lines[i] ?? '')
+    if (!match) continue
+    const reason = match[1].trim()
+    if (reason.length < 12) return false
+    suppressed.push(`${file}:${index + 1} — ${rule}: ${reason}`)
+    return true
+  }
+  return false
+}
+
 function* walk(dir, exts) {
   let entries
   try { entries = readdirSync(dir) } catch { return }
@@ -88,6 +113,7 @@ if (FILES.length === 0) {
       if (!/style:\s*'currency'|style:\s*"currency"/.test(line)) return
       // shared/money.ts format() is the sanctioned one; it is called at the edge.
       if (rel === 'shared/money.ts') return
+      if (isSuppressed(text.split('\n'), i, rule, rel)) return
       bad++
       fail(rule, rel, i + 1, `currency Intl: ${line.trim().slice(0, 100)}`)
     })
@@ -203,34 +229,40 @@ if (FILES.length === 0) {
     const text = readFileSync(file, 'utf8')
     const script = text.split('</script>')[0] ?? ''
     const lines = script.split('\n')
-    let depth = null
     lines.forEach((line, i) => {
-      if (/onMounted\(|onBeforeMount\(|import\.meta\.client|process\.client/.test(line)) depth = i
-      if (!/\b(localStorage|sessionStorage)\s*\.\s*(getItem|setItem)/.test(line)) return
-      // Inside a function body is fine — it runs on an event, not at setup.
-      const before = lines.slice(0, i).join('\n')
-      const opens = (before.match(/function |=>\s*\{|onMounted\(/g) || []).length
-      const closes = (before.match(/^\}/gm) || []).length
-      if (opens > closes) return
+      // Only READS matter. A write during setup changes nothing about what
+      // renders; a read decides what the first client render looks like, and
+      // the server had no way to see the same value.
+      if (!/\b(localStorage|sessionStorage)\s*\.\s*getItem/.test(line)) return
+      // A guard anywhere in the few lines above means this runs after mount or
+      // on the client only, which is exactly where it belongs.
+      const context = lines.slice(Math.max(0, i - 6), i).join('\n')
+      if (/onMounted\(|onBeforeMount\(|import\.meta\.client|process\.client|nuxtApp\.hook/.test(context)) return
+      if (isSuppressed(lines, i, rule, rel)) return
       bad++
-      fail(rule, rel, i + 1, `storage read at setup: ${line.trim().slice(0, 90)}`)
+      fail(rule, rel, i + 1, `storage READ at setup: ${line.trim().slice(0, 90)}`)
     })
   }
   if (bad === 0) pass(rule)
 }
 
-// ── 7. Admin routes must be declared admin ───────────────────────────────────
+// ── 7. Admin routes must be guarded ──────────────────────────────────────────
+// The invariant is "this route is guarded", not "it is guarded my way". Two
+// shapes are legitimate: the route wrapper declaring access, or an explicit
+// requireAdmin call. A rule that insisted on one would report the other as
+// broken — and a gate that cries wolf is a gate somebody switches off.
 {
-  const rule = 'Every /api/admin route declares access: admin'
+  const rule = 'Every /api/admin route is admin-guarded'
   const dir = join(ROOT, 'server', 'api', 'admin')
   let bad = 0
   if (existsSync(dir)) {
     for (const file of walk(dir, ['.ts'])) {
       const rel = relative(ROOT, file).replace(/\\/g, '/')
       const text = readFileSync(file, 'utf8')
-      if (!/access:\s*'admin'/.test(text)) {
+      const guarded = /access:\s*'admin'/.test(text) || /\brequireAdmin\s*\(/.test(text)
+      if (!guarded) {
         bad++
-        fail(rule, rel, null, 'no access: admin — the panel would be open to any customer')
+        fail(rule, rel, null, 'neither access: admin nor requireAdmin — open to any customer')
       }
     }
   }
@@ -241,29 +273,53 @@ if (FILES.length === 0) {
 // expireStaleReservations was written, documented, unit-tested and called by
 // nothing, so every abandoned checkout held its stock forever.
 {
-  const rule = 'Cron endpoints are declared in vercel.json'
+  const rule = 'Scheduled endpoints are authenticated, and reachable by their scheduler'
   const cronDir = join(ROOT, 'server', 'api', 'cron')
   let bad = 0
   if (existsSync(cronDir)) {
-    const declared = existsSync(join(ROOT, 'vercel.json'))
-      ? JSON.stringify(JSON.parse(readFileSync(join(ROOT, 'vercel.json'), 'utf8')).crons ?? [])
-      : ''
+    const vercelJson = join(ROOT, 'vercel.json')
+    const crons = existsSync(vercelJson)
+      ? (JSON.parse(readFileSync(vercelJson, 'utf8')).crons ?? [])
+      : []
+    // Vercel Cron and an external scheduler are both legitimate. Which one is
+    // in use decides which rules apply.
+    const usesVercelCron = crons.length > 0
+    const declared = JSON.stringify(crons)
+
     for (const file of walk(cronDir, ['.ts'])) {
       const rel = relative(ROOT, file).replace(/\\/g, '/')
-      const name = rel.split('/').pop().replace(/\.(get|post)?\.?ts$/, '').replace('.ts', '')
-      if (!declared.includes(name)) {
+      const text = readFileSync(file, 'utf8')
+      const name = rel.split('/').pop().replace(/\.(get|post)\.ts$/, '').replace(/\.ts$/, '')
+
+      // Whoever calls it, it must not be callable by a stranger: this endpoint
+      // cancels orders and deletes rows.
+      if (!/CRON_SECRET/.test(text)) {
         bad++
-        fail(rule, rel, null, `no cron entry for /api/cron/${name} — it would never run`)
+        fail(rule, rel, null, 'no CRON_SECRET check — anyone could trigger it')
       }
-      // Vercel Cron issues GET; a .post.ts handler answers 405 forever while
-      // the dashboard reports the job as healthy.
-      if (rel.endsWith('.post.ts')) {
-        bad++
-        fail(rule, rel, null, 'cron handlers must not be .post.ts — Vercel Cron sends GET')
+
+      if (usesVercelCron) {
+        if (!declared.includes(name)) {
+          bad++
+          fail(rule, rel, null, `no entry in vercel.json for /api/cron/${name} — it would never run`)
+        }
+        // Vercel Cron issues GET. A .post.ts handler answers 405 forever while
+        // the dashboard reports the job as healthy, and nothing says the work
+        // stopped happening.
+        if (rel.endsWith('.post.ts')) {
+          bad++
+          fail(rule, rel, null, 'Vercel Cron sends GET — this handler only accepts POST')
+        }
       }
     }
   }
   if (bad === 0) pass(rule)
+}
+
+if (suppressed.length > 0) {
+  console.log(`
+ℹ️  ${suppressed.length} declared exception(s):`)
+  for (const entry of suppressed) console.log(`   ${entry}`)
 }
 
 console.log('')
