@@ -1,5 +1,22 @@
 import { defineType } from 'sanity'
 
+/**
+ * EAN-13 validation, shared by both barcode fields.
+ *
+ * The check digit is what makes a transposed digit fail here instead of in
+ * Merchant Center: a mistyped barcode is still a valid-looking 13-digit number,
+ * and it points at some other company's product.
+ */
+function ean13(value?: string): true | string {
+  if (!value) return true
+  if (!/^\d{13}$/.test(value)) return 'يجب أن يكون 13 رقماً (EAN-13)'
+  const digits = value.split('').map(Number)
+  const check = digits.pop() as number
+  const sum = digits.reduce((total, digit, index) => total + digit * (index % 2 === 0 ? 1 : 3), 0)
+  const expected = (10 - (sum % 10)) % 10
+  return check === expected ? true : `رقم التحقق خاطئ — المتوقع ${expected}`
+}
+
 export default defineType({
   name: 'product',
   title: 'منتج',
@@ -40,24 +57,32 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     },
     {
-      name: 'sku', title: '🏷️ SKU', type: 'string', group: 'main',
-      description: 'رمز المنتج الفريد — حروف كبيرة وأرقام وشرطات (مثال: V20-PRO-NOIR)',
+      name: 'sku', title: '🏷️ SKU (داخلي)', type: 'string', group: 'main',
+      description:
+        'رمزنا الداخلي — حروف كبيرة وأرقام وشرطات (مثال: V20-PRO-NOIR). ' +
+        'لا يُرسَل إلى Google كرقم مصنّع: قواعد Google تمنع إرسال رمز نخترعه بأنفسنا.',
       validation: (Rule) => Rule.regex(/^[A-Z0-9-]+$/, { name: 'SKU format' }).error('حروف كبيرة وأرقام وشرطات فقط'),
     },
     {
-      name: 'gtin', title: '🌐 GTIN / EAN-13', type: 'string', group: 'main',
-      description: 'كود EAN-13 من نطاق GS1 المرخّص — يُعبّأ آلياً بسكربت assign-gtins. مطلوب لـ Amazon/bol/Kaufland',
-      validation: (Rule) =>
-        Rule.custom((val?: string) => {
-          if (!val) return true
-          if (!/^\d{13}$/.test(val)) return 'يجب أن يكون 13 رقماً (EAN-13)'
-          // EAN-13 check digit (mod-10)
-          const digits = val.split('').map(Number)
-          const check = digits.pop() as number
-          const sum = digits.reduce((s, d, i) => s + d * (i % 2 === 0 ? 1 : 3), 0)
-          const expected = (10 - (sum % 10)) % 10
-          return check === expected ? true : `رقم التحقق خاطئ — المتوقع ${expected}`
-        }),
+      name: 'manufacturerMpn', title: '🏭 رقم قطعة المصنّع (MPN)', type: 'string', group: 'main',
+      description:
+        'الرقم الذي يعطيه المصنّع نفسه (OUXI / QMWheel) — من ورقة المواصفات أو الكرتونة. ' +
+        'اطلبه من المورّد: هو البديل الرسمي عن GTIN عند غيابه، ومجاني. لا تخترعه.',
+      validation: (Rule) => Rule.max(70),
+    },
+    {
+      name: 'gtin', title: '🌐 EAN-13 — في صندوق', type: 'string', group: 'main',
+      description:
+        'رقم المورّد للدراجة كما تُشحن في صندوقها. الرقم يخص هذه القطعة بالذات — ' +
+        'اللون والموديل والحالة. لا تضع رقم لون آخر.',
+      validation: (Rule) => Rule.custom(ean13),
+    },
+    {
+      name: 'gtinAssembled', title: '🔧 EAN-13 — مُركّبة', type: 'string', group: 'main',
+      description:
+        'رقم مختلف يخصّصه المورّد للدراجة المُسلَّمة جاهزة للركوب. اتركه فارغاً ' +
+        'إن كنت لا تعرض التركيب — التغذية لا تعلن عرضاً لا يستطيع الدفع تنفيذه.',
+      validation: (Rule) => Rule.custom(ean13),
     },
     {
       name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',

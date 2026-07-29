@@ -85,6 +85,8 @@ const rawProductSchema = z.object({
 const rawProductDetailSchema = rawProductSchema.extend({
   sku: z.string().nullable().optional(),
   gtin: z.string().nullable().optional(),
+  gtinAssembled: z.string().nullable().optional(),
+  manufacturerMpn: z.string().nullable().optional(),
   shortDescription: localized,
   description: localized,
   warranty: localized,
@@ -319,6 +321,8 @@ export function parseProductDetail(
     ...summary,
     sku: raw.sku ?? null,
     gtin: raw.gtin ?? null,
+    gtinAssembled: raw.gtinAssembled ?? null,
+    manufacturerMpn: raw.manufacturerMpn ?? null,
     shortDescription: translate(raw.shortDescription, context.locale),
     description: translate(raw.description, context.locale),
     warranty: translate(raw.warranty, context.locale),

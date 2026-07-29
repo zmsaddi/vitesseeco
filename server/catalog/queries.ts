@@ -63,6 +63,8 @@ export const PRODUCT_DETAIL = `{
   isFeatured,
   sku,
   gtin,
+  gtinAssembled,
+  manufacturerMpn,
   shortDescription,
   description,
   warranty,
@@ -101,6 +103,49 @@ export const SHIPPING_METHOD = `{
   zones,
   postalCodePrefixes,
   sortOrder
+}`
+
+/**
+ * Everything a Merchant Center feed needs, in one pass.
+ *
+ * Separate from the page projections because a feed reads all 147 products at
+ * once and needs the identifiers, while a listing card needs none of them.
+ */
+export const FEED_PRODUCT = `{
+  _id,
+  "slug": slug.current,
+  name,
+  shortDescription,
+  description,
+  price,
+  compareAtPrice,
+  "pricesByCountry": pricesByCountry[]{ country, price, compareAtPrice },
+  productType,
+  color,
+  modelFamily,
+  sku,
+  gtin,
+  gtinAssembled,
+  manufacturerMpn,
+  "brand": brand->{ "slug": slug.current, name },
+  "category": category->{ "slug": slug.current, name },
+  "images": images[] ${IMAGE}
+}`
+
+export const FEED_PRODUCTS_QUERY = `
+  *[${AVAILABLE}] | order(coalesce(sortOrder, 0) asc) ${FEED_PRODUCT}
+`
+
+/**
+ * The assembly service and the shipping table, which together decide what a
+ * feed is allowed to advertise. Read as one document so a feed build cannot see
+ * half of it.
+ */
+export const SELLING_TERMS_QUERY = `{
+  "assembly": *[_type == "siteSettings"][0].assembly{ isOffered, feeEuros, label },
+  "shipping": *[_type == "shippingMethod" && isActive == true && code != "pickup"]{
+    code, zones, postalCodePrefixes, price, freeAbove
+  }
 }`
 
 export const PROMO = `{

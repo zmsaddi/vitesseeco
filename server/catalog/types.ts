@@ -65,7 +65,16 @@ export interface ProductSpecifications {
 
 export interface ProductDetail extends ProductSummary {
   sku: string | null
+  /** EAN-13 for the bike as it ships in its box. */
   gtin: string | null
+  /** A different EAN-13 the supplier assigns to the ready-to-ride bike. */
+  gtinAssembled: string | null
+  /**
+   * The manufacturer's own part number. Distinct from `sku`, which is ours:
+   * Google's rules forbid sending a code we invented as an MPN, and an MPN is
+   * the free, official substitute when a GTIN is absent.
+   */
+  manufacturerMpn: string | null
   shortDescription: string | null
   description: string | null
   warranty: string | null
