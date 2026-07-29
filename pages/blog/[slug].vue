@@ -30,7 +30,7 @@
           </span>
           <span v-if="article.publishedAt" class="flex items-center gap-1.5">
             <Icon name="ph:calendar" class="w-4 h-4" />
-            {{ new Date(article.publishedAt).toLocaleDateString($i18n.locale === 'ar' ? 'ar-SA' : $i18n.locale + '-' + $i18n.locale.toUpperCase()) }}
+            {{ formatLongDate(article.publishedAt) }}
           </span>
         </div>
       </div>
@@ -71,6 +71,7 @@
 </template>
 
 <script setup lang="ts">
+const { formatLongDate } = useFormatDate()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()

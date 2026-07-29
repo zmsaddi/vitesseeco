@@ -272,6 +272,7 @@ async function send(text: string, fromInput = false) {
 }
 
 function formatPrice(n: number) {
+  // invariant-ok: the chat panel is client-only, so this never reaches SSR output
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 }
 </script>

@@ -31,7 +31,7 @@
           </div>
           <div class="p-5">
             <p v-if="article.publishedAt" class="text-text-secondary text-xs mb-2">
-              {{ new Date(article.publishedAt).toLocaleDateString($i18n.locale === 'ar' ? 'ar-SA' : $i18n.locale + '-' + $i18n.locale.toUpperCase()) }}
+              {{ formatLongDate(article.publishedAt) }}
             </p>
             <h2 class="font-display font-semibold text-white mb-2 group-hover:text-accent transition-colors">
               {{ l(article.title) }}
@@ -51,6 +51,7 @@
 </template>
 
 <script setup lang="ts">
+const { formatLongDate } = useFormatDate()
 const { t } = useI18n()
 const localePath = useLocalePath()
 const l = useLocalizedField()

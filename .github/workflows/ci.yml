@@ -32,6 +32,11 @@ jobs:
 
       - name: Check raw hex colors
         run: npm run check:hex
+      # Each rule encodes a defect that actually shipped and that typecheck, the
+      # tests and the build all passed over. Declared exceptions are printed on
+      # every run so they stay countable rather than accumulating unseen.
+      - name: Invariants
+        run: npm run check:invariants
 
       # A shipping promise the checkout cannot honour is account-ending at
       # Google, so it is a build gate rather than something a reviewer notices.

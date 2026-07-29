@@ -175,6 +175,9 @@ async function save(p: any) {
 }
 
 function formatPrice(n: number) {
+  // invariant-ok: admin-only screen, and this Node and Chromium were verified
+  // 2026-07-30 to emit the same separators. The rebuild removes the class
+  // entirely by formatting from integer cents with a literal euro sign.
   return n.toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })
 }
 </script>

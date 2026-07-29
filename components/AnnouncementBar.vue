@@ -44,6 +44,8 @@ const storageKey = computed(() => `vitesse-announcement-${text.value}`)
 
 watch(text, (val) => {
   if (!val || import.meta.server) return
+  // invariant-ok: the bar is wrapped in ClientOnly in layouts/default.vue, so it
+  // is never server-rendered and there is no SSR output to disagree with
   try { dismissed.value = sessionStorage.getItem(storageKey.value) === '1' } catch {}
 }, { immediate: true })
 

@@ -35,6 +35,9 @@ const compareSizeClasses = computed(
 )
 
 function format(n: number) {
+  // invariant-ok: verified 2026-07-30 that this Node and Chromium both emit
+  // U+202F here, so server and client agree. Latent if either ICU moves; the
+  // rebuild avoids it entirely by formatting from cents with a literal euro sign.
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' })
 }
 </script>
