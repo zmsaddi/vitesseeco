@@ -29,6 +29,7 @@ export default defineEventHandler(async (event) => {
   interface Row {
     sku: string | null
     gtin: string | null
+    manufacturerMpn: string | null
     slug: string | null
     name: string | null
     description: string | null
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
   const products = await client.fetch<Row[]>(`
     *[_type == "product" && isAvailable == true && defined(slug.current) && defined(price) && price > 0]{
-      sku, gtin, "slug": slug.current, "name": name.fr,
+      sku, gtin, manufacturerMpn, "slug": slug.current, "name": name.fr,
       "description": coalesce(shortDescription.fr, name.fr),
       price, stock, productType,
       "brand": coalesce(brand->name.fr, brand->name),
@@ -54,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   const header = [
     'id', 'title', 'description', 'link', 'image_link', 'availability',
-    'price', 'brand', 'condition', 'gtin', 'identifier_exists', 'item_group_id',
+    'price', 'brand', 'condition', 'gtin', 'mpn', 'identifier_exists', 'item_group_id',
     'color', 'product_type',
   ].join(',')
 
@@ -72,7 +73,11 @@ export default defineEventHandler(async (event) => {
         p.brand || '',
         'new',
         p.gtin || '',
-        p.gtin ? 'yes' : 'no',
+        p.manufacturerMpn || '',
+        // Matches the XML feeds: `no` means no GTIN, no MPN AND no brand, so a
+        // branded product never claims it. The two feed families must agree, or
+        // the same product is declared identifiable in one and not in the other.
+        p.gtin || p.manufacturerMpn || p.brand ? 'yes' : 'no',
         p.modelFamily || '',
         p.color || '',
         p.productType || '',

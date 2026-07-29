@@ -40,9 +40,18 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     },
     {
-      name: 'sku', title: '🏷️ SKU', type: 'string', group: 'main',
-      description: 'رمز المنتج الفريد — حروف كبيرة وأرقام وشرطات (مثال: V20-PRO-NOIR)',
+      name: 'sku', title: '🏷️ SKU (داخلي)', type: 'string', group: 'main',
+      description:
+        'رمزنا الداخلي — حروف كبيرة وأرقام وشرطات (مثال: V20-PRO-NOIR). ' +
+        'لا يُرسَل إلى Google كرقم مصنّع: قواعد Google تمنع إرسال رمز نخترعه بأنفسنا.',
       validation: (Rule) => Rule.regex(/^[A-Z0-9-]+$/, { name: 'SKU format' }).error('حروف كبيرة وأرقام وشرطات فقط'),
+    },
+    {
+      name: 'manufacturerMpn', title: '🏭 رقم قطعة المصنّع (MPN)', type: 'string', group: 'main',
+      description:
+        'الرقم الذي يعطيه المصنّع نفسه (OUXI / QMWheel) — من ورقة المواصفات أو الكرتونة. ' +
+        'اطلبه من المورّد: هو البديل الرسمي عن GTIN عند غيابه، ومجاني. لا تخترعه.',
+      validation: (Rule) => Rule.max(70),
     },
     {
       name: 'gtin', title: '🌐 GTIN / EAN-13', type: 'string', group: 'main',

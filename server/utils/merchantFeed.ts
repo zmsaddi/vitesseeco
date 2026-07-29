@@ -39,19 +39,41 @@ const GOOGLE_CATEGORY: Record<string, string> = {
 }
 
 /**
- * Delivery we actually offer, per feed.
+ * Delivery advertised in the feed.
  *
- * Shopping shows a shipping figure whether or not we supply one — omitting it
- * lets Google estimate, and an estimate that is higher than our real price
- * makes the offer look worse than it is. Free own-fleet delivery is a genuine
- * advantage and belongs in the ad.
+ * Read from the SAME shippingMethod documents the checkout uses, never from a
+ * constant written here. Google classes a shipping promise the checkout cannot
+ * honour as misrepresentation, and enforces it by suspending the account on
+ * detection, without prior warning — so the feed must not be able to claim
+ * anything the shop would refuse at the till.
+ *
+ * Pickup is excluded: collection at our own shop is not delivery, and offering
+ * it as a shipping rate would advertise nationwide service we do not provide.
  */
-const SHIPPING: Record<FeedLocale, Array<{ country: string; price: string; service?: string }>> = {
-  fr: [{ country: 'FR', price: '0.00 EUR', service: 'Livraison Vitesse Eco' }],
-  nl: [{ country: 'NL', price: '0.00 EUR', service: 'Bezorging Vitesse Eco' }],
-  de: [{ country: 'DE', price: '0.00 EUR', service: 'Lieferung Vitesse Eco' }],
-  es: [{ country: 'ES', price: '0.00 EUR', service: 'Entrega Vitesse Eco' }],
-  en: [{ country: 'FR', price: '0.00 EUR', service: 'Vitesse Eco delivery' }],
+interface ShippingRule {
+  country: string
+  price: number
+  postalPrefixes: string[]
+}
+
+async function deliverableShipping(client: ReturnType<typeof createClient>): Promise<ShippingRule[]> {
+  const methods = await client.fetch<
+    Array<{ code: string; zones: string[] | null; postalCodePrefixes: string[] | null; price: number | null }>
+  >(`*[_type == "shippingMethod" && isActive == true && code != "pickup"]{
+      code, zones, postalCodePrefixes, price
+    }`)
+
+  const rules: ShippingRule[] = []
+  for (const method of methods) {
+    for (const country of method.zones ?? []) {
+      rules.push({
+        country: country.toUpperCase(),
+        price: method.price ?? 0,
+        postalPrefixes: (method.postalCodePrefixes ?? []).map((p) => p.replace(/\s/g, '').toUpperCase()),
+      })
+    }
+  }
+  return rules
 }
 
 const CHANNEL_DESC: Record<FeedLocale, string> = {
@@ -60,6 +82,30 @@ const CHANNEL_DESC: Record<FeedLocale, string> = {
   de: 'E-Bikes, Ersatzteile und Zubehör — Vitesse Eco, Poitiers (FR)',
   es: 'Bicicletas eléctricas, piezas y accesorios — Vitesse Eco, Poitiers (FR)',
   en: 'Electric bikes, parts and accessories — Vitesse Eco, Poitiers (FR)',
+}
+
+/**
+ * Product identifiers.
+ *
+ * These are additive, not alternatives. Google reads `identifier_exists: no` as
+ * "this product has no GTIN, no MPN AND no brand" — it is meant for handmade
+ * goods, art and pre-1970 books. Emitting it beside a brand, as this feed did
+ * on all 144 items, is a contradiction on every line, and on models where other
+ * merchants publish a barcode it turns a warning into a disapproval.
+ *
+ * The MPN is the MANUFACTURER's part number. An internal SKU is a value we
+ * invented, and Google's spec is explicit that only a manufacturer may do that,
+ * so our own SKU is never sent here.
+ */
+function identifiers(p: { gtin: string | null; manufacturerMpn?: string | null; brand: string | null }): string {
+  const parts: string[] = []
+  if (p.gtin) parts.push(`\n    <g:gtin>${esc(p.gtin)}</g:gtin>`)
+  if (p.manufacturerMpn) parts.push(`\n    <g:mpn>${esc(p.manufacturerMpn)}</g:mpn>`)
+  if (p.brand) parts.push(`\n    <g:brand>${esc(p.brand)}</g:brand>`)
+
+  // Only a genuinely unidentifiable product may say so.
+  if (parts.length === 0) return `\n    <g:identifier_exists>no</g:identifier_exists>`
+  return parts.join('')
 }
 
 function esc(s: unknown): string {
@@ -81,6 +127,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
   interface FeedProduct {
     sku: string | null
     gtin: string | null
+    manufacturerMpn: string | null
     slug: string | null
     name: string | null
     description: string | null
@@ -103,6 +150,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
     `*[_type == "product" && isAvailable == true && defined(slug.current) && defined(price) && price > 0]{
       sku,
       gtin,
+      manufacturerMpn,
       "slug": slug.current,
       "name": coalesce(name[$locale], name.fr),
       "description": coalesce(shortDescription[$locale], shortDescription.fr, description[$locale], description.fr),
@@ -122,6 +170,8 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
     }`,
     { locale }
   )
+
+  const shippingRules = await deliverableShipping(client)
 
   const prefix = PREFIX[locale]
   const typeLabels = PRODUCT_TYPE_LABELS[locale]
@@ -159,12 +209,15 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
         .map((url) => `\n    <g:additional_image_link>${esc(url)}</g:additional_image_link>`)
         .join('')
 
-      const shipping = (SHIPPING[locale] ?? [])
+      // A postal restriction is stated, not silently dropped: free delivery in
+      // France is department 86 only, and advertising it nationwide is the
+      // exact mismatch that gets an account suspended.
+      const shipping = shippingRules
         .map(
-          (entry) =>
-            `\n    <g:shipping>\n      <g:country>${entry.country}</g:country>` +
-            (entry.service ? `\n      <g:service>${esc(entry.service)}</g:service>` : '') +
-            `\n      <g:price>${entry.price}</g:price>\n    </g:shipping>`
+          (rule) =>
+            `\n    <g:shipping>\n      <g:country>${rule.country}</g:country>` +
+            rule.postalPrefixes.map((prefix) => `\n      <g:postal_code>${esc(prefix)}*</g:postal_code>`).join('') +
+            `\n      <g:price>${rule.price.toFixed(2)} EUR</g:price>\n    </g:shipping>`
         )
         .join('')
 
@@ -177,11 +230,7 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<string> {
     <g:availability>${availability}</g:availability>
     <g:price>${listPrice.toFixed(2)} EUR</g:price>${salePrice !== null ? `
     <g:sale_price>${salePrice.toFixed(2)} EUR</g:sale_price>` : ''}
-    <g:condition>new</g:condition>${p.gtin ? `
-    <g:gtin>${esc(p.gtin)}</g:gtin>` : p.sku ? `
-    <g:mpn>${esc(p.sku)}</g:mpn>` : `
-    <g:identifier_exists>no</g:identifier_exists>`}${p.brand ? `
-    <g:brand>${esc(p.brand)}</g:brand>` : ''}${p.color ? `
+    <g:condition>new</g:condition>${identifiers(p)}${p.color ? `
     <g:color>${esc(p.color)}</g:color>` : ''}${p.modelFamily ? `
     <g:item_group_id>${esc(p.modelFamily)}</g:item_group_id>` : ''}
     <g:google_product_category>${esc(googleCategory)}</g:google_product_category>${productType ? `

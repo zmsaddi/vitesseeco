@@ -265,6 +265,11 @@ const qty = ref(1)
 const galleryContainer = ref<HTMLElement>()
 const slug = computed(() => route.params.slug as string)
 
+// Declared before the first await: useState needs the Nuxt app context, and
+// after an await in setup that context is gone — the call then yields a
+// detached ref, so app.vue never sees what this page writes to it.
+const canonicalOverride = useState<string | null>('canonical-override', () => null)
+
 useSwipe(galleryContainer, {
   onLeft: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value + 1) % product.value.images.length },
   onRight: () => { if (product.value?.images?.length && product.value.images.length > 1) selectedImage.value = (selectedImage.value - 1 + product.value.images.length) % product.value.images.length },
@@ -438,9 +443,16 @@ const seoDescription = computed(() => {
     l(p.specifications?.range),
   ].filter(Boolean).join(' · ')
 
+  // Product names usually already open with the brand ("OUXI V8 Ultra Mini"),
+  // so prefixing it again reads as a stutter and wastes the first words of a
+  // snippet, which are the ones that get read.
+  const brandPrefix = brand && !name.toLowerCase().startsWith(brand.toLowerCase()) ? `${brand} ` : ''
+  // The colour is already in the name too, for the same reason.
+  const colourSuffix = colour && !name.toLowerCase().includes(colour.toLowerCase()) ? `Coloris ${colour}.` : ''
+
   const generated = [
-    [brand, name].filter(Boolean).join(' '),
-    colour ? `Coloris ${colour}.` : '',
+    `${brandPrefix}${name}.`,
+    colourSuffix,
     specs ? `${specs}.` : '',
     `${p.price}€ — livraison par nos soins, garantie constructeur.`,
   ].filter(Boolean).join(' ')
@@ -454,7 +466,6 @@ const seoDescription = computed(() => {
 // Nominate the model's primary URL as this page's canonical. Read by app.vue,
 // which owns the head links, so the canonical and the hreflang cluster are
 // always built from the same value.
-const canonicalOverride = useState<string | null>('canonical-override', () => null)
 watchEffect(() => {
   const target = canonicalSlug.value
   canonicalOverride.value = target ? `/produits/${target}` : null

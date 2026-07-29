@@ -33,6 +33,11 @@ jobs:
       - name: Check raw hex colors
         run: npm run check:hex
 
+      # A shipping promise the checkout cannot honour is account-ending at
+      # Google, so it is a build gate rather than something a reviewer notices.
+      - name: Check merchant feeds
+        run: npm run check:feeds
+
       - name: Type check
         run: npx nuxi typecheck
         env:
