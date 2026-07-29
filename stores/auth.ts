@@ -37,14 +37,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string, turnstileToken?: string) {
       this.loading = true
       this.error = null
       this.errorCode = null
       try {
         const { user } = await $fetch('/api/auth/login', {
           method: 'POST',
-          body: { email, password },
+          body: { email, password, turnstileToken },
         })
         this.user = user
         return true
@@ -57,7 +57,10 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async register(data: { email: string; password: string; firstName: string; lastName: string; phone?: string }) {
+    async register(data: {
+      email: string; password: string; firstName: string; lastName: string
+      phone?: string; turnstileToken?: string
+    }) {
       this.loading = true
       this.error = null
       this.errorCode = null

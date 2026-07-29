@@ -2,6 +2,7 @@ import { useDBHttp } from '~/server/database/db'
 import { customers, sessions } from '~/server/database/schema'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { isValidEmail, normalizeEmail, isValidName, isValidPassword, LIMITS } from '~/server/utils/validation'
 import { logEvent } from '~/server/utils/events'
 
@@ -9,7 +10,8 @@ export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
 
   const body = await readBody<{
-    email: string; password: string; firstName: string; lastName: string; phone?: string
+    email: string; password: string; firstName: string; lastName: string
+    phone?: string; turnstileToken?: string
   }>(event)
 
   if (!body?.email || !body?.password || !body?.firstName || !body?.lastName) {
@@ -25,6 +27,15 @@ export default defineEventHandler(async (event) => {
   if (!isValidPassword(body.password)) {
     throw createError({ statusCode: 400, message: `Password must be at least ${LIMITS.MIN_PASSWORD_LENGTH} characters` })
   }
+
+  // Verify Turnstile (mandatory) — the gate against mass account creation,
+  // checked before the bcrypt hash below.
+  if (!body.turnstileToken) {
+    throw createError({ statusCode: 400, message: 'CAPTCHA token required' })
+  }
+  const captchaOk = await verifyTurnstile(body.turnstileToken)
+  if (!captchaOk) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
+
   const email = normalizeEmail(body.email)
 
   const db = useDBHttp()

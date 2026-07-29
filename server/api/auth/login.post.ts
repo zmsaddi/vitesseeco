@@ -3,17 +3,26 @@ import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { normalizeEmail } from '~/server/utils/validation'
 import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 10, windowMs: 60_000 })
 
-  const body = await readBody<{ email: string; password: string }>(event)
+  const body = await readBody<{ email: string; password: string; turnstileToken?: string }>(event)
 
   if (!body?.email || !body?.password) {
     throw createError({ statusCode: 400, message: 'Email and password required' })
   }
+
+  // Verify Turnstile (mandatory) — the gate against credential stuffing,
+  // checked before any password comparison so bots never reach bcrypt.
+  if (!body.turnstileToken) {
+    throw createError({ statusCode: 400, message: 'CAPTCHA token required' })
+  }
+  const captchaOk = await verifyTurnstile(body.turnstileToken)
+  if (!captchaOk) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
   const db = useDBHttp()
   // Login does NOT validate email format intentionally — the lookup will fail

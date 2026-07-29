@@ -138,7 +138,7 @@
           </div>
 
           <ClientOnly>
-            <TurnstileWidget @verify="t => turnstileToken = t" />
+            <TurnstileWidget ref="turnstileRef" @verify="t => turnstileToken = t" @expired="turnstileToken = ''" />
           </ClientOnly>
 
           <button type="submit" :disabled="auth.loading || passwordMismatch || !turnstileToken || !form.password" class="btn-primary w-full py-3.5 disabled:opacity-50">
@@ -163,6 +163,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const auth = useAuthStore()
 const turnstileToken = ref('')
+const turnstileRef = ref<{ retry: () => void } | null>(null)
 
 useHead({ title: `${t('auth.register_title')} — Vitesse Eco`, meta: [{ name: 'robots', content: 'noindex' }] })
 
@@ -308,7 +309,14 @@ async function handleRegister() {
     firstName: form.firstName,
     lastName: form.lastName,
     phone: form.phone || undefined,
+    turnstileToken: turnstileToken.value,
   })
+  if (!ok) {
+    // The token is single-use at Cloudflare, so a rejected attempt needs a new
+    // one before the submit button can re-enable.
+    turnstileToken.value = ''
+    turnstileRef.value?.retry()
+  }
 
   if (ok && form.address && form.city && form.postalCode) {
     try {

@@ -39,7 +39,7 @@
           </div>
 
           <ClientOnly>
-            <TurnstileWidget @verify="t => turnstileToken = t" />
+            <TurnstileWidget ref="turnstile" @verify="t => turnstileToken = t" />
           </ClientOnly>
 
           <button type="submit" :disabled="auth.loading || !turnstileToken" class="btn-primary w-full py-3 disabled:opacity-50">
@@ -75,11 +75,19 @@ const route = useRoute()
 const googleError = computed(() => route.query.error as string || '')
 
 const turnstileToken = ref('')
+const turnstile = ref<{ retry: () => void } | null>(null)
 
 const form = reactive({ email: '', password: '' })
 
 async function handleLogin() {
-  const ok = await auth.login(form.email, form.password)
-  if (ok) navigateTo(localePath('/compte'))
+  const ok = await auth.login(form.email, form.password, turnstileToken.value)
+  if (ok) {
+    navigateTo(localePath('/compte'))
+    return
+  }
+  // Turnstile tokens are single-use — a rejected attempt (wrong password as
+  // much as a stale token) needs a freshly issued one before retrying.
+  turnstileToken.value = ''
+  turnstile.value?.retry()
 }
 </script>

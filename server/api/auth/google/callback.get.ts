@@ -46,6 +46,12 @@ export default defineEventHandler(async (event) => {
       return sendRedirect(event, '/connexion?error=no_email')
     }
 
+    // An unverified Google address must never resolve to a local account:
+    // whoever claims it at Google would inherit the matching customer.
+    if (userInfo.verified_email !== true) {
+      return sendRedirect(event, '/connexion?error=email_not_verified')
+    }
+
     const db = useDBHttp()
 
     // Find or create user
