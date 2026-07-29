@@ -8,6 +8,7 @@
  */
 import { getRequestHeader, type H3Event } from 'h3'
 import { AppError, ERROR_CODES } from '../../shared/errors'
+import { hashIp } from './crypto'
 import { PRIMARY_DOMAIN, LOCALES } from '../../shared/locales'
 
 /**
@@ -112,6 +113,11 @@ export function assertSameOrigin(event: H3Event): void {
   throw new AppError(ERROR_CODES.CSRF_REJECTED, {
     internal: `unrecognised sec-fetch-site "${fetchSite}" for ${routeKey(event)}`,
   })
+}
+
+/** The caller's address, pseudonymised for storage. */
+export function hashIpFor(event: H3Event): string {
+  return hashIp(clientIp(event))
 }
 
 /** Country supplied by the CDN edge. A hint for language only — never a permission. */
