@@ -4,6 +4,7 @@ import { customers, sessions } from '~/server/database/schema'
 import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { setSessionFlag } from '~/server/utils/sessionFlag'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 10, windowMs: 60_000 })
@@ -84,6 +85,7 @@ export default defineEventHandler(async (event) => {
       maxAge: 30 * 24 * 60 * 60,
       path: '/',
     })
+    setSessionFlag(event, 30 * 24 * 60 * 60)
 
     return sendRedirect(event, '/compte')
   } catch (e: any) {

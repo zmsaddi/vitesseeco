@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { normalizeEmail } from '~/server/utils/validation'
+import { setSessionFlag } from '~/server/utils/sessionFlag'
 import { logEvent } from '~/server/utils/events'
 
 export default defineEventHandler(async (event) => {
@@ -62,6 +63,7 @@ export default defineEventHandler(async (event) => {
     maxAge: 30 * 24 * 60 * 60,
     path: '/',
   })
+  setSessionFlag(event, 30 * 24 * 60 * 60)
 
   await logEvent({ type: 'auth_login_success', customerId: customer.id, event })
 

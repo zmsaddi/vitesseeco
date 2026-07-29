@@ -5,6 +5,7 @@ import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
 import { isValidEmail, normalizeEmail, isValidName, isValidPassword, LIMITS } from '~/server/utils/validation'
 import { logEvent } from '~/server/utils/events'
+import { setSessionFlag } from '~/server/utils/sessionFlag'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 5, windowMs: 60_000 })
@@ -89,6 +90,7 @@ export default defineEventHandler(async (event) => {
     maxAge: 30 * 24 * 60 * 60,
     path: '/',
   })
+  setSessionFlag(event, 30 * 24 * 60 * 60)
 
   await logEvent({ type: 'auth_register_success', customerId: customer.id, event })
 

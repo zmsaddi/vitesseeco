@@ -3,6 +3,7 @@ import { customers, sessions, addresses, orders } from '~/server/database/schema
 import { eq, and, gt } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
 import { rateLimit } from '~/server/utils/rateLimit'
+import { clearSessionFlag } from '~/server/utils/sessionFlag'
 
 export default defineEventHandler(async (event) => {
   rateLimit(event, { maxRequests: 3, windowMs: 60_000 })
@@ -49,6 +50,7 @@ export default defineEventHandler(async (event) => {
 
   // 5. Clear auth cookie
   deleteCookie(event, 'auth_token')
+  clearSessionFlag(event)
 
   return { ok: true, message: 'Account deleted' }
 })
