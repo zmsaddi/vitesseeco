@@ -1,193 +1,98 @@
+import { DEFAULT_LOCALE, LOCALES, PRIMARY_DOMAIN } from './shared/locales'
+
+/**
+ * Nuxt configuration for the rebuild.
+ *
+ * Locale configuration is DERIVED from shared/locales.ts rather than repeated
+ * here. That manifest already decides prefixes, direction and country domains,
+ * and a second copy would eventually disagree with it — which is how a site
+ * ends up advertising an hreflang that 404s.
+ */
 export default defineNuxtConfig({
+  // Server-rendered in production. Rendering on the server is also what lets the
+  // catalogue be read with a token the browser never sees.
   ssr: process.env.VERCEL === '1',
   compatibilityDate: '2024-11-01',
 
-  experimental: {
-    payloadExtraction: true,
-  },
+  future: { compatibilityVersion: 4 },
 
-  vue: {
-    compilerOptions: {
-      // Suppress hydration mismatch warnings in production
-    },
-  },
-
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxtjs/i18n',
-    '@pinia/nuxt',
-    '@nuxt/image',
-    '@nuxtjs/sanity',
-    '@nuxt/icon',
-    '@nuxt/fonts',
-  ],
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/i18n', '@nuxt/image', '@nuxt/icon', '@nuxt/fonts'],
 
   tailwindcss: {
-    cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }],
+    cssPath: ['~/app/assets/css/main.css', { injectPosition: 'first' }],
   },
 
   i18n: {
-    baseUrl: 'https://vitesse-eco.fr',
-    langDir: 'locales',
-    locales: [
-      { code: 'fr', language: 'fr-FR', file: 'fr.json', name: 'Français' },
-      { code: 'en', language: 'en-GB', file: 'en.json', name: 'English' },
-      { code: 'es', language: 'es-ES', file: 'es.json', name: 'Español' },
-      { code: 'nl', language: 'nl-NL', file: 'nl.json', name: 'Nederlands' },
-      { code: 'de', language: 'de-DE', file: 'de.json', name: 'Deutsch' },
-      { code: 'ar', language: 'ar-SA', file: 'ar.json', name: 'العربية', dir: 'rtl' },
-    ],
-    defaultLocale: 'fr',
+    baseUrl: `https://${PRIMARY_DOMAIN}`,
+    defaultLocale: DEFAULT_LOCALE,
     strategy: 'prefix_except_default',
-    detectBrowserLanguage: false, // Handled by custom LanguageBanner component
-  },
-
-  sanity: {
-    projectId: '2jvnjf0c',
-    dataset: 'production',
-    useCdn: true,
-    apiVersion: '2024-01-01',
+    langDir: 'locales',
+    locales: LOCALES.map((locale) => ({
+      code: locale.code,
+      language: locale.hreflang,
+      name: locale.label,
+      file: `${locale.code}.json`,
+      ...(locale.dir === 'rtl' ? { dir: 'rtl' as const } : {}),
+    })),
+    // Detection is ours: it runs in a server middleware that can see the CDN
+    // country header, and it never redirects a URL that already states its
+    // locale — which is what keeps crawlers seeing the page they asked for.
+    detectBrowserLanguage: false,
   },
 
   fonts: {
     families: [
-      { name: 'Inter', provider: 'google', weights: [300, 400, 500, 600, 700] },
-      { name: 'Montserrat', provider: 'google', weights: [400, 500, 600, 700, 800] },
+      { name: 'Inter', provider: 'google', weights: [400, 500, 600, 700] },
+      { name: 'Manrope', provider: 'google', weights: [500, 600, 700, 800] },
     ],
   },
 
   runtimeConfig: {
+    // Server-only. Nothing here is ever serialised into the page.
+    databaseUrl: '',
+    authSecret: '',
+    ipHashSalt: '',
     sanityToken: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
-    // PayPal — credentials are env-only. PAYPAL_MODE switches sandbox vs live.
-    paypalClientId: '',
-    paypalClientSecret: '',
-    paypalWebhookId: '',
-    paypalMode: 'sandbox',
+    adminEmails: '',
+    turnstileSecretKey: '',
     resendApiKey: '',
-    authSecret: '',
-    databaseUrl: '',
     googleClientId: '',
     googleClientSecret: '',
-    turnstileSecretKey: '',
+
     public: {
-      sanityProjectId: '2jvnjf0c',
-      sanityDataset: 'production',
+      siteUrl: `https://${PRIMARY_DOMAIN}`,
       stripePublishableKey: '',
-      // Public PayPal client id is needed by the JS SDK on the browser. Safe to ship.
-      paypalClientId: '',
-      paypalMode: 'sandbox',
-      siteUrl: 'https://vitesse-eco.fr',
-      googlePlacesApiKey: '',
       turnstileSiteKey: '',
+    },
+  },
+
+  nitro: {
+    // Fail the build rather than ship a route that throws at request time.
+    typescript: { strict: true },
+  },
+
+  typescript: {
+    strict: true,
+    typeCheck: false,
+    tsConfig: {
+      // The Studio is a separate application with its own toolchain and its own
+      // tsconfig; type-checking it from here checks it against the wrong
+      // settings and doubles the work for no signal.
+      exclude: ['../cms', '../assets-reference', '../import-data', '../competitor-research'],
     },
   },
 
   app: {
     head: {
-      title: 'Vitesse Eco — Fatbikes Électriques',
+      htmlAttrs: { lang: DEFAULT_LOCALE },
       meta: [
-        { name: 'description', content: 'Vitesse Eco — Votre spécialiste en fatbikes électriques en France. Découvrez notre gamme de vélos électriques premium.' },
-        { name: 'theme-color', content: '#0A1628' },
-        { property: 'og:type', content: 'website' },
-        { property: 'og:site_name', content: 'Vitesse Eco' },
-        { property: 'og:title', content: 'Vitesse Eco — Fatbikes Électriques Premium' },
-        { property: 'og:description', content: 'Vitesse Eco — Spécialiste en mobilité électrique en France. Fatbikes, accessoires et plus. Livraison gratuite.' },
-        { property: 'og:image', content: 'https://vitesse-eco.fr/poster.webp' },
-        { property: 'og:url', content: 'https://vitesse-eco.fr' },
-        { name: 'twitter:card', content: 'summary_large_image' },
-        { name: 'twitter:title', content: 'Vitesse Eco — Fatbikes Électriques' },
-        { name: 'twitter:description', content: 'Fatbikes électriques premium. Livraison gratuite en France.' },
-        { name: 'twitter:image', content: 'https://vitesse-eco.fr/poster.webp' },
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { name: 'theme-color', content: '#0B1220' },
       ],
-      link: [
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
-        { rel: 'privacy-policy', href: 'https://vitesse-eco.fr/politique-confidentialite' },
-      ],
-      script: [
-        { type: 'application/ld+json', innerHTML: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          name: 'Vitesse Eco',
-          url: 'https://vitesse-eco.fr',
-          potentialAction: { '@type': 'SearchAction', target: 'https://vitesse-eco.fr/produits?q={search_term_string}', 'query-input': 'required name=search_term_string' },
-        }) },
-        { type: 'application/ld+json', innerHTML: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Organization',
-          name: 'Vitesse Eco',
-          url: 'https://vitesse-eco.fr',
-          logo: 'https://vitesse-eco.fr/logo.webp',
-          contactPoint: {
-            '@type': 'ContactPoint',
-            email: 'contact@vitesse-eco.fr',
-            telephone: '+33745830049',
-            contactType: 'customer service',
-            availableLanguage: ['French', 'English', 'Spanish', 'Dutch', 'German', 'Arabic'],
-          },
-          address: {
-            '@type': 'PostalAddress',
-            streetAddress: '32 Rue du Faubourg du Pont Neuf',
-            addressLocality: 'Poitiers',
-            postalCode: '86000',
-            addressCountry: 'FR',
-          },
-        }) },
-        { type: 'application/ld+json', innerHTML: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'LocalBusiness',
-          '@id': 'https://vitesse-eco.fr/#business',
-          name: 'Vitesse Eco',
-          description: 'Votre spécialiste en mobilité électrique en France. Fatbikes, accessoires, pièces détachées et plus. Livraison en France et en Europe.',
-          url: 'https://vitesse-eco.fr',
-          logo: 'https://vitesse-eco.fr/logo.webp',
-          image: 'https://vitesse-eco.fr/poster.webp',
-          telephone: '+33745830049',
-          email: 'contact@vitesse-eco.fr',
-          address: {
-            '@type': 'PostalAddress',
-            streetAddress: '32 Rue du Faubourg du Pont Neuf',
-            addressLocality: 'Poitiers',
-            addressRegion: 'Nouvelle-Aquitaine',
-            postalCode: '86000',
-            addressCountry: 'FR',
-          },
-          geo: {
-            '@type': 'GeoCoordinates',
-            latitude: 46.5802,
-            longitude: 0.3434,
-          },
-          priceRange: '€€',
-          currenciesAccepted: 'EUR',
-          // Owner decision 2026-07-05: card + Klarna are part of the offer
-          // and declared here ahead of PSP activation (checkout exposure
-          // itself stays gated by ENABLE_STRIPE / ENABLE_KLARNA).
-          paymentAccepted: 'PayPal, Credit Card (Visa, Mastercard, CB), Klarna, Cash',
-          acceptedPaymentMethod: [
-            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#PayPal', name: 'PayPal' },
-            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#VISA', name: 'Visa' },
-            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#MasterCard', name: 'Mastercard' },
-            { '@type': 'PaymentMethod', name: 'Klarna' },
-            { '@type': 'PaymentMethod', '@id': 'http://purl.org/goodrelations/v1#Cash', name: 'Espèces en magasin' },
-          ],
-          areaServed: [
-            { '@type': 'Country', name: 'France' },
-            { '@type': 'Country', name: 'Belgium' },
-            { '@type': 'Country', name: 'Netherlands' },
-            { '@type': 'Country', name: 'Germany' },
-            { '@type': 'Country', name: 'Spain' },
-            { '@type': 'Country', name: 'Luxembourg' },
-          ],
-          sameAs: [],
-          hasOfferCatalog: {
-            '@type': 'OfferCatalog',
-            name: 'Produits Vitesse Eco',
-            url: 'https://vitesse-eco.fr/produits',
-          },
-        }) },
-      ],
+      link: [{ rel: 'icon', href: '/favicon.ico' }],
     },
   },
 })

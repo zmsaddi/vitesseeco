@@ -185,14 +185,14 @@ export const deskStructure = (S: StructureBuilder) =>
                 .child(
                   S.list()
                     .title('أي طرق تخدم كل دولة؟ (البادئات البريدية تظهر في السطر الثاني)')
-                    .items([
+                    .items(([
                       ['FR', '🇫🇷 فرنسا'],
                       ['BE', '🇧🇪 بلجيكا'],
                       ['NL', '🇳🇱 هولندا'],
                       ['DE', '🇩🇪 ألمانيا'],
                       ['ES', '🇪🇸 إسبانيا'],
                       ['LU', '🇱🇺 لوكسمبورغ'],
-                    ].map(([code, label]) =>
+                    ] satisfies Array<[string, string]>).map(([code, label]) =>
                       S.listItem()
                         .title(label)
                         .child(

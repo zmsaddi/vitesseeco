@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Design tokens.
+ *
+ * Every colour the interface uses is declared here as a custom property and
+ * consumed through Tailwind's theme. Components never write a hex value, which
+ * is what makes a palette change one edit instead of a search across 30 files —
+ * and what lets the same markup serve a light and a dark theme.
+ *
+ * Pairs are chosen to clear WCAG AA (4.5:1 for text, 3:1 for large text and
+ * interactive boundaries) in both themes.
+ */
+
+@layer base {
+  :root {
+    /* Surfaces, from furthest back to nearest front. */
+    --surface-base: 250 250 249;
+    --surface-raised: 255 255 255;
+    --surface-sunken: 244 244 243;
+    --surface-border: 226 226 224;
+
+    /* Text, by descending emphasis. */
+    --content-strong: 12 18 28;
+    --content-default: 46 54 68;
+    --content-muted: 104 112 126;
+    --content-inverse: 255 255 255;
+
+    /* The brand accent, used for actions and focus. */
+    --accent: 0 122 94;
+    --accent-hover: 0 100 77;
+    --accent-contrast: 255 255 255;
+    --accent-subtle: 226 244 239;
+
+    /* Status. */
+    --danger: 178 32 40;
+    --danger-subtle: 253 234 234;
+    --warning: 148 92 0;
+    --warning-subtle: 253 243 224;
+    --success: 20 112 70;
+    --success-subtle: 227 245 235;
+
+    --radius: 0.75rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --surface-base: 11 18 32;
+      --surface-raised: 19 28 45;
+      --surface-sunken: 8 13 24;
+      --surface-border: 39 51 73;
+
+      --content-strong: 247 249 252;
+      --content-default: 205 213 226;
+      --content-muted: 146 158 178;
+      --content-inverse: 11 18 32;
+
+      --accent: 45 212 164;
+      --accent-hover: 84 226 184;
+      --accent-contrast: 6 26 21;
+      --accent-subtle: 17 48 42;
+
+      --danger: 255 138 138;
+      --danger-subtle: 60 21 24;
+      --warning: 250 199 106;
+      --warning-subtle: 56 40 12;
+      --success: 109 226 168;
+      --success-subtle: 12 47 33;
+    }
+  }
+
+  :root[data-theme='dark'] {
+    --surface-base: 11 18 32;
+    --surface-raised: 19 28 45;
+    --surface-sunken: 8 13 24;
+    --surface-border: 39 51 73;
+
+    --content-strong: 247 249 252;
+    --content-default: 205 213 226;
+    --content-muted: 146 158 178;
+    --content-inverse: 11 18 32;
+
+    --accent: 45 212 164;
+    --accent-hover: 84 226 184;
+    --accent-contrast: 6 26 21;
+    --accent-subtle: 17 48 42;
+
+    --danger: 255 138 138;
+    --danger-subtle: 60 21 24;
+    --warning: 250 199 106;
+    --warning-subtle: 56 40 12;
+    --success: 109 226 168;
+    --success-subtle: 12 47 33;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-surface text-content antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+  }
+
+  /* A visible focus ring is a requirement, not a preference: it is how anyone
+     navigating by keyboard knows where they are. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-surface;
+  }
+
+  /* Respect a stated preference for less motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Minimum 44px touch targets — the size a thumb can actually hit. */
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-accent text-accent-contrast hover:bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply btn border border-surface-border bg-surface-raised text-content-strong hover:bg-surface-sunken;
+  }
+
+  .field {
+    @apply min-h-11 w-full rounded-xl border border-surface-border bg-surface-raised px-3.5 text-content-strong placeholder:text-content-muted focus:border-accent focus:outline-none;
+  }
+
+  .card {
+    @apply rounded-2xl border border-surface-border bg-surface-raised;
+  }
+
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+}
