@@ -31,6 +31,10 @@ jobs:
         run: npm run check:hex
       # Reports which Merchant feeds are safe to register. Skips silently
       # without a token so a fork or a secretless run is not blocked.
+      # Each rule here encodes a defect that actually shipped and that the type
+      # checker, the tests and the build all passed over.
+      - name: Invariants
+        run: npm run check:invariants
       - name: Merchant feed guard
         run: npm run check:feeds
         env:

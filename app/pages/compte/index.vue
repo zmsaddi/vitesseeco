@@ -10,6 +10,7 @@ definePageMeta({ middleware: 'auth' })
 const localePath = useLocalePath()
 const { t } = useI18n()
 
+const { formatShortDate } = useFormatDate()
 const { data: me } = await useFetch<{ firstName: string; lastName: string; email: string } | null>(
   '/api/auth/me'
 )
@@ -74,7 +75,7 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
             <div>
               <p class="font-mono font-bold text-content-strong">{{ order.orderNumber }}</p>
               <p class="text-sm text-content-muted">
-                {{ new Date(order.createdAt).toLocaleDateString() }}
+                {{ formatShortDate(order.createdAt) }}
               </p>
             </div>
             <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusTone(order.status)">

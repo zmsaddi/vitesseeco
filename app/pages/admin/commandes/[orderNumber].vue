@@ -107,12 +107,8 @@ const canMarkCash = computed(
   () => order.value?.status === 'awaiting_payment' && order.value?.paymentMethod !== 'stripe'
 )
 
-const formatDate = (value: string | null) =>
-  value
-    ? new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(
-        new Date(value)
-      )
-    : '—'
+const { formatDateTime } = useFormatDate()
+const formatDate = (value: string | null) => formatDateTime(value) || '—'
 
 /** The address as it goes on a label — one line per line, in postal order. */
 const addressLines = computed<string[]>(() => {

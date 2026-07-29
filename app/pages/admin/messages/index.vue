@@ -72,10 +72,7 @@ function saveNote(message: ContactMessage, raw: string): void {
   void patch(message.id, { adminNote: note })
 }
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat(locale.value, { dateStyle: 'medium', timeStyle: 'short' }).format(
-    new Date(value)
-  )
+const { formatDateTime: formatDate } = useFormatDate()
 
 /**
  * mailto with the subject already threaded, so replying is one click rather

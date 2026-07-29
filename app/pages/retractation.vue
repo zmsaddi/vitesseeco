@@ -11,15 +11,9 @@
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
 
-// Dated so a reader can tell whether this text predates their order. Noon UTC
-// because a date parsed at midnight moves to the previous day west of Greenwich.
-const updatedAt = computed(() =>
-  new Date('2026-07-29T12:00:00Z').toLocaleDateString(locale.value, {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-)
+// Dated so a reader can tell whether this text predates their order.
+const { formatLongDate } = useFormatDate()
+const updatedAt = computed(() => formatLongDate('2026-07-29T12:00:00Z'))
 
 const conditionOk = [
   'withdrawal.condition_ok_1',

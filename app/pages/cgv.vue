@@ -10,6 +10,7 @@
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
 
+const { formatLongDate } = useFormatDate()
 interface Article {
   /** Anchor. Kept in French in every language so a shared link survives a
    *  language switch instead of landing at the top of the page. */
@@ -149,7 +150,7 @@ const UPDATED_AT = '2026-07-29'
 // Parsed at midday: a bare date string is UTC midnight, which formats as the
 // previous day for anyone west of Greenwich.
 const updatedOn = computed(() =>
-  new Intl.DateTimeFormat(locale.value, { dateStyle: 'long' }).format(new Date(`${UPDATED_AT}T12:00:00`))
+  formatLongDate(`${UPDATED_AT}T12:00:00Z`)
 )
 
 useSeoMeta({

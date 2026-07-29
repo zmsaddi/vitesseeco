@@ -14,7 +14,8 @@ const localePath = useLocalePath()
 const { locale, t } = useI18n()
 
 const LAST_UPDATED = '2026-07-29'
-const updatedOn = computed(() => new Date(LAST_UPDATED).toLocaleDateString(locale.value))
+const { formatLongDate } = useFormatDate()
+const updatedOn = computed(() => formatLongDate(`${LAST_UPDATED}T12:00:00Z`))
 
 const sections = [
   { id: 'responsable', label: 'privacy.controller_title' },
