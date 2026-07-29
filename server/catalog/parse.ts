@@ -13,6 +13,12 @@
 import { z } from 'zod'
 import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales'
 import { fromEuros, type Cents } from '../../shared/money'
+import {
+  marketPrice,
+  type MarketDefinition,
+  type MarketPriceRule,
+  type PriceRounding,
+} from '../../shared/markets'
 import type {
   Brand,
   Category,
@@ -42,6 +48,21 @@ const imageSchema = z
 
 const PRODUCT_TYPES = ['bike', 'spare_part', 'accessory', 'kids_car', 'other'] as const
 
+/**
+ * A price the owner has set for one market by hand, overriding whatever the
+ * catalogue-wide rule would have produced.
+ */
+const pricesByCountry = z
+  .array(
+    z.object({
+      country: z.string().length(2),
+      price: z.number().nonnegative(),
+      compareAtPrice: z.number().nonnegative().nullable().optional(),
+    })
+  )
+  .nullable()
+  .optional()
+
 const rawProductSchema = z.object({
   _id: z.string().min(1),
   slug: z.string().min(1),
@@ -49,6 +70,7 @@ const rawProductSchema = z.object({
   // Authored in euros. Converted to cents here and never seen as a float again.
   price: z.number().nonnegative(),
   compareAtPrice: z.number().nonnegative().nullable().optional(),
+  pricesByCountry,
   productType: z.string().nullable().optional(),
   color: localized,
   colorHex: z.string().nullable().optional(),
@@ -139,6 +161,81 @@ export interface ParseContext {
   locale: LocaleCode
   /** Sellable quantities from Postgres, keyed by product id. */
   availability: Map<string, number>
+  /** Whose price list applies. Derived from the URL — see shared/markets.ts. */
+  market: MarketDefinition
+  /** That market's catalogue-wide adjustment, when the owner has set one. */
+  priceRule: MarketPriceRule | null
+}
+
+/**
+ * What a product costs in the market being served.
+ *
+ * A hand-set price for the market wins outright. Otherwise the base price is put
+ * through the market's rule, and the struck-through price is put through the
+ * same one — leaving `compareAtPrice` un-adjusted would quietly change the size
+ * of every advertised discount the moment a market was moved by a percent.
+ */
+function resolvePrice(
+  raw: { price: number; compareAtPrice?: number | null; pricesByCountry?: z.infer<typeof pricesByCountry> },
+  context: ParseContext
+): { price: Cents; compareAtPrice: Cents | null } {
+  const override = (raw.pricesByCountry ?? []).find(
+    (entry) => entry.country.trim().toUpperCase() === context.market.country
+  )
+
+  if (override) {
+    const price = fromEuros(override.price)
+    return {
+      price,
+      compareAtPrice: toCompareAtPrice(override.compareAtPrice ?? null, price),
+    }
+  }
+
+  const price = marketPrice(fromEuros(raw.price), context.priceRule)
+  const compareAt =
+    raw.compareAtPrice == null
+      ? null
+      : marketPrice(fromEuros(raw.compareAtPrice), context.priceRule)
+
+  return { price, compareAtPrice: compareAt !== null && compareAt > price ? compareAt : null }
+}
+
+const ROUNDINGS: readonly PriceRounding[] = ['exact', 'euro', 'charm']
+
+const rawMarketRuleSchema = z.object({
+  country: z.string().length(2),
+  adjustmentPercent: z.number().min(-90).max(900).nullable().optional(),
+  rounding: z.string().nullable().optional(),
+})
+
+/**
+ * Read the owner's market adjustments.
+ *
+ * A malformed entry is dropped rather than guessed at: a market that silently
+ * falls back to the base price is a smaller mistake than one priced from a
+ * number nobody meant.
+ */
+export function parseMarketRules(documents: unknown): Map<string, MarketPriceRule> {
+  const rules = new Map<string, MarketPriceRule>()
+  if (!Array.isArray(documents)) return rules
+
+  for (const entry of documents) {
+    const parsed = rawMarketRuleSchema.safeParse(entry)
+    if (!parsed.success) {
+      warn(entry, parsed.error)
+      continue
+    }
+    const country = parsed.data.country.trim().toUpperCase()
+    const rounding = (ROUNDINGS as readonly string[]).includes(parsed.data.rounding ?? '')
+      ? (parsed.data.rounding as PriceRounding)
+      : 'exact'
+    rules.set(country, {
+      country,
+      adjustmentPercent: parsed.data.adjustmentPercent ?? 0,
+      rounding,
+    })
+  }
+  return rules
 }
 
 function warn(document: unknown, error: z.ZodError): void {
@@ -163,7 +260,7 @@ export function parseProductSummary(document: unknown, context: ParseContext): P
     return null
   }
 
-  const price = fromEuros(raw.price)
+  const { price, compareAtPrice } = resolvePrice(raw, context)
   const brandName = raw.brand ? translate(raw.brand.name, context.locale) : null
   const categoryName = raw.category ? translate(raw.category.name, context.locale) : null
 
@@ -173,7 +270,7 @@ export function parseProductSummary(document: unknown, context: ParseContext): P
     name,
     image: toImage(raw.image, name),
     price,
-    compareAtPrice: toCompareAtPrice(raw.compareAtPrice, price),
+    compareAtPrice,
     productType: toProductType(raw.productType),
     brand: raw.brand && brandName ? { slug: raw.brand.slug, name: brandName } : null,
     category: raw.category && categoryName ? { slug: raw.category.slug, name: categoryName } : null,

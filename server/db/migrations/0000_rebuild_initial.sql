@@ -112,6 +112,9 @@ CREATE TABLE "orders" (
 	"status" "order_status" DEFAULT 'draft' NOT NULL,
 	"locale" text DEFAULT 'fr' NOT NULL,
 	"currency" text DEFAULT 'EUR' NOT NULL,
+	"market_country" text DEFAULT 'FR' NOT NULL,
+	"vat_rate_bp" integer DEFAULT 2000 NOT NULL,
+	"vat_cents" integer DEFAULT 0 NOT NULL,
 	"subtotal_cents" integer NOT NULL,
 	"discount_cents" integer DEFAULT 0 NOT NULL,
 	"shipping_cents" integer DEFAULT 0 NOT NULL,
@@ -138,6 +141,8 @@ CREATE TABLE "orders" (
 	CONSTRAINT "orders_discount_non_negative" CHECK ("orders"."discount_cents" >= 0),
 	CONSTRAINT "orders_shipping_non_negative" CHECK ("orders"."shipping_cents" >= 0),
 	CONSTRAINT "orders_total_non_negative" CHECK ("orders"."total_cents" >= 0),
+	CONSTRAINT "orders_vat_rate_sane" CHECK ("orders"."vat_rate_bp" >= 0 and "orders"."vat_rate_bp" <= 10000),
+	CONSTRAINT "orders_vat_within_total" CHECK ("orders"."vat_cents" >= 0 and "orders"."vat_cents" <= "orders"."total_cents"),
 	CONSTRAINT "orders_total_is_consistent" CHECK ("orders"."total_cents" = "orders"."subtotal_cents" - "orders"."discount_cents" + "orders"."shipping_cents"),
 	CONSTRAINT "orders_discount_within_subtotal" CHECK ("orders"."discount_cents" <= "orders"."subtotal_cents"),
 	CONSTRAINT "orders_have_an_owner" CHECK ("orders"."customer_id" is not null or "orders"."guest_email" is not null)

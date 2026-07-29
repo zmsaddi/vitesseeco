@@ -51,7 +51,12 @@
     "published": "Publicado",
     "published_yes": "Publicado",
     "published_no": "Oculto",
-    "no_products": "Sin productos."
+    "no_products": "Sin productos.",
+    "market": "Mercado",
+    "base_price_only": "Solo precio base",
+    "market_price_hint": "Un precio en gris sigue la regla del mercado. Escriba uno para fijarlo; 🔗 lo devuelve a la regla.",
+    "vat_neutral": "Equivalente neutro de IVA",
+    "follow_rule": "Seguir la regla del mercado"
   },
   "auth": {
     "sign_in": "Iniciar sesión",
@@ -104,12 +109,14 @@
     "totals_pending": "Elija un método de entrega.",
     "pay_online": "Pagar en línea",
     "pay_cash": "Pagar en efectivo al recibir",
-    "pay_in_store": "Pagar en la tienda"
+    "pay_in_store": "Pagar en la tienda",
+    "vat_included": "IVA {rate} % incluido"
   },
   "common": {
+    "close": "Cerrar",
     "loading": "Cargando…",
-    "previous": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "previous": "Anterior"
   },
   "confirmation": {
     "title": "Pedido recibido",
@@ -159,6 +166,20 @@
     "eyebrow": "Movilidad eléctrica",
     "title": "Bicicletas eléctricas que elegimos, entregamos y respaldamos.",
     "description": "Fatbikes, accesorios y repuestos. Entrega gratuita por nuestro propio equipo en Bélgica, los Países Bajos y Vienne."
+  },
+  "market": {
+    "suggestion_label": "Otra versión de esta tienda",
+    "suggestion": "Existe una versión en {language} para su país.",
+    "suggestion_prices": "Allí se aplican los precios de su mercado.",
+    "suggestion_go": "Ver en {language}"
+  },
+  "markets": {
+    "FR": "🇫🇷 Francia",
+    "BE": "🇧🇪 Bélgica",
+    "LU": "🇱🇺 Luxemburgo",
+    "NL": "🇳🇱 Países Bajos",
+    "DE": "🇩🇪 Alemania",
+    "ES": "🇪🇸 España"
   },
   "nav": {
     "primary": "Navegación principal",

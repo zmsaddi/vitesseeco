@@ -26,6 +26,7 @@ import { generateOrderNumber } from '../security/crypto'
 import type { OrderStatus } from '../../shared/schemas'
 import type { AddressInput } from '../../shared/schemas'
 import type { LocaleCode } from '../../shared/locales'
+import type { MarketDefinition } from '../../shared/markets'
 import { assertTransition, holdsStock, timestampFor } from './orderState'
 import { consumeReservations, releaseReservations, reserveStock } from './stock'
 import { redeemPromo, releasePromo } from './promo'
@@ -35,6 +36,12 @@ import { getPromo } from '../catalog'
 export interface PlaceOrderInput {
   lines: RequestedLine[]
   locale: LocaleCode
+  /**
+   * Whose price list this order is being placed against. Resolved from the
+   * request by the route wrapper; omitted only by tests, where the locale's own
+   * market is the sensible default.
+   */
+  market?: MarketDefinition
   paymentMethod: 'stripe' | 'cod' | 'in_store'
   shipping: { methodCode: string; country: string; postalCode?: string }
   shippingAddress?: AddressInput
@@ -76,6 +83,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   const breakdown = await priceBasket({
     lines: input.lines,
     locale: input.locale,
+    ...(input.market ? { market: input.market } : {}),
     ...(input.promoCode ? { promoCode: input.promoCode } : {}),
     shipping: {
       methodCode: input.shipping.methodCode,
@@ -111,6 +119,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
           guestEmail: input.customer ? null : (input.guestEmail ?? null),
           status: initialStatus,
           locale: input.locale,
+          // Frozen here rather than derived later: VAT rates change by law, and
+          // an invoice has to say what applied on the day, not what applies now.
+          marketCountry: breakdown.market.country,
+          vatRateBp: breakdown.market.vatRateBp,
+          vatCents: breakdown.market.vatCents,
           subtotalCents: breakdown.subtotal,
           discountCents: breakdown.discount,
           shippingCents: breakdown.shipping,
@@ -200,6 +213,9 @@ async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<Pl
       totalCents: orders.totalCents,
       promoCode: orders.promoCode,
       shippingMethodCode: orders.shippingMethodCode,
+      marketCountry: orders.marketCountry,
+      vatRateBp: orders.vatRateBp,
+      vatCents: orders.vatCents,
     })
     .from(orders)
     .where(eq(orders.idempotencyKey, key))
@@ -233,6 +249,13 @@ async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<Pl
       total: row.totalCents as never,
       promo: row.promoCode ? { code: row.promoCode, applied: true } : null,
       shippingMethod: { code: row.shippingMethodCode, name: row.shippingMethodCode },
+      // Read back rather than recomputed: a replay of a week-old request must
+      // return the order as it was agreed, not as it would be priced today.
+      market: {
+        country: row.marketCountry,
+        vatRateBp: row.vatRateBp,
+        vatCents: row.vatCents as never,
+      },
     },
   }
 }

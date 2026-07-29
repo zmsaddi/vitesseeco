@@ -19,10 +19,12 @@ import {
   atLeastZero,
   multiply,
   subtract,
+  vatIncludedIn,
   type Cents,
 } from '../../shared/money'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import type { LocaleCode } from '../../shared/locales'
+import { marketForLocale, type MarketDefinition } from '../../shared/markets'
 import { getProductsByIds, getPromo, shippingMethodsFor } from '../catalog'
 import type { ProductSummary, ShippingMethod } from '../catalog/types'
 import { db } from '../db/client'
@@ -57,11 +59,31 @@ export interface PriceBreakdown {
   total: Cents
   promo: { code: string; applied: boolean; reason?: string } | null
   shippingMethod: { code: string; name: string } | null
+  /**
+   * Which price list was used, and the VAT already inside the total.
+   *
+   * EU consumer prices are quoted gross, so this extracts rather than adds — the
+   * customer pays `total` either way. It is carried because an invoice has to
+   * state the rate that applied, and because the figure must be frozen at the
+   * moment of sale rather than recomputed later from whatever the rate has since
+   * become.
+   */
+  market: {
+    country: string
+    vatRateBp: number
+    vatCents: Cents
+  }
 }
 
 export interface PriceRequest {
   lines: RequestedLine[]
   locale: LocaleCode
+  /**
+   * Whose price list applies. Resolved from the request's host and locale by the
+   * route wrapper — never read from the body, so the figure on the page and the
+   * figure in the basket are the same figure by construction.
+   */
+  market?: MarketDefinition
   promoCode?: string
   shipping?: {
     methodCode: string
@@ -89,7 +111,8 @@ export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown
     })
   }
 
-  const products = await getProductsByIds(productIds, request.locale)
+  const market = request.market ?? marketForLocale(request.locale)
+  const products = await getProductsByIds(productIds, request.locale, market)
   const missing = productIds.filter((id) => !products.has(id))
   if (missing.length > 0) {
     throw new AppError(ERROR_CODES.NOT_FOUND, {
@@ -143,6 +166,11 @@ export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown
     total,
     promo: promo.summary,
     shippingMethod: shipping.method ? { code: shipping.method.code, name: shipping.method.name } : null,
+    market: {
+      country: market.country,
+      vatRateBp: market.vatRateBp,
+      vatCents: vatIncludedIn(total, market.vatRateBp),
+    },
   }
 }
 

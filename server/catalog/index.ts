@@ -9,18 +9,22 @@ import { db } from '../db/client'
 import { readAvailability } from '../services/stock'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import type { LocaleCode } from '../../shared/locales'
+import { marketForLocale, type MarketDefinition, type MarketPriceRule } from '../../shared/markets'
 import { cachedFetch } from './client'
 import {
   parseBrand,
   parseCategory,
+  parseMarketRules,
   parseProductDetail,
   parseProductSummary,
   parsePromo,
   parseShippingMethod,
 } from './parse'
+import type { ParseContext } from './parse'
 import {
   BRANDS_QUERY,
   CATEGORIES_QUERY,
+  MARKET_PRICING_QUERY,
   PRODUCTS_BY_IDS_QUERY,
   PRODUCT_BY_SLUG_QUERY,
   PROMO_BY_CODE_QUERY,
@@ -41,6 +45,32 @@ import type {
 } from './types'
 
 const MAX_PER_PAGE = 48
+
+/**
+ * The owner's per-market adjustments, cached as long as the shipping table
+ * because it changes about as often. A missing document simply means every
+ * market sells at the base price.
+ */
+async function marketRules(): Promise<Map<string, MarketPriceRule>> {
+  const documents = await cachedFetch<unknown>('market-pricing', MARKET_PRICING_QUERY, {}, 300_000)
+  return parseMarketRules(documents)
+}
+
+/**
+ * Assemble the pricing half of a parse context.
+ *
+ * When no market is given the locale decides, which is the whole design: the
+ * URL a page was requested at determines its prices, so a crawler and a customer
+ * opening the same address are quoted the same figure.
+ */
+async function pricingFor(
+  locale: LocaleCode,
+  market?: MarketDefinition
+): Promise<Pick<ParseContext, 'market' | 'priceRule'>> {
+  const resolved = market ?? marketForLocale(locale)
+  const rules = await marketRules()
+  return { market: resolved, priceRule: rules.get(resolved.country) ?? null }
+}
 
 /** Availability for a set of products, defaulting to zero for anything unknown. */
 async function availabilityFor(productIds: string[]): Promise<Map<string, number>> {
@@ -87,10 +117,13 @@ export async function listProducts(query: ProductQuery): Promise<Paginated<Produ
   const ids = documents
     .map((document) => (document as { _id?: string })?._id)
     .filter((id): id is string => typeof id === 'string')
-  const availability = await availabilityFor(ids)
+  const [availability, pricing] = await Promise.all([
+    availabilityFor(ids),
+    pricingFor(query.locale, query.market),
+  ])
 
   let items = documents
-    .map((document) => parseProductSummary(document, { locale: query.locale, availability }))
+    .map((document) => parseProductSummary(document, { locale: query.locale, availability, ...pricing }))
     .filter((product): product is ProductSummary => product !== null)
 
   // Filtering on stock happens here rather than in GROQ, because the numbers
@@ -118,7 +151,8 @@ export async function listProducts(query: ProductQuery): Promise<Paginated<Produ
  */
 export async function getProductsByIds(
   productIds: string[],
-  locale: LocaleCode
+  locale: LocaleCode,
+  market?: MarketDefinition
 ): Promise<Map<string, ProductSummary>> {
   const unique = [...new Set(productIds)]
   if (unique.length === 0) return new Map()
@@ -129,17 +163,24 @@ export async function getProductsByIds(
     { ids: unique },
     30_000
   )
-  const availability = await availabilityFor(unique)
+  const [availability, pricing] = await Promise.all([
+    availabilityFor(unique),
+    pricingFor(locale, market),
+  ])
 
   const result = new Map<string, ProductSummary>()
   for (const document of documents) {
-    const product = parseProductSummary(document, { locale, availability })
+    const product = parseProductSummary(document, { locale, availability, ...pricing })
     if (product) result.set(product.id, product)
   }
   return result
 }
 
-export async function getProduct(slug: string, locale: LocaleCode): Promise<ProductDetail> {
+export async function getProduct(
+  slug: string,
+  locale: LocaleCode,
+  market?: MarketDefinition
+): Promise<ProductDetail> {
   const document = await cachedFetch<unknown>(`product:${slug}`, PRODUCT_BY_SLUG_QUERY, { slug })
 
   if (!document) {
@@ -162,13 +203,17 @@ export async function getProduct(slug: string, locale: LocaleCode): Promise<Prod
     raw._id,
     ...siblingDocuments.map((entry) => (entry as { _id?: string })?._id),
   ].filter((id): id is string => typeof id === 'string')
-  const availability = await availabilityFor(ids)
+  const [availability, pricing] = await Promise.all([
+    availabilityFor(ids),
+    pricingFor(locale, market),
+  ])
+  const context: ParseContext = { locale, availability, ...pricing }
 
   const siblings = siblingDocuments
-    .map((entry) => parseProductSummary(entry, { locale, availability }))
+    .map((entry) => parseProductSummary(entry, context))
     .filter((entry): entry is ProductSummary => entry !== null)
 
-  const product = parseProductDetail(document, { locale, availability }, siblings)
+  const product = parseProductDetail(document, context, siblings)
   if (!product) {
     throw new AppError(ERROR_CODES.NOT_FOUND, {
       internal: `product "${slug}" exists but could not be parsed`,

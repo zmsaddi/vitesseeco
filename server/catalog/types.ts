@@ -9,6 +9,7 @@
  */
 import type { Cents } from '../../shared/money'
 import type { LocaleCode } from '../../shared/locales'
+import type { MarketDefinition } from '../../shared/markets'
 
 export type ProductType = 'bike' | 'spare_part' | 'accessory' | 'kids_car' | 'other'
 
@@ -123,6 +124,11 @@ export interface PromoDefinition {
 
 export interface ProductQuery {
   locale: LocaleCode
+  /**
+   * Whose price list to quote. Omitted means the locale decides, which is the
+   * normal case — see shared/markets.ts for why this is never a client field.
+   */
+  market?: MarketDefinition
   productType?: ProductType
   categorySlug?: string
   brandSlug?: string

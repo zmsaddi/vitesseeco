@@ -222,6 +222,15 @@ export const orders = pgTable(
     locale: text('locale').notNull().default('fr'),
     currency: text('currency').notNull().default('EUR'),
 
+    /**
+     * Which market's price list this order was placed against, and the VAT that
+     * was inside the total on the day. Both are frozen: rates change by law, and
+     * an invoice reprinted next year has to show what actually applied.
+     */
+    marketCountry: text('market_country').notNull().default('FR'),
+    vatRateBp: integer('vat_rate_bp').notNull().default(2000),
+    vatCents: integer('vat_cents').notNull().default(0),
+
     subtotalCents: integer('subtotal_cents').notNull(),
     discountCents: integer('discount_cents').notNull().default(0),
     shippingCents: integer('shipping_cents').notNull().default(0),
@@ -263,6 +272,10 @@ export const orders = pgTable(
     check('orders_discount_non_negative', sql`${t.discountCents} >= 0`),
     check('orders_shipping_non_negative', sql`${t.shippingCents} >= 0`),
     check('orders_total_non_negative', sql`${t.totalCents} >= 0`),
+    check('orders_vat_rate_sane', sql`${t.vatRateBp} >= 0 and ${t.vatRateBp} <= 10000`),
+    // VAT is contained in the total, never added to it: EU consumer prices are
+    // quoted gross, so a VAT figure above the total is a arithmetic mistake.
+    check('orders_vat_within_total', sql`${t.vatCents} >= 0 and ${t.vatCents} <= ${t.totalCents}`),
     // The total is not an independent number: it is the other three.
     check(
       'orders_total_is_consistent',

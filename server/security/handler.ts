@@ -10,9 +10,11 @@
  * The previous build asked each route to opt in. Thirty-eight defects later,
  * the lesson is that opt-in security is a list of the routes someone remembered.
  */
-import { createError, defineEventHandler, getQuery, readBody, type H3Event } from 'h3'
+import { createError, defineEventHandler, getQuery, getRequestHost, readBody, type H3Event } from 'h3'
 import type { ZodType, z } from 'zod'
 import { AppError, ERROR_CODES, toAppError } from '../../shared/errors'
+import { isLocaleCode, type LocaleCode } from '../../shared/locales'
+import { resolveMarket, type MarketDefinition } from '../../shared/markets'
 import { applyApiHeaders } from './headers'
 import { assertSameOrigin, routeKey } from './request'
 import { enforceRateLimit, type RateLimitPreset } from './rateLimit'
@@ -26,6 +28,15 @@ export interface RouteContext<TBody, TQuery> {
   query: TQuery
   /** Present for `customer` and `admin` routes; null only when access is public. */
   customer: AuthenticatedCustomer | null
+  /**
+   * Whose price list applies to this request.
+   *
+   * Computed here from the host and the locale that was just validated, so no
+   * route can accept a market as its own input. That matters: a market read from
+   * the body would let the page and the basket disagree about what something
+   * costs. See shared/markets.ts.
+   */
+  market: MarketDefinition
 }
 
 export interface RouteDefinition<TBody, TQuery> {
@@ -64,6 +75,12 @@ async function requireAdmin(event: H3Event): Promise<AuthenticatedCustomer> {
     })
   }
   return customer
+}
+
+/** The locale a validated payload carries, if it carries one. */
+function localeIn(payload: unknown): LocaleCode | undefined {
+  const value = (payload as { locale?: unknown } | undefined)?.locale
+  return isLocaleCode(value) ? value : undefined
 }
 
 function formatIssues(error: z.ZodError): Array<{ path: string; message: string }> {
@@ -126,7 +143,14 @@ export function defineRoute<TBody = undefined, TQuery = undefined>(
         query = parsed.data
       }
 
-      return await definition.handler({ event, body, query, customer })
+      // 5. Market. Derived, never declared — the locale the caller already sent
+      //    is the only thing it depends on, so quoting and charging cannot drift.
+      const market = resolveMarket({
+        host: getRequestHost(event),
+        locale: localeIn(query) ?? localeIn(body),
+      })
+
+      return await definition.handler({ event, body, query, customer, market })
     } catch (error) {
       throw respond(event, error)
     }

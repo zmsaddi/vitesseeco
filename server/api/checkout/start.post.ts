@@ -20,7 +20,7 @@ export default defineRoute({
   access: 'public',
   rateLimit: 'checkout',
   body: startCheckoutSchema,
-  handler: async ({ body, customer }) => {
+  handler: async ({ body, customer, market }) => {
     const email = customer?.email ?? body.email
     if (!email) {
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
@@ -32,6 +32,7 @@ export default defineRoute({
     const order = await placeOrder({
       lines: body.cart.lines,
       locale: body.locale as LocaleCode,
+      market,
       paymentMethod: body.paymentMethod,
       shipping: {
         methodCode: body.shipping.methodCode,

@@ -2,17 +2,29 @@
 /**
  * Catalogue: price and stock in one place.
  *
- * Each field saves on blur, on its own, so a mistyped price cannot take a
- * stock correction down with it. Nothing saves while you are still typing —
- * a keystroke-by-keystroke save would write 9, then 95, then 950.
+ * Each field saves on blur, on its own, so a mistyped price cannot take a stock
+ * correction down with it. Nothing saves while you are still typing — a
+ * keystroke-by-keystroke save would write 9, then 95, then 950.
  *
- * Stock is set as an absolute count, never a delta: two people counting the
- * same rack must not compound each other's edit. Live reservations are left
- * alone, so a checkout in flight keeps its hold.
+ * Stock is set as an absolute count, never a delta: two people counting the same
+ * rack must not compound each other's edit. Live reservations are left alone, so
+ * a checkout in flight keeps its hold.
+ *
+ * Picking a market adds that market's price beside the base one. A market price
+ * shown in plain text is the catalogue-wide rule doing its work and will follow
+ * the base price; once it is typed in it is pinned, and re-pricing everything
+ * else later leaves it where it is. The 🔗 button gives it back to the rule.
  */
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
+
+interface MarketPrice {
+  country: string
+  price: number
+  isOverride: boolean
+  vatNeutral: number
+}
 
 interface CatalogueRow {
   id: string
@@ -26,20 +38,24 @@ interface CatalogueRow {
   onHand: number
   reserved: number
   available: number
+  market: MarketPrice | null
 }
 
 const search = ref('')
 const lowStockOnly = ref(false)
+const market = ref('')
 
-const { data, refresh, status: loadState } = await useFetch<{ items: CatalogueRow[]; total: number }>(
-  '/api/admin/products',
-  {
-    query: computed(() => ({
-      ...(search.value ? { search: search.value } : {}),
-      ...(lowStockOnly.value ? { lowStockOnly: true } : {}),
-    })),
-  }
-)
+const { data, refresh, status: loadState } = await useFetch<{
+  items: CatalogueRow[]
+  total: number
+  markets: string[]
+}>('/api/admin/products', {
+  query: computed(() => ({
+    ...(search.value ? { search: search.value } : {}),
+    ...(lowStockOnly.value ? { lowStockOnly: true } : {}),
+    ...(market.value ? { market: market.value } : {}),
+  })),
+})
 
 const saving = ref<string | null>(null)
 const saved = ref<string | null>(null)
@@ -52,58 +68,70 @@ function flashSaved(key: string): void {
   }, 2000)
 }
 
-async function savePrice(row: CatalogueRow, raw: string): Promise<void> {
+/** One place to talk to the server, so every edit reports failure the same way. */
+async function save(key: string, request: () => Promise<unknown>): Promise<void> {
+  saving.value = key
+  error.value = null
+  try {
+    await request()
+    flashSaved(key)
+  } catch (err: unknown) {
+    const payload = (err as { data?: { messageKey?: string } })?.data
+    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
+  } finally {
+    saving.value = null
+    // Refreshed even after a failure, so the table shows what is actually
+    // stored rather than what was typed.
+    await refresh()
+  }
+}
+
+function savePrice(row: CatalogueRow, raw: string): void {
   const price = Number(raw)
   if (!Number.isFinite(price) || price < 0 || price === row.price) return
-
-  saving.value = `${row.id}:price`
-  error.value = null
-  try {
-    await $fetch(`/api/admin/products/${row.id}`, { method: 'PATCH', body: { price } })
-    flashSaved(`${row.id}:price`)
-    await refresh()
-  } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
-    await refresh()
-  } finally {
-    saving.value = null
-  }
+  void save(`${row.id}:price`, () =>
+    $fetch<unknown>(`/api/admin/products/${row.id}`, { method: 'PATCH', body: { price } })
+  )
 }
 
-async function saveStock(row: CatalogueRow, raw: string): Promise<void> {
+function saveMarketPrice(row: CatalogueRow, raw: string): void {
+  if (!row.market) return
+  const price = Number(raw)
+  if (!Number.isFinite(price) || price < 0 || price === row.market.price) return
+  void save(`${row.id}:market`, () =>
+    $fetch<unknown>(`/api/admin/products/${row.id}`, {
+      method: 'PATCH',
+      body: { marketPrice: { country: row.market!.country, price } },
+    })
+  )
+}
+
+/** Hand the market price back to the catalogue-wide rule. */
+function clearMarketPrice(row: CatalogueRow): void {
+  if (!row.market) return
+  void save(`${row.id}:market`, () =>
+    $fetch<unknown>(`/api/admin/products/${row.id}`, {
+      method: 'PATCH',
+      body: { marketPrice: { country: row.market!.country, price: null } },
+    })
+  )
+}
+
+function saveStock(row: CatalogueRow, raw: string): void {
   const onHand = Number(raw)
   if (!Number.isInteger(onHand) || onHand < 0 || onHand === row.onHand) return
-
-  saving.value = `${row.id}:stock`
-  error.value = null
-  try {
-    await $fetch('/api/admin/stock', {
-      method: 'PATCH',
-      body: { productId: row.id, onHand },
-    })
-    flashSaved(`${row.id}:stock`)
-    await refresh()
-  } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
-    await refresh()
-  } finally {
-    saving.value = null
-  }
+  void save(`${row.id}:stock`, () =>
+    $fetch<unknown>('/api/admin/stock', { method: 'PATCH', body: { productId: row.id, onHand } })
+  )
 }
 
-async function toggleAvailability(row: CatalogueRow): Promise<void> {
-  saving.value = `${row.id}:available`
-  try {
-    await $fetch(`/api/admin/products/${row.id}`, {
+function toggleAvailability(row: CatalogueRow): void {
+  void save(`${row.id}:available`, () =>
+    $fetch<unknown>(`/api/admin/products/${row.id}`, {
       method: 'PATCH',
       body: { isAvailable: !row.isAvailable },
     })
-    await refresh()
-  } finally {
-    saving.value = null
-  }
+  )
 }
 
 useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
@@ -120,21 +148,30 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
         class="field w-auto flex-1 min-w-52"
         :placeholder="$t('admin.search_products')"
       />
+      <select v-model="market" class="field w-auto" :aria-label="$t('admin.market')">
+        <option value="">{{ $t('admin.base_price_only') }}</option>
+        <option v-for="code in data?.markets ?? []" :key="code" :value="code">
+          {{ $t(`markets.${code}`) }}
+        </option>
+      </select>
       <label class="flex min-h-11 items-center gap-2 text-sm text-content">
         <input v-model="lowStockOnly" type="checkbox" class="accent-accent" />
         {{ $t('admin.low_stock_only') }}
       </label>
     </div>
 
+    <p v-if="market" class="mt-3 text-sm text-content-muted">{{ $t('admin.market_price_hint') }}</p>
+
     <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
 
     <div v-else-if="data?.items?.length" class="mt-6 overflow-x-auto">
-      <table class="w-full min-w-[46rem] border-separate border-spacing-y-2">
+      <table class="w-full min-w-[52rem] border-separate border-spacing-y-2">
         <thead>
           <tr class="text-start text-xs uppercase tracking-wide text-content-muted">
             <th class="px-3 text-start font-semibold">{{ $t('admin.product') }}</th>
             <th class="px-3 text-start font-semibold">{{ $t('admin.price') }}</th>
+            <th v-if="market" class="px-3 text-start font-semibold">{{ $t(`markets.${market}`) }}</th>
             <th class="px-3 text-start font-semibold">{{ $t('admin.on_hand') }}</th>
             <th class="px-3 text-start font-semibold">{{ $t('admin.reserved') }}</th>
             <th class="px-3 text-start font-semibold">{{ $t('admin.sellable') }}</th>
@@ -177,6 +214,39 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
                 <span class="text-sm text-content-muted">€</span>
                 <Icon
                   v-if="saved === `${row.id}:price`"
+                  name="ph:check-circle-fill"
+                  class="h-5 w-5 text-success"
+                />
+              </div>
+            </td>
+
+            <td v-if="market && row.market" class="border-y border-surface-border p-3">
+              <div class="flex items-center gap-2">
+                <input
+                  :value="row.market.price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="field h-10 w-28"
+                  :class="row.market.isOverride ? 'font-semibold' : 'text-content-muted'"
+                  :title="`${$t('admin.vat_neutral')}: ${row.market.vatNeutral} €`"
+                  :disabled="saving === `${row.id}:market`"
+                  @blur="saveMarketPrice(row, ($event.target as HTMLInputElement).value)"
+                  @keyup.enter="($event.target as HTMLInputElement).blur()"
+                />
+                <span class="text-sm text-content-muted">€</span>
+                <button
+                  v-if="row.market.isOverride"
+                  type="button"
+                  class="text-content-muted transition hover:text-accent"
+                  :title="$t('admin.follow_rule')"
+                  :disabled="saving === `${row.id}:market`"
+                  @click="clearMarketPrice(row)"
+                >
+                  <Icon name="ph:link-simple" class="h-5 w-5" />
+                </button>
+                <Icon
+                  v-if="saved === `${row.id}:market`"
                   name="ph:check-circle-fill"
                   class="h-5 w-5 text-success"
                 />

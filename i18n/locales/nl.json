@@ -51,7 +51,12 @@
     "published": "Gepubliceerd",
     "published_yes": "Gepubliceerd",
     "published_no": "Verborgen",
-    "no_products": "Geen producten."
+    "no_products": "Geen producten.",
+    "market": "Markt",
+    "base_price_only": "Alleen basisprijs",
+    "market_price_hint": "Een grijze prijs volgt de marktregel. Typ er een om hem vast te zetten; 🔗 geeft hem terug aan de regel.",
+    "vat_neutral": "Btw-neutraal equivalent",
+    "follow_rule": "De marktregel volgen"
   },
   "auth": {
     "sign_in": "Inloggen",
@@ -104,12 +109,14 @@
     "totals_pending": "Kies een bezorgwijze.",
     "pay_online": "Online betalen",
     "pay_cash": "Contant bij levering",
-    "pay_in_store": "In de winkel betalen"
+    "pay_in_store": "In de winkel betalen",
+    "vat_included": "waarvan {rate} % btw"
   },
   "common": {
+    "close": "Sluiten",
     "loading": "Laden…",
-    "previous": "Vorige",
-    "next": "Volgende"
+    "next": "Volgende",
+    "previous": "Vorige"
   },
   "confirmation": {
     "title": "Bestelling ontvangen",
@@ -159,6 +166,20 @@
     "eyebrow": "Elektrische mobiliteit",
     "title": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen.",
     "description": "Fatbikes, accessoires en onderdelen. Gratis bezorging door ons eigen team in België, Nederland en de Vienne."
+  },
+  "market": {
+    "suggestion_label": "Andere versie van deze winkel",
+    "suggestion": "Er is een {language} versie voor uw land.",
+    "suggestion_prices": "Daar gelden de prijzen van uw markt.",
+    "suggestion_go": "Bekijk in {language}"
+  },
+  "markets": {
+    "FR": "🇫🇷 Frankrijk",
+    "BE": "🇧🇪 België",
+    "LU": "🇱🇺 Luxemburg",
+    "NL": "🇳🇱 Nederland",
+    "DE": "🇩🇪 Duitsland",
+    "ES": "🇪🇸 Spanje"
   },
   "nav": {
     "primary": "Hoofdnavigatie",

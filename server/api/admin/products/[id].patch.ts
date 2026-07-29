@@ -1,18 +1,23 @@
 /**
  * Edit a product's price from the panel.
  *
- * The write goes to Sanity, which owns catalogue content — the panel is a
- * faster door into the same room, not a second source of truth.
+ * The write goes to Sanity, which owns catalogue content — the panel is a faster
+ * door into the same room, not a second source of truth.
  *
  * Two consequences are handled here rather than discovered later:
  *
  *  - The catalogue cache is dropped immediately. Merchant Center crawls the
  *    landing page and compares it to the feed, and a price that disagrees
  *    between the two is one of the commonest reasons an item is disapproved.
- *  - Orders already placed are unaffected. They were priced when they were
- *    made and the amount is held at the payment provider, so a price change
- *    cannot alter what a customer is charged mid-checkout.
+ *  - Orders already placed are unaffected. They were priced when they were made
+ *    and the amount is held at the payment provider, so a price change cannot
+ *    alter what a customer is charged mid-checkout.
+ *
+ * A per-market price may also be set here. Setting one *pins* that market: the
+ * product stops following the catalogue-wide rule, so re-pricing everything else
+ * later will leave it behind. Clearing it puts the product back under the rule.
  */
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { getRouterParam } from 'h3'
 import { defineRoute } from '../../../security/handler'
@@ -20,14 +25,29 @@ import { invalidateCatalogCache, sanity } from '../../../catalog/client'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { audit } from '../../../services/audit'
 import { fromEuros } from '../../../../shared/money'
+import { MARKET_COUNTRIES } from '../../../../shared/markets'
+
+const euros = z.number().min(0).max(1_000_000).multipleOf(0.01)
 
 const bodySchema = z
   .object({
     // Authored in euros, as the owner thinks of it. Two decimals maximum:
     // anything finer cannot be charged.
-    price: z.number().min(0).max(1_000_000).multipleOf(0.01).optional(),
-    compareAtPrice: z.number().min(0).max(1_000_000).multipleOf(0.01).nullable().optional(),
+    price: euros.optional(),
+    compareAtPrice: euros.nullable().optional(),
     isAvailable: z.boolean().optional(),
+    /** A hand-set price for one market. `price: null` removes the override. */
+    marketPrice: z
+      .object({
+        country: z
+          .string()
+          .trim()
+          .toUpperCase()
+          .refine((value) => (MARKET_COUNTRIES as readonly string[]).includes(value), 'unknown market'),
+        price: euros.nullable(),
+      })
+      .strict()
+      .optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, 'nothing to change')
@@ -40,6 +60,21 @@ const idSchema = z
   .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/)
   .refine((value) => !value.startsWith('drafts.'), 'drafts are not editable here')
 
+interface MarketPriceRow {
+  _key?: string
+  country?: string
+  price?: number
+  compareAtPrice?: number | null
+}
+
+interface Before {
+  price: number
+  compareAtPrice: number | null
+  isAvailable: boolean
+  name: string
+  pricesByCountry: MarketPriceRow[] | null
+}
+
 export default defineRoute({
   access: 'admin',
   rateLimit: 'standard',
@@ -49,8 +84,14 @@ export default defineRoute({
     if (!id.success) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: 'malformed product id' })
 
     const client = sanity()
-    const before = await client.fetch<{ price: number; compareAtPrice: number | null; isAvailable: boolean; name: string } | null>(
-      `*[_id == $id][0]{ price, compareAtPrice, isAvailable, "name": coalesce(name.fr, name.en) }`,
+    const before = await client.fetch<Before | null>(
+      `*[_id == $id][0]{
+         price,
+         compareAtPrice,
+         isAvailable,
+         "name": coalesce(name.fr, name.en),
+         "pricesByCountry": pricesByCountry[]{ _key, country, price, compareAtPrice }
+       }`,
       { id: id.data }
     )
     if (!before) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no product ${id.data}` })
@@ -74,6 +115,34 @@ export default defineRoute({
     if (body.price !== undefined) patch.price = body.price
     if (body.isAvailable !== undefined) patch.isAvailable = body.isAvailable
 
+    // The whole array is rewritten rather than patched in place: it is a handful
+    // of rows, and a read-modify-write here is easier to be sure about than a
+    // key-indexed mutation on a document someone may have just edited.
+    let nextMarketPrices: MarketPriceRow[] | undefined
+    if (body.marketPrice) {
+      const { country, price } = body.marketPrice
+      const existing = (before.pricesByCountry ?? []).filter((row) => Boolean(row?.country))
+      const others = existing.filter((row) => row.country?.trim().toUpperCase() !== country)
+
+      if (price === null) {
+        nextMarketPrices = others
+      } else {
+        const current = existing.find((row) => row.country?.trim().toUpperCase() === country)
+        nextMarketPrices = [
+          ...others,
+          {
+            // Sanity requires a stable key on every array item; reusing the
+            // existing one keeps the row identity across edits.
+            _key: current?._key ?? randomUUID(),
+            country,
+            price,
+            ...(current?.compareAtPrice != null ? { compareAtPrice: current.compareAtPrice } : {}),
+          },
+        ]
+      }
+      patch.pricesByCountry = nextMarketPrices
+    }
+
     let mutation = client.patch(id.data).set(patch)
     if (body.compareAtPrice === null) mutation = mutation.unset(['compareAtPrice'])
     else if (body.compareAtPrice !== undefined) mutation = mutation.set({ compareAtPrice: body.compareAtPrice })
@@ -90,11 +159,26 @@ export default defineRoute({
       actorId: customer!.email,
       resourceType: 'product',
       resourceId: id.data,
-      before: { price: before.price, compareAtPrice: before.compareAtPrice, isAvailable: before.isAvailable },
-      after: { price: nextPrice, compareAtPrice: nextCompare, isAvailable: body.isAvailable ?? before.isAvailable },
+      before: {
+        price: before.price,
+        compareAtPrice: before.compareAtPrice,
+        isAvailable: before.isAvailable,
+        pricesByCountry: before.pricesByCountry,
+      },
+      after: {
+        price: nextPrice,
+        compareAtPrice: nextCompare,
+        isAvailable: body.isAvailable ?? before.isAvailable,
+        ...(nextMarketPrices ? { pricesByCountry: nextMarketPrices } : {}),
+      },
       metadata: { name: before.name },
     })
 
-    return { id: id.data, price: nextPrice, compareAtPrice: nextCompare, isAvailable: body.isAvailable ?? before.isAvailable }
+    return {
+      id: id.data,
+      price: nextPrice,
+      compareAtPrice: nextCompare,
+      isAvailable: body.isAvailable ?? before.isAvailable,
+    }
   },
 })

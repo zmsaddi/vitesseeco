@@ -22,11 +22,11 @@ export default defineRoute({
   access: 'public',
   rateLimit: 'lookup',
   query: z.object({ locale: localeSchema.default('fr') }).strict(),
-  handler: async ({ event, query }) => {
+  handler: async ({ event, query, market }) => {
     const parsed = slugSchema.safeParse(getRouterParam(event, 'slug'))
     if (!parsed.success) {
       throw new AppError(ERROR_CODES.NOT_FOUND, { internal: 'malformed product slug' })
     }
-    return getProduct(parsed.data, query.locale as LocaleCode)
+    return getProduct(parsed.data, query.locale as LocaleCode, market)
   },
 })

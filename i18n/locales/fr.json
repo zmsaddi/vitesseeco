@@ -51,7 +51,12 @@
     "published": "Publié",
     "published_yes": "Publié",
     "published_no": "Masqué",
-    "no_products": "Aucun produit."
+    "no_products": "Aucun produit.",
+    "market": "Marché",
+    "base_price_only": "Prix de base seul",
+    "market_price_hint": "Un prix en gris suit la règle du marché. Saisissez-en un pour le figer ; 🔗 le rend à la règle.",
+    "vat_neutral": "Équivalent après TVA",
+    "follow_rule": "Suivre la règle du marché"
   },
   "auth": {
     "sign_in": "Se connecter",
@@ -104,12 +109,14 @@
     "totals_pending": "Choisissez un mode de livraison.",
     "pay_online": "Payer en ligne",
     "pay_cash": "Payer en espèces à la livraison",
-    "pay_in_store": "Payer en magasin"
+    "pay_in_store": "Payer en magasin",
+    "vat_included": "dont TVA {rate} %"
   },
   "common": {
+    "close": "Fermer",
     "loading": "Chargement…",
-    "previous": "Précédent",
-    "next": "Suivant"
+    "next": "Suivant",
+    "previous": "Précédent"
   },
   "confirmation": {
     "title": "Commande reçue",
@@ -159,6 +166,20 @@
     "eyebrow": "Mobilité électrique",
     "title": "Des vélos électriques choisis, livrés et suivis par nous.",
     "description": "Fatbikes, accessoires et pièces détachées. Livraison gratuite par notre propre équipe en Belgique, aux Pays-Bas et dans la Vienne."
+  },
+  "market": {
+    "suggestion_label": "Autre version du site",
+    "suggestion": "Une version en {language} existe pour votre pays.",
+    "suggestion_prices": "Les prix y sont ceux de votre marché.",
+    "suggestion_go": "Voir en {language}"
+  },
+  "markets": {
+    "FR": "🇫🇷 France",
+    "BE": "🇧🇪 Belgique",
+    "LU": "🇱🇺 Luxembourg",
+    "NL": "🇳🇱 Pays-Bas",
+    "DE": "🇩🇪 Allemagne",
+    "ES": "🇪🇸 Espagne"
   },
   "nav": {
     "primary": "Navigation principale",

@@ -90,6 +90,46 @@ export function applyPercentage(amount: Cents, percent: number): Cents {
   return cents(Math.round((amount * percent) / 100))
 }
 
+/**
+ * Move an amount by a percentage, up or down.
+ *
+ * Distinct from `applyPercentage`, which computes a *share* of an amount and
+ * refuses anything outside 0–100. This returns the amount itself, adjusted —
+ * what a market uplift is.
+ */
+export function adjustByPercent(amount: Cents, percent: number): Cents {
+  if (!Number.isFinite(percent) || percent < -90 || percent > 900) {
+    throw new MoneyError(`adjustByPercent: percent must be between -90 and 900, got ${percent}`)
+  }
+  return cents(Math.round((amount * (100 + percent)) / 100))
+}
+
+/** Round to the nearest whole euro. */
+export function roundToEuro(amount: Cents): Cents {
+  return cents(Math.round(amount / 100) * 100)
+}
+
+/** Nearest whole euro less one cent — the .99 the whole trade prices at. */
+export function toCharmPrice(amount: Cents): Cents {
+  const euros = roundToEuro(amount)
+  return cents(euros <= 0 ? 0 : euros - 1)
+}
+
+/**
+ * The VAT already contained in a gross amount, at a rate in basis points
+ * (20.00% = 2000).
+ *
+ * Prices shown to EU consumers include VAT, so this extracts rather than adds:
+ * `gross × rate / (100% + rate)`. Basis points keep the rate an integer, for the
+ * same reason prices are cents.
+ */
+export function vatIncludedIn(gross: Cents, rateBp: number): Cents {
+  if (!Number.isInteger(rateBp) || rateBp < 0 || rateBp > 10_000) {
+    throw new MoneyError(`vatIncludedIn: rate must be 0-10000 basis points, got ${rateBp}`)
+  }
+  return cents(Math.round((gross * rateBp) / (10_000 + rateBp)))
+}
+
 /** Clamp to zero — a discount larger than the basket must not create a negative total. */
 export function atLeastZero(amount: Cents): Cents {
   return amount < 0 ? ZERO : amount

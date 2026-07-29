@@ -22,12 +22,21 @@ const IMAGE = `{
   "lqip": asset->metadata.lqip
 }`
 
+/**
+ * Per-market overrides. Projected on both product shapes because the price on a
+ * listing card and the price on the product page must come from the same field
+ * — a customer who sees one figure in a grid and another after clicking has
+ * been misled, whichever one is charged.
+ */
+const PRICES_BY_COUNTRY = `pricesByCountry[]{ country, price, compareAtPrice }`
+
 export const PRODUCT_SUMMARY = `{
   _id,
   "slug": slug.current,
   name,
   price,
   compareAtPrice,
+  "pricesByCountry": ${PRICES_BY_COUNTRY},
   productType,
   color,
   colorHex,
@@ -45,6 +54,7 @@ export const PRODUCT_DETAIL = `{
   name,
   price,
   compareAtPrice,
+  "pricesByCountry": ${PRICES_BY_COUNTRY},
   productType,
   color,
   colorHex,
@@ -142,6 +152,17 @@ export const SHIPPING_METHODS_QUERY = `
 
 export const PROMO_BY_CODE_QUERY = `
   *[_type == "promoCode" && upper(code) == $code][0] ${PROMO}
+`
+
+/**
+ * The catalogue-wide price adjustment per market.
+ *
+ * One document, read once and cached for as long as the shipping table, because
+ * it changes about as often — and a missing document simply means every market
+ * sells at the base price.
+ */
+export const MARKET_PRICING_QUERY = `
+  *[_type == "siteSettings"][0].marketPricing[]{ country, adjustmentPercent, rounding }
 `
 
 export interface ListFilters {

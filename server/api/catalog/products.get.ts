@@ -46,9 +46,10 @@ export default defineRoute({
   access: 'public',
   rateLimit: 'lookup',
   query: querySchema,
-  handler: async ({ query }) =>
+  handler: async ({ query, market }) =>
     listProducts({
       locale: query.locale as LocaleCode,
+      market,
       ...(query.productType ? { productType: query.productType } : {}),
       ...(query.category ? { categorySlug: query.category } : {}),
       ...(query.brand ? { brandSlug: query.brand } : {}),

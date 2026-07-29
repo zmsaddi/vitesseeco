@@ -51,7 +51,12 @@
     "published": "Published",
     "published_yes": "Published",
     "published_no": "Hidden",
-    "no_products": "No products."
+    "no_products": "No products.",
+    "market": "Market",
+    "base_price_only": "Base price only",
+    "market_price_hint": "A grey price follows the market rule. Type one to pin it; 🔗 gives it back to the rule.",
+    "vat_neutral": "VAT-neutral equivalent",
+    "follow_rule": "Follow the market rule"
   },
   "auth": {
     "sign_in": "Sign in",
@@ -104,12 +109,14 @@
     "totals_pending": "Choose a delivery method.",
     "pay_online": "Pay online",
     "pay_cash": "Pay cash on delivery",
-    "pay_in_store": "Pay in the shop"
+    "pay_in_store": "Pay in the shop",
+    "vat_included": "includes {rate} % VAT"
   },
   "common": {
+    "close": "Close",
     "loading": "Loading…",
-    "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "previous": "Previous"
   },
   "confirmation": {
     "title": "Order received",
@@ -159,6 +166,20 @@
     "eyebrow": "Electric mobility",
     "title": "Electric bikes we choose, deliver and stand behind.",
     "description": "Fatbikes, accessories and spare parts. Free delivery by our own team in Belgium, the Netherlands and the Vienne."
+  },
+  "market": {
+    "suggestion_label": "Another version of this shop",
+    "suggestion": "There is a {language} version for your country.",
+    "suggestion_prices": "It carries your market’s prices.",
+    "suggestion_go": "View in {language}"
+  },
+  "markets": {
+    "FR": "🇫🇷 France",
+    "BE": "🇧🇪 Belgium",
+    "LU": "🇱🇺 Luxembourg",
+    "NL": "🇳🇱 Netherlands",
+    "DE": "🇩🇪 Germany",
+    "ES": "🇪🇸 Spain"
   },
   "nav": {
     "primary": "Main navigation",

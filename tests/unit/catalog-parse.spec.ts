@@ -3,14 +3,22 @@ import {
   parseBrand,
   parseCategory,
   parseProductDetail,
+  parseMarketRules,
   parseProductSummary,
   parsePromo,
   parseShippingMethod,
   translate,
 } from '../../server/catalog/parse'
+import { defaultMarket, getMarket, type MarketPriceRule } from '../../shared/markets'
+import { fromEuros } from '../../shared/money'
 
 const availability = new Map<string, number>([['p1', 3]])
-const context = { locale: 'fr' as const, availability }
+const context = {
+  locale: 'fr' as const,
+  availability,
+  market: defaultMarket(),
+  priceRule: null,
+}
 
 const VALID_PRODUCT = {
   _id: 'p1',
@@ -285,5 +293,107 @@ describe('parseCategory and parseBrand', () => {
       slug: 'qmwheel',
       name: 'QMWheel',
     })
+  })
+})
+
+describe('market pricing', () => {
+  const inMarket = (country: string, priceRule: MarketPriceRule | null = null) => ({
+    ...context,
+    market: getMarket(country)!,
+    priceRule,
+  })
+
+  it('charges the base price where no rule and no override exist', () => {
+    expect(parseProductSummary(VALID_PRODUCT, inMarket('NL'))?.price).toBe(fromEuros(950))
+  })
+
+  it('applies the market rule when the owner has set one', () => {
+    const rule = { country: 'NL', adjustmentPercent: 2, rounding: 'exact' as const }
+    expect(parseProductSummary(VALID_PRODUCT, inMarket('NL', rule))?.price).toBe(fromEuros(969))
+  })
+
+  it('lets a hand-set market price beat the rule outright', () => {
+    const document = {
+      ...VALID_PRODUCT,
+      pricesByCountry: [{ country: 'NL', price: 899, compareAtPrice: null }],
+    }
+    const rule = { country: 'NL', adjustmentPercent: 50, rounding: 'exact' as const }
+    expect(parseProductSummary(document, inMarket('NL', rule))?.price).toBe(fromEuros(899))
+  })
+
+  it('ignores an override meant for a different market', () => {
+    const document = {
+      ...VALID_PRODUCT,
+      pricesByCountry: [{ country: 'DE', price: 899, compareAtPrice: null }],
+    }
+    expect(parseProductSummary(document, inMarket('NL'))?.price).toBe(fromEuros(950))
+  })
+
+  it('matches an override written in lower case', () => {
+    const document = {
+      ...VALID_PRODUCT,
+      pricesByCountry: [{ country: 'nl', price: 899, compareAtPrice: null }],
+    }
+    expect(parseProductSummary(document, inMarket('NL'))?.price).toBe(fromEuros(899))
+  })
+
+  it('moves the struck-through price with the price', () => {
+    // Leaving compareAtPrice behind would quietly resize every advertised
+    // discount the moment a market was shifted by a percent.
+    const document = { ...VALID_PRODUCT, compareAtPrice: 1100 }
+    const rule = { country: 'NL', adjustmentPercent: 10, rounding: 'exact' as const }
+    const product = parseProductSummary(document, inMarket('NL', rule))
+    expect(product?.price).toBe(fromEuros(1045))
+    expect(product?.compareAtPrice).toBe(fromEuros(1210))
+  })
+
+  it('drops a struck-through price that is no longer higher', () => {
+    const document = {
+      ...VALID_PRODUCT,
+      compareAtPrice: 1100,
+      pricesByCountry: [{ country: 'NL', price: 1200, compareAtPrice: 1100 }],
+    }
+    expect(parseProductSummary(document, inMarket('NL'))?.compareAtPrice).toBeNull()
+  })
+
+  it('drops a malformed override rather than pricing from it', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const document = { ...VALID_PRODUCT, pricesByCountry: [{ country: 'NETHERLANDS', price: 899 }] }
+    expect(parseProductSummary(document, inMarket('NL'))).toBeNull()
+    warn.mockRestore()
+  })
+})
+
+describe('parseMarketRules', () => {
+  it('reads what the owner authored', () => {
+    const rules = parseMarketRules([
+      { country: 'nl', adjustmentPercent: 0.83, rounding: 'charm' },
+      { country: 'DE', adjustmentPercent: -0.83, rounding: 'euro' },
+    ])
+    expect(rules.get('NL')).toEqual({ country: 'NL', adjustmentPercent: 0.83, rounding: 'charm' })
+    expect(rules.get('DE')?.rounding).toBe('euro')
+  })
+
+  it('defaults a missing or unknown rounding to leaving the number alone', () => {
+    const rules = parseMarketRules([
+      { country: 'NL', adjustmentPercent: 1 },
+      { country: 'ES', adjustmentPercent: 1, rounding: 'nearest-thousand' },
+    ])
+    expect(rules.get('NL')?.rounding).toBe('exact')
+    expect(rules.get('ES')?.rounding).toBe('exact')
+  })
+
+  it('drops a malformed rule rather than guessing at it', () => {
+    // A market that quietly falls back to the base price is a smaller mistake
+    // than one priced from a number nobody meant.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const rules = parseMarketRules([{ country: 'NL', adjustmentPercent: 9999 }])
+    expect(rules.size).toBe(0)
+    warn.mockRestore()
+  })
+
+  it('survives a missing document', () => {
+    expect(parseMarketRules(null).size).toBe(0)
+    expect(parseMarketRules(undefined).size).toBe(0)
   })
 })

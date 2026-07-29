@@ -6,6 +6,7 @@
 
 <template>
   <div class="flex min-h-dvh flex-col">
+    <MarketSuggestion />
     <SiteHeader />
     <main id="main" class="flex-1">
       <slot />

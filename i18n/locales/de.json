@@ -51,7 +51,12 @@
     "published": "Veröffentlicht",
     "published_yes": "Veröffentlicht",
     "published_no": "Verborgen",
-    "no_products": "Keine Produkte."
+    "no_products": "Keine Produkte.",
+    "market": "Markt",
+    "base_price_only": "Nur Grundpreis",
+    "market_price_hint": "Ein grauer Preis folgt der Marktregel. Tippen Sie einen ein, um ihn festzusetzen; 🔗 gibt ihn der Regel zurück.",
+    "vat_neutral": "MwSt.-neutraler Gegenwert",
+    "follow_rule": "Der Marktregel folgen"
   },
   "auth": {
     "sign_in": "Anmelden",
@@ -104,12 +109,14 @@
     "totals_pending": "Wählen Sie eine Lieferart.",
     "pay_online": "Online bezahlen",
     "pay_cash": "Barzahlung bei Lieferung",
-    "pay_in_store": "Im Laden bezahlen"
+    "pay_in_store": "Im Laden bezahlen",
+    "vat_included": "inkl. {rate} % MwSt."
   },
   "common": {
+    "close": "Schließen",
     "loading": "Wird geladen…",
-    "previous": "Zurück",
-    "next": "Weiter"
+    "next": "Weiter",
+    "previous": "Zurück"
   },
   "confirmation": {
     "title": "Bestellung eingegangen",
@@ -159,6 +166,20 @@
     "eyebrow": "Elektromobilität",
     "title": "E-Bikes, die wir auswählen, liefern und betreuen.",
     "description": "Fatbikes, Zubehör und Ersatzteile. Kostenlose Lieferung durch unser eigenes Team in Belgien, den Niederlanden und im Département Vienne."
+  },
+  "market": {
+    "suggestion_label": "Andere Version dieses Shops",
+    "suggestion": "Für Ihr Land gibt es eine Version auf {language}.",
+    "suggestion_prices": "Dort gelten die Preise Ihres Marktes.",
+    "suggestion_go": "Auf {language} ansehen"
+  },
+  "markets": {
+    "FR": "🇫🇷 Frankreich",
+    "BE": "🇧🇪 Belgien",
+    "LU": "🇱🇺 Luxemburg",
+    "NL": "🇳🇱 Niederlande",
+    "DE": "🇩🇪 Deutschland",
+    "ES": "🇪🇸 Spanien"
   },
   "nav": {
     "primary": "Hauptnavigation",

@@ -63,6 +63,63 @@ export default defineType({
       name: 'brand', title: 'العلامة', type: 'reference', to: [{ type: 'brand' }], group: 'main',
     },
     {
+      name: 'pricesByCountry',
+      title: '🌍 أسعار خاصة حسب السوق',
+      type: 'array',
+      group: 'main',
+      description:
+        'اتركه فارغاً ليطبَّق السعر العام (مع نسبة السوق من إعدادات الموقع). ' +
+        'السعر هنا يظهر فقط لمن يفتح نسخة ذلك البلد — لا يُحدَّد حسب عنوان IP.',
+      of: [
+        {
+          type: 'object',
+          fields: [
+            {
+              name: 'country', title: 'البلد', type: 'string',
+              options: {
+                list: [
+                  { title: '🇫🇷 فرنسا', value: 'FR' },
+                  { title: '🇧🇪 بلجيكا', value: 'BE' },
+                  { title: '🇳🇱 هولندا', value: 'NL' },
+                  { title: '🇩🇪 ألمانيا', value: 'DE' },
+                  { title: '🇪🇸 إسبانيا', value: 'ES' },
+                ],
+              },
+              validation: (Rule) => Rule.required(),
+            },
+            {
+              name: 'price', title: 'السعر € (شامل الضريبة)', type: 'number',
+              validation: (Rule) => Rule.required().min(0),
+            },
+            {
+              name: 'compareAtPrice', title: 'السعر القديم €', type: 'number',
+              validation: (Rule) => Rule.min(0),
+            },
+          ],
+          preview: {
+            select: { country: 'country', price: 'price' },
+            prepare: ({ country, price }: { country?: string; price?: number }) => ({
+              title: `${country ?? '—'} — ${price ?? '—'} €`,
+            }),
+          },
+        },
+      ],
+      // Two rows for one country would make the price depend on array order,
+      // which is not a thing anyone should have to think about.
+      validation: (Rule) =>
+        Rule.custom((rows) => {
+          if (!Array.isArray(rows)) return true
+          const seen = new Set<string>()
+          for (const row of rows as Array<{ country?: string }>) {
+            const country = row?.country
+            if (!country) continue
+            if (seen.has(country)) return `البلد ${country} مكرَّر — سعر واحد لكل سوق`
+            seen.add(country)
+          }
+          return true
+        }),
+    },
+    {
       name: 'price', title: 'السعر €', type: 'number', group: 'main',
       validation: (Rule) => Rule.required().min(0),
     },

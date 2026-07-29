@@ -35,8 +35,9 @@ export default defineRoute({
   access: 'public',
   rateLimit: 'lookup',
   body: bodySchema,
-  handler: async ({ body }) => {
+  handler: async ({ body, market }) => {
     const breakdown = await priceBasket({
+      market,
       lines: body.cart.lines,
       locale: body.locale as LocaleCode,
       ...(body.cart.promoCode ? { promoCode: body.cart.promoCode } : {}),
