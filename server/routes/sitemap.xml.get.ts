@@ -25,6 +25,15 @@ import { listProducts, listCategories } from '../catalog'
 export const STATIC_PATHS = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
   { path: '/produits', priority: '0.9', changefreq: 'daily' },
+  { path: '/a-propos', priority: '0.6', changefreq: 'monthly' },
+  { path: '/contact', priority: '0.6', changefreq: 'monthly' },
+  { path: '/faq', priority: '0.6', changefreq: 'monthly' },
+  { path: '/cgv', priority: '0.3', changefreq: 'yearly' },
+  { path: '/mentions-legales', priority: '0.3', changefreq: 'yearly' },
+  { path: '/politique-confidentialite', priority: '0.3', changefreq: 'yearly' },
+  { path: '/retractation', priority: '0.3', changefreq: 'yearly' },
+  { path: '/impressum', priority: '0.3', changefreq: 'yearly' },
+  { path: '/batteries', priority: '0.3', changefreq: 'yearly' },
 ] as const
 
 function escapeXml(value: string): string {

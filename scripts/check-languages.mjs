@@ -89,6 +89,30 @@ if (!hasErrors) {
     console.log(`\n✅ No "|" plural separators in any locale`)
   }
 
+  // A bare "@" is vue-i18n's linked-message operator, so an email address in a
+  // message aborts the production build with "error code: 10". Worse, a build
+  // with a warm .nuxt cache serves the PREVIOUS message bundle instead of
+  // failing — which is how four broken messages hid behind three green builds
+  // while every page rendered its raw keys. Written as {'@'} it is a literal.
+  let unescapedAt = 0
+  for (const lang of languages) {
+    const offenders = [...entries[lang]].filter(
+      ([, value]) => value.includes('@') && !value.includes("{'@'}")
+    )
+    if (offenders.length > 0) {
+      console.error(
+        `\n❌ ${lang.toUpperCase()} has ${offenders.length} value(s) with an unescaped "@" — ` +
+          `vue-i18n reads it as a linked message. Write {'@'} instead:`
+      )
+      offenders.slice(0, 5).forEach(([key, value]) => console.error(`   - ${key}: ${value.slice(0, 90)}`))
+      unescapedAt += offenders.length
+      hasErrors = true
+    }
+  }
+  if (unescapedAt === 0) {
+    console.log(`✅ No unescaped "@" in any locale`)
+  }
+
   let placeholderMismatches = 0
   for (const [key, frValue] of entries.fr) {
     const expected = getPlaceholders(frValue).join(' ')
