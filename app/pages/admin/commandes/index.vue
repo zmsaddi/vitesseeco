@@ -48,7 +48,7 @@ async function patch(orderNumber: string, body: Record<string, unknown>): Promis
   busy.value = orderNumber
   error.value = null
   try {
-    await $fetch(`/api/admin/orders/${orderNumber}`, { method: 'PATCH', body })
+    await $fetch<unknown>(`/api/admin/orders/${orderNumber}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
     const data = (err as { data?: { messageKey?: string } })?.data
@@ -130,7 +130,10 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
     <ul v-else class="mt-6 space-y-3">
       <li v-for="order in data.orders" :key="order.orderNumber" class="card p-4">
         <div class="flex flex-wrap items-center gap-3">
-          <span class="font-mono font-bold text-content-strong">{{ order.orderNumber }}</span>
+          <NuxtLink
+            :to="useLocalePath()(`/admin/commandes/${order.orderNumber}`)"
+            class="font-mono font-bold text-content-strong underline-offset-4 hover:underline"
+          >{{ order.orderNumber }}</NuxtLink>
           <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusTone(order.status)">
             {{ $t(`order_status.${order.status}`) }}
           </span>
