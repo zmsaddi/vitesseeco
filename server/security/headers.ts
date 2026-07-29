@@ -39,6 +39,31 @@ export function issueNonce(event: H3Event): string {
   return nonce
 }
 
+/**
+ * Tags the browser checks against `script-src`.
+ *
+ * `<script>` is the obvious one. `<link rel="modulepreload">` is the one that is
+ * easy to forget and just as fatal: it is fetched by the parser, not by a
+ * trusted script, so `strict-dynamic` does not cover it and it needs the nonce
+ * of its own.
+ *
+ * A tag that already carries a nonce is left alone rather than given a second
+ * attribute, which browsers reject outright.
+ */
+const NONCEABLE = /<(script|link)\b(?![^>]*\snonce=)/gi
+
+/**
+ * Stamp the nonce onto everything the policy will otherwise refuse to run.
+ *
+ * This exists because `strict-dynamic` makes a CSP3 browser IGNORE `'self'` and
+ * every host source in `script-src` — including js.stripe.com, listed right
+ * there. Without this, the policy blocks Nuxt's own hydration bundle: the page
+ * paints and then nothing works. No cart, no checkout, no payment form.
+ */
+export function stampNonce(markup: string, nonce: string): string {
+  return markup.replace(NONCEABLE, `<$1 nonce="${nonce}"`)
+}
+
 export function applySecurityHeaders(event: H3Event): void {
   const nonce = issueNonce(event)
   const isProduction = process.env.NODE_ENV === 'production'

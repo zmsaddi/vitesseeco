@@ -13,16 +13,18 @@ import { defineEventHandler, setResponseHeader } from 'h3'
 import { LOCALES, alternatesFor, localizedUrl, DEFAULT_LOCALE } from '../../shared/locales'
 import { listProducts, listCategories } from '../catalog'
 
-/** Pages that exist in every language regardless of the catalogue. */
-const STATIC_PATHS = [
+/**
+ * Pages that exist in every language regardless of the catalogue.
+ *
+ * Only paths that are actually SERVED belong here. Submitting a URL that
+ * returns nothing is a soft 404, and Google counts them against the whole site
+ * — this list previously advertised six pages the rebuild does not have. A test
+ * asserts every entry resolves to a real page file, so the list cannot drift
+ * ahead of the app again.
+ */
+export const STATIC_PATHS = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
   { path: '/produits', priority: '0.9', changefreq: 'daily' },
-  { path: '/a-propos', priority: '0.6', changefreq: 'monthly' },
-  { path: '/contact', priority: '0.6', changefreq: 'monthly' },
-  { path: '/faq', priority: '0.6', changefreq: 'monthly' },
-  { path: '/cgv', priority: '0.3', changefreq: 'yearly' },
-  { path: '/mentions-legales', priority: '0.3', changefreq: 'yearly' },
-  { path: '/politique-confidentialite', priority: '0.3', changefreq: 'yearly' },
 ] as const
 
 function escapeXml(value: string): string {
