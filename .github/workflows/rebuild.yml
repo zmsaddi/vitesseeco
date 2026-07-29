@@ -29,6 +29,14 @@ jobs:
         run: npm run check:langs
       - name: No raw hex colours in templates
         run: npm run check:hex
+      # Reports which Merchant feeds are safe to register. Skips silently
+      # without a token so a fork or a secretless run is not blocked.
+      - name: Merchant feed guard
+        run: npm run check:feeds
+        env:
+          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN }}
       - name: Type check
         run: npx nuxi typecheck
         env:

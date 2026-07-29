@@ -177,12 +177,17 @@ export interface ParseContext {
  * same one — leaving `compareAtPrice` un-adjusted would quietly change the size
  * of every advertised discount the moment a market was moved by a percent.
  */
-function resolvePrice(
-  raw: { price: number; compareAtPrice?: number | null; pricesByCountry?: z.infer<typeof pricesByCountry> },
-  context: ParseContext
+export function priceInMarket(
+  raw: {
+    price: number
+    compareAtPrice?: number | null
+    pricesByCountry?: Array<{ country: string; price: number; compareAtPrice?: number | null }> | null
+  },
+  market: MarketDefinition,
+  priceRule: MarketPriceRule | null
 ): { price: Cents; compareAtPrice: Cents | null } {
   const override = (raw.pricesByCountry ?? []).find(
-    (entry) => entry.country.trim().toUpperCase() === context.market.country
+    (entry) => entry.country.trim().toUpperCase() === market.country
   )
 
   if (override) {
@@ -193,13 +198,21 @@ function resolvePrice(
     }
   }
 
-  const price = marketPrice(fromEuros(raw.price), context.priceRule)
+  const price = marketPrice(fromEuros(raw.price), priceRule)
   const compareAt =
-    raw.compareAtPrice == null
-      ? null
-      : marketPrice(fromEuros(raw.compareAtPrice), context.priceRule)
+    raw.compareAtPrice == null ? null : marketPrice(fromEuros(raw.compareAtPrice), priceRule)
 
   return { price, compareAtPrice: compareAt !== null && compareAt > price ? compareAt : null }
+}
+
+function resolvePrice(
+  raw: { price: number; compareAtPrice?: number | null; pricesByCountry?: z.infer<typeof pricesByCountry> },
+  context: ParseContext
+): { price: Cents; compareAtPrice: Cents | null } {
+  // The feed builder calls priceInMarket directly, so a product page and a
+  // Merchant listing cannot compute the same product's price two different ways
+  // — which is precisely the mismatch that disapproves an item.
+  return priceInMarket(raw, context.market, context.priceRule)
 }
 
 const ROUNDINGS: readonly PriceRounding[] = ['exact', 'euro', 'charm']
