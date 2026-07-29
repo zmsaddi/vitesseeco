@@ -130,8 +130,13 @@ async function banPredictions(input: string, mode: string, postal?: string, hous
 async function pdokPredictions(input: string, mode: string, postal?: string, houseNo?: string | null, street?: string): Promise<Prediction[]> {
   try {
     const pc = (postal || '').replace(/\s/g, '').toUpperCase()
+    // PDOK matches whole tokens, so "Amst" found nothing and only the complete
+    // "Amsterdam" worked — which defeats the point of a suggestion box. A
+    // trailing wildcard turns it into the prefix search a customer expects.
+    // Addresses do not need it: the postcode already narrows those.
+    const cityQuery = input.trim().endsWith('*') ? input.trim() : `${input.trim()}*`
     const q = mode === 'cities'
-      ? input
+      ? cityQuery
       : [pc, street, houseNo].filter(Boolean).join(' ') || input
     const res = await $fetch<any>('https://api.pdok.nl/bzk/locatieserver/search/v3_1/free', {
       query: { q, rows: 6, fq: mode === 'cities' ? 'type:woonplaats' : 'type:adres' },

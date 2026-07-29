@@ -102,6 +102,11 @@
                         </button>
                       </div>
                     </div>
+                    <!-- Names the country that was searched. Without it, a
+                         wrong preselected country looks like a broken field. -->
+                    <p v-if="cityNoResults && !citySuggestLoading" class="text-text-secondary text-xs mt-1.5">
+                      {{ $t('checkout.no_match_country', { country: countryLabel(addr.country) }) }}
+                    </p>
                   </div>
                 </div>
                 <!-- One zip, several communes → the customer taps theirs.
@@ -133,6 +138,9 @@
                       </button>
                     </div>
                   </div>
+                  <p v-if="coNoResults && !coLoading" class="text-text-secondary text-xs mt-1.5">
+                    {{ $t('checkout.no_match_country', { country: countryLabel(addr.country) }) }}
+                  </p>
                 </div>
                 <!-- Apartment / floor / building — optional, same field the
                      account form already has (addressLine2 end-to-end) -->
@@ -715,6 +723,7 @@ let cityTimer: ReturnType<typeof setTimeout>
 function onCityInput() {
   cityAuto.value = false
   cityOptions.value = []
+  cityNoResults.value = false
   clearTimeout(cityTimer)
   if (addr.city.length < 2) { cityGen++; citySuggestions.value = []; citySuggestLoading.value = false; return }
   citySuggestLoading.value = true
@@ -725,7 +734,8 @@ function onCityInput() {
       const d = await $fetch<any>('/api/places/autocomplete', { query: { input: addr.city, country: country.toLowerCase(), mode: 'cities' } })
       if (gen !== cityGen) return
       citySuggestions.value = d.predictions || []
-    } catch { if (gen === cityGen) citySuggestions.value = [] }
+      cityNoResults.value = citySuggestions.value.length === 0
+    } catch { if (gen === cityGen) { citySuggestions.value = []; cityNoResults.value = true } }
     finally { if (gen === cityGen) citySuggestLoading.value = false }
   }, 350)
 }
@@ -749,8 +759,21 @@ async function pickCitySuggestion(s: any) {
 // Same gate the server applies: in NL a postcode + house number IS the whole
 // address, so a single digit is already a complete query there.
 const addressMinLen = computed(() => (addr.country === 'NL' && addr.postalCode ? 1 : 3))
+/**
+ * A lookup that returned nothing.
+ *
+ * The country is pre-set from IP geolocation, which is right often enough to be
+ * worth doing and wrong often enough to strand people: a customer routed
+ * through Germany typing a French town gets an empty box and no reason for it.
+ * Recording the miss lets the field say which country it searched, which is the
+ * one piece of information that makes the problem self-correcting.
+ */
+const coNoResults = ref(false)
+const cityNoResults = ref(false)
+
 function onCoInput() {
   clearTimeout(coTimer)
+  coNoResults.value = false
   if (addr.address.length < addressMinLen.value) { coGen++; coSuggestions.value = []; coLoading.value = false; return }
   coLoading.value = true
   const gen = ++coGen
@@ -763,7 +786,8 @@ function onCoInput() {
       const d = await $fetch<any>('/api/places/autocomplete', { query: { input, country: country.toLowerCase(), ...(addr.postalCode ? { postal: addr.postalCode } : {}) } })
       if (gen !== coGen) return
       coSuggestions.value = d.predictions || []
-    } catch { if (gen === coGen) coSuggestions.value = [] }
+      coNoResults.value = coSuggestions.value.length === 0
+    } catch { if (gen === coGen) { coSuggestions.value = []; coNoResults.value = true } }
     finally { if (gen === coGen) coLoading.value = false }
   }, 400)
 }
