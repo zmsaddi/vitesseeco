@@ -286,7 +286,7 @@ const productQuery = groq`{
     "images": images[]{asset, altText}
   },
   "otherColors": *[_type == "product" && defined(modelFamily) && modelFamily == *[_type == "product" && slug.current == $slug][0].modelFamily && slug.current != $slug && isAvailable == true] | order(sortOrder asc) {
-    _id, name, slug, price, color, colorHex, stock, brand->{ name },
+    _id, name, slug, price, color, colorHex, stock, sortOrder, brand->{ name },
     "images": images[0..0]{asset}
   },
   "testimonials": *[_type == "testimonial"] | order(rating desc)[0..4] {
@@ -390,13 +390,74 @@ function addToCart() {
 }
 
 // SEO
+/**
+ * The canonical URL for this model.
+ *
+ * Colour variants are separate documents under System B, so one bike can be six
+ * near-identical pages. Google collapses those to a single canonical of its own
+ * choosing and ignores the rest — which splits the ranking signal for the model
+ * name and then throws most of it away. Pointing every colour at one primary
+ * concentrates that signal on a single strong URL.
+ *
+ * The primary is deterministic — lowest sortOrder, then lowest slug — so every
+ * variant of a family computes the same answer and the cluster never disagrees.
+ */
+const canonicalSlug = computed(() => {
+  const p = product.value
+  if (!p?.modelFamily) return p?.slug?.current ?? ''
+
+  const family = [
+    { slug: p.slug?.current ?? '', sortOrder: p.sortOrder ?? 0 },
+    ...otherColors.value.map((c: any) => ({ slug: c.slug?.current ?? '', sortOrder: c.sortOrder ?? 0 })),
+  ].filter((entry) => entry.slug)
+
+  family.sort((a, b) => a.sortOrder - b.sortOrder || a.slug.localeCompare(b.slug))
+  return family[0]?.slug ?? p.slug?.current ?? ''
+})
+
+/**
+ * A description that actually distinguishes this page.
+ *
+ * The stored seo.description is used only when it is not the shared family
+ * boilerplate: every product in the catalogue currently carries the same
+ * truncated string ("… et batterie ", value missing), which is precisely what
+ * makes six colour pages look like one to a search engine. Anything generic is
+ * rebuilt from the product's own data.
+ */
 const seoDescription = computed(() => {
   if (!product.value) return ''
   const p = product.value
-  if (p.seo?.description) return p.seo.description
+  const stored = (p.seo?.description || '').trim()
+
   const name = l(p.name) || ''
-  const price = p.price
-  return `${name} — ${price}€. ${l(p.shortDescription) || ''}`.slice(0, 160)
+  const colour = l(p.color) || ''
+  const brand = p.brand?.name || ''
+  const specs = [
+    p.specifications?.motor,
+    p.specifications?.battery,
+    l(p.specifications?.range),
+  ].filter(Boolean).join(' · ')
+
+  const generated = [
+    [brand, name].filter(Boolean).join(' '),
+    colour ? `Coloris ${colour}.` : '',
+    specs ? `${specs}.` : '',
+    `${p.price}€ — livraison par nos soins, garantie constructeur.`,
+  ].filter(Boolean).join(' ')
+
+  // A stored value is trusted only if it is substantial and not the truncated
+  // template, which is recognisable by ending mid-sentence.
+  const looksGeneric = stored.length < 60 || /\s$/.test(p.seo?.description || '') || !/[.!?]$/.test(stored)
+  return (looksGeneric ? generated : stored).slice(0, 300)
+})
+
+// Nominate the model's primary URL as this page's canonical. Read by app.vue,
+// which owns the head links, so the canonical and the hreflang cluster are
+// always built from the same value.
+const canonicalOverride = useState<string | null>('canonical-override', () => null)
+watchEffect(() => {
+  const target = canonicalSlug.value
+  canonicalOverride.value = target ? `/produits/${target}` : null
 })
 
 useSeoMeta({

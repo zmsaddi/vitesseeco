@@ -23,6 +23,17 @@ const locales = [
 
 const baseUrl = 'https://vitesse-eco.fr'
 
+/**
+ * A locale-independent path a page nominates as its canonical, in place of the
+ * one it was reached by. Set by product pages so colour variants consolidate
+ * onto their model's primary URL. Null means "this URL is its own canonical".
+ */
+const canonicalOverride = useState<string | null>('canonical-override', () => null)
+
+// Cleared on every navigation, or one product's canonical leaks onto the next
+// page the customer visits.
+watch(() => route.fullPath, () => { canonicalOverride.value = null })
+
 // Get the path without locale prefix
 const pathWithoutLocale = computed(() => {
   const path = route.path
@@ -41,16 +52,23 @@ useHead(() => {
   const path = rawPath === '/' ? '' : rawPath
   const links: any[] = []
 
-  // Canonical
+  // Canonical.
+  // A page may nominate a different one — colour variants of a bike point at
+  // their model's primary URL, so the ranking signal for the model name lands
+  // on one page instead of being split across six and then collapsed by Google
+  // to a canonical of its own choosing.
   const currentPrefix = locales.find(l => l.code === locale.value)?.prefix || ''
-  links.push({ rel: 'canonical', href: `${baseUrl}${currentPrefix}${path}` })
+  const canonicalPath = canonicalOverride.value ?? path
+  links.push({ rel: 'canonical', href: `${baseUrl}${currentPrefix}${canonicalPath}` })
 
-  // Hreflang alternates
+  // Hreflang alternates always describe the canonical page, or the cluster
+  // contradicts itself: an alternate pointing at a URL that canonicalises
+  // elsewhere is an instruction Google resolves by ignoring both.
   for (const l of locales) {
     links.push({
       rel: 'alternate',
       hreflang: l.hreflang,
-      href: `${baseUrl}${l.prefix}${path}`,
+      href: `${baseUrl}${l.prefix}${canonicalPath}`,
     })
   }
 
