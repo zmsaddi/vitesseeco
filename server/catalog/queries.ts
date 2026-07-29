@@ -1,0 +1,185 @@
+/**
+ * GROQ projections.
+ *
+ * Kept apart from the service so the shape a query returns and the shape the
+ * parser expects can be read side by side. Every projection is explicit — never
+ * `...` — so a field added in the Studio cannot silently start travelling to
+ * the browser, and a field removed shows up as a parse warning rather than as
+ * `undefined` three layers away.
+ *
+ * `stock` is deliberately absent from every projection here. Sellable quantity
+ * comes from Postgres; the catalogue does not get to answer that question.
+ */
+
+/** Only published, purchasable products. Drafts are never for sale. */
+export const AVAILABLE = `_type == "product" && isAvailable == true && defined(slug.current)`
+
+const IMAGE = `{
+  "url": asset->url,
+  "alt": coalesce(altText, ""),
+  "width": asset->metadata.dimensions.width,
+  "height": asset->metadata.dimensions.height,
+  "lqip": asset->metadata.lqip
+}`
+
+export const PRODUCT_SUMMARY = `{
+  _id,
+  "slug": slug.current,
+  name,
+  price,
+  compareAtPrice,
+  productType,
+  color,
+  colorHex,
+  modelFamily,
+  isNew,
+  isFeatured,
+  "brand": brand->{ "slug": slug.current, name },
+  "category": category->{ "slug": slug.current, name },
+  "image": images[0] ${IMAGE}
+}`
+
+export const PRODUCT_DETAIL = `{
+  _id,
+  "slug": slug.current,
+  name,
+  price,
+  compareAtPrice,
+  productType,
+  color,
+  colorHex,
+  modelFamily,
+  isNew,
+  isFeatured,
+  sku,
+  gtin,
+  shortDescription,
+  description,
+  warranty,
+  highlights,
+  videoUrl,
+  specifications,
+  seo,
+  "brand": brand->{ "slug": slug.current, name },
+  "category": category->{ "slug": slug.current, name },
+  "image": images[0] ${IMAGE},
+  "images": images[] ${IMAGE}
+}`
+
+export const CATEGORY = `{
+  _id,
+  "slug": slug.current,
+  name,
+  description,
+  "image": image ${IMAGE}
+}`
+
+export const BRAND = `{
+  _id,
+  "slug": slug.current,
+  name,
+  "logo": logo ${IMAGE}
+}`
+
+export const SHIPPING_METHOD = `{
+  code,
+  name,
+  description,
+  price,
+  freeAbove,
+  estimatedDays,
+  zones,
+  postalCodePrefixes,
+  sortOrder
+}`
+
+export const PROMO = `{
+  code,
+  discountType,
+  discountValue,
+  minOrderAmount,
+  maxUses,
+  validFrom,
+  validUntil,
+  isActive
+}`
+
+/**
+ * Other colours of the same model.
+ *
+ * `defined(modelFamily)` is load-bearing: GROQ treats `null == null` as true,
+ * so without it every product with no family would list every other
+ * family-less product as one of its colours.
+ */
+export const SIBLINGS_QUERY = `
+  *[${AVAILABLE}
+    && defined(modelFamily)
+    && modelFamily == $modelFamily
+    && slug.current != $slug
+  ] | order(coalesce(sortOrder, 0) asc) ${PRODUCT_SUMMARY}
+`
+
+export const PRODUCT_BY_SLUG_QUERY = `
+  *[${AVAILABLE} && slug.current == $slug][0] ${PRODUCT_DETAIL}
+`
+
+export const CATEGORIES_QUERY = `
+  *[_type == "category" && defined(slug.current)] | order(coalesce(sortOrder, 0) asc) ${CATEGORY}
+`
+
+export const BRANDS_QUERY = `
+  *[_type == "brand" && defined(slug.current)] | order(name asc) ${BRAND}
+`
+
+export const SHIPPING_METHODS_QUERY = `
+  *[_type == "shippingMethod" && isActive == true] | order(coalesce(sortOrder, 0) asc) ${SHIPPING_METHOD}
+`
+
+export const PROMO_BY_CODE_QUERY = `
+  *[_type == "promoCode" && upper(code) == $code][0] ${PROMO}
+`
+
+export interface ListFilters {
+  productType?: string
+  categorySlug?: string
+  brandSlug?: string
+  search?: string
+}
+
+/**
+ * Build the filtered listing query.
+ *
+ * Every value is bound as a parameter — user input is never concatenated into
+ * GROQ, so a search term cannot alter the query it appears in.
+ */
+export function buildListQuery(filters: ListFilters, order: string): {
+  query: string
+  countQuery: string
+} {
+  const clauses = [AVAILABLE]
+
+  if (filters.productType) clauses.push('productType == $productType')
+  if (filters.categorySlug) clauses.push('category->slug.current == $categorySlug')
+  if (filters.brandSlug) clauses.push('brand->slug.current == $brandSlug')
+  if (filters.search) {
+    // Match the name in any language, plus SKU, so a customer reading a label
+    // off the frame finds the product.
+    clauses.push(
+      '(name.fr match $search || name.en match $search || name.nl match $search || ' +
+        'name.de match $search || name.es match $search || sku match $search)'
+    )
+  }
+
+  const filter = clauses.join(' && ')
+  return {
+    query: `*[${filter}] | order(${order}) [$offset...$end] ${PRODUCT_SUMMARY}`,
+    countQuery: `count(*[${filter}])`,
+  }
+}
+
+export const SORT_ORDERS: Record<string, string> = {
+  relevance: 'coalesce(sortOrder, 0) asc, name.fr asc',
+  price_asc: 'price asc',
+  price_desc: 'price desc',
+  newest: '_createdAt desc',
+}

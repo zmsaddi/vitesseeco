@@ -21,13 +21,7 @@ export const deskStructure = (S: StructureBuilder) =>
               S.listItem()
                 .title('💬 رسائل غير مقروءة')
                 .child(S.documentList().title('رسائل جديدة').filter('_type == "contactMessage" && isRead != true').defaultOrdering([{ field: 'createdAt', direction: 'desc' }])),
-              S.divider(),
-              S.listItem()
-                .title('🚫 نفد من المخزون')
-                .child(S.documentList().title('نفد').filter('_type == "product" && isAvailable == true && stock <= 0').defaultOrdering([{ field: 'name.fr', direction: 'asc' }])),
-              S.listItem()
-                .title('⚠️ مخزون منخفض (≤ 5)')
-                .child(S.documentList().title('أقل من 5').filter('_type == "product" && isAvailable == true && stock > 0 && stock <= 5').defaultOrdering([{ field: 'stock', direction: 'asc' }])),
+              // قوائم المخزون تعيش في لوحة الإدارة، حيث الأرقام حقيقية.
             ])
         ),
 

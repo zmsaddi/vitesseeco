@@ -19,7 +19,7 @@
  */
 import { and, eq, isNull, sql, type SQL } from 'drizzle-orm'
 import { inventory, stockReservations } from '../db/schema'
-import type { Transaction } from '../db/client'
+import { queryRows, type SqlExecutor, type Transaction } from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 
 /** How long a hold survives without news. Long enough for a slow bank redirect. */
@@ -62,13 +62,15 @@ export interface ShortfallLine {
  * — never for deciding whether an order may proceed.
  */
 export async function readAvailability(
-  tx: Pick<Transaction, 'execute'>,
+  executor: SqlExecutor,
   productIds: string[]
 ): Promise<Map<string, Availability>> {
   const result = new Map<string, Availability>()
   if (productIds.length === 0) return result
 
-  const rows = await tx.execute<{ product_id: string; on_hand: number; reserved: string | number }>(sql`
+  const rows = await queryRows<{ product_id: string; on_hand: number; reserved: string | number }>(
+    executor,
+    sql`
     SELECT i.product_id,
            i.on_hand,
            COALESCE(SUM(r.quantity) FILTER (
@@ -78,9 +80,10 @@ export async function readAvailability(
       LEFT JOIN stock_reservations r ON r.product_id = i.product_id
      WHERE i.product_id IN ${inList(productIds)}
      GROUP BY i.product_id, i.on_hand
-  `)
+  `
+  )
 
-  for (const row of rows.rows) {
+  for (const row of rows) {
     const reserved = Number(row.reserved)
     result.set(row.product_id, {
       productId: row.product_id,
@@ -303,10 +306,12 @@ export async function setOnHand(
 
 /** Products whose sellable quantity has fallen to or below a threshold. */
 export async function findLowStock(
-  tx: Pick<Transaction, 'execute'>,
+  executor: SqlExecutor,
   threshold: number
 ): Promise<Availability[]> {
-  const rows = await tx.execute<{ product_id: string; on_hand: number; reserved: string | number }>(sql`
+  const rows = await queryRows<{ product_id: string; on_hand: number; reserved: string | number }>(
+    executor,
+    sql`
     SELECT i.product_id,
            i.on_hand,
            COALESCE(SUM(r.quantity) FILTER (
@@ -319,8 +324,9 @@ export async function findLowStock(
              WHERE r.settled_at IS NULL AND r.expires_at > NOW()
            ), 0) <= ${threshold}
      ORDER BY 3 DESC
-  `)
-  return rows.rows.map((row) => {
+  `
+  )
+  return rows.map((row) => {
     const reservedCount = Number(row.reserved)
     return {
       productId: row.product_id,

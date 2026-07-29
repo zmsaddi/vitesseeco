@@ -88,10 +88,9 @@ export default defineType({
       description: '#000000 = أسود، #FFFFFF = أبيض، #8E8E8E = رمادي',
       validation: (Rule) => Rule.regex(/^#[0-9A-Fa-f]{6}$/, { name: 'hex' }).error('#RRGGBB'),
     },
-    {
-      name: 'stock', title: '📦 المخزون', type: 'number', initialValue: 0, group: 'main',
-      validation: (Rule) => Rule.required().min(0),
-    },
+    // المخزون لا يُحرَّر هنا. الكمية القابلة للبيع تعيش في قاعدة البيانات وحدها،
+    // لأن مخزن المستندات لا يستطيع الخصم الذرّي — فوجود الرقم في مكانين كان
+    // يعني انحرافه عن الحقيقة. يُدار المخزون من لوحة الإدارة.
     {
       name: 'modelFamily', title: '🔗 عائلة الموديل', type: 'string', group: 'main',
       description: 'يربط نفس الموديل بألوان مختلفة — مثال: v20-pro (حروف صغيرة وأرقام وشرطات فقط)',
@@ -182,17 +181,18 @@ export default defineType({
   preview: {
     select: {
       title: 'name.fr', price: 'price', available: 'isAvailable', onSale: 'isOnSale',
-      isNew: 'isNew', type: 'productType', stock: 'stock', hex: 'colorHex',
+      isNew: 'isNew', type: 'productType', hex: 'colorHex',
       img: 'images.0', brand: 'brand.name',
     },
-    prepare({ title, price, available, onSale, isNew, type, stock, hex, img, brand }) {
-      const stockIcon = !stock || stock <= 0 ? '🔴' : stock <= 5 ? '🟡' : '🟢'
+    // لا مؤشر مخزون هنا: الرقم ليس في هذا المستند، وعرض قيمة قديمة أسوأ من
+    // عدم عرض شيء. المخزون الحيّ في لوحة الإدارة.
+    prepare({ title, price, available, onSale, isNew, type, hex, img, brand }) {
       const typeIcon: Record<string, string> = { bike: '🚲', spare_part: '🔧', accessory: '🎒', kids_car: '🧸' }
       const badges = [available === false ? '🚫' : '', onSale ? '🏷️' : '', isNew ? '✨' : ''].filter(Boolean).join('')
 
       return {
-        title: `${stockIcon} ${title || '—'} ${badges}`,
-        subtitle: `${typeIcon[type || ''] || '📦'} ${brand || ''} | ${price || 0}€ | 📦 ${stock || 0}`,
+        title: `${title || '—'} ${badges}`,
+        subtitle: `${typeIcon[type || ''] || '📦'} ${brand || ''} · ${price || 0}€${hex ? ` · ${hex}` : ''}`,
         media: img,
       }
     },
@@ -201,7 +201,6 @@ export default defineType({
     { title: 'الاسم', name: 'name', by: [{ field: 'name.fr', direction: 'asc' }] },
     { title: 'السعر ↑', name: 'priceAsc', by: [{ field: 'price', direction: 'asc' }] },
     { title: 'السعر ↓', name: 'priceDesc', by: [{ field: 'price', direction: 'desc' }] },
-    { title: 'المخزون', name: 'stock', by: [{ field: 'stock', direction: 'asc' }] },
     { title: 'الأحدث إضافة', name: 'newest', by: [{ field: '_createdAt', direction: 'desc' }] },
     { title: 'عائلة الموديل', name: 'family', by: [{ field: 'modelFamily', direction: 'asc' }, { field: 'name.fr', direction: 'asc' }] },
   ],
