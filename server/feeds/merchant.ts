@@ -19,6 +19,7 @@
  * that says `in_stock` for something the checkout will refuse wastes the click
  * and earns a disapproval.
  */
+import { createError, setResponseHeader, type H3Event } from 'h3'
 import { sanity } from '../catalog/client'
 import { FEED_PRODUCTS_QUERY, SELLING_TERMS_QUERY } from '../catalog/queries'
 import { priceInMarket, parseMarketRules, translate } from '../catalog/parse'
@@ -342,4 +343,53 @@ ${items}
 </rss>`
 
   return { xml, stats }
+}
+
+/**
+ * A feed is only safe to publish if it is plausibly complete.
+ *
+ * This is the failure mode that costs the most and announces itself the least:
+ * if the catalogue read returns an empty list — a revoked token, a renamed
+ * dataset, a transient upstream error that resolves to `[]` rather than
+ * throwing — the builder above happily produces *valid XML containing no
+ * products*. Merchant Center reads that as the merchant having withdrawn their
+ * entire catalogue and delists everything, and getting back in takes days.
+ *
+ * So an empty or implausibly small feed is refused. Google treats 503 as
+ * "try again later" and keeps serving the last good feed, which is exactly the
+ * behaviour wanted while something is broken.
+ */
+const MINIMUM_PLAUSIBLE_OFFERS = 5
+
+export async function serveMerchantFeed(
+  event: H3Event,
+  locale: FeedLocale
+): Promise<string> {
+  let built: BuiltFeed
+  try {
+    built = await buildMerchantFeed(locale)
+  } catch (error) {
+    // Never let an upstream 401 or 500 reach Google as-is: an auth error on our
+    // side is not a statement about the feed's validity.
+    console.error(`[feed:${locale}] build failed`, error)
+    throw createError({
+      statusCode: 503,
+      statusMessage: 'FEED_TEMPORARILY_UNAVAILABLE',
+    })
+  }
+
+  if (built.stats.offers < MINIMUM_PLAUSIBLE_OFFERS) {
+    console.error(
+      `[feed:${locale}] refusing to publish ${built.stats.offers} offer(s) — ` +
+        'the catalogue read looks broken, and an empty feed delists everything'
+    )
+    throw createError({ statusCode: 503, statusMessage: 'FEED_INCOMPLETE' })
+  }
+
+  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
+  // Merchant fetches on a schedule measured in hours, so an hour of cache costs
+  // nothing and spares the catalogue 147 reads per crawl.
+  setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')
+  console.info(`[feed:${locale}] ${built.stats.offers} offers, ${built.stats.withGtin} with EAN`)
+  return built.xml
 }

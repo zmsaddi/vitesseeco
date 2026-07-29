@@ -1,18 +1,15 @@
 /**
  * Merchant Center feed for the nl market.
  *
- * Register this URL in Merchant Center against the countries the nl pages are
- * priced for. The feed quotes that market's price list and links to that
- * market's URLs, so the page Google crawls shows the figure the feed declared.
+ * Register this URL against the countries the nl pages are priced for. The
+ * feed quotes that market's price list and links to that market's URLs, so the
+ * page Google crawls shows the figure the feed declared.
+ *
+ * Serving is delegated so that every locale shares one refusal rule: a feed
+ * that comes back empty is never published, because Google reads an empty feed
+ * as a withdrawn catalogue.
  */
-import { defineEventHandler, setResponseHeader } from 'h3'
-import { buildMerchantFeed } from '../../feeds/merchant'
+import { defineEventHandler } from 'h3'
+import { serveMerchantFeed } from '../../feeds/merchant'
 
-export default defineEventHandler(async (event) => {
-  const { xml } = await buildMerchantFeed('nl')
-  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
-  // Merchant fetches on a schedule measured in hours, so an hour of cache costs
-  // nothing and spares the catalogue 147 reads per crawl.
-  setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')
-  return xml
-})
+export default defineEventHandler((event) => serveMerchantFeed(event, 'nl'))
