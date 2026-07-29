@@ -59,10 +59,16 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Fallback: legacy Sanity-stored order
+  // Fallback: legacy Sanity-stored order. Token-authenticated — new mirror docs
+  // carry no customer data, so only pre-PG-primary orders can resolve here.
+  const sanityToken = process.env.SANITY_TOKEN
+  if (!sanityToken) {
+    throw createError({ statusCode: 404, message: 'Order not found' })
+  }
   const sanity = createClient({
     projectId: '2jvnjf0c',
     dataset: 'production',
+    token: sanityToken,
     apiVersion: '2024-01-01',
     useCdn: false,
   })

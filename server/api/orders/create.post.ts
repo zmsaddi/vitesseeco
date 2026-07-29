@@ -1,7 +1,8 @@
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@sanity/client'
 import { rateLimit } from '~/server/utils/rateLimit'
 import { verifyTurnstile } from '~/server/utils/verifyTurnstile'
-import { LIMITS, isValidName, isAllowedCountry, isValidProductId } from '~/server/utils/validation'
+import { LIMITS, isValidName, isAllowedCountry, isValidProductId, isValidQuantity } from '~/server/utils/validation'
 import { reservePromoUse, releasePromoUse } from '~/server/utils/promo'
 import { verify as verifyPriceLock, type SignedPriceSnapshot } from '~/server/utils/priceLock'
 import { getPaymentAdapter } from '~/server/payments/registry'
@@ -43,6 +44,15 @@ export default defineEventHandler(async (event) => {
   if (!turnstileValid) throw createError({ statusCode: 400, message: 'CAPTCHA verification failed' })
 
   if (!body?.items?.length) throw createError({ statusCode: 400, message: 'Cart is empty' })
+  if (body.items.length > LIMITS.MAX_CART_ITEMS) throw createError({ statusCode: 400, message: 'Too many items' })
+  // Quantities drive both the money math and the stock decrement, so they are
+  // validated before either runs: a negative value would subtract from the
+  // total and hand stock back on the way out.
+  for (const item of body.items) {
+    if (!isValidQuantity(item.quantity)) {
+      throw createError({ statusCode: 400, message: 'Invalid quantity' })
+    }
+  }
   if (!body.shippingCode) throw createError({ statusCode: 400, message: 'Shipping method required' })
   if (!body.paymentCode) throw createError({ statusCode: 400, message: 'Payment method required' })
 
@@ -149,9 +159,12 @@ export default defineEventHandler(async (event) => {
     `*[_type == "shippingMethod" && code == $code && isActive == true][0]{ code, name, price, freeAbove, zones, postalCodePrefixes }`,
     { code: body.shippingCode }
   )
-  // Eligibility guard: the method must actually serve the destination
-  // (zone + postal-prefix scoping, e.g. FR own-fleet = dept 86 only).
-  // Pickup is exempt — its "destination" is our own store.
+  // An unrecognised code must not fall through to a zero shipping cost.
+  // Pickup is the one code with no Sanity document — its "destination" is our
+  // own store, so it is also exempt from the eligibility guard below.
+  if (!shippingMethod && body.shippingCode !== 'pickup') {
+    throw createError({ statusCode: 400, message: 'Unknown shipping method' })
+  }
   if (shippingMethod && body.shippingCode !== 'pickup') {
     const destCountry = String(addr.country || '').toUpperCase()
     if (Array.isArray(shippingMethod.zones) && shippingMethod.zones.length && !shippingMethod.zones.includes(destCountry)) {
@@ -191,7 +204,9 @@ export default defineEventHandler(async (event) => {
   const total = Math.max(0, subtotal - discount + shippingCost)
 
   // 4. Generate order number
-  const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`
+  // Millisecond resolution alone collides when two checkouts land together and
+  // order_number is unique, so the loser fails after its PayPal order exists.
+  const orderNumber = `ORD-${Date.now().toString(36)}${randomUUID().slice(0, 4)}`.toUpperCase()
 
   // 5. Get customer info
   let customerInfo: OrderCustomerInfo = { name: `${body.shippingAddress.firstName} ${body.shippingAddress.lastName}`, email: '', phone: body.shippingAddress.phone || '', customerId: '' }
@@ -304,8 +319,10 @@ export default defineEventHandler(async (event) => {
       })
 
       // Best-effort opportunistic Sanity sync — admin sees the order quickly
-      // when this succeeds; cron drains anything left over.
-      opportunisticOutboxFlush({ process: dispatchOutboxEntry, batchSize: 5, budgetMs: 4000 }).catch(() => {})
+      // when this succeeds; cron drains anything left over. Awaited because the
+      // serverless function is frozen the moment the response is returned, so a
+      // detached promise would simply never run; the 4s budget bounds the cost.
+      await opportunisticOutboxFlush({ process: dispatchOutboxEntry, batchSize: 5, budgetMs: 4000 }).catch(() => {})
 
       return {
         orderNumber,
@@ -373,14 +390,14 @@ export default defineEventHandler(async (event) => {
   try {
     // 6. Create order in Sanity (primary source — dashboard uses this)
     if (writeClient) {
+      // Operational fields only — the dataset is publicly readable, so customer
+      // identity and addresses live in Postgres (inserted just below) and are
+      // served through the authenticated order routes and /admin.
       await writeClient.create({
         _type: 'order',
         orderNumber,
-        status: body.paymentCode === 'in_store' ? 'pending' : 'pending',
+        status: 'pending',
         paymentMethod: body.paymentCode,
-        customer: customerInfo,
-        shippingAddress: body.shippingAddress,
-        billingAddress: body.billingAddress || body.shippingAddress,
         shippingMethod: shippingMethod?.name?.fr || body.shippingCode,
         items: validatedItems,
         subtotal,

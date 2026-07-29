@@ -118,15 +118,16 @@ export async function persistOrderPGPrimary(input: PersistOrderInput): Promise<P
     // 5: enqueue Sanity sync — one entry for the order doc, one per product
     // for inventory sync. Dispatcher reads PG fresh at dispatch time so the
     // value pushed to Sanity always reflects current PG state.
+    // The Sanity dataset is publicly readable (the storefront reads the catalog
+    // without a token), so the mirror carries operational fields ONLY. Customer
+    // identity and addresses stay in Postgres and are served through the
+    // authenticated /api/orders/* routes and /admin.
     await enqueueOutbox(tx, {
       kind: 'sanity.order.create',
       payload: {
         orderNumber: input.orderNumber,
         status: 'pending',
         paymentMethod: input.paymentCode,
-        customer: input.customerSnapshot,
-        shippingAddress: input.shippingAddress,
-        billingAddress: input.billingAddress || input.shippingAddress,
         shippingMethod: input.shippingMethodLabel || input.shippingCode,
         items: input.validatedItems,
         subtotal: input.subtotal,
