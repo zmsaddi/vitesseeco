@@ -201,14 +201,15 @@
     "ES": "🇪🇸 Spanje"
   },
   "nav": {
-    "primary": "Hoofdnavigatie",
-    "products": "Producten",
     "about": "Over ons",
-    "contact": "Contact",
     "cart": "Winkelmand",
-    "open_menu": "Menu openen",
+    "change_language": "Taal wijzigen",
     "close_menu": "Menu sluiten",
-    "change_language": "Taal wijzigen"
+    "contact": "Contact",
+    "home": "Home",
+    "open_menu": "Menu openen",
+    "primary": "Hoofdnavigatie",
+    "products": "Producten"
   },
   "order_status": {
     "draft": "Concept",

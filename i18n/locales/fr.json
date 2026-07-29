@@ -201,14 +201,15 @@
     "ES": "🇪🇸 Espagne"
   },
   "nav": {
-    "primary": "Navigation principale",
-    "products": "Produits",
     "about": "À propos",
-    "contact": "Contact",
     "cart": "Panier",
-    "open_menu": "Ouvrir le menu",
+    "change_language": "Changer de langue",
     "close_menu": "Fermer le menu",
-    "change_language": "Changer de langue"
+    "contact": "Contact",
+    "home": "Accueil",
+    "open_menu": "Ouvrir le menu",
+    "primary": "Navigation principale",
+    "products": "Produits"
   },
   "order_status": {
     "draft": "Brouillon",

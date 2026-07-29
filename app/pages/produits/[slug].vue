@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ProductDetail } from '~~/server/catalog/types'
+import { localizedUrl, type LocaleCode } from '~~/shared/locales'
+import { ORGANISATION, RETURN_POLICY, SITE_URL } from '~~/shared/organisation'
+import { marketForLocale } from '~~/shared/markets'
 
 /**
  * Product page.
@@ -15,6 +18,13 @@ const { locale, t } = useI18n()
 const cart = useCart()
 
 const slug = computed(() => String(route.params.slug))
+
+/**
+ * Set before the first await on purpose. `useState` after an await has lost the
+ * Nuxt instance and hands back a detached ref that never reaches the head —
+ * the canonical would silently stop being written.
+ */
+const canonicalOverride = useState<string | null>('canonical-override', () => null)
 
 const { data: product } = await useFetch<ProductDetail>(
   () => `/api/catalog/products/${slug.value}`,
@@ -46,42 +56,156 @@ function addToCart(): void {
   }, 2500)
 }
 
-useSeoMeta({
-  title: () => product.value?.seo.title || product.value?.name || '',
-  description: () => product.value?.seo.description || product.value?.shortDescription || '',
-  ogImage: () => product.value?.image?.url ?? '',
+/**
+ * One canonical for a model, not one per colour.
+ *
+ * Six colours of the same bike are near-identical pages, and Search Console was
+ * reporting exactly that on the live site: "duplicate, submitted URL not
+ * selected as canonical". Pointing the family at one URL stops them competing
+ * with each other for the same query. The choice is alphabetical among the
+ * family so that every colour agrees on the same winner — a rule that depended
+ * on which page you were standing on would produce a canonical loop.
+ */
+const canonicalSlug = computed(() => {
+  const item = product.value
+  if (!item) return ''
+  if (!item.modelFamily) return item.slug
+  const family = [item.slug, ...item.siblings.map((sibling) => sibling.slug)].filter(Boolean)
+  return family.sort((a, b) => a.localeCompare(b))[0] ?? item.slug
 })
 
-// Structured data is built from what the page actually shows, so a price or an
-// availability shown to a customer and one shown to Google cannot diverge.
-useHead(() => {
-  if (!product.value) return {}
+watchEffect(() => {
+  canonicalOverride.value = canonicalSlug.value
+    ? localizedUrl(`/produits/${canonicalSlug.value}`, locale.value as LocaleCode)
+    : null
+})
+
+// Left behind, the override would follow the visitor onto the next page and
+// canonicalise it to a product.
+onUnmounted(() => {
+  canonicalOverride.value = null
+})
+
+/**
+ * A description built from this product's own attributes.
+ *
+ * The previous build ran a generator that wrote one identical truncated line to
+ * all 145 products, which is what made every colour of a model look like a
+ * duplicate to Google in the first place.
+ */
+const metaDescription = computed(() => {
   const item = product.value
-  return {
-    script: [
+  if (!item) return ''
+  if (item.seo.description) return item.seo.description
+  const specs = [
+    item.specifications.motor,
+    item.specifications.battery,
+    item.specifications.range,
+  ].filter(Boolean).join(' · ')
+  return [item.shortDescription, specs, item.color ? `${item.color}.` : '']
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, 300)
+})
+
+useSeoMeta({
+  title: () => product.value?.seo.title || product.value?.name || '',
+  description: () => metaDescription.value,
+  ogImage: () => product.value?.image?.url ?? '',
+  ogType: 'website',
+})
+
+/**
+ * Structured data, built from what the page actually shows.
+ *
+ * A price or an availability that differs between the markup and the visible
+ * page is a Shopping disapproval, so both come from the same object. The
+ * shipping and return blocks are here because Google renders them directly in
+ * the Shopping result — an offer without them looks less trustworthy beside one
+ * that has them, and free delivery is the strongest thing this shop can say.
+ */
+useHead(() => {
+  const item = product.value
+  if (!item) return {}
+
+  const url = localizedUrl(`/produits/${item.slug}`, locale.value as LocaleCode)
+  const market = marketForLocale(locale.value as LocaleCode)
+
+  const shippingDetails = ORGANISATION.deliversTo.map((country) => ({
+    '@type': 'OfferShippingDetails',
+    shippingRate: {
+      '@type': 'MonetaryAmount',
+      // Free where the own fleet goes. Claiming free delivery anywhere else
+      // would be a promise the checkout refuses.
+      value: '0.00',
+      currency: 'EUR',
+    },
+    shippingDestination: {
+      '@type': 'DefinedRegion',
+      addressCountry: country,
+      // France is department 86 only; the rest of the country collects in store.
+      ...(country === 'FR' ? { postalCodePrefix: ['86'] } : {}),
+    },
+    deliveryTime: {
+      '@type': 'ShippingDeliveryTime',
+      handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 2, unitCode: 'DAY' },
+      transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 5, unitCode: 'DAY' },
+    },
+  }))
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
       {
-        type: 'application/ld+json',
-        innerHTML: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Product',
-          name: item.name,
-          image: item.images.map((image) => image.url),
-          description: item.shortDescription ?? item.description ?? undefined,
-          sku: item.sku ?? undefined,
-          gtin13: item.gtin ?? undefined,
-          brand: item.brand ? { '@type': 'Brand', name: item.brand.name } : undefined,
-          offers: {
-            '@type': 'Offer',
-            price: (item.price / 100).toFixed(2),
-            priceCurrency: 'EUR',
-            availability:
-              item.available > 0
-                ? 'https://schema.org/InStock'
-                : 'https://schema.org/OutOfStock',
+        '@type': 'Product',
+        '@id': `${url}#product`,
+        name: item.name,
+        image: item.images.map((image) => image.url),
+        description: metaDescription.value || undefined,
+        sku: item.sku ?? undefined,
+        gtin13: item.gtin ?? undefined,
+        mpn: item.manufacturerMpn ?? undefined,
+        color: item.color ?? undefined,
+        // Ties the colours of one model together, the same grouping the
+        // Merchant feed uses as item_group_id.
+        inProductGroupWithID: item.modelFamily ?? undefined,
+        brand: item.brand ? { '@type': 'Brand', name: item.brand.name } : undefined,
+        offers: {
+          '@type': 'Offer',
+          url,
+          price: (item.price / 100).toFixed(2),
+          priceCurrency: 'EUR',
+          itemCondition: 'https://schema.org/NewCondition',
+          availability:
+            item.available > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+          seller: { '@id': `${SITE_URL}/#organization` },
+          eligibleRegion: { '@type': 'Country', name: market.country },
+          shippingDetails,
+          hasMerchantReturnPolicy: {
+            '@type': 'MerchantReturnPolicy',
+            applicableCountry: RETURN_POLICY.applicableCountries,
+            returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+            merchantReturnDays: RETURN_POLICY.returnDays,
+            returnMethod: 'https://schema.org/ReturnByMail',
+            returnFees: RETURN_POLICY.returnFeesCustomerResponsibility
+              ? 'https://schema.org/ReturnShippingFees'
+              : 'https://schema.org/FreeReturn',
           },
-        }),
+        },
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: t('nav.home'), item: localizedUrl('/', locale.value as LocaleCode) },
+          { '@type': 'ListItem', position: 2, name: t('nav.products'), item: localizedUrl('/produits', locale.value as LocaleCode) },
+          { '@type': 'ListItem', position: 3, name: item.name, item: url },
+        ],
       },
     ],
+  }
+
+  return {
+    script: [{ type: 'application/ld+json', innerHTML: JSON.stringify(jsonLd) }],
   }
 })
 </script>

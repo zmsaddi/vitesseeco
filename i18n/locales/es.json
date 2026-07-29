@@ -201,14 +201,15 @@
     "ES": "🇪🇸 España"
   },
   "nav": {
-    "primary": "Navegación principal",
-    "products": "Productos",
     "about": "Nosotros",
-    "contact": "Contacto",
     "cart": "Cesta",
-    "open_menu": "Abrir menú",
+    "change_language": "Cambiar idioma",
     "close_menu": "Cerrar menú",
-    "change_language": "Cambiar idioma"
+    "contact": "Contacto",
+    "home": "Inicio",
+    "open_menu": "Abrir menú",
+    "primary": "Navegación principal",
+    "products": "Productos"
   },
   "order_status": {
     "draft": "Borrador",

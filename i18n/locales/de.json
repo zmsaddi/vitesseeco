@@ -201,14 +201,15 @@
     "ES": "🇪🇸 Spanien"
   },
   "nav": {
-    "primary": "Hauptnavigation",
-    "products": "Produkte",
     "about": "Über uns",
-    "contact": "Kontakt",
     "cart": "Warenkorb",
-    "open_menu": "Menü öffnen",
+    "change_language": "Sprache wechseln",
     "close_menu": "Menü schließen",
-    "change_language": "Sprache wechseln"
+    "contact": "Kontakt",
+    "home": "Startseite",
+    "open_menu": "Menü öffnen",
+    "primary": "Hauptnavigation",
+    "products": "Produkte"
   },
   "order_status": {
     "draft": "Entwurf",

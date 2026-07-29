@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { alternatesFor, getLocale, localizedUrl, resolvePath, type LocaleCode } from '~~/shared/locales'
+import { ORGANISATION, SITE_URL } from '~~/shared/organisation'
 
 /**
  * The document shell.
@@ -8,6 +9,11 @@ import { alternatesFor, getLocale, localizedUrl, resolvePath, type LocaleCode } 
  * drift from the sitemap or from what the router actually serves — and when a
  * market later moves onto its own country domain, these tags follow without an
  * edit here.
+ *
+ * The site-wide structured data lives here too. Organization and LocalBusiness
+ * are what let Google connect this domain to a real shop with an address and a
+ * phone number, which is the difference between appearing as a business and
+ * appearing as a page.
  */
 const route = useRoute()
 const { locale } = useI18n()
@@ -22,15 +28,89 @@ const seo = computed(() => {
   }
 })
 
+/**
+ * A page may override the canonical — the product page consolidates the colours
+ * of one model onto a single URL, so six near-identical pages stop competing
+ * with each other for the same query.
+ */
+const canonicalOverride = useState<string | null>('canonical-override', () => null)
+
+const organisationJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
+      name: ORGANISATION.name,
+      legalName: ORGANISATION.legalName,
+      url: SITE_URL,
+      email: ORGANISATION.email,
+      telephone: ORGANISATION.phone,
+      vatID: ORGANISATION.vatNumber,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: ORGANISATION.address.street,
+        postalCode: ORGANISATION.address.postalCode,
+        addressLocality: ORGANISATION.address.city,
+        addressRegion: ORGANISATION.address.region,
+        addressCountry: ORGANISATION.address.country,
+      },
+    },
+    {
+      '@type': 'LocalBusiness',
+      '@id': `${SITE_URL}/#localbusiness`,
+      name: ORGANISATION.name,
+      parentOrganization: { '@id': `${SITE_URL}/#organization` },
+      url: SITE_URL,
+      telephone: ORGANISATION.phone,
+      email: ORGANISATION.email,
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: ORGANISATION.address.street,
+        postalCode: ORGANISATION.address.postalCode,
+        addressLocality: ORGANISATION.address.city,
+        addressCountry: ORGANISATION.address.country,
+      },
+      geo: {
+        '@type': 'GeoCoordinates',
+        latitude: ORGANISATION.geo.latitude,
+        longitude: ORGANISATION.geo.longitude,
+      },
+      areaServed: ORGANISATION.deliversTo.map((code) => ({ '@type': 'Country', name: code })),
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: ORGANISATION.name,
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${SITE_URL}/produits?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  ],
+}
+
 useHead(() => ({
   htmlAttrs: { lang: locale.value, dir: seo.value.dir },
   link: [
-    { rel: 'canonical', href: seo.value.canonical },
+    { rel: 'canonical', href: canonicalOverride.value ?? seo.value.canonical },
     ...seo.value.alternates.map((alternate) => ({
       rel: 'alternate',
       hreflang: alternate.hreflang,
       href: alternate.href,
     })),
+  ],
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify(organisationJsonLd),
+    },
   ],
 }))
 </script>

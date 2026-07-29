@@ -201,14 +201,15 @@
     "ES": "🇪🇸 إسبانيا"
   },
   "nav": {
-    "primary": "التنقل الرئيسي",
-    "products": "المنتجات",
     "about": "من نحن",
-    "contact": "اتصل بنا",
     "cart": "السلة",
-    "open_menu": "فتح القائمة",
+    "change_language": "تغيير اللغة",
     "close_menu": "إغلاق القائمة",
-    "change_language": "تغيير اللغة"
+    "contact": "اتصل بنا",
+    "home": "الرئيسية",
+    "open_menu": "فتح القائمة",
+    "primary": "التنقل الرئيسي",
+    "products": "المنتجات"
   },
   "order_status": {
     "draft": "مسودة",
