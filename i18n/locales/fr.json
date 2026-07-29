@@ -2,10 +2,51 @@
   "a11y": {
     "skip_to_content": "Aller au contenu"
   },
+  "cart": {
+    "title": "Votre panier",
+    "empty": "Votre panier est vide.",
+    "browse": "Voir les produits",
+    "summary": "Récapitulatif",
+    "subtotal": "Sous-total",
+    "discount": "Remise",
+    "total": "Total",
+    "remove": "Retirer",
+    "promo": "Code promo",
+    "apply": "Appliquer",
+    "promo_applied": "Code {code} appliqué",
+    "promo_rejected": "Ce code n'est pas valable.",
+    "only_left": "Plus que {count} en stock",
+    "checkout": "Commander",
+    "shipping_at_checkout": "Livraison calculée à la commande."
+  },
+  "checkout": {
+    "title": "Commande",
+    "where": "Livraison",
+    "how": "Mode de livraison",
+    "payment": "Paiement",
+    "country": "Pays",
+    "postal_code": "Code postal",
+    "email": "Email",
+    "enter_address_first": "Indiquez votre code postal pour voir les options.",
+    "no_delivery_here": "Pas de livraison à domicile ici — retrait à Poitiers possible.",
+    "shipping": "Livraison",
+    "free": "Offerte",
+    "confirm": "Confirmer la commande",
+    "totals_pending": "Choisissez un mode de livraison.",
+    "pay_online": "Payer en ligne",
+    "pay_cash": "Payer en espèces à la livraison",
+    "pay_in_store": "Payer en magasin"
+  },
   "common": {
     "loading": "Chargement…",
     "previous": "Précédent",
     "next": "Suivant"
+  },
+  "confirmation": {
+    "title": "Commande reçue",
+    "number": "Numéro :",
+    "next_steps": "Nous vous contactons dès que votre commande est prête.",
+    "view_orders": "Mes commandes"
   },
   "errors": {
     "page_not_found": "Cette page n'existe pas.",

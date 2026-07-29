@@ -2,10 +2,51 @@
   "a11y": {
     "skip_to_content": "Zum Inhalt springen"
   },
+  "cart": {
+    "title": "Ihr Warenkorb",
+    "empty": "Ihr Warenkorb ist leer.",
+    "browse": "Produkte ansehen",
+    "summary": "Übersicht",
+    "subtotal": "Zwischensumme",
+    "discount": "Rabatt",
+    "total": "Gesamt",
+    "remove": "Entfernen",
+    "promo": "Gutscheincode",
+    "apply": "Anwenden",
+    "promo_applied": "Code {code} angewendet",
+    "promo_rejected": "Dieser Code ist ungültig.",
+    "only_left": "Nur noch {count} verfügbar",
+    "checkout": "Zur Kasse",
+    "shipping_at_checkout": "Versandkosten werden an der Kasse berechnet."
+  },
+  "checkout": {
+    "title": "Kasse",
+    "where": "Lieferung",
+    "how": "Lieferart",
+    "payment": "Zahlung",
+    "country": "Land",
+    "postal_code": "Postleitzahl",
+    "email": "E-Mail",
+    "enter_address_first": "Geben Sie Ihre Postleitzahl ein, um die Optionen zu sehen.",
+    "no_delivery_here": "Keine Hauslieferung hier — Abholung in Poitiers ist möglich.",
+    "shipping": "Lieferung",
+    "free": "Kostenlos",
+    "confirm": "Bestellung aufgeben",
+    "totals_pending": "Wählen Sie eine Lieferart.",
+    "pay_online": "Online bezahlen",
+    "pay_cash": "Barzahlung bei Lieferung",
+    "pay_in_store": "Im Laden bezahlen"
+  },
   "common": {
     "loading": "Wird geladen…",
     "previous": "Zurück",
     "next": "Weiter"
+  },
+  "confirmation": {
+    "title": "Bestellung eingegangen",
+    "number": "Nummer:",
+    "next_steps": "Wir melden uns, sobald Ihre Bestellung bereit ist.",
+    "view_orders": "Meine Bestellungen"
   },
   "errors": {
     "page_not_found": "Diese Seite existiert nicht.",

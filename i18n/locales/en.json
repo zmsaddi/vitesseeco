@@ -2,10 +2,51 @@
   "a11y": {
     "skip_to_content": "Skip to content"
   },
+  "cart": {
+    "title": "Your basket",
+    "empty": "Your basket is empty.",
+    "browse": "Browse products",
+    "summary": "Summary",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "remove": "Remove",
+    "promo": "Promo code",
+    "apply": "Apply",
+    "promo_applied": "Code {code} applied",
+    "promo_rejected": "This code is not valid.",
+    "only_left": "Only {count} left",
+    "checkout": "Checkout",
+    "shipping_at_checkout": "Delivery calculated at checkout."
+  },
+  "checkout": {
+    "title": "Checkout",
+    "where": "Delivery",
+    "how": "Delivery method",
+    "payment": "Payment",
+    "country": "Country",
+    "postal_code": "Postcode",
+    "email": "Email",
+    "enter_address_first": "Enter your postcode to see the options.",
+    "no_delivery_here": "No home delivery here — collection in Poitiers is available.",
+    "shipping": "Delivery",
+    "free": "Free",
+    "confirm": "Place order",
+    "totals_pending": "Choose a delivery method.",
+    "pay_online": "Pay online",
+    "pay_cash": "Pay cash on delivery",
+    "pay_in_store": "Pay in the shop"
+  },
   "common": {
     "loading": "Loading…",
     "previous": "Previous",
     "next": "Next"
+  },
+  "confirmation": {
+    "title": "Order received",
+    "number": "Number:",
+    "next_steps": "We will contact you as soon as your order is ready.",
+    "view_orders": "My orders"
   },
   "errors": {
     "page_not_found": "This page does not exist.",

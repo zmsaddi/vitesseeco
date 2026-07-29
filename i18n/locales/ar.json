@@ -2,10 +2,51 @@
   "a11y": {
     "skip_to_content": "انتقل إلى المحتوى"
   },
+  "cart": {
+    "title": "سلتك",
+    "empty": "سلتك فارغة.",
+    "browse": "تصفّح المنتجات",
+    "summary": "الملخّص",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "total": "الإجمالي",
+    "remove": "إزالة",
+    "promo": "رمز الخصم",
+    "apply": "تطبيق",
+    "promo_applied": "تم تطبيق الرمز {code}",
+    "promo_rejected": "هذا الرمز غير صالح.",
+    "only_left": "بقيت {count} قطعة فقط",
+    "checkout": "إتمام الطلب",
+    "shipping_at_checkout": "تُحتسب تكلفة التوصيل عند إتمام الطلب."
+  },
+  "checkout": {
+    "title": "إتمام الطلب",
+    "where": "التوصيل",
+    "how": "طريقة التوصيل",
+    "payment": "الدفع",
+    "country": "البلد",
+    "postal_code": "الرمز البريدي",
+    "email": "البريد الإلكتروني",
+    "enter_address_first": "أدخل رمزك البريدي لعرض الخيارات.",
+    "no_delivery_here": "لا توصيل منزلي هنا — الاستلام من بواتييه متاح.",
+    "shipping": "التوصيل",
+    "free": "مجاناً",
+    "confirm": "تأكيد الطلب",
+    "totals_pending": "اختر طريقة التوصيل.",
+    "pay_online": "الدفع إلكترونياً",
+    "pay_cash": "الدفع نقداً عند التسليم",
+    "pay_in_store": "الدفع في المتجر"
+  },
   "common": {
     "loading": "جارٍ التحميل…",
     "previous": "السابق",
     "next": "التالي"
+  },
+  "confirmation": {
+    "title": "تم استلام الطلب",
+    "number": "الرقم:",
+    "next_steps": "سنتواصل معك فور جهوز طلبك.",
+    "view_orders": "طلباتي"
   },
   "errors": {
     "page_not_found": "هذه الصفحة غير موجودة.",

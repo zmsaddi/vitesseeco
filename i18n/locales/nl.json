@@ -2,10 +2,51 @@
   "a11y": {
     "skip_to_content": "Naar de inhoud"
   },
+  "cart": {
+    "title": "Uw winkelmand",
+    "empty": "Uw winkelmand is leeg.",
+    "browse": "Bekijk producten",
+    "summary": "Overzicht",
+    "subtotal": "Subtotaal",
+    "discount": "Korting",
+    "total": "Totaal",
+    "remove": "Verwijderen",
+    "promo": "Kortingscode",
+    "apply": "Toepassen",
+    "promo_applied": "Code {code} toegepast",
+    "promo_rejected": "Deze code is niet geldig.",
+    "only_left": "Nog {count} op voorraad",
+    "checkout": "Afrekenen",
+    "shipping_at_checkout": "Bezorgkosten worden bij het afrekenen berekend."
+  },
+  "checkout": {
+    "title": "Afrekenen",
+    "where": "Bezorging",
+    "how": "Bezorgwijze",
+    "payment": "Betaling",
+    "country": "Land",
+    "postal_code": "Postcode",
+    "email": "E-mailadres",
+    "enter_address_first": "Vul uw postcode in om de opties te zien.",
+    "no_delivery_here": "Hier geen thuisbezorging — afhalen in Poitiers is mogelijk.",
+    "shipping": "Bezorging",
+    "free": "Gratis",
+    "confirm": "Bestelling plaatsen",
+    "totals_pending": "Kies een bezorgwijze.",
+    "pay_online": "Online betalen",
+    "pay_cash": "Contant bij levering",
+    "pay_in_store": "In de winkel betalen"
+  },
   "common": {
     "loading": "Laden…",
     "previous": "Vorige",
     "next": "Volgende"
+  },
+  "confirmation": {
+    "title": "Bestelling ontvangen",
+    "number": "Nummer:",
+    "next_steps": "Wij nemen contact op zodra uw bestelling klaar is.",
+    "view_orders": "Mijn bestellingen"
   },
   "errors": {
     "page_not_found": "Deze pagina bestaat niet.",
