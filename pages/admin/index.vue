@@ -185,7 +185,5 @@ async function notifyEngines() {
 function formatPrice(n: number) {
   return (n ?? 0).toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })
 }
-function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-}
+const { formatDateTime: formatDate } = useFormatDate()
 </script>

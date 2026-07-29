@@ -175,10 +175,7 @@ useSeoMeta({
   robots: 'noindex',
 })
 
-function formatDate(d: string | Date | undefined) {
-  if (!d) return ''
-  return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
-}
+const { formatLongDate: formatDate } = useFormatDate()
 
 const statusInfo = computed(() => {
   const s = data.value?.status || 'pending'

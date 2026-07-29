@@ -219,6 +219,7 @@ import { STATUS_LABELS, STATUS_CLASSES } from '~/utils/adminOrderStatus'
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { t, locale } = useI18n()
+const { formatDateTime } = useFormatDate()
 const localePath = useLocalePath()
 useHead({ title: computed(() => `${t('admin.orders_title')} — Admin Vitesse Eco`) })
 
@@ -391,7 +392,7 @@ const statusLabel = (s: string) => (STATUS_LABELS[s] ? t(STATUS_LABELS[s]) : s)
 const statusClass = (s: string) => STATUS_CLASSES[s] ?? 'bg-surface-2 text-on-surface-muted'
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return formatDateTime(d)
 }
 function formatPrice(n: number) {
   return n.toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })

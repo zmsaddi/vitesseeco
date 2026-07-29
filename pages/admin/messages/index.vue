@@ -97,6 +97,7 @@
 definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const { t, locale } = useI18n()
+const { formatDateTime } = useFormatDate()
 useHead({ title: computed(() => `${t('admin.nav_messages')} — Admin Vitesse Eco`) })
 
 const toast = useToast()
@@ -170,6 +171,6 @@ function mailtoLink(msg: any) {
 }
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return formatDateTime(d)
 }
 </script>

@@ -172,6 +172,7 @@ definePageMeta({ middleware: 'admin', layout: 'admin' })
 
 const route = useRoute()
 const { t, locale } = useI18n()
+const { formatDateTime } = useFormatDate()
 const localePath = useLocalePath()
 const orderNumber = route.params.orderNumber as string
 useHead({ title: `${orderNumber} — Admin Vitesse Eco` })
@@ -238,7 +239,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 const paymentLabel = (code: string) => (PAYMENT_LABELS[code] ? t(PAYMENT_LABELS[code]) : code)
 
 function formatDate(d: string | Date) {
-  return new Date(d).toLocaleDateString(locale.value, { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return formatDateTime(d)
 }
 function formatPrice(n: number) {
   return (n ?? 0).toLocaleString(locale.value, { style: 'currency', currency: 'EUR' })

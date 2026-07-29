@@ -425,10 +425,7 @@ async function fetchOrders() {
 }
 
 const { locale } = useI18n()
-function formatDate(d: string) {
-  const localeMap: Record<string, string> = { fr: 'fr-FR', en: 'en-GB', es: 'es-ES', nl: 'nl-NL', de: 'de-DE', ar: 'ar-SA' }
-  return new Date(d).toLocaleDateString(localeMap[locale.value] || 'fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
+const { formatShortDate: formatDate } = useFormatDate()
 
 function statusClass(status: string) {
   const map: Record<string, string> = {
