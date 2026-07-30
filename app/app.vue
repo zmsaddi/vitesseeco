@@ -100,6 +100,24 @@ useHead(() => ({
   htmlAttrs: { lang: locale.value, dir: seo.value.dir },
   link: [
     { rel: 'canonical', href: canonicalOverride.value ?? seo.value.canonical },
+    // Shipped since the first build and advertised by nothing: without these the
+    // manifest is a file nobody fetches and the shop cannot be installed, and the
+    // browser search box never learns the site can be searched.
+    { rel: 'manifest', href: '/manifest.webmanifest' },
+    { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
+    { rel: 'icon', href: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+    {
+      rel: 'search',
+      type: 'application/opensearchdescription+xml',
+      title: ORGANISATION.name,
+      href: '/opensearch.xml',
+    },
+    {
+      rel: 'alternate',
+      type: 'application/rss+xml',
+      title: `${ORGANISATION.name} — blog`,
+      href: '/feeds/blog.xml',
+    },
     ...seo.value.alternates.map((alternate) => ({
       rel: 'alternate',
       hreflang: alternate.hreflang,
