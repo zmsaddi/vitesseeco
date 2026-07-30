@@ -119,3 +119,42 @@ jobs:
       - run: node scripts/check-bundle-size.mjs
         env:
           BUNDLE_BUDGET_BYTES: '6815744'
+
+  # The simulator is the gate that catches what the others cannot: a page that
+  # renders a raw translation key, a hydration mismatch, a route that 500s, a
+  # price that changes between two screens. Every one of those shipped green
+  # through typecheck, unit tests and a build.
+  simulate:
+    name: Simulated customer journey
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - run: npm ci
+      - name: Install a browser
+        run: npx playwright install chromium --with-deps
+      - name: Build for production
+        run: npx nuxi build
+        env:
+          VERCEL: '1'
+          NITRO_PRESET: node-server
+      - name: Start the server
+        run: node .output/server/index.mjs &
+        env:
+          VERCEL: '1'
+          # No catalogue in CI: the simulator detects that and reports
+          # catalogue-dependent findings as information rather than failing.
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || 'ci-no-catalogue' }}
+          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
+          DATABASE_URL: postgres://ci:ci@localhost:5432/none
+          AUTH_SECRET: ci-secret-not-used-for-anything-real
+          PORT: '3000'
+      - name: Wait for it
+        run: npx wait-on http://127.0.0.1:3000/cgv --timeout 90000
+      - name: Walk the site as a customer
+        run: node tests/e2e/simulate.mjs http://127.0.0.1:3000 --locales fr,nl,de,es,en,ar
