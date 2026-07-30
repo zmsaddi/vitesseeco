@@ -118,8 +118,21 @@ async function refreshTotals(): Promise<void> {
   })
 }
 
+/**
+ * The token is single-use at Cloudflare, so a rejected attempt needs a fresh
+ * one. Cleared and the widget reset on every failure — otherwise the customer's
+ * second attempt fails on a stale token and they conclude the shop is broken.
+ */
+const captchaToken = ref('')
+const captcha = ref<{ reset: () => void } | null>(null)
+
 const canSubmit = computed(
-  () => !cart.isEmpty.value && !!selectedShipping.value && !!email.value && !submitting.value
+  () =>
+    !cart.isEmpty.value &&
+    !!selectedShipping.value &&
+    !!email.value &&
+    !!captchaToken.value &&
+    !submitting.value
 )
 
 async function submit(): Promise<void> {
@@ -146,6 +159,7 @@ async function submit(): Promise<void> {
         // A new key per attempt that reached the server, so a retry after a
         // failure is a new order rather than silently resolving to the last one.
         idempotencyKey: crypto.randomUUID(),
+        captchaToken: captchaToken.value,
       },
     })
 
@@ -166,6 +180,10 @@ async function submit(): Promise<void> {
   } catch (err: unknown) {
     const data = (err as { data?: { messageKey?: string } })?.data
     error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    // Spent, whether or not it was the reason. Asking Cloudflare to accept it
+    // twice fails, and the customer would never learn why.
+    captchaToken.value = ''
+    captcha.value?.reset()
   } finally {
     submitting.value = false
   }
@@ -303,7 +321,13 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
 
           <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
 
-          <button type="button" class="btn-primary mt-6 w-full" :disabled="!canSubmit" @click="submit">
+          <!-- Placing an order reserves stock before any money moves, so this
+               path is gated like login is. -->
+          <div class="mt-6">
+            <CaptchaWidget ref="captcha" v-model="captchaToken" />
+          </div>
+
+          <button type="button" class="btn-primary mt-4 w-full" :disabled="!canSubmit" @click="submit">
             {{ submitting ? $t('common.loading') : $t('checkout.confirm') }}
           </button>
         </aside>

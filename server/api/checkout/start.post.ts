@@ -7,6 +7,8 @@
  * an amount it could have influenced.
  */
 import { defineRoute } from '../../security/handler'
+import { verifyCaptcha } from '../../security/captcha'
+import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
 import { placeOrder, attachPaymentSession } from '../../services/orders'
 import { assertMethodAllowed, isOnline } from '../../payments'
@@ -20,7 +22,11 @@ export default defineRoute({
   access: 'public',
   rateLimit: 'checkout',
   body: startCheckoutSchema,
-  handler: async ({ body, customer, market }) => {
+  handler: async ({ event, body, customer, market }) => {
+    // Verified FIRST, before the catalogue is read or a row is written. A check
+    // that runs after the expensive work still lets an attacker cause it.
+    await verifyCaptcha(body.captchaToken, clientIp(event))
+
     const email = customer?.email ?? body.email
     if (!email) {
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
