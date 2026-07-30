@@ -322,6 +322,31 @@ if (suppressed.length > 0) {
   for (const entry of suppressed) console.log(`   ${entry}`)
 }
 
+// ── 9. A static file must not shadow an authored route ──────────────────────
+// Nitro serves public/ before server/routes/. A public/robots.txt silently
+// replaces the generated one, and the two drift with nothing to say which the
+// world is reading.
+{
+  const rule = 'No static file shadows a server route'
+  let bad = 0
+  const routes = join(ROOT, 'server', 'routes')
+  const publicDir = join(ROOT, 'public')
+  if (existsSync(routes) && existsSync(publicDir)) {
+    for (const file of walk(routes, ['.ts'])) {
+      const name = relative(routes, file)
+        .split('\\')
+        .join('/')
+        .replace(/\.(get|post)\.ts$/, '')
+        .replace(/\.ts$/, '')
+      if (existsSync(join(publicDir, name))) {
+        bad++
+        fail(rule, `public/${name}`, null, `shadows server/routes/${name} — the route never runs`)
+      }
+    }
+  }
+  if (bad === 0) pass(rule)
+}
+
 console.log('')
 if (failures > 0) {
   console.error(`❌ ${failures} invariant violation(s) across ${checks + 1} rules`)

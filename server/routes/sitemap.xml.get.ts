@@ -11,7 +11,7 @@
  */
 import { defineEventHandler, setResponseHeader } from 'h3'
 import { LOCALES, alternatesFor, localizedUrl, DEFAULT_LOCALE } from '../../shared/locales'
-import { listProducts, listCategories } from '../catalog'
+import { listAllProductSlugs } from '../catalog'
 
 /**
  * Pages that exist in every language regardless of the catalogue.
@@ -80,22 +80,25 @@ export default defineEventHandler(async (event) => {
   // The catalogue is fetched defensively: a sitemap missing its products is
   // recoverable, a sitemap that 500s is not.
   try {
-    const [products, categories] = await Promise.all([
-      listProducts({ locale: DEFAULT_LOCALE, page: 1, perPage: 48 }),
-      listCategories(DEFAULT_LOCALE),
-    ])
+    // EVERY product, not the first page. This asked for 48 of 147, so two
+    // thirds of the catalogue was never submitted to Google at all.
+    const products = await listAllProductSlugs()
 
-    for (const product of products.items) {
-      if (!product.slug) continue
-      entries.push(urlEntry(`/produits/${product.slug}`, '0.8', 'weekly', lastmod))
-    }
-    for (const category of categories) {
-      if (!category.slug) continue
-      entries.push(urlEntry(`/produits?categorie=${category.slug}`, '0.7', 'weekly', lastmod))
+    for (const product of products) {
+      // Each product carries its own last-edited date rather than today's:
+      // a lastmod that changes daily for a page that has not changed teaches a
+      // crawler to ignore the field.
+      entries.push(
+        urlEntry(`/produits/${product.slug}`, '0.8', 'weekly', product.updatedAt || lastmod)
+      )
     }
   } catch (error) {
     console.error('[sitemap] catalogue unavailable, serving static pages only', error)
   }
+
+  // Category filter URLs are deliberately absent. They are query-string views of
+  // the listing page and canonicalise back to it, so submitting them asks Google
+  // to crawl duplicates of a page already in the sitemap.
 
   setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
   setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')

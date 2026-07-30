@@ -61,6 +61,8 @@ const PUBLIC_PAGES = [
 const MACHINE_ROUTES = [
   '/sitemap.xml',
   '/robots.txt',
+  '/llms.txt',
+  '/llms-full.txt',
   '/feeds/google-merchant.xml',
   '/feeds/google-merchant-nl.xml',
   '/feeds/google-merchant-de.xml',

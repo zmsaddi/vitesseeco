@@ -22,6 +22,7 @@ import {
 } from './parse'
 import type { ParseContext } from './parse'
 import {
+  ALL_PRODUCT_SLUGS_QUERY,
   BRANDS_QUERY,
   CATEGORIES_QUERY,
   MARKET_PRICING_QUERY,
@@ -220,6 +221,24 @@ export async function getProduct(
     })
   }
   return product
+}
+
+/**
+ * Slugs for every sellable product, with the date each was last edited.
+ *
+ * Used by the sitemap, which must cover the whole catalogue rather than the
+ * first page of it.
+ */
+export async function listAllProductSlugs(): Promise<Array<{ slug: string; updatedAt: string }>> {
+  const rows = await cachedFetch<Array<{ slug?: string; _updatedAt?: string }>>(
+    'all-product-slugs',
+    ALL_PRODUCT_SLUGS_QUERY,
+    {},
+    300_000
+  )
+  return rows
+    .filter((row): row is { slug: string; _updatedAt?: string } => Boolean(row?.slug))
+    .map((row) => ({ slug: row.slug, updatedAt: (row._updatedAt ?? '').slice(0, 10) }))
 }
 
 export async function listCategories(locale: LocaleCode): Promise<Category[]> {

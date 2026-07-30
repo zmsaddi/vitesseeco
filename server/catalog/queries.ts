@@ -183,6 +183,17 @@ export const PRODUCTS_BY_IDS_QUERY = `
   *[${AVAILABLE} && _id in $ids] ${PRODUCT_SUMMARY}
 `
 
+/**
+ * Every sellable slug, for the sitemap.
+ *
+ * Deliberately not the listing query: that one paginates, and a sitemap that
+ * submits the first page only leaves the rest of the catalogue invisible to
+ * Google. Two fields per row, so asking for all of them costs almost nothing.
+ */
+export const ALL_PRODUCT_SLUGS_QUERY = `
+  *[${AVAILABLE}] | order(coalesce(sortOrder, 0) asc) { "slug": slug.current, _updatedAt }
+`
+
 export const CATEGORIES_QUERY = `
   *[_type == "category" && defined(slug.current)] | order(coalesce(sortOrder, 0) asc) ${CATEGORY}
 `
