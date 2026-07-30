@@ -397,3 +397,46 @@ describe('parseMarketRules', () => {
     expect(parseMarketRules(undefined).size).toBe(0)
   })
 })
+
+describe('brand names from the live dataset', () => {
+  it('accepts a brand whose name is a plain string', () => {
+    // The brand schema stores its name untranslated — brands are proper nouns.
+    // The parser expected a localized record and dropped every branded product:
+    // the live catalogue rendered zero of 144 items while every gate was green.
+    const product = parseProductSummary(
+      { ...VALID_PRODUCT, brand: { slug: 'ouxi', name: 'OUXI' } },
+      context
+    )
+    expect(product?.brand).toEqual({ slug: 'ouxi', name: 'OUXI' })
+  })
+
+  it('still accepts a localized brand name', () => {
+    const product = parseProductSummary(VALID_PRODUCT, context)
+    expect(product?.brand?.name).toBe('QMWheel')
+  })
+})
+
+describe('field shapes taken from the live dataset', () => {
+  it('accepts seo title and description as plain strings', () => {
+    // seoFields stores both untranslated. Expecting a record dropped every
+    // product with SEO filled in: the listing looked perfect and every product
+    // page answered 404.
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const product = parseProductDetail(
+      { ...VALID_PRODUCT, seo: { _type: 'seoFields', title: 'QMWheel V20 Pro', description: 'Fatbike 250W' } },
+      context,
+      []
+    )
+    warn.mockRestore()
+    expect(product).not.toBeNull()
+    expect(product?.seo.title).toBe('QMWheel V20 Pro')
+  })
+
+  it('never leaks a Sanity _key as display text', () => {
+    // Highlights arrive as { _key: 'h-0', fr: '…', … }. The last-resort locale
+    // fallback iterates values, and without the underscore guard it could hand
+    // "h-0" to a customer whose locale is missing.
+    expect(translate({ _key: 'h-0' } as never, 'fr')).toBeNull()
+    expect(translate({ _key: 'h-0', nl: 'Sterke motor' } as never, 'fr')).toBe('Sterke motor')
+  })
+})

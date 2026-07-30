@@ -139,12 +139,13 @@ async function checkPage(context, path, locale) {
 }
 
 async function checkMachineRoutes(context) {
+  // Fetched, not navigated: these are files for machines, and a CSV with a
+  // Content-Disposition makes page.goto abort as "Download is starting".
   for (const path of MACHINE_ROUTES) {
-    const page = await context.newPage()
     try {
-      const res = await page.goto(BASE + path, { timeout: 30_000 })
-      const status = res?.status() ?? 0
-      const text = await res?.text().catch(() => '')
+      const res = await context.request.get(BASE + path, { timeout: 30_000 })
+      const status = res.status()
+      const text = await res.text().catch(() => '')
       if (status !== 200) record('high', path, `returned ${status}`)
       else if (!text || text.length < 80) record('high', path, `served ${text.length} bytes — effectively empty`)
       else if (path.endsWith('.xml') && !text.trimStart().startsWith('<?xml')) {
@@ -153,7 +154,6 @@ async function checkMachineRoutes(context) {
     } catch (e) {
       record('high', path, `failed: ${String(e).slice(0, 110)}`)
     }
-    await page.close()
   }
 }
 

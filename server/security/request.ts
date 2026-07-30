@@ -93,9 +93,22 @@ export function assertSameOrigin(event: H3Event): void {
 
   const origin = getRequestHeader(event, 'origin')
   if (origin && origin !== 'null') {
+    const originHost = normalizeHost(origin)
+
+    // The definition of same-origin is the request's OWN host, so that is what
+    // is checked first — not a list. The list alone rejected every POST from
+    // any address it had not enumerated: the vitesseeco.vercel.app alias in
+    // production (VERCEL_URL is the unique deployment URL, never the alias),
+    // and any local port. On the alias, pricing a basket, logging in and
+    // checking out all answered 403 — while the same build on the primary
+    // domain looked perfectly healthy.
+    const requestHost = getRequestHeader(event, 'host')
+    if (requestHost && normalizeHost(requestHost) === originHost) return
+
+    // The list still matters: under domain routing, a page on vitesse-eco.nl
+    // legitimately posts to APIs that must recognise its sibling domains.
     const allowed = allowedOrigins()
-    const host = normalizeHost(origin)
-    const permitted = [...allowed].some((entry) => normalizeHost(entry) === host)
+    const permitted = [...allowed].some((entry) => normalizeHost(entry) === originHost)
     if (!permitted) {
       throw new AppError(ERROR_CODES.CSRF_REJECTED, {
         internal: `origin ${origin} is not allowed for ${routeKey(event)}`,

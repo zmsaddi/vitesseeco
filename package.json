@@ -60,6 +60,7 @@
     "@types/ws": "^8.18.1",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
+    "embedded-postgres": "^18.4.0-beta.17",
     "franc-min": "^6.2.0",
     "pg": "^8.22.0",
     "sanity": "^5.20.0",

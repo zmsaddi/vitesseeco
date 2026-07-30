@@ -80,7 +80,14 @@ const rawProductSchema = z.object({
   modelFamily: z.string().nullable().optional(),
   isNew: z.boolean().nullable().optional(),
   isFeatured: z.boolean().nullable().optional(),
-  brand: z.object({ slug: z.string(), name: localized }).nullable().optional(),
+  // The brand schema stores its name as a PLAIN STRING — brands are proper
+  // nouns and are not translated — while categories translate theirs. The first
+  // run against the live dataset dropped every branded product because this
+  // expected a record: 144 products, zero rendered, and the build was green.
+  brand: z
+    .object({ slug: z.string(), name: z.union([z.string(), localized]) })
+    .nullable()
+    .optional(),
   category: z.object({ slug: z.string(), name: localized }).nullable().optional(),
   image: imageSchema,
 })
@@ -96,7 +103,17 @@ const rawProductDetailSchema = rawProductSchema.extend({
   highlights: z.array(localized).nullable().optional(),
   images: z.array(imageSchema).nullable().optional(),
   videoUrl: z.string().nullable().optional(),
-  seo: z.object({ title: localized, description: localized }).nullable().optional(),
+  // seoFields stores title and description as PLAIN STRINGS. Expecting a
+  // localized record here made parseProductDetail drop every product that had
+  // SEO filled in — so the listing looked perfect while every product page
+  // answered 404. Found by running against the live dataset, not by reading.
+  seo: z
+    .object({
+      title: z.union([z.string(), localized]),
+      description: z.union([z.string(), localized]),
+    })
+    .nullable()
+    .optional(),
   specifications: z
     .object({
       motor: z.string().nullable().optional(),
@@ -123,15 +140,26 @@ const rawProductDetailSchema = rawProductSchema.extend({
  * Falls back to the default locale, then to any locale that has content: a
  * German visitor is better served a French product name than an empty heading.
  */
-export function translate(field: Localized, locale: LocaleCode): string | null {
+export function translate(
+  field: Localized | string | null | undefined,
+  locale: LocaleCode
+): string | null {
   if (!field) return null
+  // Some Studio fields are not translated at all — a brand is a proper noun,
+  // an SEO title was authored once — and arrive as plain strings.
+  if (typeof field === 'string') return field.trim() || null
+
   const requested = field[locale]
   if (requested && requested.trim()) return requested.trim()
 
   const fallback = field[DEFAULT_LOCALE]
   if (fallback && fallback.trim()) return fallback.trim()
 
-  for (const value of Object.values(field)) {
+  for (const [key, value] of Object.entries(field)) {
+    // Array members carry Sanity's own _key (and objects a _type) beside the
+    // locale entries. Without this guard the last-resort fallback could hand
+    // "h-0" or "seoFields" to a customer as visible text.
+    if (key.startsWith('_')) continue
     if (value && value.trim()) return value.trim()
   }
   return null
@@ -279,7 +307,11 @@ export function parseProductSummary(document: unknown, context: ParseContext): P
   }
 
   const { price, compareAtPrice } = resolvePrice(raw, context)
-  const brandName = raw.brand ? translate(raw.brand.name, context.locale) : null
+  const brandName = raw.brand
+    ? typeof raw.brand.name === 'string'
+      ? raw.brand.name.trim() || null
+      : translate(raw.brand.name, context.locale)
+    : null
   const categoryName = raw.category ? translate(raw.category.name, context.locale) : null
 
   return {

@@ -23,18 +23,35 @@ export function sanity(): SanityClient {
   const dataset = process.env.SANITY_DATASET ?? 'production'
   const token = process.env.SANITY_TOKEN
 
-  if (!token) {
-    // Failing loudly beats serving an empty catalogue that looks like a shop
-    // with nothing in it.
+  /**
+   * Reads are authenticated by default, and the absence of a token is fatal by
+   * default: failing loudly beats serving an empty catalogue that looks like a
+   * shop with nothing in it.
+   *
+   * The one sanctioned exception is explicit. The dataset is still publicly
+   * readable today — making it private is on the owner's cutover list — so a
+   * local simulation can opt into token-less reads by setting
+   * SANITY_ALLOW_PUBLIC_READ=1. The warning is unconditional and loud because
+   * this flag has no business existing in a production environment, and if it
+   * ever does, the log should say so on the very first catalogue read.
+   */
+  if (!token && process.env.SANITY_ALLOW_PUBLIC_READ !== '1') {
     throw new Error(
-      'SANITY_TOKEN is not set. The catalogue dataset is private and is read server-side with a token.'
+      'SANITY_TOKEN is not set. The catalogue dataset is read server-side with a token. ' +
+        '(For a local simulation against the still-public dataset, set SANITY_ALLOW_PUBLIC_READ=1.)'
+    )
+  }
+  if (!token) {
+    console.warn(
+      '[catalog] SANITY_ALLOW_PUBLIC_READ=1 — reading the dataset WITHOUT a token. ' +
+        'Local simulation only; never run production like this.'
     )
   }
 
   cachedClient = createClient({
     projectId,
     dataset,
-    token,
+    ...(token ? { token } : {}),
     apiVersion: '2024-01-01',
     // The CDN cannot serve authenticated reads, and our own cache below is what
     // keeps the request count down.

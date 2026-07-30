@@ -15,6 +15,8 @@
 import { neon, neonConfig, Pool } from '@neondatabase/serverless'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
 import { drizzle as drizzlePool } from 'drizzle-orm/neon-serverless'
+import { drizzle as drizzleNodePg } from 'drizzle-orm/node-postgres'
+import pg from 'pg'
 import type { NeonQueryResultHKT } from 'drizzle-orm/neon-serverless'
 import type { PgTransaction } from 'drizzle-orm/pg-core'
 import type { ExtractTablesWithRelations, SQL } from 'drizzle-orm'
@@ -75,12 +77,41 @@ function connectionString(): string {
   return url
 }
 
+/**
+ * Is this URL a Neon endpoint at all?
+ *
+ * The Neon HTTP driver does not speak the Postgres wire protocol — it talks to
+ * Neon's own proxy over HTTPS. Pointed at any ordinary Postgres (the embedded
+ * dev database, a CI service container, a future self-hosted move) every query
+ * fails with a connection error that says nothing about why. So the driver is
+ * chosen by what the URL actually is, and plain Postgres gets the plain
+ * node-postgres driver.
+ */
+function isNeonUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname
+    return host.endsWith('.neon.tech') || host.endsWith('.aws.neon.tech')
+  } catch {
+    return false
+  }
+}
+
 let httpClient: ReturnType<typeof drizzleHttp<Schema>> | null = null
+let nodeClient: ReturnType<typeof drizzleNodePg<Schema>> | null = null
 
 /** Read path and single writes. Cannot open a transaction. */
 export function db() {
+  const url = connectionString()
+  if (!isNeonUrl(url)) {
+    if (!nodeClient) {
+      nodeClient = drizzleNodePg(new pg.Pool({ connectionString: url, max: 5 }), { schema })
+    }
+    // The two drivers expose the same drizzle surface for everything this
+    // codebase does; the union collapses at the call sites.
+    return nodeClient as unknown as ReturnType<typeof drizzleHttp<Schema>>
+  }
   if (!httpClient) {
-    httpClient = drizzleHttp(neon(connectionString()), { schema })
+    httpClient = drizzleHttp(neon(url), { schema })
   }
   return httpClient
 }
@@ -93,7 +124,19 @@ export function db() {
  * already torn down.
  */
 export async function withTransaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
-  const pool = new Pool({ connectionString: connectionString() })
+  const url = connectionString()
+
+  if (!isNeonUrl(url)) {
+    const pool = new pg.Pool({ connectionString: url })
+    try {
+      const client = drizzleNodePg(pool, { schema })
+      return await client.transaction(async (tx) => work(tx as unknown as Transaction))
+    } finally {
+      await pool.end().catch(() => {})
+    }
+  }
+
+  const pool = new Pool({ connectionString: url })
   try {
     const client = drizzlePool(pool, { schema })
     return await client.transaction(async (tx) => work(tx as Transaction))
@@ -108,4 +151,7 @@ export async function withTransaction<T>(work: (tx: Transaction) => Promise<T>):
 /** Release cached handles. Tests call this so a suite does not hang on exit. */
 export async function closeConnections(): Promise<void> {
   httpClient = null
+  const pool = nodeClient?.$client
+  nodeClient = null
+  await (pool as pg.Pool | undefined)?.end().catch(() => {})
 }
