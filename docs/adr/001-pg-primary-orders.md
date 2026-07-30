@@ -1,3 +1,5 @@
+<!-- verify-docs: historical -->
+
 # ADR-001: PostgreSQL is the primary store for orders
 
 > Status: Accepted · **Realised structurally on `rebuild` (2026-07-30)**

@@ -59,24 +59,31 @@ cd skills && zip -r reality-check.zip reality-check
 
 ```
 reality-check/
-├── SKILL.md                        the doctrine and the five-phase workflow
+├── SKILL.md                        the doctrine and the seven-phase workflow
 ├── references/
-│   ├── seam-taxonomy.md            where bugs live, with probes for each seam
+│   ├── seam-taxonomy.md            ten seams where bugs live, with probes for each
 │   ├── reality-gaps.md             the phase-0 questionnaire, per stack
-│   └── case-studies.md             ten real green-but-broken defects
+│   ├── dead-weight.md              cleaning up: why your scanner lies, unused ≠ dead
+│   └── case-studies.md             fourteen real green-but-broken defects
 └── templates/
     ├── simulate.mjs                browser sweep: pages × locales, machine routes, purchase
     ├── critical-path.mjs           journey walker asserting in the datastore
     ├── check-invariants.mjs        project rule gate with reasoned suppressions
+    ├── verify-docs.mjs             docs checked like code: paths, commands, env vars
     ├── dev-infra.mjs               boot a real embedded PostgreSQL + migrations
     └── contract-check.mjs          parsers vs live production data, with a shape census
 ```
 
 ## Origin
 
-Distilled from a production e-commerce rebuild where ten serious defects — a shop
-that rendered zero of 144 products, every product page returning 404, every write
-failing with 403 on the live platform alias, stock that never moved on cash sales
-— all survived typecheck, unit tests, integration tests, a full build, CI and more
-than one adversarial code review. Every one was found by running the thing against
-real data. See `references/case-studies.md`.
+Distilled from a production e-commerce rebuild where fourteen serious defects — a
+shop that rendered zero of 144 products, every product page returning 404, every
+write failing with 403 on the live platform alias, stock that never moved on cash
+sales, a project document describing a directory layout that no longer existed,
+and a cleanup function that was exported, documented and never once called — all
+survived typecheck, unit tests, integration tests, a full build, CI and more than
+one adversarial code review.
+
+Every one was found by running the thing against real data, or by treating a
+cleanup as an inspection rather than as tidying. See
+`references/case-studies.md`.

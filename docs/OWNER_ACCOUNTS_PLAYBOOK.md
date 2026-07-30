@@ -71,7 +71,7 @@ SPF/DKIM إلى DNS عند مسجّل النطاق → بعد التحقق أن�
 
 **أنت:** console.anthropic.com → API Key → ضعه في Vercel: `ANTHROPIC_API_KEY`.
 **يفتح تلقائياً بلا أي كود:** الشات بوت يجيب بذكاء اصطناعي حقيقي بلغة الزائر
-(الكود جاهز في `server/api/chat/ask.post.ts` — يكتشف المفتاح ويتحول وحده).
+(الكود جاهز في the chat endpoint (not carried over to `rebuild`) — يكتشف المفتاح ويتحول وحده).
 
 ## 6️⃣ GS1 France — أكواد EAN الشرعية (30 دقيقة + معالجة أيام، ≈ 100–250€/سنة)
 
@@ -111,7 +111,7 @@ Settings → Payment methods → فعّل **Cards + Klarna** (+ **Bancontact** �
 ## 🔟 المنصات والأسواق (بعد المرحلتين 5 و6)
 
 بالترتيب الاستراتيجي المرسوم في MASTER_REBUILD_PLAN §7.6:
-1. **TikTok Shop + Meta Commerce** (فوري — يقبلان رابط الخلاصة مباشرة، بلا حاجز EAN): حسابا أعمال ثم لصق `feeds/google-merchant.xml`
+1. **TikTok Shop + Meta Commerce** (فوري — يقبلان رابط الخلاصة مباشرة، بلا حاجز EAN): حسابا أعمال ثم لصق `/feeds/google-merchant.xml`
 2. **bol.com** (NL/BE — يحتاج EAN + عنوان مرتجعات) و **Kaufland.de** (DE — يحتاج EAN + صفحات الامتثال ✅ جاهزة)
 3. **Amazon** أخيراً (الأغلى عمولة والأشرس منافسة — بعد إثبات النموذج)
 - عند إنشاء حسابات التواصل: ضع الروابط في Studio → إعدادات الموقع → socialLinks، وأخبرني لأضيفها لـ `sameAs` في JSON-LD.

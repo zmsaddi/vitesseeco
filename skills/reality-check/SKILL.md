@@ -20,7 +20,7 @@ Everything below exists to make that sentence operational.
 
 ## Why green gates lie
 
-Four structural reasons. Each one produced a real, expensive defect on a project
+Five structural reasons. Each one produced a real, expensive defect on a project
 whose CI was fully green. Learn them as failure *modes*, not anecdotes.
 
 **1. The same-author blind spot.** The person who wrote the wrong assumption into
@@ -47,6 +47,14 @@ empty set.
 > printed "0 problems" for months.
 > **Corollary: any scanner that scans zero inputs must FAIL, never pass.**
 
+**5. The gate was never wired up.** The check exists, is committed, is described
+in the README — and no pipeline invokes it.
+> A ten-rule invariant gate ran only when someone typed the command by hand; CI
+> never called it. Separately, a session-cleanup function was exported,
+> documented in its job's own description, and called by nothing.
+> **Corollary: "unused" and "unfinished" look identical in a diff. Whenever a
+> tool reports something unused, ask whether it was supposed to be called.**
+
 ---
 
 ## Where the bugs actually are: the seam taxonomy
@@ -65,6 +73,7 @@ go straight to the seams.
 | **system ↔ system** | Webhook replay; a feed consumer that disapproves you for a mismatch; API version drift | Assert the *contract the other system checks*, not your intent |
 | **now ↔ later** | Expiry, TTL, retry, cron schedules, clock skew, idempotency on replay | Assert timestamps and TTLs explicitly; replay the same event twice |
 | **one actor ↔ another** | Authorisation: user A can read user B's record | Always walk the journey a **second time as a different identity** |
+| **code ↔ its own documentation** | A README describing a layout that was replaced; an `.env.example` advertising keys nothing reads and omitting ones the app requires | Make the docs executable — check every path, command and variable named in prose |
 
 ---
 
@@ -159,7 +168,29 @@ Two hard requirements, both learned the hard way:
 
 *(Pattern: `templates/check-invariants.mjs`.)*
 
-### Phase 5 — Only now, say it is done
+### Phase 5 — Clean up, and treat it as an inspection
+
+A cleanup is not tidying. It is the cheapest inspection you will ever run, and on
+a real codebase it finds defects nothing was looking for. The full method is in
+[`references/dead-weight.md`](references/dead-weight.md); the three rules that
+matter most:
+
+- **Your hand-written dead-code scanner is wrong.** On one pass, four separate
+  ones each reported findings and *all four were completely wrong* — dynamically
+  built keys, a shelled-out command that fails silently on one OS, framework
+  auto-registration, a package name that only ever appeared inside a URL. Use a
+  real tool, configure it honestly, and **verify every candidate by hand before
+  deleting**.
+- **Unused often means unfinished.** Before deleting an unused export, grep the
+  docs and job definitions for its name. Present in prose and absent from code is
+  the signature of a feature that was built and never wired up.
+- **Documentation is checked like code.** Every path, command and environment
+  variable it names must exist — enforced, not remembered. See
+  [`templates/verify-docs.mjs`](templates/verify-docs.mjs). Write docs *against*
+  the code rather than from memory: on one rewrite, the act of verifying caught
+  four false claims in the document being written to replace a false document.
+
+### Phase 6 — Only now, say it is done
 
 Report what you ran, what you found, and what you did **not** cover. "Tests pass"
 is not a status. "I walked the purchase path against real data on a production
@@ -225,7 +256,18 @@ Apply these continuously, without being asked:
    than once. Assert the second one changes nothing.
 9. **Clear the build cache before trusting a build.** A warm cache can serve the
    previous bundle and hide a fatal error in the current source.
-10. **When the user asks "why do bugs keep appearing" — do not defend. Find the
+10. **Verify a documented fact before repeating it.** Write documentation against
+    the code, with counts and paths a command can check. If a document is wrong,
+    the document is the bug — fix it in the same commit.
+11. **Never delete on a scanner's word.** Open the file, grep the symbol. Expect
+    roughly half of any dead-code report to be false.
+12. **Check dependencies in BOTH directions.** Declared-but-unused is dead weight;
+    used-but-undeclared works only by your package manager's hoisting and breaks
+    the day that changes.
+13. **When something goes red mid-change, find out whose fault it is before
+    diagnosing.** `git stash`, re-run, `git stash pop` — two seconds, and it
+    replaces a guess with a fact.
+14. **When the user asks "why do bugs keep appearing" — do not defend. Find the
     seam, name the phase that should have caught it, and close it.**
 
 ---
@@ -241,6 +283,7 @@ Adapt, do not copy blindly. Each is a working starting point:
 | `templates/check-invariants.mjs` | Project rule gate with reasoned suppressions |
 | `templates/dev-infra.mjs` | Boot a real embedded PostgreSQL and apply migrations |
 | `templates/contract-check.mjs` | Validate parsers against live production data shapes |
+| `templates/verify-docs.mjs` | Documentation checked like code: paths, commands, env vars in both directions |
 
 ## References
 
@@ -248,4 +291,5 @@ Adapt, do not copy blindly. Each is a working starting point:
 |---|---|
 | `references/seam-taxonomy.md` | Hunting: full catalogue of seams with real cases and probes |
 | `references/reality-gaps.md` | Phase 0: the complete gap questionnaire per stack |
+| `references/dead-weight.md` | Cleaning up: why your scanner lies, and why unused often means unfinished |
 | `references/case-studies.md` | Convincing someone (or yourself) this matters |

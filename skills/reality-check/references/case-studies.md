@@ -150,11 +150,84 @@ been run.**
 
 ---
 
+## 11. The documentation described a different project (seam: code ↔ its docs)
+
+**Symptom** — None, ever. That is the point.
+
+**Cause** — The main project document described a directory layout that a rebuild
+had replaced entirely: root-level page, component and store directories, a state
+library no longer used, scripts long deleted. **Seven of eight spot-checked paths
+did not exist.** The `.env.example` was worse: it advertised keys for two payment
+providers and an email service that no code read, while omitting five variables
+the application genuinely required.
+
+**Cost** — Every newcomer, human or machine, starts from a false map. A wrong
+`.env.example` is a deployment that fails with no explanation.
+
+**Rule** — Documentation is checked like code. Every path, command and variable it
+names must exist, enforced in CI. And write it *against* the code: the act of
+verifying while writing caught four false claims in the document being written to
+replace the false one.
+
+---
+
+## 12. Four dead-code scanners, four wrong answers (seam: the check ↔ the checked)
+
+**Symptom** — A cleanup pass reported: three unused composables, 57 unused
+translation keys, 280 unused exports, one unused dependency.
+
+**Truth** — The composables were used in seven, eleven and one files. Every
+translation key was built dynamically: `` t(`privacy.data_${category}_title`) ``.
+The 280 exports came from a shelled-out `git grep` that fails on Windows and
+returns nothing, which reads exactly like "no usages". The dependency's name only
+ever appeared *inside a URL string*.
+
+**Rule** — Use a real tool. Verify every candidate by hand. Delete nothing on a
+scanner's word alone. Expect roughly half of any dead-code report to be false.
+
+---
+
+## 13. The cleanup found a bug nobody was looking for (unused ≠ dead)
+
+**Symptom** — A dead-code tool listed a session-cleanup function as an unused
+export.
+
+**Cause** — It was not obsolete. It was **never wired up**: exported, named in the
+scheduled job's own description, and called by nothing. Expired session rows had
+been accumulating for the lifetime of the application. Its `limit` parameter was
+decorative too — the delete was unbounded and it reported a smaller number than it
+had actually removed.
+
+**And then** — Wiring it in broke nine integration tests, which was the tests
+doing their job: the function reached for its own database connection instead of
+the injected one, so it could not be driven by a test at all. One "unused export"
+yielded three defects.
+
+**Rule** — When a tool says unused, ask whether something was *supposed* to call
+it. Grep the docs, the comments, the job definitions. Present in prose and absent
+from code is the signature of an unfinished wire.
+
+---
+
+## 14. The gate CI never ran
+
+**Symptom** — Ten invariant rules, written after ten real defects, each proved by
+breaking it on purpose. Fully green. And the pipeline never invoked any of them —
+they ran only when someone typed the command by hand.
+
+**Rule** — A gate nothing calls protects nothing. After writing a check, open the
+CI file and confirm it is listed there. This is the same defect class as #13,
+wearing different clothes.
+
+---
+
 ## What the pattern says
 
-Ten defects. Zero found by reading code. Zero found by unit tests. Zero found by
-type checking. Two found by adversarial review; the other eight needed **real data,
-a real database, a production build, or a second host**.
+Fourteen defects. Zero found by reading code. Zero found by unit tests. Zero found
+by type checking. Two found by adversarial review; the rest needed **real data, a
+real database, a production build, a second host — or a cleanup pass that treated
+deletion as an inspection**.
 
 Two hours of simulation against production-shaped reality found what seven hundred
-tool calls of careful reading did not.
+tool calls of careful reading did not. A cleanup that was only supposed to remove
+dead weight found three more.

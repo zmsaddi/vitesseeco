@@ -171,7 +171,38 @@ turns a data-shape bug into an invisible one: the count says 144, the list shows
 
 ---
 
-## 9. the check ↔ the thing it checks
+## 9. code ↔ its own documentation
+
+The seam nobody instruments, because nothing breaks when it fails — it just costs
+every newcomer an afternoon and teaches the team to stop trusting the docs.
+
+**Failures**
+- A README or project document describing a directory layout that a refactor
+  replaced. One real case: seven of eight spot-checked paths did not exist.
+- An `.env.example` advertising variables no code reads (whoever deploys goes
+  hunting for credentials they do not need) and omitting variables the app
+  requires (the deployment simply fails, and nothing says why).
+- Documented commands that were renamed or deleted.
+- Links between documents, broken the moment one is retired.
+- A comment describing behaviour the function no longer has — worse than no
+  comment, because it is believed.
+
+**Probes**
+- Make the docs executable: assert every path, command and environment variable
+  named in prose actually exists. See `templates/verify-docs.mjs`.
+- Check the environment example in **both directions**.
+- Put verifiable counts in documents deliberately — "34 routes", "6 locales" —
+  because a number a command can check is a number that stays true.
+- Write documentation **against the code**, not from memory. The verification is
+  the value: doing it caught four false claims in a document being written to
+  replace a false document.
+
+**Rule** — If a document is wrong, the document is the bug. Fix it in the same
+commit as the code, and gate it in CI like anything else.
+
+---
+
+## 10. the check ↔ the thing it checks
 
 The most embarrassing seam: your instrument is wrong and you trust it.
 
@@ -181,9 +212,21 @@ The most embarrassing seam: your instrument is wrong and you trust it.
   legitimately produces a different value (a nonce, a token, a timestamp).
 - A regex that normalises away the very difference it is meant to detect.
 - A gate so noisy that it gets disabled — and then protects nothing.
+- **A gate no pipeline invokes.** It exists, it is committed, it is described in
+  the README, and CI never calls it.
+- A shelled-out command that fails on one platform and returns nothing, which
+  reads identically to "no matches found".
+- A hand-written dead-code scanner. On one pass, four of them each reported
+  findings and **all four were completely wrong** — dynamic key construction,
+  framework auto-registration, a cross-platform command failure, and a package
+  name that only ever appeared inside a URL string.
 
 **Probes**
 - **Break the rule on purpose** and confirm the gate fails. A gate never seen
   failing is not known to work.
+- **Open the CI file and confirm the gate is listed there.** Writing a check and
+  wiring it up are two separate acts, and only one of them is memorable.
 - Assert the scanner's input count is non-zero and print it.
 - Before reporting a surprising finding, re-derive it a second way.
+- When something goes red mid-change, establish whose fault it is before
+  diagnosing: `git stash`, re-run, `git stash pop`.

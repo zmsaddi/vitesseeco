@@ -33,6 +33,21 @@ jobs:
       - name: Check raw hex colors
         run: npm run check:hex
 
+      # The ten project rules. This gate existed for weeks while CI never ran it
+      # — built, then never wired up, the same way an exported function can sit
+      # documented and uncalled. A gate nothing invokes protects nothing.
+      - name: Check invariants
+        run: npm run check:invariants
+
+      # Documentation is checked like code: every path, script and environment
+      # variable it names must exist. Prose rots faster than code and fails more
+      # quietly, and a wrong .env.example is a broken deployment.
+      - name: Check documentation
+        run: npm run check:docs
+
+      - name: Unit tests
+        run: npm run test:unit
+
       - name: Type check
         run: npx nuxi typecheck
         env:

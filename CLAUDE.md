@@ -123,7 +123,7 @@ export default defineRoute({
 - Rate limits are keyed on the route path, never on caller-supplied input.
 - Errors are `AppError` with a code and a `messageKey`; the shape is identical in
   development and production so consumers can parse it.
-- **`api/cron/maintenance.ts` is deliberately outside `defineRoute`.** A platform
+- **`server/api/cron/maintenance.ts` is deliberately outside `defineRoute`.** A platform
   scheduler has no origin and no stable address, so it authenticates with a
   shared secret compared in constant time. Its filename carries no method suffix
   because Vercel Cron issues a **GET**, and a POST-only handler would answer 405

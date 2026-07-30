@@ -6,8 +6,10 @@
 > and make Vitesse Eco the #1 e-mobility store result in **France, Belgium, Netherlands, Germany, Spain**.
 > (Belgium added 2026-07-05 — cheapest market entry: fr + nl locales already cover both Belgian language communities.)
 > **Timeline:** 12 weeks, weekly shippable milestones
-> **Supersedes:** [EXPERIENCE_RECONSTRUCTION_PLAN.md](EXPERIENCE_RECONSTRUCTION_PLAN.md) (absorbed).
-> Security backlog in [PRODUCTION_UPGRADE_PLAN.md](PRODUCTION_UPGRADE_PLAN.md) stays authoritative.
+> **Supersedes:** the experience-reconstruction plan, absorbed into this one and retired 2026-07-30.
+> The security backlog it referred to was retired with it: eight of its ten items are structural
+> in the rebuild, one is moot, and the one still open lives in [CUTOVER.md](CUTOVER.md).
+> See [README.md](README.md) for what was retired and why.
 
 ---
 
@@ -122,7 +124,7 @@ a visual baseline, and i18n keys in all 6 locales (`check:langs` gate).
 > Owner directive 2026-07-05: the site must be ready to plug in ANY payment API and
 > ANY shipping-carrier API.
 
-**Payments (already architected — ADR-07):** `server/payments/registry.ts` maps
+**Payments (already architected — ADR-07):** `server/payments/index.ts` maps
 `paymentMethod.code → adapter`. Adding a PSP = one adapter module + one Sanity document
 + one env flag. Live today: PayPal. Stubbed: Stripe, in-store. Planned per market:
 **Bancontact (BE)** and **iDEAL (NL)** — both available through Stripe or Mollie with a
