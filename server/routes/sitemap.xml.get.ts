@@ -11,7 +11,7 @@
  */
 import { defineEventHandler, setResponseHeader } from 'h3'
 import { LOCALES, alternatesFor, localizedUrl, DEFAULT_LOCALE } from '../../shared/locales'
-import { listAllProductSlugs } from '../catalog'
+import { listAllProductSlugs, listArticleSlugs } from '../catalog'
 
 /**
  * Pages that exist in every language regardless of the catalogue.
@@ -25,6 +25,7 @@ import { listAllProductSlugs } from '../catalog'
 export const STATIC_PATHS = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
   { path: '/produits', priority: '0.9', changefreq: 'daily' },
+  { path: '/blog', priority: '0.7', changefreq: 'weekly' },
   { path: '/a-propos', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
   { path: '/faq', priority: '0.6', changefreq: 'monthly' },
@@ -82,7 +83,11 @@ export default defineEventHandler(async (event) => {
   try {
     // EVERY product, not the first page. This asked for 48 of 147, so two
     // thirds of the catalogue was never submitted to Google at all.
-    const products = await listAllProductSlugs()
+    const [products, articles] = await Promise.all([listAllProductSlugs(), listArticleSlugs()])
+
+    for (const article of articles) {
+      entries.push(urlEntry(`/blog/${article.slug}`, '0.6', 'monthly', article.updatedAt || lastmod))
+    }
 
     for (const product of products) {
       // Each product carries its own last-edited date rather than today's:

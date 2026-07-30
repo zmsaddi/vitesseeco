@@ -127,6 +127,12 @@
     "phone_optional": "Teléfono (opcional)",
     "sign_in": "Iniciar sesión"
   },
+  "blog": {
+    "description": "Cómo elegir, mantener y aprovechar su bicicleta eléctrica. Escrito por quienes las entregan.",
+    "empty": "Aún no hay artículos.",
+    "related": "Productos mencionados",
+    "title": "Guías y consejos"
+  },
   "cart": {
     "apply": "Aplicar",
     "browse": "Ver productos",
@@ -346,6 +352,7 @@
     "section_after_sales": "Garantía y posventa",
     "section_bikes": "Las bicicletas",
     "section_delivery": "Entrega",
+    "section_more": "Más preguntas",
     "section_payment": "Pago",
     "still_body": "Lo más sencillo es escribir o llamar. Indique el modelo que le interesa y su código postal: basta para poder decirle qué es posible.",
     "still_title": "¿Su pregunta no está aquí?",

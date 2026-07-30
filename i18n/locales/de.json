@@ -127,6 +127,12 @@
     "phone_optional": "Telefon (optional)",
     "sign_in": "Anmelden"
   },
+  "blog": {
+    "description": "Wie Sie Ihr E-Bike auswählen, pflegen und optimal nutzen. Geschrieben von denen, die es liefern.",
+    "empty": "Noch keine Artikel.",
+    "related": "Erwähnte Produkte",
+    "title": "Ratgeber und Tipps"
+  },
   "cart": {
     "apply": "Anwenden",
     "browse": "Produkte ansehen",
@@ -346,6 +352,7 @@
     "section_after_sales": "Gewährleistung und Kundendienst",
     "section_bikes": "Die Räder",
     "section_delivery": "Lieferung",
+    "section_more": "Weitere Fragen",
     "section_payment": "Zahlung",
     "still_body": "Am einfachsten ist es, zu schreiben oder anzurufen. Nennen Sie das Modell, das Sie interessiert, und Ihre Postleitzahl: Das genügt, um Ihnen zu sagen, was möglich ist.",
     "still_title": "Ihre Frage ist nicht dabei?",

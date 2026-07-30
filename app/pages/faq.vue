@@ -2,9 +2,11 @@
 /**
  * Frequently asked questions.
  *
- * The list is held here rather than fetched: there is no FAQ document type in
- * server/catalog, and inventing one from a page would put a query in the wrong
- * layer. Moving these into the CMS later is a change to this file alone.
+ * The curated list below is the baseline, translated and guaranteed: it renders
+ * whether or not the CMS answers, so this page cannot become empty because a
+ * document store had a bad minute. Anything the owner adds in the Studio is
+ * appended to it — the two are merged for display AND for the structured data,
+ * so a question a visitor can read is a question Google can read.
  *
  * The accordion is <details>/<summary>, which the browser already makes
  * keyboard-operable and announces correctly. A hand-built one needs aria-expanded,
@@ -12,7 +14,7 @@
  * and usually gets one of them wrong.
  */
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 interface Question {
   q: string
@@ -67,6 +69,22 @@ const sections: { heading: string; items: Question[] }[] = [
 
 const questions = sections.flatMap((section) => section.items)
 
+/**
+ * Extra questions the owner has written in the Studio. Fetched lazily and
+ * tolerantly: a failure leaves the curated list standing.
+ */
+const { data: cms } = await useFetch<{ faqs: Array<{ id: string; question: string; answer: string }> }>(
+  '/api/content/faq',
+  { query: computed(() => ({ locale: locale.value })), default: () => ({ faqs: [] }) }
+)
+const extraQuestions = computed(() => cms.value?.faqs ?? [])
+
+/** Everything a visitor can read here, curated and authored alike. */
+const allQuestions = computed(() => [
+  ...questions.map((item) => ({ question: t(item.q), answer: t(item.a) })),
+  ...extraQuestions.value.map((item) => ({ question: item.question, answer: item.answer })),
+])
+
 useSeoMeta({
   title: () => t('faq.title'),
   description: () => t('faq.description'),
@@ -80,10 +98,10 @@ const structuredData = computed(() =>
   JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: questions.map((item) => ({
+    mainEntity: allQuestions.value.map((item) => ({
       '@type': 'Question',
-      name: t(item.q),
-      acceptedAnswer: { '@type': 'Answer', text: t(item.a) },
+      name: item.question,
+      acceptedAnswer: { '@type': 'Answer', text: item.answer },
     })),
   })
 )
@@ -132,6 +150,28 @@ useHead({
                   {{ $t(link.label) }}
                 </NuxtLink>
               </div>
+            </details>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Written by the owner in the Studio. Kept visually identical to the
+           curated sections so a reader cannot tell, and should not have to. -->
+      <section v-if="extraQuestions.length">
+        <h2 class="font-display text-xl font-bold text-content-strong">{{ $t('faq.section_more') }}</h2>
+        <ul class="mt-4 space-y-3">
+          <li v-for="item in extraQuestions" :key="item.id">
+            <details class="card group p-5">
+              <summary
+                class="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-content-strong [&::-webkit-details-marker]:hidden"
+              >
+                <span>{{ item.question }}</span>
+                <Icon
+                  name="ph:caret-down"
+                  class="h-5 w-5 shrink-0 text-content-muted transition-transform group-open:rotate-180"
+                />
+              </summary>
+              <p class="mt-3 whitespace-pre-line text-content">{{ item.answer }}</p>
             </details>
           </li>
         </ul>

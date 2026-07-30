@@ -127,6 +127,12 @@
     "phone_optional": "Téléphone (facultatif)",
     "sign_in": "Se connecter"
   },
+  "blog": {
+    "description": "Comment choisir, entretenir et profiter de votre vélo électrique. Écrit par des gens qui les livrent.",
+    "empty": "Aucun article pour le moment.",
+    "related": "Produits mentionnés",
+    "title": "Guides et conseils"
+  },
   "cart": {
     "apply": "Appliquer",
     "browse": "Voir les produits",
@@ -346,6 +352,7 @@
     "section_after_sales": "Garantie et après-vente",
     "section_bikes": "Les vélos",
     "section_delivery": "Livraison",
+    "section_more": "Autres questions",
     "section_payment": "Paiement",
     "still_body": "Le plus simple est d'écrire ou d'appeler. Précisez le modèle qui vous intéresse et votre code postal : cela suffit pour vous dire ce qui est possible.",
     "still_title": "Votre question n'est pas là ?",

@@ -20,8 +20,11 @@ import {
   type PriceRounding,
 } from '../../shared/markets'
 import type {
+  Article,
+  ArticleDetail,
   Brand,
   Category,
+  FaqEntry,
   ProductDetail,
   ProductImage,
   ProductSpecifications,
@@ -352,6 +355,97 @@ export function parseProductDetail(
       description: translate(raw.seo?.description, context.locale),
     },
     siblings,
+  }
+}
+
+const rawArticleSchema = z.object({
+  _id: z.string().min(1),
+  slug: z.string().min(1),
+  title: localized,
+  excerpt: localized,
+  publishedAt: z.string().nullable().optional(),
+  author: z.string().nullable().optional(),
+  image: imageSchema,
+  _updatedAt: z.string().nullable().optional(),
+})
+
+const rawArticleDetailSchema = rawArticleSchema.extend({
+  content: localized,
+  seo: z.object({ title: localized, description: localized }).nullable().optional(),
+})
+
+export function parseArticle(document: unknown, locale: LocaleCode): Article | null {
+  const parsed = rawArticleSchema.safeParse(document)
+  if (!parsed.success) {
+    warn(document, parsed.error)
+    return null
+  }
+  const raw = parsed.data
+  const title = translate(raw.title, locale)
+  // An article with no title in any language cannot be listed or linked.
+  if (!title) {
+    console.warn(`[catalog] dropping article ${raw._id} — no title in any locale`)
+    return null
+  }
+  return {
+    id: raw._id,
+    slug: raw.slug,
+    title,
+    excerpt: translate(raw.excerpt, locale),
+    publishedAt: raw.publishedAt ?? null,
+    author: raw.author ?? null,
+    image: toImage(raw.image, title),
+    updatedAt: (raw._updatedAt ?? '').slice(0, 10),
+  }
+}
+
+export function parseArticleDetail(
+  document: unknown,
+  locale: LocaleCode,
+  relatedProducts: ProductSummary[]
+): ArticleDetail | null {
+  const summary = parseArticle(document, locale)
+  if (!summary) return null
+
+  const parsed = rawArticleDetailSchema.safeParse(document)
+  if (!parsed.success) {
+    warn(document, parsed.error)
+    return null
+  }
+  return {
+    ...summary,
+    content: translate(parsed.data.content, locale),
+    seo: {
+      title: translate(parsed.data.seo?.title, locale),
+      description: translate(parsed.data.seo?.description, locale),
+    },
+    relatedProducts,
+  }
+}
+
+const rawFaqSchema = z.object({
+  _id: z.string().min(1),
+  question: localized,
+  answer: localized,
+  category: z.string().nullable().optional(),
+})
+
+export function parseFaq(document: unknown, locale: LocaleCode): FaqEntry | null {
+  const parsed = rawFaqSchema.safeParse(document)
+  if (!parsed.success) {
+    warn(document, parsed.error)
+    return null
+  }
+  const question = translate(parsed.data.question, locale)
+  const answer = translate(parsed.data.answer, locale)
+  // Half an entry is worse than none: FAQPage structured data with an empty
+  // answer is a rich-result error rather than a missing one.
+  if (!question || !answer) return null
+  return {
+    id: parsed.data._id,
+    question,
+    answer,
+    category: parsed.data.category ?? null,
   }
 }
 

@@ -12,8 +12,11 @@ import type { LocaleCode } from '../../shared/locales'
 import { marketForLocale, type MarketDefinition, type MarketPriceRule } from '../../shared/markets'
 import { cachedFetch } from './client'
 import {
+  parseArticle,
+  parseArticleDetail,
   parseBrand,
   parseCategory,
+  parseFaq,
   parseMarketRules,
   parseProductDetail,
   parseProductSummary,
@@ -23,7 +26,11 @@ import {
 import type { ParseContext } from './parse'
 import {
   ALL_PRODUCT_SLUGS_QUERY,
+  ARTICLES_QUERY,
+  ARTICLE_BY_SLUG_QUERY,
+  ARTICLE_SLUGS_QUERY,
   BRANDS_QUERY,
+  FAQ_QUERY,
   CATEGORIES_QUERY,
   MARKET_PRICING_QUERY,
   PRODUCTS_BY_IDS_QUERY,
@@ -35,8 +42,11 @@ import {
   buildListQuery,
 } from './queries'
 import type {
+  Article,
+  ArticleDetail,
   Brand,
   Category,
+  FaqEntry,
   Paginated,
   ProductDetail,
   ProductQuery,
@@ -241,6 +251,62 @@ export async function listAllProductSlugs(): Promise<Array<{ slug: string; updat
     .map((row) => ({ slug: row.slug, updatedAt: (row._updatedAt ?? '').slice(0, 10) }))
 }
 
+/** Published articles, newest first. */
+export async function listArticles(locale: LocaleCode): Promise<Article[]> {
+  const documents = await cachedFetch<unknown[]>('articles', ARTICLES_QUERY, {}, 300_000)
+  return documents
+    .map((document) => parseArticle(document, locale))
+    .filter((entry): entry is Article => entry !== null)
+}
+
+export async function getArticle(slug: string, locale: LocaleCode): Promise<ArticleDetail> {
+  const document = await cachedFetch<unknown>(`article:${slug}`, ARTICLE_BY_SLUG_QUERY, { slug }, 300_000)
+  if (!document) {
+    // A 404, not an empty page: an unknown article URL must say it is gone.
+    throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no published article "${slug}"` })
+  }
+
+  // Related products carry live prices and stock, so they go through the same
+  // pricing path as anywhere else rather than being rendered from the document.
+  const raw = document as { relatedProducts?: unknown[] }
+  const related = raw.relatedProducts ?? []
+  const ids = related
+    .map((entry) => (entry as { _id?: string })?._id)
+    .filter((id): id is string => typeof id === 'string')
+  const [availability, pricing] = await Promise.all([availabilityFor(ids), pricingFor(locale)])
+  const products = related
+    .map((entry) => parseProductSummary(entry, { locale, availability, ...pricing }))
+    .filter((entry): entry is ProductSummary => entry !== null)
+
+  const article = parseArticleDetail(document, locale, products)
+  if (!article) {
+    throw new AppError(ERROR_CODES.NOT_FOUND, {
+      internal: `article "${slug}" exists but could not be parsed`,
+    })
+  }
+  return article
+}
+
+/** Slugs for the sitemap, with each article's own last-edited date. */
+export async function listArticleSlugs(): Promise<Array<{ slug: string; updatedAt: string }>> {
+  const rows = await cachedFetch<Array<{ slug?: string; _updatedAt?: string }>>(
+    'article-slugs',
+    ARTICLE_SLUGS_QUERY,
+    {},
+    300_000
+  )
+  return rows
+    .filter((row): row is { slug: string; _updatedAt?: string } => Boolean(row?.slug))
+    .map((row) => ({ slug: row.slug, updatedAt: (row._updatedAt ?? '').slice(0, 10) }))
+}
+
+export async function listFaqs(locale: LocaleCode): Promise<FaqEntry[]> {
+  const documents = await cachedFetch<unknown[]>('faqs', FAQ_QUERY, {}, 300_000)
+  return documents
+    .map((document) => parseFaq(document, locale))
+    .filter((entry): entry is FaqEntry => entry !== null)
+}
+
 export async function listCategories(locale: LocaleCode): Promise<Category[]> {
   const documents = await cachedFetch<unknown[]>('categories', CATEGORIES_QUERY, {}, 300_000)
   return documents
@@ -297,8 +363,11 @@ export async function getPromo(code: string): Promise<PromoDefinition | null> {
 }
 
 export type {
+  Article,
+  ArticleDetail,
   Brand,
   Category,
+  FaqEntry,
   Paginated,
   ProductDetail,
   ProductQuery,

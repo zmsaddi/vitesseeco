@@ -127,6 +127,12 @@
     "phone_optional": "Telefoon (optioneel)",
     "sign_in": "Inloggen"
   },
+  "blog": {
+    "description": "Hoe u uw elektrische fiets kiest, onderhoudt en optimaal gebruikt. Geschreven door de mensen die ze bezorgen.",
+    "empty": "Nog geen artikelen.",
+    "related": "Genoemde producten",
+    "title": "Gidsen en advies"
+  },
   "cart": {
     "apply": "Toepassen",
     "browse": "Bekijk producten",
@@ -346,6 +352,7 @@
     "section_after_sales": "Garantie en dienst na verkoop",
     "section_bikes": "De fietsen",
     "section_delivery": "Levering",
+    "section_more": "Meer vragen",
     "section_payment": "Betaling",
     "still_body": "Het eenvoudigst is schrijven of bellen. Vermeld het model dat u interesseert en uw postcode: dat volstaat om u te zeggen wat mogelijk is.",
     "still_title": "Staat uw vraag er niet bij?",

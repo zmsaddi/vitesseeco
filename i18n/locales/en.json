@@ -127,6 +127,12 @@
     "phone_optional": "Phone (optional)",
     "sign_in": "Sign in"
   },
+  "blog": {
+    "description": "How to choose, maintain and get the most from your electric bike. Written by the people who deliver them.",
+    "empty": "No articles yet.",
+    "related": "Products mentioned",
+    "title": "Guides and advice"
+  },
   "cart": {
     "apply": "Apply",
     "browse": "Browse products",
@@ -346,6 +352,7 @@
     "section_after_sales": "Warranty and after-sales",
     "section_bikes": "The bikes",
     "section_delivery": "Delivery",
+    "section_more": "More questions",
     "section_payment": "Payment",
     "still_body": "The quickest route is an email or a call. Mention the model you are interested in and your postcode — that is enough for us to tell you what is possible.",
     "still_title": "Still no answer?",

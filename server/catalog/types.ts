@@ -87,6 +87,31 @@ export interface ProductDetail extends ProductSummary {
   siblings: ProductSummary[]
 }
 
+export interface Article {
+  id: string
+  slug: string
+  title: string
+  excerpt: string | null
+  publishedAt: string | null
+  author: string | null
+  image: ProductImage | null
+  updatedAt: string
+}
+
+export interface ArticleDetail extends Article {
+  content: string | null
+  seo: { title: string | null; description: string | null }
+  /** Products the article talks about, so a reader can act on it. */
+  relatedProducts: ProductSummary[]
+}
+
+export interface FaqEntry {
+  id: string
+  question: string
+  answer: string
+  category: string | null
+}
+
 export interface Category {
   id: string
   slug: string

@@ -148,6 +148,58 @@ export const SELLING_TERMS_QUERY = `{
   }
 }`
 
+/**
+ * Editorial content: articles and FAQ entries.
+ *
+ * Both were in the Studio and queried by nothing, so seven blog posts and
+ * twenty-two answers existed in the dataset and on no page.
+ */
+export const ARTICLE_SUMMARY = `{
+  _id,
+  "slug": slug.current,
+  title,
+  excerpt,
+  publishedAt,
+  author,
+  "image": featuredImage ${IMAGE},
+  _updatedAt
+}`
+
+export const ARTICLE_DETAIL = `{
+  _id,
+  "slug": slug.current,
+  title,
+  excerpt,
+  content,
+  publishedAt,
+  author,
+  "image": featuredImage ${IMAGE},
+  seo,
+  "relatedProducts": relatedProducts[]-> ${PRODUCT_SUMMARY},
+  _updatedAt
+}`
+
+/** Published, and not post-dated: a scheduled article is not live yet. */
+const ARTICLE_LIVE = `_type == "article" && isPublished == true && defined(slug.current) && publishedAt <= now()`
+
+export const ARTICLES_QUERY = `
+  *[${ARTICLE_LIVE}] | order(publishedAt desc) [0...50] ${ARTICLE_SUMMARY}
+`
+
+export const ARTICLE_BY_SLUG_QUERY = `
+  *[${ARTICLE_LIVE} && slug.current == $slug][0] ${ARTICLE_DETAIL}
+`
+
+export const ARTICLE_SLUGS_QUERY = `
+  *[${ARTICLE_LIVE}] | order(publishedAt desc) { "slug": slug.current, _updatedAt }
+`
+
+export const FAQ_QUERY = `
+  *[_type == "faq" && isPublished == true] | order(coalesce(sortOrder, 0) asc) {
+    _id, question, answer, category
+  }
+`
+
 export const PROMO = `{
   code,
   discountType,
