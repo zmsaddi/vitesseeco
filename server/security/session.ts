@@ -11,11 +11,11 @@
  * it exists so a guest page load does not spend a request discovering it is a
  * guest.
  */
-import { and, eq, gt, lt } from 'drizzle-orm'
+import { and, eq, gt, inArray, lt, sql } from 'drizzle-orm'
 import { deleteCookie, getCookie, getRequestHeader, setCookie, type H3Event } from 'h3'
 import { customers, sessions } from '../db/schema'
-import { db } from '../db/client'
-import type { Transaction } from '../db/client'
+import { db, queryRows } from '../db/client'
+import type { SqlExecutor, Transaction } from '../db/client'
 import { createSessionToken, hashIp, hashToken } from './crypto'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import { clientIp } from './request'
@@ -155,27 +155,38 @@ export async function destroySession(event: H3Event): Promise<void> {
   clearSessionCookies(event)
 }
 
-/**
- * Sign out everywhere. Called after a password change, an email change and
- * account deletion: a credential change must not leave old sessions alive.
- */
-export async function destroyAllSessions(
-  tx: Transaction | ReturnType<typeof db>,
-  customerId: string
-): Promise<void> {
-  await tx.delete(sessions).where(eq(sessions.customerId, customerId))
-}
 
 export function clearSessionCookies(event: H3Event): void {
   deleteCookie(event, SESSION_COOKIE, { path: '/' })
   deleteCookie(event, SESSION_HINT_COOKIE, { path: '/' })
 }
 
-/** Housekeeping: expired rows serve no purpose and keep the index fat. */
-export async function pruneExpiredSessions(limit = 1000): Promise<number> {
-  const deleted = await db()
-    .delete(sessions)
-    .where(lt(sessions.expiresAt, new Date()))
-    .returning({ id: sessions.id })
-  return Math.min(deleted.length, limit)
+/**
+ * Housekeeping: expired rows serve no purpose and keep the index fat.
+ *
+ * Two things were wrong before. It was never CALLED — the function existed, was
+ * exported, was named in the scheduled sweep's own description, and nothing
+ * invoked it, so the table grew for the lifetime of the shop. And its `limit`
+ * was decorative: the delete was unbounded and the count returned was
+ * `min(deleted, limit)`, a smaller number than it had actually removed.
+ *
+ * It takes an executor for the same reason every other service function here
+ * does: one that reaches for its own connection cannot be driven by a test, and
+ * cannot take part in a transaction.
+ */
+export async function pruneExpiredSessions(
+  executor: SqlExecutor = db(),
+  limit = 1000
+): Promise<number> {
+  const rows = await queryRows<{ id: string }>(
+    executor,
+    sql`
+      DELETE FROM sessions
+       WHERE ctid IN (
+         SELECT ctid FROM sessions WHERE expires_at < NOW() LIMIT ${limit}
+       )
+      RETURNING id
+    `
+  )
+  return rows.length
 }

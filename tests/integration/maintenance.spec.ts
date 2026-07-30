@@ -166,6 +166,37 @@ describe.skipIf(!hasDatabase)('maintenance sweep', () => {
     const remaining = await testDb().select({ bucket: schema.rateLimits.bucket }).from(schema.rateLimits)
     expect(remaining.map((row) => row.bucket)).toEqual(['live'])
   })
+
+  it('prunes expired sessions and leaves live ones alone', async () => {
+    // The sweep did not touch the sessions table at all. `pruneExpiredSessions`
+    // existed, was exported, was named in the cron route's own description, and
+    // had no caller — so expired rows accumulated for the lifetime of the shop.
+    const [customer] = await testDb()
+      .insert(schema.customers)
+      .values({ email: 'sweeper@example.com', passwordHash: null, firstName: 'S', lastName: 'W' })
+      .returning({ id: schema.customers.id })
+
+    await testDb()
+      .insert(schema.sessions)
+      .values([
+        {
+          customerId: customer!.id,
+          tokenHash: 'a'.repeat(64),
+          expiresAt: new Date(Date.now() - 60_000),
+        },
+        {
+          customerId: customer!.id,
+          tokenHash: 'b'.repeat(64),
+          expiresAt: new Date(Date.now() + 3_600_000),
+        },
+      ])
+
+    const report = await runMaintenance(inTransaction, testDb())
+
+    expect(report.sessionsPruned).toBe(1)
+    const left = await testDb().select({ tokenHash: schema.sessions.tokenHash }).from(schema.sessions)
+    expect(left.map((row) => row.tokenHash)).toEqual(['b'.repeat(64)])
+  })
 })
 
 /**

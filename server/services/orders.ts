@@ -369,23 +369,3 @@ export async function findOrderByStripeSession(sessionId: string): Promise<{ ord
   return row ?? null
 }
 
-/**
- * Orders that were never paid and have been abandoned.
- *
- * Cash orders are excluded: they legitimately sit unpaid until the van arrives
- * or the customer walks into the shop.
- */
-export async function findAbandonedOrders(olderThanMinutes: number, limit = 50): Promise<string[]> {
-  const rows = await queryRows<{ order_number: string }>(
-    db(),
-    sql`
-      SELECT order_number FROM orders
-       WHERE status = 'awaiting_payment'
-         AND payment_method = 'stripe'
-         AND created_at < NOW() - ${sql.raw(`INTERVAL '${Math.max(1, Math.floor(olderThanMinutes))} minutes'`)}
-       ORDER BY created_at
-       LIMIT ${limit}
-    `
-  )
-  return rows.map((row) => row.order_number)
-}

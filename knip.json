@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/{app,error}.vue",
+    "app/pages/**/*.vue",
+    "app/layouts/**/*.vue",
+    "app/middleware/**/*.ts",
+    "app/plugins/**/*.ts",
+    "app/components/**/*.vue",
+    "app/composables/**/*.ts",
+    "server/api/**/*.ts",
+    "server/routes/**/*.ts",
+    "server/middleware/**/*.ts",
+    "server/plugins/**/*.ts",
+    "scripts/*.mjs",
+    "tests/**/*.{ts,mjs}",
+    "public/sw.js"
+  ],
+  "project": [
+    "app/**",
+    "server/**",
+    "shared/**",
+    "scripts/**",
+    "tests/**",
+    "i18n/**"
+  ],
+  "ignoreDependencies": [
+    "vue",
+    "vue-tsc"
+  ],
+  "ignoreExportsUsedInFile": true
+}

@@ -74,8 +74,6 @@ export const MARKETS: readonly MarketDefinition[] = [
   { country: 'ES', locale: 'es', vatRateBp: 2100, primary: true, domain: 'vitesse-eco.es' },
 ] as const
 
-export const MARKET_COUNTRIES: readonly string[] = MARKETS.map((m) => m.country)
-
 /**
  * The markets a URL can actually reach today.
  *

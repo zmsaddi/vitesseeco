@@ -148,10 +148,3 @@ export async function withTransaction<T>(work: (tx: Transaction) => Promise<T>):
   }
 }
 
-/** Release cached handles. Tests call this so a suite does not hang on exit. */
-export async function closeConnections(): Promise<void> {
-  httpClient = null
-  const pool = nodeClient?.$client
-  nodeClient = null
-  await (pool as pg.Pool | undefined)?.end().catch(() => {})
-}

@@ -373,17 +373,3 @@ export async function findLowStock(
   })
 }
 
-/** Convenience for callers that only need to know whether a basket fits. */
-export function shortfallsFor(
-  availability: Map<string, Availability>,
-  lines: StockLine[]
-): ShortfallLine[] {
-  const shortfalls: ShortfallLine[] = []
-  for (const line of lines) {
-    const available = availability.get(line.productId)?.available ?? 0
-    if (available < line.quantity) {
-      shortfalls.push({ productId: line.productId, requested: line.quantity, available: Math.max(0, available) })
-    }
-  }
-  return shortfalls
-}

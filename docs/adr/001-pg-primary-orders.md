@@ -1,9 +1,14 @@
 # ADR-001: PostgreSQL is the primary store for orders
 
-> Status: Accepted
+> Status: Accepted · **Realised structurally on `rebuild` (2026-07-30)**
 > Date: 2026-04-29
-> Related plan task: `P0-09` / `P0-10` / `P0-11` / `P0-12`
-> Related issues: `SEC-01`, `SEC-03`, `SEC-09`
+>
+> The decision below was taken against `master`, where it was a migration with a
+> feature flag. On `rebuild` there is nothing to migrate and no flag: orders are
+> written to PostgreSQL inside a transaction, stock moves under a row lock, and
+> Sanity holds no order data at all. The file paths cited in the Context section
+> describe `master` and no longer exist. The reasoning is kept because it is why
+> the rebuild is shaped this way.
 
 ---
 

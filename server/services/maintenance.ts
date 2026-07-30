@@ -24,6 +24,7 @@ import { db, queryRows, withTransaction, type SqlExecutor, type TransactionRunne
 import { expireStaleReservations } from './stock'
 import { transitionOrder } from './orders'
 import { audit } from './audit'
+import { pruneExpiredSessions } from '../security/session'
 
 /**
  * How long an unpaid online order may hold its stock.
@@ -45,6 +46,7 @@ export interface MaintenanceReport {
   reservationsExpired: number
   ordersCancelled: string[]
   rateLimitsPruned: number
+  sessionsPruned: number
   eventsPruned: number
   webhooksPruned: number
 }
@@ -112,6 +114,11 @@ export async function runMaintenance(
   const reservationsExpired = await runTransaction((tx) => expireStaleReservations(tx))
   const ordersCancelled = await cancelAbandonedOrders(reader, runTransaction)
 
+  // Expired sessions were never pruned by anything: the function existed, was
+  // exported, was named in the cron route's own description, and had no caller.
+  // The table grew for the lifetime of the shop.
+  const sessionsPruned = await pruneExpiredSessions(reader, PRUNE_LIMIT)
+
   // A rate-limit window that has closed is a row nobody will read again.
   const prunedLimits = await queryRows<{ bucket: string }>(
     reader,
@@ -150,6 +157,7 @@ export async function runMaintenance(
     reservationsExpired,
     ordersCancelled,
     rateLimitsPruned: prunedLimits.length,
+    sessionsPruned,
     eventsPruned: prunedEvents.length,
     webhooksPruned: prunedWebhooks.length,
   }

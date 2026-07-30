@@ -32,8 +32,6 @@ import { marketForLocale } from '../../shared/markets'
 
 export type FeedLocale = Extract<LocaleCode, 'fr' | 'nl' | 'de' | 'es' | 'en'>
 
-export const FEED_LOCALES: readonly FeedLocale[] = ['fr', 'nl', 'de', 'es'] as const
-
 const PRODUCT_TYPE_LABELS: Record<FeedLocale, Record<string, string>> = {
   fr: { bike: 'Vélos électriques', spare_part: 'Pièces détachées', accessory: 'Accessoires', kids_car: 'Véhicules enfants', other: 'Autres' },
   nl: { bike: 'Elektrische fietsen', spare_part: 'Onderdelen', accessory: 'Accessoires', kids_car: 'Kindervoertuigen', other: 'Overig' },

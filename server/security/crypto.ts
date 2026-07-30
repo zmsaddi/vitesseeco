@@ -116,9 +116,6 @@ export function generateOrderNumber(): string {
   return `ORD-${stamp}${suffix}`
 }
 
-export function newId(): string {
-  return randomUUID()
-}
 
 /** URL-safe random string, for CSRF tokens and one-time links. */
 export function randomToken(bytes = 32): string {

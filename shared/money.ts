@@ -151,13 +151,7 @@ export function atLeastZero(amount: Cents): Cents {
   return amount < 0 ? ZERO : amount
 }
 
-export function isZero(amount: Cents): boolean {
-  return amount === 0
-}
 
-export function greaterOrEqual(a: Cents, b: Cents): boolean {
-  return a >= b
-}
 
 /** Euro value, for the rare API that insists on a decimal (never for arithmetic). */
 export function toEuros(amount: Cents): number {

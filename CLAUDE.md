@@ -1,282 +1,196 @@
-# Vitesse Eco — Project Documentation
-> **Last updated:** 2026-07-05 (full cleanup + docs/reality sync)
-> **System:** B (product per color, no variants)
-> **Active plan:** [docs/MASTER_REBUILD_PLAN.md](docs/MASTER_REBUILD_PLAN.md) — full website rebuild, target #1 in FR/BE/NL/DE/ES
-> **Execution tracker:** [docs/REBUILD_EXECUTION.md](docs/REBUILD_EXECUTION.md) — live unit status (what is actually done)
-> **Security backlog:** [docs/PRODUCTION_UPGRADE_PLAN.md](docs/PRODUCTION_UPGRADE_PLAN.md) (remains authoritative for SEC-*/OBS-* items)
+# Vitesse Eco
 
-## Project Overview
-| Field | Value |
-|-------|-------|
-| **Business** | Vitesse Eco — Electric mobility retailer (bikes, parts, accessories, kids) |
-| **Domain** | vitesse-eco.fr |
-| **Contact** | contact@vitesse-eco.fr / +33 7 45 83 00 49 / WhatsApp wa.me/33745830049 |
-| **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France |
-| **Company** | VITESSE ECO SAS — SIREN 100 732 247 — TVA FR43 100 732 247 |
-| **Working directory** | `D:\vitesseeco` |
-| **Communication** | Arabic only |
-| **Website languages** | French (primary) + English, Spanish, Dutch, German, Arabic |
-| **Target markets** | FR (priority) + BE + NL + DE + ES |
-| **GitHub** | github.com/zmsaddi/vitesseeco |
-| **Vercel** | vitesseeco.vercel.app |
-| **Sanity** | Project: `2jvnjf0c`, Dataset: `production` + `staging` |
-| **Node.js** | v24.14.1 |
+> **Branch:** `rebuild` — a clean build that replaces `master`. `master` stays
+> deployable until [docs/CUTOVER.md](docs/CUTOVER.md) passes.
+> **Last verified against the code:** 2026-07-30.
+> Every path, command and variable below was checked to exist. If something here
+> is wrong, the document is the bug — fix it in the same commit.
 
-## Critical Rules
-1. **DO NOT use Nuxt 4** — IPC bug on Windows
-2. **`ssr: process.env.VERCEL === '1'`** — SSR on Vercel, SPA locally
-3. **Standard Nuxt 3 structure** — files in ROOT, no `app/` directory
-4. **i18n:** `langDir: 'locales'`, `baseUrl: 'https://vitesse-eco.fr'` — **542 keys × 6 locales, must stay in sync**
-5. **Sanity Studio** in `cms/` — excluded from Vercel via `.vercelignore`
-6. **`sanity`** as devDependency in root — required by `@nuxtjs/sanity`
-7. **Always answer user in Arabic**
-8. **Run `npm run check:langs` (+ `npm run check:hex`) before every commit**
-9. **System B:** Each color = separate product. No `variants[]`. Products linked via `modelFamily`
-10. **PowerShell 5.1:** never put `"` characters inside git commit messages (breaks arg passing)
-11. **Money engine is sacred:** PayPal payload building, address resolution and Turnstile flows are preserved verbatim during any page rework
-12. **EAN/GTIN:** NEVER invent codes — assignment only inside the owner's licensed GS1 prefix via `cms/scripts/assign-gtins.mjs`
-13. **The Sanity dataset is PUBLICLY readable** (the storefront reads the catalog without a token) — never write customer PII into it. The order mirror carries operational fields only; identity and addresses live in Postgres and are served through authenticated routes + `/admin`
-14. **Turnstile is verified server-side** on contact, checkout, login and register — a page that renders the widget must send the token, and clear + `retry()` it after every failed attempt (tokens are single-use)
+Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 
-## Tech Stack
-| Layer | Package | Version |
-|-------|---------|---------|
-| Framework | nuxt | ^3.17.5 (installs 3.21.x) |
-| CSS | @nuxtjs/tailwindcss | ^6.14.0 |
-| i18n | @nuxtjs/i18n | ^10.2.4 |
-| State | @pinia/nuxt | ^0.11.3 |
-| Persist | pinia-plugin-persistedstate | ^4.7.1 |
-| CMS | @nuxtjs/sanity | ^2.3.0 |
-| CMS Studio | sanity | ^5.20.0 |
-| Icons | @nuxt/icon | ^1.15.0 |
-| Images | @nuxt/image | ^2.0.0 |
-| Fonts | @nuxt/fonts | ^0.14.0 |
-| Database | Neon PostgreSQL + Drizzle ORM (^0.45.2) |
-| Auth | DB sessions (`sessions` table) + httpOnly `auth_token` cookie + Google OAuth |
-| Payments | @paypal/paypal-server-sdk ^2.3.0 (LIVE) + adapter registry (card via stripe, klarna, inStore — scaffolded, flag-gated) |
-| Shipping | Own fleet, FREE: BE + NL + FR-86 (Poitiers) — postal-prefix scoping LIVE (`postalCodePrefixes` on shippingMethod, filtered in adapter + enforced at order create). NRW-Germany = add prefixes. Elsewhere: pickup. IP geo presets zone; typed/saved address decides (activeDestination) |
-| CAPTCHA | Cloudflare Turnstile |
-| Chat | ChatWidget (rule-based, AI-ready via `ANTHROPIC_API_KEY`) + WhatsApp |
-| PWA | Hand-rolled `public/sw.js` + `offline.html` + manifest (installable) |
-| Tests | Playwright (e2e + locale matrix + visual + a11y via @axe-core/playwright) |
-| CI/CD | GitHub Actions (langs, hex, typecheck, build, bundle budget 6.5MB gzip code-only — native binaries excluded, e2e, Lighthouse) |
+| | |
+|---|---|
+| **Domain** | vitesse-eco.fr · Vercel · GitHub `zmsaddi/vitesseeco` |
+| **Contact** | contact@vitesse-eco.fr · +33 7 45 83 00 49 · wa.me/33745830049 |
+| **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers |
+| **Company** | VITESSE ECO SAS · SIREN 100 732 247 · TVA FR43 100 732 247 |
+| **Markets** | FR (primary) · BE · NL · DE · ES |
+| **Languages** | fr (default) · en · nl · de · es · ar — 754 keys × 6, kept in sync by a gate |
+| **Catalogue** | Sanity `2jvnjf0c` / `production` — 144 products, one per colour |
+| **Node** | v24 |
 
-## Product System (System B)
-Each product is a **single color**. No `variants[]` array.
+---
 
-```
-Product document:
-  ├── name (localizedString) — "V20 Pro — Noir"
-  ├── slug — "v20-pro-noir"  (SKU = slug)
-  ├── productType — bike | spare_part | accessory | kids_car | other
-  ├── brand (reference → brand)
-  ├── color (localizedString) + colorHex
-  ├── gtin — EAN-13 (auto-assigned from licensed GS1 prefix, check-digit validated in Studio)
-  ├── stock (number) — direct on product (PG inventory is live source; Sanity synced)
-  ├── images[] — direct on product
-  ├── modelFamily (string) — "v20-pro" (links same model, different colors)
-  ├── price, compareAtPrice
-  ├── specifications { motor, battery, range, ... }
-  └── description, warranty, highlights, seo
+## Hard rules
+
+1. **Answer the user in Arabic.** Always.
+2. **Nothing is done until it has been run.** Not "typechecks", not "tests pass" —
+   run against a production build with real data. The method is a portable skill:
+   [`skills/reality-check/`](skills/reality-check/).
+3. **Never invent an EAN/GTIN.** Assignment happens only inside the owner's
+   licensed GS1 prefix, via `cms/scripts/assign-gtins.mjs`.
+4. **The Sanity dataset is public today.** No customer data may ever be written
+   into it. Identity, addresses and orders live in PostgreSQL.
+5. **Run the gates before every commit:** `check:langs`, `check:hex`,
+   `check:invariants`. They are cheap and each has caught a real defect.
+6. **PowerShell 5.1: never put `"` inside a git commit message.** Use a bash
+   heredoc with `git commit -F -`.
+7. **Money is asserted in the database, never in the UI.** A page can say
+   "confirmed" while nothing was written.
+8. **One product = one colour.** No variants array; colours of a model are linked
+   by `modelFamily`.
+
+---
+
+## Commands
+
+```bash
+npm run dev                 # dev server
+npm run build               # production build — clear .nuxt first if in any doubt
+npm run test                # unit + integration (integration needs a database)
+npm run test:unit           # 276 tests, no database needed
+npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
+npm run seed:inventory      # stock rows from the live catalogue
+npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
+npm run test:money -- <url> # the critical path, asserted in the database
+npm run check:langs         # locale sync, no linked-message @, placeholder parity
+npm run check:hex           # no raw hex in .vue — fails if it scans nothing
+npm run check:invariants    # 10 project rules
+npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
+npx nuxi typecheck
 ```
 
-**Adding a new product:** create (per-type templates exist in Studio) → fill → use the
-**🎨 Duplicate as Color** document action → change name/slug/color/colorHex/images →
-same `modelFamily` auto-links colors on the PDP. Run `assign-gtins.mjs` after adding.
+The two simulation commands need a running server. Point them at
+`node .output/server/index.mjs`, not at `nuxt dev` — a dev server that renders
+client-side cannot show a server-side rendering defect.
 
-## Project Structure
+---
+
+## Structure
+
 ```
-vitesseeco/
-├── app.vue                     ← hreflang ×6 + fr-BE/nl-BE + x-default, canonical,
-│                                 opensearch/RSS/manifest links, global og/twitter meta
-├── nuxt.config.ts              ← Config + JSON-LD (WebSite, Org, LocalBusiness)
-├── .github/workflows/ci.yml    ← CI gates (see Tech Stack row)
-├── playwright.config.ts        ← projects: e2e (CI) + visual (opt-in)
-│
-├── pages/ (30 vue files)
-│   ├── index.vue               ← Home: hero, category tiles, featured, trust, blog, RecentlyViewed
-│   ├── produits/index.vue      ← Listing: filters + chips row, BottomSheet on mobile, URL-synced
-│   ├── produits/[slug].vue     ← PDP: buy-box (PriceTag/StockBadge/swatches/qty/trust),
-│   │                             other colors via modelFamily, wishlist, JSON-LD with
-│   │                             shippingDetails + hasMerchantReturnPolicy
-│   ├── guide.vue               ← 3-question interactive bike selector
-│   ├── comparatif.vue          ← Comparison grouped by modelFamily (color dots per row)
-│   ├── favoris.vue             ← Wishlist (localStorage, noindex)
-│   ├── blog/index.vue + [slug] ← Blog + Article JSON-LD + related-product blocks
-│   ├── faq.vue                 ← FAQPage JSON-LD
-│   ├── a-propos.vue            ← About + stats band + CTA
-│   ├── contact.vue             ← WhatsApp card, FAQ band, form + map + Turnstile
-│   ├── panier.vue              ← Cart (ClientOnly — cart hydrates from localStorage)
-│   ├── commande/index.vue      ← Checkout ①Adresse ②Livraison ③Paiement (ClientOnly),
-│   │                             zone-aware shipping, mobile sticky pay bar
-│   ├── commande/confirmation   ← Order confirmation
-│   ├── connexion/inscription   ← Auth (email + Google OAuth)
-│   ├── compte/index.vue        ← Account
-│   ├── compte/orders/[orderNumber].vue ← Status timeline + one-click reorder
-│   ├── admin/                  ← Admin panel (ADMIN_EMAILS allowlist, noindex, 6 languages)
-│   │   ├── index.vue           ← KPIs 24h/7d/30d, funnel, top products, low stock
-│   │   ├── commandes/index.vue ← Orders: filters, sort, CSV export, bulk status,
-│   │   │                         sticky header, shortcuts (/ N P Esc)
-│   │   ├── commandes/[orderNumber].vue ← Processing (status flow, tracking, notes)
-│   │   ├── stock/index.vue     ← Inline stock editing (PG → Sanity sync)
-│   │   └── messages/index.vue  ← Contact messages (read/unread, notes)
-│   ├── p/[slug].vue            ← Landing pages (Sanity)
-│   ├── mentions-legales / politique-confidentialite / cgv
-│   └── retractation / impressum / batteries ← DE-market compliance (EU withdrawal +
-│                                 model form, Impressum, BattG battery take-back)
-│
-├── components/ (25)
-│   ├── AppHeader (search-centered, flat nav, wishlist badge) / AppFooter (legal links ×6)
-│   ├── SearchBar (debounced suggest + recent searches)
-│   ├── ProductCard / PriceTag / StockBadge / Breadcrumbs / BottomSheet
-│   ├── CartDrawer (free-shipping progress) / AppToast+useToast (with Undo actions)
-│   ├── ChatWidget + WhatsAppIcon / AnnouncementBar (siteSettings, dismiss-per-message)
-│   ├── RecentlyViewed / LanguageSwitcher / LanguageBanner / CookieConsent
-│   ├── PayPalButtons / TurnstileWidget / PhoneInput / DeleteAccountModal
-│   └── LegalSections (TOC) / AddressBlock / AppSkeleton / EmptyState
-│
-├── composables/                ← useWishlist (max 50), useRecentlyViewed (max 8),
-│                                 useToast, useSanityFetch/Image, useSwipe
-├── plugins/                    ← auth.client (fetch user post-mount), pinia-persist,
-│                                 sw.client (PWA), detect-language, reveal, vitals
-├── stores/                     ← auth.ts (NOT persisted) + cart.ts (persisted:
-│                                 items/promo/shipping — restores during hydration,
-│                                 hence ClientOnly cart/checkout pages)
-│
-├── cms/ (Sanity Studio v5.20)
-│   ├── schemas/ (20 = 12 documents + 5 singletons + 3 objects)
-│   │   ├── product.ts          ← System B + gtin (EAN-13 validation)
-│   │   ├── order.ts            ← READ-ONLY mirror (PG-primary; edits go via /admin)
-│   │   └── ... category, brand, faq, article, landingPage, contactMessage,
-│   │       promoCode, testimonial, shippingMethod, paymentMethod, singletons, objects
-│   ├── structure/deskStructure ← لوحة اليوم + 🧹 catalog-quality views (no-GTIN/
-│   │                             no-images/missing-DE-NL-ES/no-SEO/no-modelFamily),
-│   │                             browse by brand/category
-│   ├── plugins/duplicateAsColor← 🎨 new-color document action
-│   ├── sanity.config.ts        ← languageFilter, media, colorInput, vision;
-│   │                             singleton delete/duplicate protection; product templates
-│   └── scripts/ (owner runs with sanity login)
-│       ├── assign-gtins.mjs    ← EAN-13 auto-assignment (needs GS1_PREFIX)
-│       ├── add-free-shipping-benelux.mjs ← BE+NL free shipping method
-│       ├── add-buying-guide-article.mjs  ← 6-locale buying guide + related products
-│       └── create-test-product / update-test-stock ← payment live-test helpers
-│
-├── server/
-│   ├── api/auth/               ← login, register, logout, me, profile, delete-account, google
-│   ├── api/admin/              ← me, stats, orders (+patch), orders-export CSV, stock,
-│   │                             messages, indexnow (requireAdmin on EVERY route)
-│   ├── api/addresses/ cart/ orders/ payments/paypal/ shipping/ payment/ places/
-│   ├── api/chat/               ← ask (rule-based; Claude when ANTHROPIC_API_KEY set), track-order
-│   ├── api/webhooks/paypal.post.ts ← signature verification + audit log
-│   ├── api/cron/process-outbox.post.ts ← Outbox worker (CRON_SECRET) + abandoned-order
-│   │                             sweep (unpaid online orders → cancel + restock) +
-│   │                             bounded telemetry retention
-│   ├── payments/               ← Adapter registry: paypal (live), stripe, inStore
-│   ├── shipping/               ← CarrierAdapter registry: manual (Sanity zones, FR fallback)
-│   ├── database/               ← Drizzle schema + Neon
-│   ├── routes/sitemap.xml      ← hreflang sitemap (also api/sitemap.xml)
-│   ├── routes/feeds/           ← google-merchant[.xml|-nl|-de|-es] (shared
-│   │                             utils/merchantFeed, emits gtin), catalog.csv, blog.xml
-│   ├── routes/llms.txt + llms-full.txt ← AI-assistant data source (GEO)
-│   ├── middleware/security.ts  ← CSP headers
-│   └── utils/                  ← rateLimit, verifyTurnstile, paypal, orderService,
-│                                 outbox, sanitySync, audit, priceLock, stock, promo,
-│                                 events, validation, adminOrderQuery, merchantFeed
-│
-├── i18n/locales/               ← 6 files × 526 keys (check:langs enforces sync)
-├── scripts/                    ← check-languages (keys + no "|" + placeholder parity),
-│                                 check-hex-colors, check-bundle-size, backfill-inventory,
-│                                 redact-sanity-order-pii (owner-run, --apply to write)
-├── public/                     ← robots.txt (AI crawlers welcomed, private paths blocked),
-│                                 sw.js, offline.html, manifest.webmanifest, opensearch.xml,
-│                                 IndexNow key file, favicon, logo, poster, GSC verification
-├── tests/                      ← e2e/ (navigation, checkout-flow, regression, a11y,
-│                                 full-user, locale-matrix 4 langs × 2 viewports) +
-│                                 visual/ (10 pages × 2 viewports, opt-in)
-├── docs/                       ← plans + tracker + ADR + runbook + known-issues (all 4 fixed)
-├── import-data/                ← Migration scripts (gitignored)
-├── competitor-research/        ← Internal study (gitignored)
-└── assets-reference/           ← QMWheel catalogue PDF
+app/                       ← Nuxt 4 layout: everything client-facing
+  pages/                   ← 31 pages, incl. admin/ (5) compte/ (4) commande/ (2)
+  components/              ← CaptchaWidget, MarketSuggestion, SiteHeader, SiteFooter
+  composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useWishlist
+  layouts/ middleware/ plugins/
+server/
+  api/                     ← 34 routes. Every one declares access + rate limit via defineRoute
+    account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
+  routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
+  catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types
+  db/                      ← Drizzle schema + migrations. Driver chosen by URL shape.
+  security/                ← handler (defineRoute), session, crypto, rateLimit, request, headers, captcha
+  services/                ← orders, stock, pricing, promo, orderState, audit, maintenance
+  payments/                ← adapter registry (index.ts): stripe | cod | in_store
+  feeds/ middleware/ plugins/
+shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
+i18n/locales/              ← 6 files × 754 keys
+cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
+scripts/                   ← the gates + dev-db + seed-inventory + redact-sanity-order-pii
+tests/                     ← unit/ (11 files) integration/ (6 suites, real PostgreSQL) e2e/ (simulate, money-path)
+skills/reality-check/      ← the portable working method
+docs/                      ← see docs/README.md
 ```
 
-## Sanity CMS Content
-| Type | Count |
-|------|-------|
-| Products | 147 (System B: per color) |
-| Brands | 10 |
-| Categories | 11 |
-| FAQ | 22 |
-| Blog Articles | 7 (incl. buying guide × 6 locales) |
-| Datasets | production + staging |
+There is **no** root-level `pages/`, `components/`, `stores/` or `plugins/` on
+this branch. State lives in composables; there is no Pinia.
 
-## SEO / GEO (AI answer engines)
-- Hreflang ×6 + fr-BE/nl-BE + x-default, canonical URLs ✅
-- JSON-LD: Product (+ shippingDetails, MerchantReturnPolicy), BreadcrumbList, FAQPage,
-  Article, Organization, LocalBusiness, WebSite ✅
-- Dynamic sitemap with hreflang ✅ · Google Search Console indexed ✅
-- Google Merchant feeds ×4 locales + universal catalog.csv (gtin-aware) ✅
-- llms.txt + llms-full.txt (company facts, policies, catalog) ✅
-- robots.txt: named AI-crawler groups (GPTBot, Claude, Gemini, Perplexity…) ✅
-- IndexNow (admin one-tap submit) + blog RSS + OpenSearch ✅
+---
 
-## Security
-- CSP headers (no unsafe-eval) · Rate limiting per IP · Turnstile (contact + checkout)
-- bcrypt 12 rounds · httpOnly cookies · Server-side price validation (priceLock)
-- `requireAdmin` on every /api/admin route (ADMIN_EMAILS allowlist)
-- PayPal webhook signature verification + full audit log
-- Sanity Studio: singletons undeletable, order mirror read-only, product duplication only
-  via 🎨 Duplicate-as-Color (creates a DRAFT; never copies the GTIN)
-- Order mirror carries NO customer PII (public dataset) · forward-only paid transitions
-  (a redelivered PayPal webhook cannot reset a shipped order)
-- Rate limits keyed on the route path, not the caller-controlled query string
+## How a request is served
 
-## Payments & Orders
-- **PayPal LIVE** (`ENABLE_PAYPAL`): server SDK, capture-order, verified webhook
-- **Card (Stripe)** scaffolded/disabled (`ENABLE_STRIPE`) · **Klarna** scaffolded/disabled
-  (`ENABLE_KLARNA` — activate via Stripe payment_method_types OR the direct adapter)
-- **Cash on delivery LIVE** for BE/NL (`cod` adapter + Sanity doc `countries: [BE,NL]` —
-  own fleet collects cash; order stays `pending` until admin marks paid)
-- **In-store** adapter available · checkout handles PSP redirect flows generically
-  (`clientPayload.redirectUrl`) · Sanity docs ready via `cms/scripts/add-payment-methods-card-klarna.mjs`
-- JSON-LD declares PayPal + card (Visa/Mastercard/CB) + Klarna + cash
-  (`paymentAccepted` + rich `acceptedPaymentMethod`, owner decision 2026-07-05 —
-  checkout exposure itself stays behind the ENABLE_* flags)
-- Orders: **PG-primary** (`ENABLE_PG_PRIMARY_ORDERS`) → Sanity mirror via outbox + cron
-- Order processing happens in **/admin** — the Studio order document is read-only
+**Every browser-facing API route is declared with `defineRoute`**
+(`server/security/handler.ts`), which states its access level and rate limit as
+data rather than as remembered discipline. The scheduled sweep is the one
+deliberate exception, explained below.
 
-## Pending (owner accounts session — do TOGETHER)
-> **Full step-by-step playbook:** [docs/OWNER_ACCOUNTS_PLAYBOOK.md](docs/OWNER_ACCOUNTS_PLAYBOOK.md)
-| Service | Purpose | Unlocks |
-|---------|---------|---------|
-| GS1 France prefix | Legal EAN range (~€100-250/yr) | run assign-gtins → Amazon/bol/Kaufland |
-| Resend + DNS | Transactional email | password reset, order emails, back-in-stock, U-S1 |
-| Google Merchant Center | Register 4 feeds (fr→FR+BE+LU · nl→NL+BE · de→DE · es→ES) | Shopping |
-| Bing Webmaster | Activate IndexNow | Bing/Copilot reach |
-| ANTHROPIC_API_KEY | Upgrade ChatWidget to real AI | chatbot |
-| Sentry / Trustpilot / Hotjar / GTM+GA4 | Observability, reviews, analytics | — |
-| Stripe + Klarna contracts | Card & BNPL at checkout | flip ENABLE_STRIPE / ENABLE_KLARNA + wire adapters |
-| Sendcloud or Boxtal | Labels + tracking + Bancontact/iDEAL via PSP | U-X2 |
-| ~~sanity login session~~ | ✅ DONE 2026-07-05 (GitHub login): free-shipping BE/NL live, buying-guide article live, card+Klarna docs created, Studio v2 deployed | only assign-gtins left (needs GS1 prefix) |
-| Native reviewers NL/DE/ES | Professional translation gate | U-K4 |
-
-## Environment Variables
+```ts
+export default defineRoute({
+  access: 'admin',          // 'public' | 'customer' | 'admin'
+  rateLimit: 'write',
+  body: someZodSchema,
+  handler: async ({ body, customer, market }) => { … },
+})
 ```
-SANITY_PROJECT_ID=2jvnjf0c
-SANITY_DATASET=production
-SANITY_TOKEN=                  ← For write operations
-DATABASE_URL=                  ← Neon PostgreSQL
-AUTH_SECRET=                   ← Price-lock signing
-GOOGLE_CLIENT_ID= / GOOGLE_CLIENT_SECRET=   (or NUXT_-prefixed)
-GOOGLE_PLACES_API_KEY=
-TURNSTILE_SITE_KEY= / TURNSTILE_SECRET_KEY=
-ADMIN_EMAILS=                  ← Comma-separated admin allowlist (/admin)
-PAYPAL_MODE= / PAYPAL_CLIENT_ID= / PAYPAL_CLIENT_SECRET= / PAYPAL_WEBHOOK_ID=
-ENABLE_PAYPAL= / ENABLE_STRIPE= / ENABLE_KLARNA= / ENABLE_PG_PRIMARY_ORDERS=
-KLARNA_USERNAME= / KLARNA_PASSWORD= / KLARNA_API_BASE=   ← only if direct Klarna route
-CRON_SECRET=                   ← Outbox cron auth
-SHIPPING_CARRIER=              ← manual (default) | sendcloud | boxtal (when built)
-ANTHROPIC_API_KEY=             ← ChatWidget AI mode (pending)
-STRIPE_SECRET_KEY= / RESEND_API_KEY=        ← When ready
-NUXT_PUBLIC_SITE_URL=https://vitesse-eco.fr
-# cms scripts only: GS1_PREFIX= (owner's licensed GS1 France prefix)
-```
+
+- `access: 'admin'` checks the `ADMIN_EMAILS` allowlist. An invariant rule fails
+  the build if any file under `api/admin/` lacks a guard.
+- State-changing requests are checked by `assertSameOrigin`, which compares
+  `Origin` against **the request's own Host** first. A static allowlist alone
+  once rejected every write on the platform alias while the primary domain
+  looked perfectly healthy.
+- Rate limits are keyed on the route path, never on caller-supplied input.
+- Errors are `AppError` with a code and a `messageKey`; the shape is identical in
+  development and production so consumers can parse it.
+- **`api/cron/maintenance.ts` is deliberately outside `defineRoute`.** A platform
+  scheduler has no origin and no stable address, so it authenticates with a
+  shared secret compared in constant time. Its filename carries no method suffix
+  because Vercel Cron issues a **GET**, and a POST-only handler would answer 405
+  forever while the dashboard reported the job as healthy.
+
+---
+
+## Money
+
+- **Cents, always.** `shared/money.ts` is the only place arithmetic happens.
+  Blank input parses to `null`, never `0` — that distinction once published a
+  product at €0.00.
+- **Price is a function of the URL** (host + locale), never of the visitor's IP.
+  EU Regulation 2018/302 forbids the redirect, and Merchant Center suspends
+  accounts whose feed price differs from the crawled page.
+- **Market and VAT are frozen onto the order** at placement. They are never
+  recomputed later from today's rules.
+- **Stock moves under a row lock.** A reservation is taken at checkout and
+  *consumed* on payment; cash-on-delivery holds get a 14-day TTL, online 30
+  minutes. Cancelling a paid order restocks.
+- Payment methods: `cod` and `in_store` need no keys; `stripe` hides itself until
+  its keys exist.
+
+---
+
+## Markets and locales
+
+`shared/markets.ts` is the single table. A market is *servable* if it is primary
+or has a domain configured — BE and LU are priceable but not independently
+servable, which is why they do not appear in Studio pickers.
+
+Locale routing is `prefix_except_default`: `/produits` is French, `/nl/produits`
+is Dutch. `shared/locales.ts` owns hreflang, alternates and negotiation.
+
+**Dates and money must pin an explicit locale and timezone.** Vercel runs in UTC
+and the shop is in Paris; `toLocaleDateString(undefined, …)` also produces
+English month names on a server. An invariant rule enforces this.
+
+---
+
+## Testing
+
+| Layer | What it proves | Command |
+|---|---|---|
+| unit | pure logic — money, locales, markets, schemas, parsing | `test:unit` |
+| integration | concurrency, locking, transactions — against a **real** PostgreSQL | `test:integration` |
+| simulate | 19 pages × 6 locales in a real browser: raw keys, hydration, 5xx, empty pages, price drift | `simulate` |
+| money-path | the critical journey asserted in the database, including reversal and a second identity | `test:money` |
+
+Integration tests must route through `db()`, the production accessor. A harness
+that opens its own connection leaves the production connection path untested —
+that is how a driver that could only speak to one vendor's proxy passed eighty
+"real database" tests.
+
+---
+
+## Environment
+
+See [.env.example](.env.example) — it lists exactly the variables the code reads,
+nothing aspirational. The ones without a `#` are required for a working shop.
+
+---
+
+## Where to look next
+
+- **Working on the code:** [docs/REBUILD_ARCHITECTURE.md](docs/REBUILD_ARCHITECTURE.md)
+- **Picking up a task:** [docs/REBUILD_EXECUTION.md](docs/REBUILD_EXECUTION.md)
+- **Going live:** [docs/CUTOVER.md](docs/CUTOVER.md)
+- **Why something is the way it is:** [docs/adr/](docs/adr/)
+- **How not to ship a green build that is broken:** [skills/reality-check/SKILL.md](skills/reality-check/SKILL.md)

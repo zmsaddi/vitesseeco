@@ -168,6 +168,3 @@ export function toAppError(value: unknown): AppError {
   return new AppError(ERROR_CODES.INTERNAL, { internal, cause: value })
 }
 
-export function badRequest(code: ErrorCode, options?: AppErrorOptions): AppError {
-  return new AppError(code, options)
-}
