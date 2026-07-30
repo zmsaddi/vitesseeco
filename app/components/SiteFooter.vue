@@ -11,10 +11,23 @@
 const localePath = useLocalePath()
 
 const legal = [
+  { to: '/impressum', label: 'footer.impressum' },
+  { to: '/batteries', label: 'footer.batteries' },
   { to: '/mentions-legales', label: 'footer.legal_notice' },
   { to: '/politique-confidentialite', label: 'footer.privacy' },
   { to: '/cgv', label: 'footer.terms' },
   { to: '/retractation', label: 'footer.withdrawal' },
+]
+
+/**
+ * Pages that help someone decide. They existed and nothing linked to them,
+ * which for a blog or a comparison table is the same as not existing.
+ */
+const explore = [
+  { to: '/guide', label: 'nav.guide' },
+  { to: '/comparatif', label: 'nav.compare' },
+  { to: '/blog', label: 'blog.title' },
+  { to: '/faq', label: 'faq.title' },
 ]
 </script>
 
@@ -45,6 +58,17 @@ const legal = [
           <h2 class="text-sm font-semibold text-content-strong">{{ $t('footer.legal') }}</h2>
           <ul class="mt-3 space-y-1 text-sm">
             <li v-for="entry in legal" :key="entry.to">
+              <NuxtLink :to="localePath(entry.to)" class="text-content-muted hover:text-content-strong">
+                {{ $t(entry.label) }}
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold text-content-strong">{{ $t('footer.explore') }}</h2>
+          <ul class="mt-3 space-y-1 text-sm">
+            <li v-for="entry in explore" :key="entry.to">
               <NuxtLink :to="localePath(entry.to)" class="text-content-muted hover:text-content-strong">
                 {{ $t(entry.label) }}
               </NuxtLink>

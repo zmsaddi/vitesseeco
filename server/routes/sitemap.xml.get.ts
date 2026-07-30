@@ -26,6 +26,12 @@ export const STATIC_PATHS = [
   { path: '/', priority: '1.0', changefreq: 'daily' },
   { path: '/produits', priority: '0.9', changefreq: 'daily' },
   { path: '/blog', priority: '0.7', changefreq: 'weekly' },
+  // Both are the kind of page someone reaches by searching "which fatbike
+  // should I buy" rather than by browsing, which is exactly why they belong
+  // here. /favoris is deliberately absent: it is per-visitor and empty to a
+  // crawler.
+  { path: '/guide', priority: '0.8', changefreq: 'monthly' },
+  { path: '/comparatif', priority: '0.7', changefreq: 'weekly' },
   { path: '/a-propos', priority: '0.6', changefreq: 'monthly' },
   { path: '/contact', priority: '0.6', changefreq: 'monthly' },
   { path: '/faq', priority: '0.6', changefreq: 'monthly' },

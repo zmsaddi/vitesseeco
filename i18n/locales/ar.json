@@ -412,9 +412,12 @@
     "title": "الأسئلة الشائعة"
   },
   "footer": {
+    "batteries": "البطاريات (DE)",
     "contact": "اتصل بنا",
     "delivery": "التوصيل",
     "delivery_note": "توصيل مجاني بفريقنا في بلجيكا وهولندا ومقاطعة فيين.",
+    "explore": "نساعدك على الاختيار",
+    "impressum": "Impressum (DE)",
     "legal": "معلومات قانونية",
     "legal_notice": "البيانات القانونية",
     "privacy": "الخصوصية",
@@ -542,7 +545,9 @@
     "cart": "السلة",
     "change_language": "تغيير اللغة",
     "close_menu": "إغلاق القائمة",
+    "compare": "قارن",
     "contact": "اتصال",
+    "guide": "أي دراجة؟",
     "home": "الرئيسية",
     "open_menu": "فتح القائمة",
     "primary": "التنقل الرئيسي",

@@ -21,6 +21,9 @@ const languageOpen = ref(false)
 
 const navigation = computed(() => [
   { to: localePath('/produits'), label: 'nav.products' },
+  // Someone who does not yet know which bike they want will not find the guide
+  // in a footer. It earns its place beside the catalogue.
+  { to: localePath('/guide'), label: 'nav.guide' },
   { to: localePath('/a-propos'), label: 'nav.about' },
   { to: localePath('/contact'), label: 'nav.contact' },
 ])

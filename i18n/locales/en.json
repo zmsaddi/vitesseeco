@@ -412,9 +412,12 @@
     "title": "Frequently asked questions"
   },
   "footer": {
+    "batteries": "Batteries (DE)",
     "contact": "Contact",
     "delivery": "Delivery",
     "delivery_note": "Free delivery by our own team in Belgium, the Netherlands and the Vienne.",
+    "explore": "Help me choose",
+    "impressum": "Impressum (DE)",
     "legal": "Legal",
     "legal_notice": "Legal notice",
     "privacy": "Privacy",
@@ -542,7 +545,9 @@
     "cart": "Basket",
     "change_language": "Change language",
     "close_menu": "Close menu",
+    "compare": "Compare",
     "contact": "Contact",
+    "guide": "Which bike?",
     "home": "Home",
     "open_menu": "Open menu",
     "primary": "Main navigation",

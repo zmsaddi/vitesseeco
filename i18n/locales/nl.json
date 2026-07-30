@@ -412,9 +412,12 @@
     "title": "Veelgestelde vragen"
   },
   "footer": {
+    "batteries": "Batterijen (DE)",
     "contact": "Contact",
     "delivery": "Bezorging",
     "delivery_note": "Gratis bezorging door ons eigen team in België, Nederland en de Vienne.",
+    "explore": "Hulp bij kiezen",
+    "impressum": "Impressum (DE)",
     "legal": "Juridisch",
     "legal_notice": "Juridische informatie",
     "privacy": "Privacy",
@@ -542,7 +545,9 @@
     "cart": "Winkelmand",
     "change_language": "Taal wijzigen",
     "close_menu": "Menu sluiten",
+    "compare": "Vergelijken",
     "contact": "Contact",
+    "guide": "Welke fiets?",
     "home": "Home",
     "open_menu": "Menu openen",
     "primary": "Hoofdnavigatie",

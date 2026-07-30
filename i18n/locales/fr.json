@@ -412,9 +412,12 @@
     "title": "Questions fréquentes"
   },
   "footer": {
+    "batteries": "Batteries (DE)",
     "contact": "Contact",
     "delivery": "Livraison",
     "delivery_note": "Livraison gratuite par notre équipe en Belgique, aux Pays-Bas et dans la Vienne.",
+    "explore": "Vous aider à choisir",
+    "impressum": "Impressum (DE)",
     "legal": "Informations légales",
     "legal_notice": "Mentions légales",
     "privacy": "Confidentialité",
@@ -542,7 +545,9 @@
     "cart": "Panier",
     "change_language": "Changer de langue",
     "close_menu": "Fermer le menu",
+    "compare": "Comparer",
     "contact": "Contact",
+    "guide": "Quel vélo ?",
     "home": "Accueil",
     "open_menu": "Ouvrir le menu",
     "primary": "Navigation principale",
