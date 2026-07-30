@@ -28,7 +28,13 @@ import type { AddressInput } from '../../shared/schemas'
 import type { LocaleCode } from '../../shared/locales'
 import type { MarketDefinition } from '../../shared/markets'
 import { assertTransition, holdsStock, timestampFor } from './orderState'
-import { consumeReservations, releaseReservations, reserveStock } from './stock'
+import {
+  CASH_RESERVATION_TTL_MS,
+  consumeReservations,
+  releaseReservations,
+  reserveStock,
+  restockOrder,
+} from './stock'
 import { redeemPromo, releasePromo } from './promo'
 import { priceBasket, type PriceBreakdown, type RequestedLine } from './pricing'
 import { getPromo } from '../catalog'
@@ -170,10 +176,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
 
       // Holds the units while payment is in flight. Throws OUT_OF_STOCK naming
       // every short line, which rolls the whole order back.
+      // Cash and counter sales are agreed, not pending — their hold has to last
+      // until a driver has been and gone, not thirty minutes.
       await reserveStock(
         tx,
         orderId,
-        breakdown.lines.map((line) => ({ productId: line.productId, quantity: line.quantity }))
+        breakdown.lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
+        input.paymentMethod === 'stripe' ? undefined : CASH_RESERVATION_TTL_MS
       )
 
       if (breakdown.promo?.applied && promoDefinition) {
@@ -316,9 +325,21 @@ export async function transitionOrder(
 
     if (to === 'paid') {
       // The hold becomes a real decrement.
-      await consumeReservations(tx, current.id)
+      const consumed = await consumeReservations(tx, current.id)
+      // Zero here is not a no-op. The status predicate on the UPDATE above means
+      // this transition happened exactly once, so finding no live hold says the
+      // reservation expired before the money arrived — the units are about to be
+      // sold twice, and silence would be the last anyone heard of it.
+      if (consumed === 0) {
+        console.error(
+          `[orders] ${orderNumber} moved to paid with no live reservation — stock was NOT decremented`
+        )
+      }
     } else if (to === 'cancelled' && holdsStock(current.status)) {
-      await releaseReservations(tx, current.id)
+      // A live hold is released. An order that already paid has none — its hold
+      // became a decrement — so those units are put back explicitly.
+      const released = await releaseReservations(tx, current.id)
+      if (released === 0) await restockOrder(tx, current.id)
       // An order that never took money gives its promotion use back too.
       if (current.status !== 'paid' && current.status !== 'processing') {
         await releasePromo(tx, current.id)

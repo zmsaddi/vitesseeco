@@ -123,6 +123,42 @@ async function refreshTotals(): Promise<void> {
  * one. Cleared and the widget reset on every failure — otherwise the customer's
  * second attempt fails on a stale token and they conclude the shop is broken.
  */
+/**
+ * The delivery address.
+ *
+ * The country and postcode alone decide which shipping methods are OFFERED, but
+ * they are not an address — and the server rejects any order that is not a
+ * store collection without one. Collecting only those two made every delivery
+ * order fail validation with a generic error, which is to say the shop could
+ * not sell anything to Belgium, the Netherlands or Poitiers.
+ *
+ * `country` and `postalCode` are the same fields the shipping quote uses, not a
+ * second copy: a customer must not be able to claim a Belgian destination — free
+ * delivery, cash on collection — for a Spanish address.
+ */
+const address = reactive({
+  firstName: '',
+  lastName: '',
+  phone: '',
+  line1: '',
+  line2: '',
+})
+
+const city = ref('')
+
+const addressComplete = computed(
+  () =>
+    address.firstName.trim().length > 0 &&
+    address.lastName.trim().length > 0 &&
+    address.line1.trim().length > 0 &&
+    city.value.trim().length > 0
+)
+
+/** Collection needs no address; anything we drive to does. */
+const needsAddress = computed(
+  () => selectedPayment.value !== 'in_store' && selectedShipping.value !== 'pickup'
+)
+
 const captchaToken = ref('')
 const captcha = ref<{ reset: () => void } | null>(null)
 
@@ -132,6 +168,7 @@ const canSubmit = computed(
     !!selectedShipping.value &&
     !!email.value &&
     !!captchaToken.value &&
+    (!needsAddress.value || addressComplete.value) &&
     !submitting.value
 )
 
@@ -156,6 +193,23 @@ async function submit(): Promise<void> {
         paymentMethod: selectedPayment.value,
         locale: locale.value,
         email: email.value,
+        // Sent only when it is required and complete. The country and postcode
+        // come from the same fields that produced the shipping quote, so the
+        // address delivered to and the address priced for are one address.
+        ...(needsAddress.value
+          ? {
+              shippingAddress: {
+                firstName: address.firstName.trim(),
+                lastName: address.lastName.trim(),
+                ...(address.phone.trim() ? { phone: address.phone.trim() } : {}),
+                line1: address.line1.trim(),
+                ...(address.line2.trim() ? { line2: address.line2.trim() } : {}),
+                postalCode: destination.postalCode.trim(),
+                city: city.value.trim(),
+                country: destination.country,
+              },
+            }
+          : {}),
         // A new key per attempt that reached the server, so a retry after a
         // failure is a new order rather than silently resolving to the last one.
         idempotencyKey: crypto.randomUUID(),
@@ -240,9 +294,73 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
                   class="field mt-1"
                 />
               </label>
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.city') }}</span>
+                <input v-model="city" type="text" autocomplete="address-level2" class="field mt-1" />
+              </label>
               <label class="sm:col-span-2">
                 <span class="text-sm text-content-muted">{{ $t('checkout.email') }}</span>
                 <input v-model="email" type="email" autocomplete="email" class="field mt-1" required />
+              </label>
+            </div>
+
+            <!-- Shown only when we are driving to it. Collection in store needs
+                 a name at the counter, not a street. -->
+            <div v-if="needsAddress" class="mt-4 grid gap-4 sm:grid-cols-2">
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.first_name') }}</span>
+                <input
+                  v-model="address.firstName"
+                  type="text"
+                  autocomplete="given-name"
+                  maxlength="100"
+                  class="field mt-1"
+                  required
+                />
+              </label>
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.last_name') }}</span>
+                <input
+                  v-model="address.lastName"
+                  type="text"
+                  autocomplete="family-name"
+                  maxlength="100"
+                  class="field mt-1"
+                  required
+                />
+              </label>
+              <label class="sm:col-span-2">
+                <span class="text-sm text-content-muted">{{ $t('checkout.address') }}</span>
+                <input
+                  v-model="address.line1"
+                  type="text"
+                  autocomplete="address-line1"
+                  maxlength="200"
+                  class="field mt-1"
+                  required
+                />
+              </label>
+              <label class="sm:col-span-2">
+                <span class="text-sm text-content-muted">{{ $t('checkout.address_line2') }}</span>
+                <input
+                  v-model="address.line2"
+                  type="text"
+                  autocomplete="address-line2"
+                  maxlength="200"
+                  class="field mt-1"
+                />
+              </label>
+              <label class="sm:col-span-2">
+                <span class="text-sm text-content-muted">{{ $t('checkout.phone') }}</span>
+                <!-- Not decoration: the van calls before it arrives. -->
+                <input
+                  v-model="address.phone"
+                  type="tel"
+                  autocomplete="tel"
+                  maxlength="24"
+                  class="field mt-1"
+                />
+                <span class="mt-1 block text-xs text-content-muted">{{ $t('checkout.phone_why') }}</span>
               </label>
             </div>
           </section>

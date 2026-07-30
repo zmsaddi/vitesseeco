@@ -12,7 +12,13 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 import { runMaintenance, MAINTENANCE_CONSTANTS } from '../../server/services/maintenance'
-import { readAvailability, reserveStock } from '../../server/services/stock'
+import {
+  CASH_RESERVATION_TTL_MS,
+  consumeReservations,
+  readAvailability,
+  reserveStock,
+  restockOrder,
+} from '../../server/services/stock'
 import {
   closePool,
   hasDatabase,
@@ -159,5 +165,93 @@ describe.skipIf(!hasDatabase)('maintenance sweep', () => {
     expect(report.rateLimitsPruned).toBe(1)
     const remaining = await testDb().select({ bucket: schema.rateLimits.bucket }).from(schema.rateLimits)
     expect(remaining.map((row) => row.bucket)).toEqual(['live'])
+  })
+})
+
+/**
+ * The stock lifecycle for sales that are not paid online.
+ *
+ * Both cases below shipped green: a cash order's hold expired after thirty
+ * minutes, the bike went back on sale while a customer waited for it, and when
+ * the driver finally collected the money there was no hold left to consume — so
+ * `on_hand` was never decremented and the shop counted a bike it had sold. And
+ * cancelling a paid order refunded the customer without returning the units,
+ * because releasing a hold that has already become a decrement does nothing.
+ *
+ * These assert the number on the shelf, not the mechanism, because the mechanism
+ * was what looked correct.
+ */
+describe.skipIf(!hasDatabase)('stock for cash and cancelled orders', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  const onHand = async (): Promise<number> => {
+    const [row] = await testDb()
+      .select({ onHand: schema.inventory.onHand })
+      .from(schema.inventory)
+      .where(sql`${schema.inventory.productId} = ${BIKE}`)
+    return row?.onHand ?? -1
+  }
+
+  it("keeps a cash order's hold alive far longer than an online one", async () => {
+    await seedProduct(BIKE, 2)
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'cod' })
+    await inTransaction((tx) =>
+      reserveStock(tx, orderId, [{ productId: BIKE, quantity: 1 }], CASH_RESERVATION_TTL_MS)
+    )
+
+    // An hour on, an online hold would be gone and the bike back on sale.
+    await testDb().execute(
+      sql`UPDATE stock_reservations SET created_at = NOW() - interval '1 hour' WHERE order_id = ${orderId}`
+    )
+    const report = await runMaintenance(inTransaction, testDb())
+
+    expect(report.reservationsExpired).toBe(0)
+    expect((await readAvailability(testDb(), [BIKE])).get(BIKE)?.available).toBe(1)
+  })
+
+  it('decrements the shelf when the driver comes back with the cash', async () => {
+    await seedProduct(BIKE, 2)
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'cod' })
+    await inTransaction((tx) =>
+      reserveStock(tx, orderId, [{ productId: BIKE, quantity: 1 }], CASH_RESERVATION_TTL_MS)
+    )
+
+    expect(await onHand()).toBe(2)
+    const consumed = await inTransaction((tx) => consumeReservations(tx, orderId))
+
+    expect(consumed).toBe(1)
+    // The bike has left the building; the count must agree.
+    expect(await onHand()).toBe(1)
+  })
+
+  it('puts the units back when a PAID order is cancelled', async () => {
+    await seedProduct(BIKE, 3)
+    const orderId = await seedOrder({ status: 'awaiting_payment' })
+    await testDb()
+      .insert(schema.orderItems)
+      .values({
+        orderId,
+        productId: BIKE,
+        nameSnapshot: 'V20 Noir',
+        unitPriceCents: 95000,
+        quantity: 2,
+        lineTotalCents: 190000,
+      })
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+    await inTransaction((tx) => consumeReservations(tx, orderId))
+
+    expect(await onHand()).toBe(1)
+
+    // Refunded and cancelled. The bikes are back in the warehouse.
+    const restocked = await inTransaction((tx) => restockOrder(tx, orderId))
+
+    expect(restocked).toBe(1)
+    expect(await onHand()).toBe(3)
   })
 })

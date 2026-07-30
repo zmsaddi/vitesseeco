@@ -347,6 +347,38 @@ if (suppressed.length > 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 10. A script must not write columns the schema does not have ────────────
+// backfill-inventory.mjs wrote `stock` and `reserved` long after the schema
+// moved to `on_hand` and a separate reservations table. It would have failed on
+// the one run that matters — the one before the shop opens.
+{
+  const rule = 'Scripts only write columns the schema declares'
+  let bad = 0
+  const schemaPath = join(ROOT, 'server', 'db', 'schema.ts')
+  const scriptsDir = join(ROOT, 'scripts')
+  if (existsSync(schemaPath) && existsSync(scriptsDir)) {
+    const schema = readFileSync(schemaPath, 'utf8')
+    // Every quoted snake_case name in the schema file. Deliberately loose: a
+    // column can be declared through a shared helper (`timestamps.updatedAt`)
+    // where a stricter pattern sees nothing and reports a column that exists.
+    // A missed violation is a smaller failure than a rule nobody trusts.
+    const columns = new Set([...schema.matchAll(/'([a-z][a-z0-9_]*)'/g)].map((m) => m[1]))
+    for (const file of walk(scriptsDir, ['.mjs'])) {
+      const rel = relative(ROOT, file).split('\\').join('/')
+      const text = readFileSync(file, 'utf8')
+      for (const m of text.matchAll(/INSERT INTO\s+(\w+)\s*\(([^)]+)\)/gi)) {
+        for (const raw of m[2].split(',')) {
+          const column = raw.trim()
+          if (!column || columns.has(column)) continue
+          bad++
+          fail(rule, rel, null, `writes ${m[1]}.${column}, which the schema does not declare`)
+        }
+      }
+    }
+  }
+  if (bad === 0) pass(rule)
+}
+
 console.log('')
 if (failures > 0) {
   console.error(`❌ ${failures} invariant violation(s) across ${checks + 1} rules`)

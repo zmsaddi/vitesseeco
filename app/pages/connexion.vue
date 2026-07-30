@@ -31,7 +31,13 @@ async function submit(): Promise<void> {
       method: 'POST',
       body: { email: form.email, password: form.password, captchaToken: captchaToken.value },
     })
-    await navigateTo(localePath('/compte'))
+    // The guard records where they were going. Ignoring it drops an admin who
+    // clicked an order link onto a dashboard and makes them find it again.
+    const next = String(route.query.next ?? '')
+    // Only a path on this site: an open redirect would let a phishing link
+    // bounce a freshly authenticated customer to somewhere else entirely.
+    const safe = next.startsWith('/') && !next.startsWith('//') ? next : localePath('/compte')
+    await navigateTo(safe)
   } catch (err: unknown) {
     const data = (err as { data?: { messageKey?: string } })?.data
     error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')

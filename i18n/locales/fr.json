@@ -252,17 +252,24 @@
     "withdrawal_title": "Droit de rétractation"
   },
   "checkout": {
+    "address": "Adresse",
+    "address_line2": "Complément (optionnel)",
+    "city": "Ville",
     "confirm": "Confirmer la commande",
     "country": "Pays",
     "email": "Email",
     "enter_address_first": "Indiquez votre code postal pour voir les options.",
+    "first_name": "Prénom",
     "free": "Offerte",
     "how": "Mode de livraison",
+    "last_name": "Nom",
     "no_delivery_here": "Pas de livraison à domicile ici — retrait à Poitiers possible.",
     "pay_cash": "Payer en espèces à la livraison",
     "pay_in_store": "Payer en magasin",
     "pay_online": "Payer en ligne",
     "payment": "Paiement",
+    "phone": "Téléphone",
+    "phone_why": "Nous appelons avant de passer, pour convenir d’un créneau.",
     "postal_code": "Code postal",
     "shipping": "Livraison",
     "title": "Commande",
@@ -482,9 +489,20 @@
     "why_title": "Pourquoi ce modèle"
   },
   "home": {
+    "categories": "Nos rayons",
+    "cta_guide": "Quel vélo pour moi ?",
+    "cta_products": "Voir les vélos",
     "description": "Fatbikes, accessoires et pièces détachées. Livraison gratuite par notre propre équipe en Belgique, aux Pays-Bas et dans la Vienne.",
     "eyebrow": "Mobilité électrique",
-    "title": "Des vélos électriques choisis, livrés et suivis par nous."
+    "featured": "En stock maintenant",
+    "see_all": "Tout voir",
+    "title": "Des vélos électriques choisis, livrés et suivis par nous.",
+    "trust_delivery": "Livré par nous",
+    "trust_delivery_body": "Notre équipe livre elle-même en {countries}. Pas de transporteur, pas de point relais : nous appelons, nous venons.",
+    "trust_shop": "Un magasin, pas une marketplace",
+    "trust_shop_body": "Une adresse à Poitiers, un téléphone auquel on répond, et des vélos que nous avons montés nous-mêmes.",
+    "trust_warranty": "Garantie et pièces",
+    "trust_warranty_body": "Garantie légale de conformité de 2 ans, et les pièces détachées des modèles que nous vendons."
   },
   "legal": {
     "last_updated": "Dernière mise à jour :",

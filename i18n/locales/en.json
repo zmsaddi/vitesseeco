@@ -252,17 +252,24 @@
     "withdrawal_title": "Right of withdrawal"
   },
   "checkout": {
+    "address": "Address",
+    "address_line2": "Address line 2 (optional)",
+    "city": "City",
     "confirm": "Place order",
     "country": "Country",
     "email": "Email",
     "enter_address_first": "Enter your postcode to see the options.",
+    "first_name": "First name",
     "free": "Free",
     "how": "Delivery method",
+    "last_name": "Last name",
     "no_delivery_here": "No home delivery here — collection in Poitiers is available.",
     "pay_cash": "Pay cash on delivery",
     "pay_in_store": "Pay in the shop",
     "pay_online": "Pay online",
     "payment": "Payment",
+    "phone": "Phone",
+    "phone_why": "We call before we set off, to agree a time.",
     "postal_code": "Postcode",
     "shipping": "Delivery",
     "title": "Checkout",
@@ -482,9 +489,20 @@
     "why_title": "Why this one"
   },
   "home": {
+    "categories": "Departments",
+    "cta_guide": "Which bike suits me?",
+    "cta_products": "See the bikes",
     "description": "Fatbikes, accessories and spare parts. Free delivery by our own team in Belgium, the Netherlands and the Vienne.",
     "eyebrow": "Electric mobility",
-    "title": "Electric bikes we choose, deliver and stand behind."
+    "featured": "In stock now",
+    "see_all": "See all",
+    "title": "Electric bikes we choose, deliver and stand behind.",
+    "trust_delivery": "We deliver it ourselves",
+    "trust_delivery_body": "Our own team delivers to {countries}. No courier, no pickup point: we call, we come.",
+    "trust_shop": "A shop, not a marketplace",
+    "trust_shop_body": "An address in Poitiers, a phone somebody answers, and bikes we assembled ourselves.",
+    "trust_warranty": "Guarantee and parts",
+    "trust_warranty_body": "Two-year legal guarantee of conformity, and spare parts for the models we sell."
   },
   "legal": {
     "last_updated": "Last updated:",

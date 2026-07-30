@@ -252,17 +252,24 @@
     "withdrawal_title": "Derecho de desistimiento"
   },
   "checkout": {
+    "address": "Dirección",
+    "address_line2": "Dirección línea 2 (opcional)",
+    "city": "Ciudad",
     "confirm": "Realizar pedido",
     "country": "País",
     "email": "Correo electrónico",
     "enter_address_first": "Introduzca su código postal para ver las opciones.",
+    "first_name": "Nombre",
     "free": "Gratis",
     "how": "Método de entrega",
+    "last_name": "Apellidos",
     "no_delivery_here": "Sin entrega a domicilio aquí — puede recoger en Poitiers.",
     "pay_cash": "Pagar en efectivo al recibir",
     "pay_in_store": "Pagar en la tienda",
     "pay_online": "Pagar en línea",
     "payment": "Pago",
+    "phone": "Teléfono",
+    "phone_why": "Le llamamos antes de salir, para acordar una hora.",
     "postal_code": "Código postal",
     "shipping": "Entrega",
     "title": "Finalizar compra",
@@ -482,9 +489,20 @@
     "why_title": "Por qué este modelo"
   },
   "home": {
+    "categories": "Secciones",
+    "cta_guide": "¿Qué bici me conviene?",
+    "cta_products": "Ver las bicicletas",
     "description": "Fatbikes, accesorios y repuestos. Entrega gratuita por nuestro propio equipo en Bélgica, los Países Bajos y Vienne.",
     "eyebrow": "Movilidad eléctrica",
-    "title": "Bicicletas eléctricas que elegimos, entregamos y respaldamos."
+    "featured": "En stock ahora",
+    "see_all": "Ver todo",
+    "title": "Bicicletas eléctricas que elegimos, entregamos y respaldamos.",
+    "trust_delivery": "Entregamos nosotros",
+    "trust_delivery_body": "Nuestro equipo entrega en {countries}. Sin transportista ni punto de recogida: llamamos y vamos.",
+    "trust_shop": "Una tienda, no un marketplace",
+    "trust_shop_body": "Una dirección en Poitiers, un teléfono que alguien contesta y bicicletas que hemos montado nosotros.",
+    "trust_warranty": "Garantía y piezas",
+    "trust_warranty_body": "Dos años de garantía legal de conformidad y piezas de repuesto de los modelos que vendemos."
   },
   "legal": {
     "last_updated": "Última actualización:",

@@ -26,6 +26,42 @@ import { AppError, ERROR_CODES } from '../../shared/errors'
 export const RESERVATION_TTL_MS = 30 * 60 * 1000
 
 /**
+ * How long a hold lasts when nobody is going to pay online.
+ *
+ * A cash-on-delivery order is an agreed sale waiting for a van, not a basket
+ * somebody wandered away from. On the online TTL its hold expired after half an
+ * hour, the bike went back on sale while a customer was waiting for it, and the
+ * sweep then settled the dead hold — so when the driver finally collected the
+ * money, `consumeReservations` found nothing to consume and `on_hand` was never
+ * decremented. The bike left the building and Postgres kept counting it, for
+ * every cash and counter sale ever made.
+ */
+export const CASH_RESERVATION_TTL_MS = 14 * 24 * 60 * 60 * 1000
+
+/**
+ * Put units back on the shelf for an order whose hold has already been consumed.
+ *
+ * `releaseReservations` settles a live hold; once payment has turned that hold
+ * into a decrement there is nothing left to settle, so cancelling a PAID order
+ * refunded the customer and never returned the bike to stock. This is the other
+ * direction, and it reads the order's own line items because the reservation
+ * rows are gone by then.
+ */
+export async function restockOrder(tx: Transaction, orderId: string): Promise<number> {
+  const restocked = await tx.execute<{ product_id: string; quantity: number }>(sql`
+    UPDATE inventory AS i
+       SET on_hand = i.on_hand + oi.quantity,
+           version = i.version + 1,
+           updated_at = NOW()
+      FROM order_items AS oi
+     WHERE oi.order_id = ${orderId}
+       AND i.product_id = oi.product_id
+    RETURNING i.product_id, oi.quantity
+  `)
+  return restocked.rows.length
+}
+
+/**
  * `IN (…)` with one bound parameter per value.
  *
  * Interpolating an array directly binds it as a single parameter, which

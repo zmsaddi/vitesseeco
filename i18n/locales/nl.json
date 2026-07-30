@@ -252,17 +252,24 @@
     "withdrawal_title": "Herroepingsrecht"
   },
   "checkout": {
+    "address": "Adres",
+    "address_line2": "Adresregel 2 (optioneel)",
+    "city": "Plaats",
     "confirm": "Bestelling plaatsen",
     "country": "Land",
     "email": "E-mailadres",
     "enter_address_first": "Vul uw postcode in om de opties te zien.",
+    "first_name": "Voornaam",
     "free": "Gratis",
     "how": "Bezorgwijze",
+    "last_name": "Achternaam",
     "no_delivery_here": "Hier geen thuisbezorging — afhalen in Poitiers is mogelijk.",
     "pay_cash": "Contant bij levering",
     "pay_in_store": "In de winkel betalen",
     "pay_online": "Online betalen",
     "payment": "Betaling",
+    "phone": "Telefoon",
+    "phone_why": "Wij bellen voordat wij vertrekken, om een tijdstip af te spreken.",
     "postal_code": "Postcode",
     "shipping": "Bezorging",
     "title": "Afrekenen",
@@ -482,9 +489,20 @@
     "why_title": "Waarom dit model"
   },
   "home": {
+    "categories": "Afdelingen",
+    "cta_guide": "Welke fiets past bij mij?",
+    "cta_products": "Bekijk de fietsen",
     "description": "Fatbikes, accessoires en onderdelen. Gratis bezorging door ons eigen team in België, Nederland en de Vienne.",
     "eyebrow": "Elektrische mobiliteit",
-    "title": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen."
+    "featured": "Nu op voorraad",
+    "see_all": "Alles bekijken",
+    "title": "Elektrische fietsen die wij kiezen, bezorgen en ondersteunen.",
+    "trust_delivery": "Wij bezorgen zelf",
+    "trust_delivery_body": "Ons eigen team bezorgt in {countries}. Geen vervoerder, geen afhaalpunt: wij bellen en wij komen.",
+    "trust_shop": "Een winkel, geen marktplaats",
+    "trust_shop_body": "Een adres in Poitiers, een telefoon die wordt opgenomen, en fietsen die wij zelf hebben gemonteerd.",
+    "trust_warranty": "Garantie en onderdelen",
+    "trust_warranty_body": "Twee jaar wettelijke conformiteitsgarantie, en onderdelen voor de modellen die wij verkopen."
   },
   "legal": {
     "last_updated": "Laatst bijgewerkt:",

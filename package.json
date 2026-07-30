@@ -25,7 +25,8 @@
     "test:visual:update": "npx playwright test --project=visual --update-snapshots",
     "check:feeds": "node scripts/check-feeds.mjs",
     "check:invariants": "node scripts/check-invariants.mjs",
-    "simulate": "node tests/e2e/simulate.mjs"
+    "simulate": "node tests/e2e/simulate.mjs",
+    "seed:inventory": "node scripts/seed-inventory.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

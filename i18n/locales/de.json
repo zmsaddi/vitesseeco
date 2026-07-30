@@ -252,17 +252,24 @@
     "withdrawal_title": "Widerrufsrecht"
   },
   "checkout": {
+    "address": "Adresse",
+    "address_line2": "Adresszusatz (optional)",
+    "city": "Ort",
     "confirm": "Bestellung aufgeben",
     "country": "Land",
     "email": "E-Mail",
     "enter_address_first": "Geben Sie Ihre Postleitzahl ein, um die Optionen zu sehen.",
+    "first_name": "Vorname",
     "free": "Kostenlos",
     "how": "Lieferart",
+    "last_name": "Nachname",
     "no_delivery_here": "Keine Hauslieferung hier — Abholung in Poitiers ist möglich.",
     "pay_cash": "Barzahlung bei Lieferung",
     "pay_in_store": "Im Laden bezahlen",
     "pay_online": "Online bezahlen",
     "payment": "Zahlung",
+    "phone": "Telefon",
+    "phone_why": "Wir rufen vor der Abfahrt an, um einen Termin abzustimmen.",
     "postal_code": "Postleitzahl",
     "shipping": "Lieferung",
     "title": "Kasse",
@@ -482,9 +489,20 @@
     "why_title": "Warum dieses Modell"
   },
   "home": {
+    "categories": "Abteilungen",
+    "cta_guide": "Welches Rad passt zu mir?",
+    "cta_products": "Zu den Rädern",
     "description": "Fatbikes, Zubehör und Ersatzteile. Kostenlose Lieferung durch unser eigenes Team in Belgien, den Niederlanden und im Département Vienne.",
     "eyebrow": "Elektromobilität",
-    "title": "E-Bikes, die wir auswählen, liefern und betreuen."
+    "featured": "Jetzt auf Lager",
+    "see_all": "Alle ansehen",
+    "title": "E-Bikes, die wir auswählen, liefern und betreuen.",
+    "trust_delivery": "Wir liefern selbst",
+    "trust_delivery_body": "Unser eigenes Team liefert nach {countries}. Kein Spediteur, keine Paketstation: wir rufen an und kommen.",
+    "trust_shop": "Ein Laden, kein Marktplatz",
+    "trust_shop_body": "Eine Adresse in Poitiers, ein Telefon, an das jemand geht, und Räder, die wir selbst montiert haben.",
+    "trust_warranty": "Garantie und Ersatzteile",
+    "trust_warranty_body": "Zwei Jahre gesetzliche Gewährleistung und Ersatzteile für die Modelle, die wir verkaufen."
   },
   "legal": {
     "last_updated": "Zuletzt aktualisiert:",
