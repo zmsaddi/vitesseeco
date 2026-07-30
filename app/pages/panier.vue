@@ -66,8 +66,20 @@ async function refresh(): Promise<void> {
   }
 }
 
-async function setQuantity(productId: string, quantity: number): Promise<void> {
-  cart.setQuantity(productId, quantity)
+async function setQuantity(line: { productId: string; quantity: number }, input: HTMLInputElement): Promise<void> {
+  // A blank box is not a quantity of zero. Clearing the field and tabbing away
+  // used to delete the line outright with no undo, because Number('') is 0 and
+  // the store reads a non-positive quantity as "remove". Blank means the
+  // customer is mid-edit, not that they want their basket emptied — so the box
+  // goes back to what it was. The input is written directly because :value is
+  // bound to a quantity that did not change, so Vue has nothing to re-render.
+  const typed = input.value.trim()
+  const quantity = Number(typed)
+  if (!typed || !Number.isInteger(quantity) || quantity < 1) {
+    input.value = String(line.quantity)
+    return
+  }
+  cart.setQuantity(line.productId, quantity)
   await refresh()
 }
 
@@ -137,7 +149,7 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
                     min="1"
                     :max="Math.max(1, Math.min(10, line.available))"
                     class="field w-20"
-                    @change="setQuantity(line.productId, Number(($event.target as HTMLInputElement).value))"
+                    @change="setQuantity(line, $event.target as HTMLInputElement)"
                   />
                 </label>
                 <button type="button" class="text-sm text-content-muted hover:text-danger" @click="remove(line.productId)">
