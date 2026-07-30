@@ -56,6 +56,10 @@ const PUBLIC_PAGES = [
   '/batteries',
   '/connexion',
   '/inscription',
+  '/blog',
+  '/comparatif',
+  '/guide',
+  '/favoris',
 ]
 
 const MACHINE_ROUTES = [
