@@ -356,7 +356,7 @@ for (const [name, bg] of [['tile-forest', P.forest.deep], ['tile-forest-black', 
   const wmH = 430, wmW = wmH * (SW / SH)
   c += `<g opacity="0.16">${stagAt(1500 - wmW - 70, (500 - wmH) / 2, wmH, P.wheat.mid)}</g>`
   c += `<g transform="translate(90 190)">${L.body}</g>`
-  c += `<text x="96" y="330" font-family="Manrope, Arial" font-weight="600" font-size="30" letter-spacing="3" fill="${P.wheat.light}" opacity="0.85">Vélos électriques — choisis, livrés et suivis par nous.</text>`
+  c += `<text x="96" y="330" font-family="Manrope, Arial" font-weight="600" font-size="30" letter-spacing="3" fill="${P.wheat.light}" opacity="0.85">Vélos électriques — choisis et préparés à Poitiers.</text>`
   write('social-cover.svg', svg(1500, 500, c))
 
   // square post template 1080×1080
@@ -448,7 +448,7 @@ for (const [name, bg] of [['tile-forest', P.forest.deep], ['tile-forest-black', 
     o += `<path fill="${P.forestTint}" transform="translate(${cx} ${cy})" d="${e2.d}"/>`
   }
   {
-    const tag = word500('Choisis, livrés et suivis par nous.', 36)
+    const tag = word500('Choisis, préparés et suivis avec soin.', 36)
     o += `<path fill="${P.wheat.light}" opacity="0.9" transform="translate(${OX[2] + (OUTER_W[2] - tag.w) / 2} 1300)" d="${tag.d}"/>`
     const cta = word('vitesse-eco.fr', 42)
     o += `<rect x="${OX[2] + (OUTER_W[2] - cta.w - 120) / 2}" y="1760" width="${cta.w + 120}" height="110" rx="55" fill="${P.forest.deep}"/>`
