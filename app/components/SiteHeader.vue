@@ -44,8 +44,10 @@ watch(() => route.fullPath, () => {
           :to="localePath('/')"
           class="flex shrink-0 items-center gap-2.5 font-display text-lg font-extrabold text-content-strong"
         >
-          <BrandMark class="h-9 w-auto text-accent" />
-          <span>Vitesse <span class="text-accent">Eco</span></span>
+          <BrandMark class="h-9 w-auto text-gold-deep" />
+          <span class="flex items-baseline"
+            >Vitesse<BrandBolt class="ml-[3px] mr-[5px] h-3.5 w-auto self-center" /><span class="text-accent">Eco</span></span
+          >
         </NuxtLink>
 
         <nav class="hidden md:flex md:items-center md:gap-6" :aria-label="$t('nav.primary')">

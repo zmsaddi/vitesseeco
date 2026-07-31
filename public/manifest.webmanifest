@@ -4,8 +4,8 @@
   "description": "Vélos électriques, pièces et accessoires — Poitiers, France",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAFAF9",
-  "theme_color": "#007A5E",
+  "background_color": "#edebe0",
+  "theme_color": "#054239",
   "lang": "fr",
   "icons": [
     {

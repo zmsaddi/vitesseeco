@@ -44,6 +44,11 @@ export default {
           DEFAULT: withAlpha('--success'),
           subtle: withAlpha('--success-subtle'),
         },
+        gold: {
+          DEFAULT: withAlpha('--gold'),
+          deep: withAlpha('--gold-deep'),
+        },
+        'forest-black': withAlpha('--forest-black'),
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
