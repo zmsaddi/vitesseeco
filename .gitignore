@@ -42,3 +42,8 @@ cms/.sanity/
 .devdb/
 skills/*.zip
 .simshots*/
+
+.vercel
+.rebuild-db-url
+.sanity-robot-token
+.rebuild-secrets.json

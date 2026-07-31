@@ -7,21 +7,36 @@
 
 ---
 
-## 1. What only the owner can do
+## 0. Provisioned and proven — 2026-07-31
 
-These block cutover and cannot be done from the repository.
+Executed with the credentials already present on the owner's machine. The
+production environment of the live site was not touched; everything below is
+scoped to the `rebuild` branch's preview environment.
+
+| Done | How |
+|---|---|
+| ✅ Database `vitesse_rebuild` on the existing Neon project | Created beside master's `neondb` (never touched), migrations applied, 144 products' stock seeded |
+| ✅ `SANITY_TOKEN` | Robot **Viewer** token minted via the manage API (id `si7kqGmdwE38gL`), deployed, reads verified |
+| ✅ Vercel preview of `rebuild` | Branch-scoped env: fresh `AUTH_SECRET`/`IP_HASH_SALT`/`CRON_SECRET`, Turnstile TEST pair (real keys are hostname-locked), `ADMIN_EMAILS` = owner + sim admin (preview only) |
+| ✅ **The full gate passed on that preview** | Simulator: 6 locales, nothing found. Money path: all 20 assertions in Neon — shelf 5→3 on cash received, back to 5 on cancel, stranger gets 404. The admin allowlist itself was proven: the first run's 403 was the guard rejecting a non-allowlisted admin |
+| ⚠️ Preview SSO protection disabled | Required for the automated gate; re-enable in Vercel → Settings → Deployment Protection if unwanted |
+
+**Deliberately NOT done: making the dataset private.** The live `master` reads
+the catalogue from the browser without a token — flipping now blinds the
+running shop. It is the first act of the switch below.
+
+## 1. What only the owner can do
 
 | # | Thing | Why it blocks | Unlocks |
 |---|---|---|---|
-| 1 | **Neon database** for the rebuild schema | The rebuild's tables do not exist on the current instance | everything |
-| 2 | **`SANITY_TOKEN`** in Vercel | Catalogue reads fail closed without it — the shop serves nothing | catalogue |
-| 3 | **Make the Sanity dataset private** | It is world-readable today; the token above is what makes closing it possible | privacy |
-| 4 | **Stripe keys + webhook secret** | Card checkout stays hidden until set | card payments |
-| 5 | **Appoint a consumer mediator** | Legally mandatory in France; the CGV page names none | legal exposure |
-| 6 | **Resend + DNS records** | No mail is sent at all today | password reset, order email |
-| 7 | **Legal review of the NL / DE / ES text** | Machine-assisted translation of binding terms | market entry |
-| 8 | **Google Merchant Center account** | Four feeds are built and correct but registered nowhere | Shopping |
-| 9 | **GS1 France prefix** | EAN codes must never be invented — see `cms/scripts/assign-gtins.mjs` | Amazon, bol, Kaufland |
+| 1 | **Appoint a consumer mediator** | Legally mandatory in France; the CGV page names none | legal exposure |
+| 2 | **Stripe account + keys** | KYC needs the owner's identity; card checkout stays hidden until keys exist | card payments |
+| 3 | **Resend account + API key** | No mail is sent today; password reset and order email are built-blocked on this | email |
+| 4 | **Legal review of the NL / DE / ES text** | Machine-assisted translation of binding terms | market entry |
+| 5 | **Google Merchant Center account** | Four feeds are built and verified but registered nowhere | Shopping |
+| 6 | **GS1 France prefix** | EAN codes must never be invented — see `cms/scripts/assign-gtins.mjs` | Amazon, bol, Kaufland |
+| 7 | **The word "switch"** | Going live is a business decision, not a technical one | §5 |
+| 8 | **Duplicate product decision** | `v20-pro-10-0-gris-narde` duplicates `-nardo` in Studio — hide or delete one | catalogue hygiene |
 
 Detail and step-by-step: [OWNER_ACCOUNTS_PLAYBOOK.md](OWNER_ACCOUNTS_PLAYBOOK.md).
 
@@ -44,7 +59,7 @@ Every line is a command. Run them in order; all must pass on the commit being cu
 ```bash
 npm run check:langs        # 6 locales in sync, no linked-message @, placeholder parity
 npm run check:hex          # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants   # the 10 project rules, suppressions printed
+npm run check:invariants   # the 11 project rules, suppressions printed
 npx nuxi typecheck         # zero errors
 npm run test               # unit + integration against a real PostgreSQL
 npm run build              # from a COLD cache — a warm one can serve a stale bundle
@@ -91,10 +106,18 @@ Automation cannot judge these.
    different host, which is exactly the seam that hid a 403 on every write once.
 4. Seed inventory and confirm `/api/catalog/products` returns real items.
 
-**The switch**
-5. Merge `rebuild` into `master`, or repoint the production branch.
-6. Immediately re-run `simulate` against the live domain.
-7. Submit the sitemap in Search Console and register the four feeds.
+**The switch** — each step is minutes, in this order
+5. Wipe the sim identities from `vitesse_rebuild` (test orders from the gate).
+6. Copy the preview env to Production (real Turnstile keys, owner-only
+   `ADMIN_EMAILS`, fresh `CRON_SECRET`).
+7. `cd cms && npx sanity dataset visibility set production private` — the
+   moment master stops being served, nothing legitimate reads without a token.
+8. Merge `rebuild` into `master`, or repoint the production branch.
+9. Immediately re-run `simulate` and `test:money` against the live domain.
+10. Register the 15-minute external cron (cron-job.org, key in the owner's
+    env) calling `/api/cron/maintenance` with the production `CRON_SECRET`;
+    Vercel's own daily cron stays as the backstop.
+11. Submit the sitemap in Search Console and register the four feeds.
 
 **Rollback** — the previous deployment is one promotion away in Vercel. Nothing
 in the rebuild writes to `master`'s database, so a rollback loses only orders
