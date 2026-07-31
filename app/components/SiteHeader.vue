@@ -40,8 +40,12 @@ watch(() => route.fullPath, () => {
   <header class="sticky top-0 z-40 border-b border-surface-border bg-surface-raised/95 backdrop-blur">
     <div class="container-page">
       <div class="flex h-16 items-center gap-4">
-        <NuxtLink :to="localePath('/')" class="font-display text-lg font-extrabold text-content-strong">
-          Vitesse<span class="text-accent">Eco</span>
+        <NuxtLink
+          :to="localePath('/')"
+          class="flex shrink-0 items-center gap-2.5 font-display text-lg font-extrabold text-content-strong"
+        >
+          <BrandMark class="h-9 w-auto text-accent" />
+          <span>Vitesse <span class="text-accent">Eco</span></span>
         </NuxtLink>
 
         <nav class="hidden md:flex md:items-center md:gap-6" :aria-label="$t('nav.primary')">
