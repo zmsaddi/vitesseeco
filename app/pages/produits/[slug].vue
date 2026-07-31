@@ -41,6 +41,29 @@ const quantity = ref(1)
 const added = ref(false)
 
 /** Resolved once so the template never indexes an array that may be empty. */
+/**
+ * Every colour of the model, the CURRENT one included and marked. The list
+ * used to show only the siblings — on a three-colour model the customer saw
+ * two chips and never the one they were on, which read as "there are two
+ * other products" rather than "you are here". Sorted by name so the order is
+ * identical from every colour's page instead of jumping on each switch.
+ */
+const colourways = computed(() => {
+  if (!product.value) return []
+  const entries = [
+    {
+      id: product.value.id,
+      slug: product.value.slug,
+      name: product.value.name,
+      color: product.value.color,
+      colorHex: product.value.colorHex,
+      current: true,
+    },
+    ...product.value.siblings.map((sibling) => ({ ...sibling, current: false })),
+  ]
+  return entries.sort((a, b) => (a.color ?? a.name).localeCompare(b.color ?? b.name, 'fr'))
+})
+
 const activeImage = computed(() => product.value?.images[selectedImage.value] ?? product.value?.image ?? null)
 
 watch(product, () => {
@@ -258,21 +281,32 @@ useHead(() => {
           {{ product.available > 0 ? $t('product.in_stock', { count: product.available }) : $t('products.out_of_stock') }}
         </p>
 
-        <div v-if="product.siblings.length" class="mt-6">
+        <div v-if="colourways.length > 1" class="mt-6">
           <h2 class="text-sm font-semibold text-content-strong">{{ $t('product.other_colours') }}</h2>
           <ul class="mt-2 flex flex-wrap gap-2">
-            <li v-for="sibling in product.siblings" :key="sibling.id">
-              <NuxtLink
-                :to="localePath(`/produits/${sibling.slug}`)"
-                class="btn-secondary h-11 px-3 text-xs"
+            <li v-for="way in colourways" :key="way.id">
+              <span
+                v-if="way.current"
+                class="btn-secondary h-11 cursor-default border-accent px-3 text-xs ring-1 ring-accent"
+                aria-current="true"
               >
                 <span
-                  v-if="sibling.colorHex"
+                  v-if="way.colorHex"
                   class="h-4 w-4 rounded-full border border-surface-border"
-                  :style="{ backgroundColor: sibling.colorHex }"
+                  :style="{ backgroundColor: way.colorHex }"
                   aria-hidden="true"
                 />
-                {{ sibling.color ?? sibling.name }}
+                {{ way.color ?? way.name }}
+                <Icon name="ph:check-bold" class="h-3.5 w-3.5 text-accent" aria-hidden="true" />
+              </span>
+              <NuxtLink v-else :to="localePath(`/produits/${way.slug}`)" class="btn-secondary h-11 px-3 text-xs">
+                <span
+                  v-if="way.colorHex"
+                  class="h-4 w-4 rounded-full border border-surface-border"
+                  :style="{ backgroundColor: way.colorHex }"
+                  aria-hidden="true"
+                />
+                {{ way.color ?? way.name }}
               </NuxtLink>
             </li>
           </ul>
