@@ -19,7 +19,14 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/i18n', '@nuxt/image', '@nuxt/icon', '@nuxt/fonts'],
 
   tailwindcss: {
-    cssPath: ['~/app/assets/css/main.css', { injectPosition: 'first' }],
+    // `~` already IS app/ under the Nuxt 4 layout. The previous value said
+    // `~/app/assets/…`, which resolves to app/app/… — a path that does not
+    // exist — and the module fell back to its default CSS without failing the
+    // build. Every utility class still worked, so pages LOOKED functional in
+    // tests, while the entire design system (:root tokens, .btn, .field,
+    // .card) silently never entered the bundle: transparent buttons,
+    // borderless inputs, a shop rendered as a wireframe.
+    cssPath: ['~/assets/css/main.css', { injectPosition: 'first' }],
   },
 
   i18n: {

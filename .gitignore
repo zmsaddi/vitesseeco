@@ -41,3 +41,4 @@ cms/dist/
 cms/.sanity/
 .devdb/
 skills/*.zip
+.simshots*/

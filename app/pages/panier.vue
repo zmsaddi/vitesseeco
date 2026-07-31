@@ -10,6 +10,7 @@
 const cart = useCart()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatDecimal } = useFormatPrice()
 
 interface PricedLine {
   productId: string
@@ -132,7 +133,7 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
                 {{ line.name }}
               </NuxtLink>
               <p v-if="line.color" class="text-sm text-content-muted">{{ line.color }}</p>
-              <p class="mt-1 text-sm text-content-muted">{{ line.unitPrice }} €</p>
+              <p class="mt-1 text-sm text-content-muted">{{ formatDecimal(line.unitPrice) }}</p>
 
               <p v-if="line.available < line.quantity" class="mt-1 text-sm text-danger">
                 {{ line.available > 0
@@ -158,7 +159,7 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
               </div>
             </div>
 
-            <p class="shrink-0 font-semibold text-content-strong">{{ line.lineTotal }} €</p>
+            <p class="shrink-0 font-semibold text-content-strong">{{ formatDecimal(line.lineTotal) }}</p>
           </li>
         </ul>
 
@@ -168,15 +169,15 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
           <dl class="mt-4 space-y-2 text-sm">
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.subtotal') }}</dt>
-              <dd class="text-content-strong">{{ pricing.subtotal }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(pricing.subtotal) }}</dd>
             </div>
             <div v-if="pricing.discount !== '0.00'" class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.discount') }}</dt>
-              <dd class="text-success">−{{ pricing.discount }} €</dd>
+              <dd class="text-success">−{{ formatDecimal(pricing.discount) }}</dd>
             </div>
             <div class="flex justify-between border-t border-surface-border pt-2 text-base font-bold">
               <dt class="text-content-strong">{{ $t('cart.total') }}</dt>
-              <dd class="text-content-strong">{{ pricing.total }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(pricing.total) }}</dd>
             </div>
           </dl>
 

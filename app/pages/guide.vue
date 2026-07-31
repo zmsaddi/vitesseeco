@@ -18,6 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 
 /**
  * One value, whatever shape the URL arrived in — a duplicated parameter
@@ -541,10 +542,10 @@ useSeoMeta({
 
                 <p class="mt-2 flex items-baseline gap-3">
                   <span class="text-2xl font-bold text-accent">
-                    {{ (item.entry.product.price / 100).toFixed(2) }} €
+                    {{ formatCents(item.entry.product.price) }}
                   </span>
                   <span v-if="item.entry.product.compareAtPrice" class="text-sm text-content-muted line-through">
-                    {{ (item.entry.product.compareAtPrice / 100).toFixed(2) }} €
+                    {{ formatCents(item.entry.product.compareAtPrice) }}
                   </span>
                 </p>
 

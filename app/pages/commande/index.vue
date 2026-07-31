@@ -17,6 +17,7 @@ import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js'
 const cart = useCart()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatDecimal } = useFormatPrice()
 const config = useRuntimeConfig()
 
 const { data: me } = await useFetch<{ id: string; email: string } | null>('/api/auth/me')
@@ -384,7 +385,7 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
                     <span class="flex justify-between gap-2">
                       <span class="font-medium text-content-strong">{{ option.name }}</span>
                       <span class="font-semibold text-accent">
-                        {{ option.price === '0.00' ? $t('checkout.free') : `${option.price} €` }}
+                        {{ option.price === '0.00' ? $t('checkout.free') : formatDecimal(option.price) }}
                       </span>
                     </span>
                     <span v-if="option.description" class="mt-0.5 block text-sm text-content-muted">
@@ -418,21 +419,21 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
           <dl v-if="pricing" class="mt-4 space-y-2 text-sm">
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.subtotal') }}</dt>
-              <dd class="text-content-strong">{{ pricing.subtotal }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(pricing.subtotal) }}</dd>
             </div>
             <div v-if="pricing.discount !== '0.00'" class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.discount') }}</dt>
-              <dd class="text-success">−{{ pricing.discount }} €</dd>
+              <dd class="text-success">−{{ formatDecimal(pricing.discount) }}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('checkout.shipping') }}</dt>
               <dd class="text-content-strong">
-                {{ pricing.shipping === '0.00' ? $t('checkout.free') : `${pricing.shipping} €` }}
+                {{ pricing.shipping === '0.00' ? $t('checkout.free') : formatDecimal(pricing.shipping) }}
               </dd>
             </div>
             <div class="flex justify-between border-t border-surface-border pt-2 text-base font-bold">
               <dt class="text-content-strong">{{ $t('cart.total') }}</dt>
-              <dd class="text-content-strong">{{ pricing.total }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(pricing.total) }}</dd>
             </div>
           </dl>
           <p v-else class="mt-4 text-sm text-content-muted">{{ $t('checkout.totals_pending') }}</p>

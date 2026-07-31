@@ -14,6 +14,7 @@ const route = useRoute()
 const router = useRouter()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 
 /** One value, whatever shape the URL arrived in. */
 function one(value: unknown): string {
@@ -137,11 +138,11 @@ useSeoMeta({
             <h2 class="font-medium text-content-strong">{{ product.name }}</h2>
             <p v-if="product.color" class="mt-0.5 text-sm text-content-muted">{{ product.color }}</p>
             <p class="mt-2 flex items-baseline gap-2">
-              <span class="text-lg font-bold text-accent">{{ (product.price / 100).toFixed(2) }} €</span>
+              <span class="text-lg font-bold text-accent">{{ formatCents(product.price) }}</span>
               <span
                 v-if="product.compareAtPrice"
                 class="text-sm text-content-muted line-through"
-              >{{ (product.compareAtPrice / 100).toFixed(2) }} €</span>
+              >{{ formatCents(product.compareAtPrice) }}</span>
             </p>
             <p v-if="product.available <= 0" class="mt-1 text-sm text-danger">
               {{ $t('products.out_of_stock') }}

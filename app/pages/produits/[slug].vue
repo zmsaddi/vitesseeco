@@ -15,6 +15,7 @@ import { marketForLocale } from '~~/shared/markets'
 const route = useRoute()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 const cart = useCart()
 
 const slug = computed(() => String(route.params.slug))
@@ -173,6 +174,7 @@ useHead(() => {
         offers: {
           '@type': 'Offer',
           url,
+          // invariant-ok: schema.org offers.price is machine format, dot-decimal by spec
           price: (item.price / 100).toFixed(2),
           priceCurrency: 'EUR',
           itemCondition: 'https://schema.org/NewCondition',
@@ -244,9 +246,9 @@ useHead(() => {
         <h1 class="mt-1 font-display text-3xl font-extrabold text-content-strong">{{ product.name }}</h1>
 
         <p class="mt-4 flex items-baseline gap-3">
-          <span class="text-3xl font-bold text-accent">{{ (product.price / 100).toFixed(2) }} €</span>
+          <span class="text-3xl font-bold text-accent">{{ formatCents(product.price) }}</span>
           <span v-if="product.compareAtPrice" class="text-lg text-content-muted line-through">
-            {{ (product.compareAtPrice / 100).toFixed(2) }} €
+            {{ formatCents(product.compareAtPrice) }}
           </span>
         </p>
 

@@ -357,9 +357,7 @@ const visibleGroups = computed(() => {
   )
 })
 
-function euros(value: number): string {
-  return (value / 100).toFixed(2)
-}
+const { formatCents } = useFormatPrice()
 
 useSeoMeta({
   title: () => t('compare.title'),
@@ -426,8 +424,8 @@ useSeoMeta({
               </span>
               <span class="mt-1 block text-sm font-semibold text-accent">
                 {{ group.minPrice === group.maxPrice
-                  ? `${euros(group.minPrice)} €`
-                  : $t('compare.from_price', { price: euros(group.minPrice) }) }}
+                  ? formatCents(group.minPrice)
+                  : $t('compare.from_price', { price: formatCents(group.minPrice) }) }}
               </span>
               <!-- The dots are what turn six catalogue entries back into one
                    bike: the model is the choice, the colour comes after. -->
@@ -493,8 +491,8 @@ useSeoMeta({
                 <p class="font-display text-base font-bold text-content-strong">{{ column.group.name }}</p>
                 <p class="mt-1 font-semibold text-accent">
                   {{ column.group.minPrice === column.group.maxPrice
-                    ? `${euros(column.group.minPrice)} €`
-                    : $t('compare.from_price', { price: euros(column.group.minPrice) }) }}
+                    ? formatCents(column.group.minPrice)
+                    : $t('compare.from_price', { price: formatCents(column.group.minPrice) }) }}
                 </p>
                 <p class="mt-1 text-xs" :class="column.group.available > 0 ? 'text-success' : 'text-danger'">
                   {{ column.group.available > 0

@@ -20,6 +20,7 @@ import { ORGANISATION } from '~~/shared/organisation'
  * the live ones. A home page that caches a price is a home page that lies.
  */
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 const localePath = useLocalePath()
 
 const query = computed(() => ({ locale: locale.value }))
@@ -140,11 +141,11 @@ useSeoMeta({
               <p class="truncate font-medium text-content-strong">{{ product.name }}</p>
               <p v-if="product.color" class="text-xs text-content-muted">{{ product.color }}</p>
               <p class="mt-2 font-bold text-content-strong">
-                {{ (product.price / 100).toFixed(2) }} €
+                {{ formatCents(product.price) }}
                 <span
                   v-if="product.compareAtPrice"
                   class="ms-2 text-sm font-normal text-content-muted line-through"
-                >{{ (product.compareAtPrice / 100).toFixed(2) }} €</span>
+                >{{ formatCents(product.compareAtPrice) }}</span>
               </p>
             </div>
           </NuxtLink>

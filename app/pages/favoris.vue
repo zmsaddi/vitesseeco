@@ -12,6 +12,7 @@ const wishlist = useWishlist()
 const cart = useCart()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 
 const PER_PAGE = 48
 
@@ -167,11 +168,11 @@ useSeoMeta({ title: () => t('wishlist.title'), robots: 'noindex' })
             <p v-if="product.color" class="mt-0.5 text-sm text-content-muted">{{ product.color }}</p>
 
             <p class="mt-2 flex items-baseline gap-2">
-              <span class="text-lg font-bold text-accent">{{ (product.price / 100).toFixed(2) }} €</span>
+              <span class="text-lg font-bold text-accent">{{ formatCents(product.price) }}</span>
               <span
                 v-if="product.compareAtPrice"
                 class="text-sm text-content-muted line-through"
-              >{{ (product.compareAtPrice / 100).toFixed(2) }} €</span>
+              >{{ formatCents(product.compareAtPrice) }}</span>
             </p>
 
             <p v-if="product.available <= 0" class="mt-1 text-sm text-danger">

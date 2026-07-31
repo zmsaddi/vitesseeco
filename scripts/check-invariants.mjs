@@ -98,12 +98,14 @@ if (FILES.length === 0) {
   if (bad === 0) pass(rule)
 }
 
-// ── 2. Money formatting must not be server-rendered ──────────────────────────
+// ── 2. Money formatting is confined to the two sanctioned edges ──────────────
 // Intl currency output for fr-FR uses U+202F or U+00A0 depending on the ICU
 // version, and Node and Chrome can disagree — a silent hydration mismatch on
-// every price.
+// every price. shared/money.ts serves machines; useFormatPrice serves humans
+// and normalises the space so server and client render byte-identically.
 {
-  const rule = 'No Intl currency formatting outside a client-only path'
+  const rule = 'Intl currency only in shared/money.ts or useFormatPrice'
+  const SANCTIONED = new Set(['shared/money.ts', 'app/composables/useFormatPrice.ts'])
   let bad = 0
   for (const file of FILES) {
     const rel = relative(ROOT, file).replace(/\\/g, '/')
@@ -111,11 +113,33 @@ if (FILES.length === 0) {
     const text = readFileSync(file, 'utf8')
     text.split('\n').forEach((line, i) => {
       if (!/style:\s*'currency'|style:\s*"currency"/.test(line)) return
-      // shared/money.ts format() is the sanctioned one; it is called at the edge.
-      if (rel === 'shared/money.ts') return
+      if (SANCTIONED.has(rel)) return
       if (isSuppressed(text.split('\n'), i, rule, rel)) return
       bad++
       fail(rule, rel, i + 1, `currency Intl: ${line.trim().slice(0, 100)}`)
+    })
+  }
+  if (bad === 0) pass(rule)
+}
+
+// ── 2b. Displayed prices go through useFormatPrice ───────────────────────────
+// Raw toFixed(2) renders "950.00 €" — anglophone always, on a shop whose
+// default language is French — and it slipped past the Intl rule above
+// precisely because it never calls Intl. Thirteen templates had it. Machine
+// decimals (schema.org offers.price, feed columns) legitimately keep it,
+// stated with an invariant-ok reason.
+{
+  const rule = 'Displayed prices go through useFormatPrice, not toFixed'
+  let bad = 0
+  for (const file of FILES) {
+    const rel = relative(ROOT, file).replace(/\\/g, '/')
+    if (!rel.endsWith('.vue') || !rel.startsWith('app/')) continue
+    const lines = readFileSync(file, 'utf8').split('\n')
+    lines.forEach((line, i) => {
+      if (!/toFixed\(2\)/.test(line)) return
+      if (isSuppressed(lines, i, rule, rel)) return
+      bad++
+      fail(rule, rel, i + 1, `raw toFixed on a price: ${line.trim().slice(0, 90)}`)
     })
   }
   if (bad === 0) pass(rule)

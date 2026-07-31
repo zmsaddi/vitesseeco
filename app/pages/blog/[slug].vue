@@ -16,6 +16,7 @@ import { ORGANISATION, SITE_URL } from '~~/shared/organisation'
 const route = useRoute()
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
+const { formatCents } = useFormatPrice()
 const { formatLongDate } = useFormatDate()
 
 const slug = computed(() => String(route.params.slug))
@@ -128,7 +129,7 @@ useHead(() => {
             />
             <div class="p-4">
               <p class="font-medium text-content-strong">{{ product.name }}</p>
-              <p class="mt-1 text-sm text-content-muted">{{ (product.price / 100).toFixed(2) }} €</p>
+              <p class="mt-1 text-sm text-content-muted">{{ formatCents(product.price) }}</p>
             </div>
           </NuxtLink>
         </li>

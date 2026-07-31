@@ -11,6 +11,7 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
+const { formatDecimal } = useFormatPrice()
 
 interface AdminOrder {
   orderNumber: string
@@ -143,7 +144,7 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
           <span v-if="order.shippingAddress?.city" class="text-sm text-content-muted">
             {{ order.shippingAddress.city }}, {{ order.shippingAddress.country }}
           </span>
-          <span class="ms-auto font-bold text-content-strong">{{ order.total }} €</span>
+          <span class="ms-auto font-bold text-content-strong">{{ formatDecimal(order.total) }}</span>
         </div>
 
         <div class="mt-3 flex flex-wrap items-center gap-2">

@@ -29,7 +29,8 @@
     "test:visual": "npx playwright test --project=visual",
     "test:visual:update": "npx playwright test --project=visual --update-snapshots",
     "test:watch": "vitest",
-    "typecheck": "nuxi typecheck"
+    "typecheck": "nuxi typecheck",
+    "walk:ux": "node tests/e2e/ux-walk.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

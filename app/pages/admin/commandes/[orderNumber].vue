@@ -14,6 +14,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const route = useRoute()
 const { t, locale } = useI18n()
+const { formatDecimal } = useFormatPrice()
 const orderNumber = computed(() => String(route.params.orderNumber ?? ''))
 
 interface Address {
@@ -151,7 +152,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
         <span class="rounded-full bg-accent-subtle px-2.5 py-0.5 text-sm font-semibold text-accent">
           {{ $t(`order_status.${order.status}`) }}
         </span>
-        <span class="ms-auto text-xl font-bold text-content-strong">{{ order.total }} €</span>
+        <span class="ms-auto text-xl font-bold text-content-strong">{{ formatDecimal(order.total) }}</span>
       </div>
 
       <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
@@ -216,7 +217,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
           <dl class="mt-4 space-y-1 border-t border-surface-border pt-4 text-sm">
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.subtotal') }}</dt>
-              <dd class="text-content">{{ order.subtotal }} €</dd>
+              <dd class="text-content">{{ formatDecimal(order.subtotal) }}</dd>
             </div>
             <div v-if="order.discount !== '0.00'" class="flex justify-between">
               <dt class="text-content-muted">
@@ -230,7 +231,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
             </div>
             <div class="flex justify-between border-t border-surface-border pt-2 font-bold">
               <dt class="text-content-strong">{{ $t('cart.total') }}</dt>
-              <dd class="text-content-strong">{{ order.total }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(order.total) }}</dd>
             </div>
             <div class="flex justify-between text-xs">
               <dt class="text-content-muted">
