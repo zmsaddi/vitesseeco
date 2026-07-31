@@ -39,22 +39,29 @@ const USAGE_OPTIONS = [
 /**
  * What we require of the battery, per answer.
  *
- * "More than 60 km" is answered with 75 rather than 61: someone who rides past
- * sixty needs headroom for the day they ride further, and a bike that matches
- * their stated distance exactly has none.
+ * Two options, split at 50 km — the owner's own reading of the catalogue. The
+ * long option asks for 65 rather than 51: someone who rides past fifty needs
+ * headroom for the day they ride further, and a bike that matches their stated
+ * distance exactly has none.
  */
 const DISTANCE_OPTIONS = [
-  { value: 'court', label: 'guide.distance_short', needKm: 30 },
-  { value: 'moyen', label: 'guide.distance_medium', needKm: 60 },
-  { value: 'long', label: 'guide.distance_long', needKm: 75 },
+  { value: 'court', label: 'guide.distance_short', needKm: 50 },
+  { value: 'long', label: 'guide.distance_long', needKm: 65 },
 ] as const
 
-/** A budget is a ceiling, never a floor: nobody is refused a cheaper bike. */
+/**
+ * Two options, split where the catalogue actually splits: 25 bikes sit under
+ * 1 000 € and 34 at or above it. The previous brackets (1 500 / 2 500 / 3 500)
+ * were invented — the 2 500 step added two bikes and the 3 500 step added
+ * none, so two of three answers changed nothing a customer could see.
+ *
+ * Under 1 000 € is a ceiling. 1 000 € and above is a FLOOR — someone choosing
+ * the upper range is asking for the bigger bikes, not for the cheap ones with
+ * extra steps.
+ */
 const BUDGET_OPTIONS = [
-  { value: '1500', label: 'guide.budget_1500', ceiling: 150_000 },
-  { value: '2500', label: 'guide.budget_2500', ceiling: 250_000 },
-  { value: '3500', label: 'guide.budget_3500', ceiling: 350_000 },
-  { value: 'ouvert', label: 'guide.budget_open', ceiling: null },
+  { value: 'moins1000', label: 'guide.budget_under_1000', ceiling: 100_000, floor: null },
+  { value: 'plus1000', label: 'guide.budget_1000_plus', ceiling: null, floor: 100_000 },
 ] as const
 
 function optionValue<T extends string>(raw: string, allowed: readonly { value: T }[]): T | '' {
@@ -94,10 +101,11 @@ function restart(): void {
 const needKm = computed(
   () => DISTANCE_OPTIONS.find((option) => option.value === answers.value.distance)?.needKm ?? null
 )
-const budgetCeiling = computed(() => {
-  const option = BUDGET_OPTIONS.find((entry) => entry.value === answers.value.budget)
-  return option ? option.ceiling : undefined
-})
+const budgetOption = computed(() =>
+  BUDGET_OPTIONS.find((entry) => entry.value === answers.value.budget)
+)
+const budgetCeiling = computed(() => (budgetOption.value ? budgetOption.value.ceiling : undefined))
+const budgetFloor = computed(() => budgetOption.value?.floor ?? null)
 
 // ── the catalogue ────────────────────────────────────────────────────────────
 
@@ -164,8 +172,11 @@ const models = computed<ModelEntry[]>(() => {
 
 const affordable = computed(() => {
   const ceiling = budgetCeiling.value
-  if (ceiling === undefined || ceiling === null) return models.value
-  return models.value.filter((entry) => entry.product.price <= ceiling)
+  const floor = budgetFloor.value
+  let entries = models.value
+  if (typeof ceiling === 'number') entries = entries.filter((entry) => entry.product.price <= ceiling)
+  if (typeof floor === 'number') entries = entries.filter((entry) => entry.product.price >= floor)
+  return entries
 })
 
 /**
