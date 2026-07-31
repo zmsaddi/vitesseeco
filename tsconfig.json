@@ -1,4 +1,22 @@
 {
   "extends": "./.nuxt/tsconfig.json",
-  "exclude": ["cms/dist", "cms/node_modules", "cms/.sanity", "cms/plugins"]
+  // `exclude` REPLACES the inherited list — it never merges. The previous value
+  // excluded four cms subfolders, which silently re-included cms itself and
+  // wiped the base excludes; typecheck then depended on whichever machine
+  // happened to have cms/node_modules installed. Green locally, red in CI.
+  // Everything the base excludes must therefore be restated here in full.
+  "exclude": [
+    "cms",
+    "assets-reference",
+    "import-data",
+    "competitor-research",
+    "node_modules",
+    "dist",
+    ".data",
+    ".devdb",
+    ".output",
+    ".simshots",
+    ".simshots-before",
+    "skills"
+  ]
 }

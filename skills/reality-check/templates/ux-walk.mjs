@@ -80,8 +80,12 @@ async function walk({ name, viewport, isMobile }) {
   })
 
   // 2 ── to the catalogue: is it one obvious click away?
-  const toShop = page.locator(`a[href$="${s.listing}"]`).first()
-  const oneClick = await toShop.isVisible().catch(() => false)
+  // Not `.first().isVisible()`: the first DOM match is often a link inside a
+  // hidden mobile drawer, which reads as "no visible link" while a perfectly
+  // good CTA sits in the hero. This instrument bug reported a real page as
+  // broken once. Ask for ANY visible match instead.
+  const toShop = page.locator(`a[href$="${s.listing}"]:visible`).first()
+  const oneClick = (await toShop.count().catch(() => 0)) > 0
   if (oneClick) await toShop.click()
   else await page.goto(BASE + s.listing)
   await page.waitForTimeout(2500)
@@ -95,17 +99,24 @@ async function walk({ name, viewport, isMobile }) {
   await page.locator(s.productLinkSelector).first().click()
   await page.waitForTimeout(2500)
   await shot('3-product')
-  const addBtn = page.locator('button').filter({ hasText: s.addToCartText }).first()
-  const addVisible = await addBtn.isVisible().catch(() => false)
-  const bb = addVisible ? await addBtn.boundingBox() : null
+  // A page may render the buy action twice — in the content and in a sticky
+  // bar. The customer needs ANY of them under the thumb, so measure them all.
+  const addBtns = page.locator('button:visible').filter({ hasText: s.addToCartText })
+  const addCount = await addBtns.count()
+  let addAboveFold = false
+  for (let i = 0; i < addCount; i++) {
+    const bb = await addBtns.nth(i).boundingBox().catch(() => null)
+    if (bb && bb.y >= 0 && bb.y < viewport.height) { addAboveFold = true; break }
+  }
+  const addBtn = addBtns.first()
   log(`${name}: product`, {
-    addToCartVisible: addVisible,
+    addToCartVisible: addCount > 0,
     // Below the fold on mobile is where buy buttons go to die.
-    addAboveFold: !!bb && bb.y < viewport.height,
+    addAboveFold,
   })
 
   // 4 ── add: does ANYTHING tell the customer it worked?
-  if (addVisible) { await addBtn.click(); await page.waitForTimeout(1500) }
+  if (addCount > 0) { await addBtn.click(); await page.waitForTimeout(1500) }
   await shot('4-added')
 
   // 5 ── the basket: honest total, obvious next step?

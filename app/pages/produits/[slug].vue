@@ -213,7 +213,7 @@ useHead(() => {
 </script>
 
 <template>
-  <article v-if="product" class="container-page py-10">
+  <article v-if="product" class="container-page py-10 pb-28 lg:pb-10">
     <div class="grid gap-10 lg:grid-cols-2">
       <div>
         <div class="aspect-square overflow-hidden rounded-2xl bg-surface-sunken">
@@ -305,6 +305,30 @@ useHead(() => {
             {{ highlight }}
           </li>
         </ul>
+      </div>
+    </div>
+
+    <!-- On a phone the gallery fills the first screen and the buy button lands
+         below the fold — the eye-walk screenshots showed exactly that. This bar
+         keeps the decision (price) and the action (add) under the thumb at all
+         times. Desktop keeps the in-page button. -->
+    <div
+      class="fixed inset-x-0 bottom-0 z-40 border-t border-surface-border bg-surface-raised/95 px-4 py-3 backdrop-blur lg:hidden"
+      :style="{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }"
+    >
+      <div class="mx-auto flex max-w-lg items-center justify-between gap-3">
+        <div class="min-w-0">
+          <p class="truncate text-xs text-content-muted">{{ product.name }}</p>
+          <p class="text-lg font-bold text-accent">{{ formatCents(product.price) }}</p>
+        </div>
+        <button
+          type="button"
+          class="btn-primary shrink-0 px-6"
+          :disabled="product.available <= 0"
+          @click="addToCart"
+        >
+          {{ added ? $t('product.added') : product.available > 0 ? $t('product.add_to_cart') : $t('products.out_of_stock') }}
+        </button>
       </div>
     </div>
 
