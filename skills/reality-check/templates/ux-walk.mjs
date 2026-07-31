@@ -1,5 +1,5 @@
 /**
- * The Vitesse Eco funnel, walked with eyes. Kept in sync with the generic template in skills/reality-check/templates/ux-walk.mjs.
+ * The funnel, walked with eyes — TEMPLATE.
  *
  * The structural simulator (simulate.mjs) asserts what a machine can assert:
  * status codes, raw keys, hydration, console errors. It is BLIND TO PAINT. It
@@ -39,11 +39,11 @@ const CONFIG = {
   ],
   /** The journey, step by step. Each step: land somewhere, then measure. */
   steps: {
-    listing: '/produits',
-    productLinkSelector: 'a[href*="/produits/"]',
+    listing: '/products',
+    productLinkSelector: 'a[href*="/products/"]',
     addToCartText: /cart|panier|winkelwagen|warenkorb|carrito|السلة/i,
-    cart: '/panier',
-    checkout: '/commande',
+    cart: '/cart',
+    checkout: '/checkout',
     checkoutCtaText: /commander|checkout|caisse|order/i,
     submitText: /confirmer|payer|valider|commander|pay|place order/i,
     /** Words that mean the basket is empty — seeing them after adding is a defect. */

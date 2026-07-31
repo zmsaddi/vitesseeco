@@ -55,6 +55,15 @@ in the README — and no pipeline invokes it.
 > **Corollary: "unused" and "unfinished" look identical in a diff. Whenever a
 > tool reports something unused, ask whether it was supposed to be called.**
 
+**6. The check cannot see.** Assertions measure structure — status codes, text,
+counts — and are blind to what the page actually looks like.
+> 114 page loads ran green through a browser simulator while the shop's entire
+> design system was missing from the CSS bundle: every button transparent, every
+> input a borderless white box on a white page. The functional layer was
+> perfect. The paint was gone. Nothing asserted paint.
+> **Corollary: some defect classes are invisible to assertions and obvious to
+> eyes. Screenshot the critical journey and LOOK at the pictures.**
+
 ---
 
 ## Where the bugs actually are: the seam taxonomy
@@ -69,11 +78,12 @@ go straight to the seams.
 | **code ↔ real infrastructure** | Vendor-specific driver; connection pooling; TLS; a managed service's dialect | Boot a *plain* instance of the dependency and route production code at it |
 | **server ↔ client** | Hydration mismatch; timezone (server UTC, user elsewhere); locale defaults; cookies not forwarded during server-side fetch | Run the **production build** locally with SSR on |
 | **your host ↔ your other hosts** | Origin/CSRF allowlists that omit the platform alias, preview URL, or a second domain | Test from an origin that is *not* the primary domain |
-| **build time ↔ run time** | Value baked at build, absent at runtime; stale build cache serving yesterday's bundle | Delete the build cache, rebuild from cold, then test |
+| **build time ↔ run time** | Value baked at build, absent at runtime; stale build cache serving yesterday's bundle; **a build-tool input path that does not resolve and falls back silently** — utilities generated, the design system absent, nothing failed | Delete the build cache, rebuild from cold, then test — and **grep the built output for a sentinel from each critical layer** (a class name, a token, a version string) |
 | **system ↔ system** | Webhook replay; a feed consumer that disapproves you for a mismatch; API version drift | Assert the *contract the other system checks*, not your intent |
 | **now ↔ later** | Expiry, TTL, retry, cron schedules, clock skew, idempotency on replay | Assert timestamps and TTLs explicitly; replay the same event twice |
 | **one actor ↔ another** | Authorisation: user A can read user B's record | Always walk the journey a **second time as a different identity** |
 | **code ↔ its own documentation** | A README describing a layout that was replaced; an `.env.example` advertising keys nothing reads and omitting ones the app requires | Make the docs executable — check every path, command and variable named in prose |
+| **assertions ↔ pixels** | Everything asserts true while the page is visually broken: invisible buttons, borderless inputs, anglophone number formats, a product listed twice — none of it is a status code | Screenshot every step of the critical journey, two viewports, and **look at the pictures with eyes**, yours or a vision model's |
 
 ---
 
@@ -136,6 +146,22 @@ Signals to catch (adapt to project type, see below):
 **Run it against the production build, cold cache, all locales/configurations.**
 
 *(Pattern: `templates/simulate.mjs`.)*
+
+**Then walk it with eyes.** The sweep above asserts structure and is blind to
+paint: it once passed 114 page loads while every button on the shop was
+transparent and every input borderless — the design system had silently missed
+the bundle. So the critical journey also gets screenshotted step by step, on a
+desktop AND a mobile viewport, and the pictures get **looked at** — by you, by a
+vision model, by anyone with eyes. Judge what a stranger would judge:
+
+- Is the primary action unmissable, above the fold, on both viewports?
+- Do the numbers read correctly *for this locale* — "950,00 €", not "950.00 €"?
+- Does anything look wrong that no assertion names — duplicate items, empty
+  space where an image should be, a wireframe where a design should be?
+- Capture friction facts while walking: clicks from landing to paid, form-field
+  count, guest checkout possible, feedback after add-to-cart.
+
+*(Pattern: `templates/ux-walk.mjs`.)*
 
 ### Phase 3 — Walk the critical path, and assert in the datastore
 
@@ -266,8 +292,24 @@ Apply these continuously, without being asked:
     the day that changes.
 13. **When something goes red mid-change, find out whose fault it is before
     diagnosing.** `git stash`, re-run, `git stash pop` — two seconds, and it
-    replaces a guess with a fact.
-14. **When the user asks "why do bugs keep appearing" — do not defend. Find the
+    replaces a guess with a fact. (And when *restoring* a file you broke on
+    purpose, remember `git checkout --` reverts to HEAD — it also destroys any
+    uncommitted fixes in that file. Verify the state after restoring.)
+14. **When a gate blocks you, read its reason before reaching for a
+    suppression.** The gate may be describing a hazard your new code genuinely
+    has. One ban on server-side currency formatting existed because two ICU
+    versions render the same price with different space characters — a silent
+    hydration mismatch. The right fix normalised the character; a suppression
+    would have shipped the hazard.
+15. **Gates must ban outcomes, not mechanisms.** A rule against `Intl` currency
+    calls was evaded by `toFixed(2)` — wrong format, no Intl anywhere. If the
+    outcome you fear is "anglophone prices shown to French customers", write the
+    rule against *displayed prices*, not against one API that produces them.
+16. **Assert a sentinel in every built artifact.** A build input that fails to
+    resolve can fall back silently; the build stays green while a whole layer is
+    missing. After building, grep the output for one marker per critical layer —
+    a component class, a design token, a version string.
+17. **When the user asks "why do bugs keep appearing" — do not defend. Find the
     seam, name the phase that should have caught it, and close it.**
 
 ---
@@ -279,6 +321,7 @@ Adapt, do not copy blindly. Each is a working starting point:
 | File | Purpose |
 |---|---|
 | `templates/simulate.mjs` | Browser sweep: every page × locale, machine routes, purchase flow |
+| `templates/ux-walk.mjs` | The funnel with eyes: screenshot per step, two viewports, friction ledger |
 | `templates/critical-path.mjs` | Journey walker asserting in the datastore, with a second identity |
 | `templates/check-invariants.mjs` | Project rule gate with reasoned suppressions |
 | `templates/dev-infra.mjs` | Boot a real embedded PostgreSQL and apply migrations |

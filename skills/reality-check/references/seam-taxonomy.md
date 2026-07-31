@@ -230,3 +230,38 @@ The most embarrassing seam: your instrument is wrong and you trust it.
 - Before reporting a surprising finding, re-derive it a second way.
 - When something goes red mid-change, establish whose fault it is before
   diagnosing: `git stash`, re-run, `git stash pop`.
+
+---
+
+## 11. assertions ↔ pixels
+
+Everything a check can assert is structure. Everything a customer judges is
+paint. The two can diverge completely: 114 page loads once ran green — no 5xx,
+no raw keys, no hydration mismatch — while every button on the site was
+transparent and every form input a borderless white box. The design system had
+silently missed the CSS bundle. Functionally perfect; visually a wireframe.
+
+**Failures**
+- A build-tool fallback drops a styling layer; utilities survive, so the page
+  still *works* and nothing measurable is missing.
+- Number, date and currency formats correct in structure and wrong for the
+  locale: "950.00 €" with a dot, English month names, LTR punctuation in RTL.
+- The primary call-to-action below the fold on mobile, or visually
+  indistinguishable from body text.
+- Duplicate records rendering as two identical cards side by side.
+- An image slot rendering as empty space; a layout collapsing at one viewport.
+
+**Probes**
+- Screenshot every step of the critical journey — landing, listing, detail,
+  add, basket, checkout — on a desktop AND a mobile viewport, and **look at
+  the pictures**. Eyes, human or vision-model, are the only instrument this
+  seam has.
+- While walking, record friction facts: clicks from landing to paid, visible
+  form fields, guest checkout possible, feedback after add-to-cart, primary
+  CTA above the fold.
+- Grep the built CSS/JS for a sentinel from each critical layer — a component
+  class, a design token — so a silent build fallback fails loudly.
+- Render one price, one date and one plural in every locale and read them.
+
+**Rule** — the screenshots are the deliverable, the metrics are the appendix.
+A funnel that has never been *looked at* has never been checked.

@@ -221,13 +221,72 @@ wearing different clothes.
 
 ---
 
+## 15. Green everywhere, and every button invisible (seam: assertions ↔ pixels)
+
+**Symptom** — None that any check could name. 114 page loads through a real
+browser: no 5xx, no raw keys, no hydration mismatch, no console errors. The
+purchase flow completed. Meanwhile a customer saw a wireframe: the add-to-cart
+button was transparent text, every checkout input a borderless white box on a
+white page.
+
+**Cause** — One config line. Under the framework's new layout `~` already meant
+`app/`, so a CSS path of `~/app/assets/…` resolved to `app/app/…` — a ghost —
+and the styling tool **fell back to its default CSS without failing the build**.
+Utility classes still worked (they are generated from markup), which made every
+page look structurally fine to every assertion, while the design system — color
+tokens, buttons, fields, cards — never entered the bundle.
+
+**How it was finally seen** — The owner asked "does the site actually give a
+smooth experience?" and the funnel was walked with a screenshot per step. The
+first picture answered in one glance what 114 green loads could not.
+
+**Also in the screenshots, invisible to every assertion** — the same product
+listed twice side by side (a typo'd duplicate in the dataset: `gris-narde` next
+to `gris-nardo`), and every price in anglophone format (case 16).
+
+**Rules** — A build input that does not resolve must fail the build, so pin it:
+after building, **grep the output for a sentinel from each critical layer** (a
+component class, a design token). And screenshot the critical journey on two
+viewports, then **look at the pictures** — some defect classes are invisible to
+assertions and obvious to eyes.
+
+---
+
+## 16. Every price anglophone, and the gate that was right (seam: gate ↔ its reason)
+
+**Symptom** — "950.00 €" — dot decimal — on every screen of a shop whose default
+language is French, and equally wrong in four other locales.
+
+**Cause** — Thirteen templates formatted cents with raw `toFixed(2)` and ten
+more interpolated the pricing API's wire strings straight into the page. An
+invariant rule banning `Intl` currency formatting already existed — and
+`toFixed` sailed past it, because it never calls Intl. **The rule banned a
+mechanism; the defect was an outcome.**
+
+**The second half** — The fix (one locale-pinned composable) immediately
+violated that same Intl rule. The lazy move was a suppression. Reading the
+rule's stated reason instead revealed a real hazard: two ICU versions render
+the same French price with *different space characters* (U+202F vs U+00A0), so
+server and client disagree byte-for-byte — a silent hydration mismatch on every
+price. The composable normalises the space, which is what makes it safe to run
+during SSR; the rule now names it as the second sanctioned edge.
+
+**Rules** — Write gates against **outcomes** ("displayed prices go through the
+formatter"), not mechanisms ("no Intl calls"). And when a gate blocks you, read
+its reason before suppressing — the gate may be describing a hazard your new
+code genuinely has.
+
+---
+
 ## What the pattern says
 
-Fourteen defects. Zero found by reading code. Zero found by unit tests. Zero found
+Sixteen defects. Zero found by reading code. Zero found by unit tests. Zero found
 by type checking. Two found by adversarial review; the rest needed **real data, a
-real database, a production build, a second host — or a cleanup pass that treated
-deletion as an inspection**.
+real database, a production build, a second host, a cleanup pass that treated
+deletion as an inspection — or a pair of eyes on a screenshot**.
 
 Two hours of simulation against production-shaped reality found what seven hundred
 tool calls of careful reading did not. A cleanup that was only supposed to remove
-dead weight found three more.
+dead weight found three more. And the single most customer-visible defect of the
+entire project — a storefront rendered as a wireframe — was caught by none of the
+above: it took one screenshot, looked at.
