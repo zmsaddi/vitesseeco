@@ -40,13 +40,22 @@ watch(() => route.fullPath, () => {
   <header class="sticky top-0 z-40 border-b border-surface-border bg-surface-raised/95 backdrop-blur">
     <div class="container-page">
       <div class="flex h-16 items-center gap-4">
+        <!-- The lockup reproduces public/brand/logo-primary.svg EXACTLY, in em
+             units mirroring the generator's ratios: stag 1.5×fs on the optical
+             centre, spark 0.8×fs grounded at the baseline, gaps 0.27/0.17fs
+             (wider left because the 6° shear leans the ink left). If the
+             generator's geometry changes, change this with it. -->
         <NuxtLink
           :to="localePath('/')"
-          class="flex shrink-0 items-center gap-2.5 font-display text-lg font-extrabold text-content-strong"
+          class="flex shrink-0 items-center font-display text-xl font-extrabold text-content-strong"
+          style="gap: 0.3em"
         >
-          <BrandMark class="h-9 w-auto text-gold-deep" />
-          <span class="flex items-baseline"
-            >Vitesse<BrandBolt class="ml-[3px] mr-[5px] h-3.5 w-auto self-center" /><span class="text-accent">Eco</span></span
+          <BrandMark class="w-auto text-gold-deep" style="height: 1.5em" />
+          <span class="flex items-baseline" style="line-height: 1"
+            >Vitesse<BrandBolt
+              class="w-auto"
+              style="height: 0.8em; margin: 0 0.17em -0.02em 0.27em; align-self: flex-end"
+            /><span class="text-accent">Eco</span></span
           >
         </NuxtLink>
 
