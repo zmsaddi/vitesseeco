@@ -129,6 +129,16 @@ turns a data-shape bug into an invisible one: the count says 144, the list shows
   reset a shipped order.
 - Check no static file shadows a server route of the same path.
 
+**Real case — the invisible carriage return (2026-08-04).** Stripe keys were set
+into Vercel env by piping the value through PowerShell. Every value silently
+gained a trailing `\r` (Windows pipes speak CRLF), and every call to Stripe died
+with `ERR_INVALID_CHAR` *in the Authorization header* — while the env listing
+showed three perfectly normal-looking variables. The webhook signing secret
+carried the same `\r`, so signature verification would have failed too, one
+failure hiding behind another. Fix and rule: write secrets with bash
+`printf '%s' "$v" |`, never an OS pipe, and round-trip the stored value's
+**length** against the source before trusting it.
+
 ---
 
 ## 7. now ↔ later

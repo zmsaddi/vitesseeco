@@ -92,7 +92,9 @@ export default defineRoute({
       locale: body.locale as LocaleCode,
       customerEmail: email,
       shippingCountry: body.shipping.destination.country,
-      returnUrl: `${localizedUrl('/commande/confirmation', body.locale as LocaleCode)}?session={CHECKOUT_SESSION_ID}`,
+      // The order number rides along so the confirmation page can greet the
+      // customer with it — the session id alone names nothing a human keeps.
+      returnUrl: `${localizedUrl('/commande/confirmation', body.locale as LocaleCode)}?order=${order.orderNumber}&session={CHECKOUT_SESSION_ID}`,
     })
 
     await attachPaymentSession(order.id, session.sessionId)

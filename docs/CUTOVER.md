@@ -20,6 +20,7 @@ scoped to the `rebuild` branch's preview environment.
 | ✅ Vercel preview of `rebuild` | Branch-scoped env: fresh `AUTH_SECRET`/`IP_HASH_SALT`/`CRON_SECRET`, Turnstile TEST pair (real keys are hostname-locked), `ADMIN_EMAILS` = owner + sim admin (preview only) |
 | ✅ **The full gate passed on that preview** | Simulator: 6 locales, nothing found. Money path: all 20 assertions in Neon — shelf 5→3 on cash received, back to 5 on cancel, stranger gets 404. The admin allowlist itself was proven: the first run's 403 was the guard rejecting a non-allowlisted admin |
 | ⚠️ Preview SSO protection disabled | Required for the automated gate; re-enable in Vercel → Settings → Deployment Protection if unwanted |
+| ✅ **Stripe wired and proven in test mode** — 2026-08-04 | Account fully activated (charges + payouts, FR/EUR). 24 payment methods enabled via the API, incl. iDEAL, Cartes Bancaires, Bancontact, Bizum, PayPal, Revolut Pay, Klarna, Alma. Test webhook `we_1U0i4sFnyhAob7rwTyCwBbpq` on the branch alias, pinned to the code's API version. `test:money:stripe` walked the real page in a real browser: 4242 through the embedded form → webhook → `paid` → shelf 5→4 in Neon. Test keys live in the gitignored `STRIP.TXT`; env trio set branch-scoped. One trap for posterity: piping env values through PowerShell appended `\r` and broke Stripe's auth header — values are set with bash `printf` now |
 
 **Deliberately NOT done: making the dataset private.** The live `master` reads
 the catalogue from the browser without a token — flipping now blinds the
@@ -30,7 +31,7 @@ running shop. It is the first act of the switch below.
 | # | Thing | Why it blocks | Unlocks |
 |---|---|---|---|
 | 1 | **Appoint a consumer mediator** | Legally mandatory in France; the CGV page names none | legal exposure |
-| 2 | **Stripe account + keys** | KYC needs the owner's identity; card checkout stays hidden until keys exist | card payments |
+| 2 | **Stripe: the `sk_live` secret key** | Test mode is proven end-to-end (§0); live needs the live secret revealed from the dashboard, plus any live-mode terms Stripe asks a human to accept (PayPal links an external account) | real card payments |
 | 3 | **Resend account + API key** | No mail is sent today; password reset and order email are built-blocked on this | email |
 | 4 | **Legal review of the NL / DE / ES text** | Machine-assisted translation of binding terms | market entry |
 | 5 | **Google Merchant Center account** | Four feeds are built and verified but registered nowhere | Shopping |
@@ -74,6 +75,7 @@ npm run seed:inventory     # stock rows from the live catalogue
 node .output/server/index.mjs
 npm run simulate -- http://127.0.0.1:3000 --locales fr,nl,de,es,en,ar
 npm run test:money -- http://127.0.0.1:3000
+npm run test:money:stripe -- <preview-url> <database-url>   # needs Stripe TEST keys + a webhook on that host
 ```
 
 `simulate` must report **nothing**. `test:money` must reach *"the whole critical
@@ -110,6 +112,13 @@ Automation cannot judge these.
 5. Wipe the sim identities from `vitesse_rebuild` (test orders from the gate).
 6. Copy the preview env to Production (real Turnstile keys, owner-only
    `ADMIN_EMAILS`, fresh `CRON_SECRET`).
+6b. Stripe goes live: create a **live-mode** webhook on
+    `https://vitesse-eco.fr/api/webhooks/stripe` (same four events, same pinned
+    API version) and put `sk_live` / `pk_live` / the live `whsec` into the
+    Production env — values via bash `printf`, never a PowerShell pipe (§0).
+    Re-run the payment-method activation POST against live mode; anything that
+    refuses is a dashboard click, listed for the owner. The test-mode webhook
+    stays, pointed at the preview.
 7. `cd cms && npx sanity dataset visibility set production private` — the
    moment master stops being served, nothing legitimate reads without a token.
 8. Merge `rebuild` into `master`, or repoint the production branch.
