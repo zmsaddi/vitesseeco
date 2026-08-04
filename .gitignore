@@ -48,3 +48,4 @@ skills/*.zip
 .sanity-robot-token
 .rebuild-secrets.json
 STRIP.TXT
+.sanity-legacy-orders-backup.json
