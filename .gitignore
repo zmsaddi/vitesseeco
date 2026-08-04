@@ -47,3 +47,4 @@ skills/*.zip
 .rebuild-db-url
 .sanity-robot-token
 .rebuild-secrets.json
+STRIP.TXT
