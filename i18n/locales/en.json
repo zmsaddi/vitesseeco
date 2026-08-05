@@ -317,8 +317,15 @@
     "view_product": "View product"
   },
   "confirmation": {
+    "checking": "Checking your payment…",
+    "failed_body": "Nothing was charged. Your basket is saved — you can try again whenever you like.",
+    "failed_title": "The payment did not go through",
     "next_steps": "We will contact you as soon as your order is ready.",
     "number": "Number:",
+    "paid_title": "Payment received — order confirmed",
+    "processing_body": "Your bank is finalising the payment. Your order starts as soon as it is confirmed — you can follow it in your account.",
+    "processing_title": "Payment being processed",
+    "retry": "Try the payment again",
     "title": "Order received",
     "view_orders": "My orders"
   },

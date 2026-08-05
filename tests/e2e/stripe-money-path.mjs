@@ -226,6 +226,23 @@ assert(paidRow?.status === 'paid', `order is paid via webhook (${paidRow?.status
 assert(paidRow?.settled_at !== null, 'reservation settled')
 assert(paidRow?.on_hand === startOnHand - 1, `THE SHELF DROPPED: on_hand ${startOnHand} → ${paidRow?.on_hand}`)
 
+console.log('\n7. The confirmation page tells the customer the truth')
+const checkoutSessionId = startBody.clientSecret.split('_secret_')[0]
+const statusRes = await fetch(`${BASE}/api/checkout/session-status?session=${checkoutSessionId}`)
+const status = await statusRes.json().catch(() => null)
+assert(statusRes.status === 200 && status?.state === 'paid', `session-status says paid (${status?.state})`)
+
+const bogus = await fetch(`${BASE}/api/checkout/session-status?session=cs_test_a0000000000000000000000000`)
+assert(bogus.status === 404, `a made-up session answers 404, not ${bogus.status}`)
+
+await page.goto(`${BASE}/commande/confirmation?order=${orderNumber}&session=${checkoutSessionId}`, {
+  waitUntil: 'domcontentloaded',
+})
+const paidHeading = page.locator('h1:has-text("Paiement reçu")')
+await paidHeading.waitFor({ timeout: 20_000 }).catch(() => {})
+assert(await paidHeading.isVisible().catch(() => false), 'customer sees Paiement reçu — commande confirmée')
+await page.screenshot({ path: `${SHOTS}/06-confirmation-paid.png` })
+
 await browser.close()
 await db.end()
 if (failures > 0) {

@@ -317,8 +317,15 @@
     "view_product": "Ver la ficha"
   },
   "confirmation": {
+    "checking": "Comprobando el pago…",
+    "failed_body": "No se ha cobrado nada. Su cesta se ha conservado — puede intentarlo de nuevo cuando quiera.",
+    "failed_title": "El pago no se ha completado",
     "next_steps": "Le contactaremos en cuanto su pedido esté listo.",
     "number": "Número:",
+    "paid_title": "Pago recibido — pedido confirmado",
+    "processing_body": "Su banco está finalizando el pago. Su pedido comenzará en cuanto se confirme — puede seguirlo en su cuenta.",
+    "processing_title": "Pago en proceso",
+    "retry": "Reintentar el pago",
     "title": "Pedido recibido",
     "view_orders": "Mis pedidos"
   },

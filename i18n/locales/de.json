@@ -317,8 +317,15 @@
     "view_product": "Zum Produkt"
   },
   "confirmation": {
+    "checking": "Zahlung wird geprüft…",
+    "failed_body": "Es wurde nichts abgebucht. Ihr Warenkorb bleibt erhalten — Sie können es jederzeit erneut versuchen.",
+    "failed_title": "Die Zahlung war nicht erfolgreich",
     "next_steps": "Wir melden uns, sobald Ihre Bestellung bereit ist.",
     "number": "Nummer:",
+    "paid_title": "Zahlung eingegangen — Bestellung bestätigt",
+    "processing_body": "Ihre Bank schließt die Zahlung ab. Ihre Bestellung startet, sobald sie bestätigt ist — Sie finden sie in Ihrem Konto.",
+    "processing_title": "Zahlung in Bearbeitung",
+    "retry": "Zahlung erneut versuchen",
     "title": "Bestellung eingegangen",
     "view_orders": "Meine Bestellungen"
   },

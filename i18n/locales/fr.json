@@ -317,8 +317,15 @@
     "view_product": "Voir la fiche"
   },
   "confirmation": {
+    "checking": "Vérification du paiement…",
+    "failed_body": "Aucun montant n'a été prélevé. Votre panier est conservé — vous pouvez réessayer quand vous voulez.",
+    "failed_title": "Le paiement n'a pas abouti",
     "next_steps": "Nous vous contactons dès que votre commande est prête.",
     "number": "Numéro :",
+    "paid_title": "Paiement reçu — commande confirmée",
+    "processing_body": "Votre banque finalise le paiement. Votre commande démarre dès sa confirmation — vous la retrouverez dans votre compte.",
+    "processing_title": "Paiement en cours de traitement",
+    "retry": "Réessayer le paiement",
     "title": "Commande reçue",
     "view_orders": "Mes commandes"
   },
