@@ -134,6 +134,18 @@ export async function createCheckoutSession(input: CreateSessionInput): Promise<
     discounts.push({ coupon: coupon.id })
   }
 
+  // The delivery country is known before Stripe is asked anything. Handing it
+  // over as a customer address means the method list opens already filtered
+  // to the customer's own country — a French buyer is not offered Bancontact,
+  // a Dutch one sees iDEAL first — instead of everything the account can do.
+  const customer = await stripe().customers.create(
+    {
+      email: input.customerEmail,
+      address: { country: input.shippingCountry },
+    },
+    { idempotencyKey: `customer:${input.orderNumber}` }
+  )
+
   const session = await stripe().checkout.sessions.create(
     {
       mode: 'payment',
@@ -149,7 +161,10 @@ export async function createCheckoutSession(input: CreateSessionInput): Promise<
       // here would freeze them in code and make every addition a deployment —
       // which is precisely the friction the owner asked to be rid of.
       locale: CHECKOUT_LOCALES[input.locale],
-      customer_email: input.customerEmail,
+      // The customer object carries the email AND the delivery country — this
+      // is what lets Stripe open the method list already filtered by country
+      // instead of waiting for a billing address to be typed.
+      customer: customer.id,
       return_url: input.returnUrl,
       // Ties the payment back to the order without trusting anything the
       // browser sends back on return.

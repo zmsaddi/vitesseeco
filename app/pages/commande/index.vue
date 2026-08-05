@@ -69,8 +69,18 @@ watch(
       query: { country: destination.country, postalCode: destination.postalCode, locale: locale.value },
     })
     shippingOptions.value = result.methods
-    // Exactly one option is not a choice; selecting it saves a pointless click.
-    if (result.methods.length === 1) selectedShipping.value = result.methods[0]!.code
+    if (pendingRestore.shipping && result.methods.some((option) => option.code === pendingRestore.shipping)) {
+      // The choice the customer had already made, back without a click.
+      selectedShipping.value = pendingRestore.shipping
+      pendingRestore.shipping = null
+      if (pendingRestore.payment) {
+        selectedPayment.value = pendingRestore.payment
+        pendingRestore.payment = null
+      }
+    } else if (result.methods.length === 1) {
+      // Exactly one option is not a choice; selecting it saves a pointless click.
+      selectedShipping.value = result.methods[0]!.code
+    }
   }
 )
 
@@ -146,6 +156,66 @@ const address = reactive({
 })
 
 const city = ref('')
+
+/**
+ * A failed payment must not cost the customer their typing. Everything entered
+ * is mirrored to sessionStorage as it changes and restored on return, so a
+ * retry is one click, not a second data entry. The confirmation page clears
+ * this once an order is truly on its way; a failed one keeps it.
+ */
+const CHECKOUT_STORE = 'vitesse.checkout.v1'
+const pendingRestore: { shipping: string | null; payment: 'stripe' | 'cod' | 'in_store' | null } = {
+  shipping: null,
+  payment: null,
+}
+
+onMounted(() => {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(CHECKOUT_STORE) ?? 'null')
+    if (!saved) return
+    destination.country = saved.country ?? destination.country
+    destination.postalCode = saved.postalCode ?? ''
+    city.value = saved.city ?? ''
+    if (saved.email) email.value = saved.email
+    Object.assign(address, saved.address ?? {})
+    // Shipping and payment can only be re-applied once the options for the
+    // restored address have been fetched — the destination watcher does it.
+    pendingRestore.shipping = saved.shipping ?? null
+    pendingRestore.payment = saved.payment ?? null
+  } catch {
+    // A torn value must not break checkout.
+  }
+})
+
+watch(
+  () => [
+    destination.country,
+    destination.postalCode,
+    city.value,
+    email.value,
+    { ...address },
+    selectedShipping.value,
+    selectedPayment.value,
+  ],
+  () => {
+    try {
+      sessionStorage.setItem(
+        CHECKOUT_STORE,
+        JSON.stringify({
+          country: destination.country,
+          postalCode: destination.postalCode,
+          city: city.value,
+          email: email.value,
+          address: { ...address },
+          shipping: selectedShipping.value,
+          payment: selectedPayment.value,
+        })
+      )
+    } catch {
+      // A full storage is the browser's business, not the checkout's.
+    }
+  }
+)
 
 const addressComplete = computed(
   () =>

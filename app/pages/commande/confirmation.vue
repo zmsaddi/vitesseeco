@@ -31,10 +31,21 @@ const sessionId = computed(() => {
 type PayState = 'none' | 'checking' | 'paid' | 'processing' | 'failed'
 const payState = ref<PayState>(sessionId.value ? 'checking' : 'none')
 
+// The checkout form's saved typing has served its purpose once an order is on
+// its way; after a failure it stays, so the retry costs one click.
+function clearCheckoutStore(): void {
+  try {
+    sessionStorage.removeItem('vitesse.checkout.v1')
+  } catch {
+    // Storage unavailable never breaks a confirmation.
+  }
+}
+
 onMounted(async () => {
   if (!sessionId.value) {
     // Cash or collection: the order is agreed, the basket has done its job.
     useCart().clear()
+    clearCheckoutStore()
     return
   }
   try {
@@ -48,8 +59,12 @@ onMounted(async () => {
     // account page carry the authoritative story.
     payState.value = 'processing'
   }
-  // A failed payment keeps the basket so the customer can simply try again.
-  if (payState.value !== 'failed') useCart().clear()
+  // A failed payment keeps the basket and the typed form, so the customer can
+  // simply try again.
+  if (payState.value !== 'failed') {
+    useCart().clear()
+    clearCheckoutStore()
+  }
 })
 
 const heading = computed(() => {
