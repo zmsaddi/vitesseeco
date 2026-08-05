@@ -45,6 +45,25 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 // Repeated walks burn the per-IP checkout budget — the limit doing its job.
 // This harness owns the simulation database, so it clears the window instead
 // of waiting. Never a thing to do anywhere real.
+// This harness wipes rate limits and buys real stock. An order from anyone
+// outside the sim domain marks the database as LIVE — walk away, loudly.
+// (The preview and production of this shop share one database post-cutover;
+// that is exactly how a test once bought a real unit off the live shelf.)
+if (!process.argv.includes('--force-live')) {
+  const { rows: [real] } = await db.query(
+    `SELECT count(*)::int AS n FROM orders
+      WHERE guest_email IS NULL OR guest_email NOT LIKE '%@vitesse-eco.test'`
+  )
+  if (real.n > 0) {
+    console.error(
+      `refusing to run: ${real.n} order(s) belong to real customers — this looks like a LIVE database.\n` +
+      `Point the test at a test database (npm run dev:db), or pass --force-live if you truly accept the consequences.`
+    )
+    await db.end()
+    process.exit(2)
+  }
+}
+
 await db.query('DELETE FROM rate_limits')
 
 // Give back the holds of earlier sim attempts: every walk that opened a Stripe

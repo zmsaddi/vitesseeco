@@ -54,6 +54,23 @@ async function call(who, path, options = {}) {
   return { status: res.status, body }
 }
 
+// This harness wipes rate limits and moves real stock. An order from anyone
+// outside the sim domain marks the database as LIVE — walk away, loudly.
+if (!process.argv.includes('--force-live')) {
+  const { rows: [real] } = await db.query(
+    `SELECT count(*)::int AS n FROM orders
+      WHERE guest_email IS NULL OR guest_email NOT LIKE '%@vitesse-eco.test'`
+  )
+  if (real.n > 0) {
+    console.error(
+      `refusing to run: ${real.n} order(s) belong to real customers — this looks like a LIVE database.\n` +
+      `Point the test at a test database (npm run dev:db), or pass --force-live if you truly accept the consequences.`
+    )
+    await db.end()
+    process.exit(2)
+  }
+}
+
 // Repeated walks burn the per-IP registration budget — the limit doing its
 // job. This harness owns its dev database, so it clears the window rather than
 // waiting fifteen minutes between runs. Never a thing to do anywhere real.
