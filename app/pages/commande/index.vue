@@ -88,14 +88,16 @@ watch(
 // the customer is collecting. The server checks this again — the list a browser
 // was shown is not an authority.
 const paymentOptions = computed(() => {
-  const options: Array<{ code: 'stripe' | 'cod' | 'in_store'; label: string }> = [
-    { code: 'stripe', label: t('checkout.pay_online') },
+  // A bare label makes the customer open the payment form just to learn what
+  // is behind it; one honest line under each option decides for them here.
+  const options: Array<{ code: 'stripe' | 'cod' | 'in_store'; label: string; desc: string }> = [
+    { code: 'stripe', label: t('checkout.pay_online'), desc: t('checkout.pay_online_desc') },
   ]
   if (['BE', 'NL'].includes(destination.country) && selectedShipping.value !== 'pickup') {
-    options.push({ code: 'cod', label: t('checkout.pay_cash') })
+    options.push({ code: 'cod', label: t('checkout.pay_cash'), desc: t('checkout.pay_cash_desc') })
   }
   if (selectedShipping.value === 'pickup') {
-    options.push({ code: 'in_store', label: t('checkout.pay_in_store') })
+    options.push({ code: 'in_store', label: t('checkout.pay_in_store'), desc: t('checkout.pay_in_store_desc') })
   }
   return options
 })
@@ -472,11 +474,14 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
             <ul class="mt-4 space-y-2">
               <li v-for="option in paymentOptions" :key="option.code">
                 <label
-                  class="flex cursor-pointer items-center gap-3 rounded-xl border p-3"
+                  class="flex cursor-pointer items-start gap-3 rounded-xl border p-3"
                   :class="selectedPayment === option.code ? 'border-accent bg-accent-subtle' : 'border-surface-border'"
                 >
-                  <input v-model="selectedPayment" type="radio" :value="option.code" class="accent-accent" />
-                  <span class="font-medium text-content-strong">{{ option.label }}</span>
+                  <input v-model="selectedPayment" type="radio" :value="option.code" class="mt-1 accent-accent" />
+                  <span class="flex-1">
+                    <span class="block font-medium text-content-strong">{{ option.label }}</span>
+                    <span class="mt-0.5 block text-sm text-content-muted">{{ option.desc }}</span>
+                  </span>
                 </label>
               </li>
             </ul>
