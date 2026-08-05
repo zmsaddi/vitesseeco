@@ -24,6 +24,9 @@ const navigation = computed(() => [
   // Someone who does not yet know which bike they want will not find the guide
   // in a footer. It earns its place beside the catalogue.
   { to: localePath('/guide'), label: 'nav.guide' },
+  // The blog is where the marketing content lives; a content strategy whose
+  // only door is a footer link is a warehouse without a shopfront.
+  { to: localePath('/blog'), label: 'nav.blog' },
   { to: localePath('/a-propos'), label: 'nav.about' },
   { to: localePath('/contact'), label: 'nav.contact' },
 ])
