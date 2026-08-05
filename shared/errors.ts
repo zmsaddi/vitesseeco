@@ -121,6 +121,13 @@ export interface AppErrorOptions {
   /** Never leaves the server. For the log line. */
   internal?: string
   cause?: unknown
+  /**
+   * A more precise message than the code's default, when the thrower knows
+   * more than the code expresses — the same OUT_OF_STOCK is a different
+   * sentence when the shelf is full but briefly reserved. Consumers keep
+   * switching on `code`; only the human wording changes.
+   */
+  messageKey?: string
 }
 
 export class AppError extends Error {
@@ -135,7 +142,7 @@ export class AppError extends Error {
     this.name = 'AppError'
     this.code = code
     this.status = STATUS[code]
-    this.messageKey = MESSAGE_KEY[code]
+    this.messageKey = options.messageKey ?? MESSAGE_KEY[code]
     this.details = options.details
     this.internal = options.internal
   }

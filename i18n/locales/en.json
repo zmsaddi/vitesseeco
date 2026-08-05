@@ -381,6 +381,7 @@
     "rate_limited": "Too many attempts. Please try again shortly.",
     "service_unavailable": "Service temporarily unavailable.",
     "session_expired": "Your session has expired.",
+    "stock_reserved": "The last units are briefly reserved by other shoppers — try again in a few minutes.",
     "unknown_payment_method": "That payment method is not available.",
     "unknown_shipping_method": "That delivery option is not available.",
     "unsupported_country": "We do not deliver to this country yet.",

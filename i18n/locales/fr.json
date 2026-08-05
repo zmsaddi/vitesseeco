@@ -381,6 +381,7 @@
     "rate_limited": "Trop de tentatives. Réessayez dans un instant.",
     "service_unavailable": "Service temporairement indisponible.",
     "session_expired": "Votre session a expiré.",
+    "stock_reserved": "Dernières unités momentanément réservées par d'autres clients — réessayez dans quelques minutes.",
     "unknown_payment_method": "Ce moyen de paiement est indisponible.",
     "unknown_shipping_method": "Ce mode de livraison est indisponible.",
     "unsupported_country": "Nous ne livrons pas encore dans ce pays.",

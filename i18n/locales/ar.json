@@ -381,6 +381,7 @@
     "rate_limited": "محاولات كثيرة. يرجى المحاولة بعد قليل.",
     "service_unavailable": "الخدمة غير متاحة مؤقتاً.",
     "session_expired": "انتهت صلاحية جلستك.",
+    "stock_reserved": "آخر الوحدات محجوزة مؤقتاً لعملاء آخرين — أعد المحاولة بعد دقائق قليلة.",
     "unknown_payment_method": "طريقة الدفع هذه غير متاحة.",
     "unknown_shipping_method": "خيار التوصيل هذا غير متاح.",
     "unsupported_country": "لا نوصل إلى هذا البلد بعد.",

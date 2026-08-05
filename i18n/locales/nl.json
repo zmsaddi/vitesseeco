@@ -381,6 +381,7 @@
     "rate_limited": "Te veel pogingen. Probeer het zo opnieuw.",
     "service_unavailable": "Dienst tijdelijk niet beschikbaar.",
     "session_expired": "Uw sessie is verlopen.",
+    "stock_reserved": "De laatste stuks zijn even gereserveerd door andere klanten — probeer het over enkele minuten opnieuw.",
     "unknown_payment_method": "Die betaalmethode is niet beschikbaar.",
     "unknown_shipping_method": "Die bezorgoptie is niet beschikbaar.",
     "unsupported_country": "Wij bezorgen nog niet in dit land.",

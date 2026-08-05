@@ -204,8 +204,16 @@ export async function reserveStock(
     }
   }
   if (shortfalls.length > 0) {
+    // Two different truths share this code: an empty shelf, and a full shelf
+    // whose last units sit in other customers' 30-minute holds. The second is
+    // told as "briefly reserved, try again shortly" — telling that customer
+    // "out of stock" sends them to a competitor over a wait of minutes.
+    const merelyReserved = shortfalls.every(
+      (s) => (onHand.get(s.productId) ?? 0) >= s.requested
+    )
     throw new AppError(ERROR_CODES.OUT_OF_STOCK, {
       details: { lines: shortfalls },
+      ...(merelyReserved ? { messageKey: 'errors.stock_reserved' } : {}),
       internal: `reserveStock: insufficient stock for ${shortfalls.map((s) => s.productId).join(', ')}`,
     })
   }

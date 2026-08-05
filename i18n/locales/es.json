@@ -381,6 +381,7 @@
     "rate_limited": "Demasiados intentos. Inténtelo de nuevo en un momento.",
     "service_unavailable": "Servicio no disponible temporalmente.",
     "session_expired": "Su sesión ha caducado.",
+    "stock_reserved": "Las últimas unidades están reservadas brevemente por otros clientes — inténtelo de nuevo en unos minutos.",
     "unknown_payment_method": "Ese método de pago no está disponible.",
     "unknown_shipping_method": "Esa opción de entrega no está disponible.",
     "unsupported_country": "Todavía no entregamos en este país.",
