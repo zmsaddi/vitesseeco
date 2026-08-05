@@ -19,27 +19,40 @@
 import { defineEventHandler, setResponseHeader } from 'h3'
 import { LOCALES, PRIMARY_DOMAIN } from '../../shared/locales'
 
-const AI_CRAWLERS = [
-  'GPTBot',
+/**
+ * The owner's line: information yes, content harvesting no.
+ *
+ * Answer agents fetch a page to answer one customer's question and send that
+ * customer here — they are welcome everywhere a search engine is. Training
+ * crawlers pull the site wholesale into model-training corpora and send
+ * nobody — they are refused. Ordinary Googlebot is governed by neither list:
+ * search and AI Overviews keep full access; Google-Extended below only
+ * controls Gemini TRAINING.
+ */
+const ANSWER_AGENTS = [
   'OAI-SearchBot',
   'ChatGPT-User',
-  'ClaudeBot',
   'Claude-User',
   'Claude-SearchBot',
-  'anthropic-ai',
   'PerplexityBot',
   'Perplexity-User',
+  'MistralAI-User',
+  'DuckAssistBot',
+  'YouBot',
+  'Amazonbot',
+  'Bingbot',
+]
+
+const TRAINING_CRAWLERS = [
+  'GPTBot',
+  'ClaudeBot',
+  'anthropic-ai',
   'Google-Extended',
   'Applebot-Extended',
   'meta-externalagent',
   'CCBot',
-  'Bingbot',
-  'Amazonbot',
   'Bytespider',
   'cohere-ai',
-  'MistralAI-User',
-  'DuckAssistBot',
-  'YouBot',
 ]
 
 /** Nothing here is useful in a search result, and some of it is personal. */
@@ -70,8 +83,14 @@ export default defineEventHandler((event) => {
 
   // A named group REPLACES the wildcard group for that agent, so the private
   // paths are repeated in each rather than inherited.
-  for (const agent of AI_CRAWLERS) {
+  for (const agent of ANSWER_AGENTS) {
     lines.push(`User-agent: ${agent}`, 'Allow: /', ...disallow, '')
+  }
+
+  // Refused wholesale: the machine-readable summary at /llms.txt is the
+  // information channel; the site's editorial content is not training data.
+  for (const agent of TRAINING_CRAWLERS) {
+    lines.push(`User-agent: ${agent}`, 'Disallow: /', '')
   }
 
   lines.push('User-agent: *', 'Allow: /', ...disallow, '')
