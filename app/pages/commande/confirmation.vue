@@ -53,8 +53,8 @@ function clearCheckoutStore(): void {
 function offerGoogleReviewsOptIn(email: string, country: string): void {
   if (!orderNumber.value || !email) return
 
-  // A shop that hand-delivers cannot promise a firm date; a week is honest.
-  const estimated = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+  // The owner's number: 72 hours is what the van actually does.
+  const estimated = new Date(Date.now() + 3 * 24 * 3600 * 1000).toISOString().slice(0, 10)
   const payload = JSON.stringify({
     merchant_id: 5834408240,
     order_id: orderNumber.value,
