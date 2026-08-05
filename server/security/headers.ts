@@ -22,11 +22,19 @@ const FRAME_SOURCES = [
   'https://js.stripe.com', // embedded payment form
   'https://hooks.stripe.com', // 3-D Secure challenge
   'https://challenges.cloudflare.com', // the CAPTCHA renders in an iframe
+  'https://www.google.com', // Google Customer Reviews opt-in dialog
 ]
 
-const SCRIPT_SOURCES = ['https://js.stripe.com', 'https://challenges.cloudflare.com']
+// Host entries are the CSP2 fallback only — under strict-dynamic a CSP3
+// browser ignores them and trusts what a nonce'd script loads.
+const SCRIPT_SOURCES = [
+  'https://js.stripe.com',
+  'https://challenges.cloudflare.com',
+  'https://apis.google.com', // Google Customer Reviews platform.js
+  'https://www.gstatic.com', // its children
+]
 
-const IMAGE_SOURCES = ["'self'", 'data:', 'blob:', 'https://cdn.sanity.io']
+const IMAGE_SOURCES = ["'self'", 'data:', 'blob:', 'https://cdn.sanity.io', 'https://www.gstatic.com']
 
 export const NONCE_KEY = 'cspNonce'
 

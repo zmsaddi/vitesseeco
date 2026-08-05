@@ -41,9 +41,59 @@ function clearCheckoutStore(): void {
   }
 }
 
+/**
+ * Google Customer Reviews: after a REAL order, Google may ask the customer —
+ * with their explicit consent, that is the whole point of the opt-in — to rate
+ * the shop later. The ratings feed the seller score on Shopping and ads.
+ *
+ * The snippet needs the customer's email and destination, which this page
+ * never receives from the server; the checkout mirror still holds them at the
+ * moment we arrive, so they are read BEFORE the mirror is cleared.
+ */
+function offerGoogleReviewsOptIn(email: string, country: string): void {
+  if (!orderNumber.value || !email) return
+
+  // A shop that hand-delivers cannot promise a firm date; a week is honest.
+  const estimated = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0, 10)
+  const payload = JSON.stringify({
+    merchant_id: 5834408240,
+    order_id: orderNumber.value,
+    email,
+    delivery_country: country,
+    estimated_delivery_date: estimated,
+  })
+
+  useHead({
+    script: [
+      {
+        // Defined before platform.js arrives, because its onload calls it.
+        innerHTML: `window.renderOptIn = function() { window.gapi.load('surveyoptin', function() { window.gapi.surveyoptin.render(${payload}); }); };`,
+      },
+      {
+        src: 'https://apis.google.com/js/platform.js?onload=renderOptIn',
+        async: true,
+        defer: true,
+      },
+    ],
+  })
+}
+
 onMounted(async () => {
+  // The review opt-in needs the email and country the customer typed; the
+  // checkout mirror still holds them at this moment, before it is cleared.
+  let mirrorEmail = ''
+  let mirrorCountry = 'FR'
+  try {
+    const saved = JSON.parse(sessionStorage.getItem('vitesse.checkout.v1') ?? 'null')
+    if (typeof saved?.email === 'string') mirrorEmail = saved.email
+    if (typeof saved?.country === 'string' && /^[A-Z]{2}$/.test(saved.country)) mirrorCountry = saved.country
+  } catch {
+    // Unreadable storage only costs the review invitation.
+  }
+
   if (!sessionId.value) {
     // Cash or collection: the order is agreed, the basket has done its job.
+    offerGoogleReviewsOptIn(mirrorEmail, mirrorCountry)
     useCart().clear()
     clearCheckoutStore()
     return
@@ -60,8 +110,10 @@ onMounted(async () => {
     payState.value = 'processing'
   }
   // A failed payment keeps the basket and the typed form, so the customer can
-  // simply try again.
+  // simply try again. A settled or settling one is a real order — worth a
+  // review invitation — and only then has the mirror finished its work.
   if (payState.value !== 'failed') {
+    offerGoogleReviewsOptIn(mirrorEmail, mirrorCountry)
     useCart().clear()
     clearCheckoutStore()
   }
