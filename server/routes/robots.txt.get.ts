@@ -28,11 +28,18 @@ const AI_CRAWLERS = [
   'Claude-SearchBot',
   'anthropic-ai',
   'PerplexityBot',
+  'Perplexity-User',
   'Google-Extended',
   'Applebot-Extended',
   'meta-externalagent',
   'CCBot',
   'Bingbot',
+  'Amazonbot',
+  'Bytespider',
+  'cohere-ai',
+  'MistralAI-User',
+  'DuckAssistBot',
+  'YouBot',
 ]
 
 /** Nothing here is useful in a search result, and some of it is personal. */

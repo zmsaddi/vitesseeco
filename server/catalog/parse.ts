@@ -401,9 +401,14 @@ const rawArticleSchema = z.object({
   _updatedAt: z.string().nullable().optional(),
 })
 
+// SEO fields are authored once in the Studio as plain strings — translate()
+// has always accepted both shapes; this schema forgot, and every article
+// carrying an SEO title was silently 404ing while the index listed it.
+const onceAuthored = z.union([z.string(), localized]).nullable().optional()
+
 const rawArticleDetailSchema = rawArticleSchema.extend({
   content: localized,
-  seo: z.object({ title: localized, description: localized }).nullable().optional(),
+  seo: z.object({ title: onceAuthored, description: onceAuthored }).nullable().optional(),
 })
 
 export function parseArticle(document: unknown, locale: LocaleCode): Article | null {
