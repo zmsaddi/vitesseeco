@@ -1,114 +1,222 @@
 name: CI
 
+# One pipeline, and it is the one the production branch runs.
+#
+# There were two. `ci.yml` guarded `master` and `rebuild.yml` guarded `rebuild`,
+# which made sense while the rebuild was a separate line of work. It stopped
+# making sense at the cutover: `origin/master` and `origin/rebuild` have pointed
+# at the same commit ever since, so every push paid for two runs of overlapping
+# gates — and neither was a superset of the other. The production branch had the
+# documentation gate and no integration tests; the rebuild branch had the
+# integration tests, the feed guard and the simulator, and no documentation gate.
+#
+# This file is the union, with the dead parts removed rather than carried.
 on:
   push:
-    branches: [master]
+    branches: [master, rebuild]
   pull_request:
-    branches: [master]
+    branches: [master, rebuild]
 
-# Pinning the action runners to Node 24 silences the upcoming Node-20 deprecation
-# warning ahead of the 2026-06-02 enforcement date and matches the project's
-# local Node version (24.14.1, see CLAUDE.md).
+# Pinning the runners to Node 24 silences the Node-20 deprecation warning and
+# matches the project's own version (see CLAUDE.md).
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  build:
+  static:
+    name: Static gates
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
+      - run: npm ci
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Check translations
+      # Six locale files that drift are six pages rendering a key instead of a
+      # sentence.
+      - name: Locale key parity
         run: npm run check:langs
 
-      - name: Check raw hex colors
+      - name: No raw hex colours in templates
         run: npm run check:hex
 
-      # The ten project rules. This gate existed for weeks while CI never ran it
-      # — built, then never wired up, the same way an exported function can sit
-      # documented and uncalled. A gate nothing invokes protects nothing.
-      - name: Check invariants
+      # Each rule encodes a defect that actually shipped and that the type
+      # checker, the tests and the build all passed over.
+      - name: Invariants
         run: npm run check:invariants
 
-      # Documentation is checked like code: every path, script and environment
-      # variable it names must exist. Prose rots faster than code and fails more
-      # quietly, and a wrong .env.example is a broken deployment.
-      - name: Check documentation
+      # Documentation is checked like code: every path, script, environment
+      # variable and count it names must exist and be right. Prose rots faster
+      # than code and fails more quietly.
+      - name: Documentation
         run: npm run check:docs
 
-      - name: Unit tests
-        run: npm run test:unit
+      # Reports which Merchant feeds are safe to register. Skips without a
+      # token, so a fork or a secretless run is not blocked.
+      - name: Merchant feed guard
+        run: npm run check:feeds
+        env:
+          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN }}
 
       - name: Type check
         run: npx nuxi typecheck
-        env:
-          VERCEL: '1'
 
-      - name: Build
-        run: npx nuxi build
-        env:
-          VERCEL: '1'
-
-      # P5-04 — bundle size budget
-      - name: Bundle size budget
-        run: node scripts/check-bundle-size.mjs
-        env:
-          BUNDLE_BUDGET_BYTES: '6815744' # 6.5 MB gzip, code only (native sharp/libvips binaries excluded by the script)
-
-  e2e:
+  unit:
+    name: Unit tests
     runs-on: ubuntu-latest
-    needs: build
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
+      - run: npm ci
+      - run: npm run test:unit
 
-      - name: Install dependencies
-        run: npm ci
+  integration:
+    name: Integration tests (real PostgreSQL)
+    runs-on: ubuntu-latest
 
-      - name: Install Playwright browsers
+    # A real database, not a mock: what is under test is row locking,
+    # constraint enforcement and how concurrent transactions settle a race.
+    # This job did not exist on the production branch, so 101 tests covering
+    # the money and stock paths never ran for the code that ships.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vitesse
+          POSTGRES_PASSWORD: vitesse
+          POSTGRES_DB: vitesse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vitesse"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - run: npm ci
+
+      # The suite SKIPS rather than fails without TEST_DATABASE_URL, so that a
+      # developer with no database can still run `npm run test`. In CI that is a
+      # trap: 101 skipped tests exit 0 and look green. The run therefore writes
+      # a report, and the next step reads it — one run, not the two the previous
+      # guard needed to prove the same thing.
+      - name: Run the suite
+        run: npm run test:integration -- --reporter=json --outputFile=integration-report.json
+        env:
+          TEST_DATABASE_URL: postgres://vitesse:vitesse@localhost:5432/vitesse_test
+
+      - name: Prove it actually ran
+        run: node scripts/assert-suite-ran.mjs integration-report.json 101
+
+  build:
+    name: Build and bundle budget
+    runs-on: ubuntu-latest
+    needs: [static, unit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - run: npm ci
+      - run: npx nuxi build
+      - run: node scripts/check-bundle-size.mjs
+        env:
+          BUNDLE_BUDGET_BYTES: '6815744' # 6.5 MB gzip, code only (native sharp/libvips excluded by the script)
+
+  # The browser gates, run against a server built from THIS commit.
+  #
+  # What was here before ran `playwright test --project=e2e` against
+  # https://vitesseeco.vercel.app. Two things were wrong with that. The project
+  # matched no files after the cutover replaced tests/e2e/*.spec.ts with .mjs
+  # scripts, so it reported "No tests found" and exited 1 — the production
+  # pipeline failed on every push from 2026-07-30 onward, and a permanently red
+  # pipeline cannot block anything. And had it run, it would have asserted
+  # against a live deployment: a pull request could not have been failed by its
+  # own regression, because its own code was never the thing under test.
+  candidate:
+    name: Browser gates against the candidate build
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+      - run: npm ci
+      - name: Install a browser
         run: npx playwright install chromium --with-deps
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Build this commit for production
+        run: npx nuxi build
         env:
-          TEST_BASE_URL: https://vitesseeco.vercel.app
+          NITRO_PRESET: node-server
 
-  lighthouse:
+      - name: Start it
+        run: node .output/server/index.mjs &
+        env:
+          # No catalogue in CI without a token: both gates detect that and
+          # report catalogue-dependent findings as information rather than
+          # failing on an empty shop.
+          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || 'ci-no-catalogue' }}
+          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
+          SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
+          DATABASE_URL: postgres://ci:ci@localhost:5432/none
+          AUTH_SECRET: ci-secret-not-used-for-anything-real
+          PORT: '3000'
+
+      - name: Wait for it
+        run: npx wait-on http://127.0.0.1:3000/cgv --timeout 90000
+
+      # Catches what the other gates cannot: a raw translation key, a hydration
+      # mismatch, a route that 500s, a price that changes between two screens.
+      - name: Walk the site as a customer
+        run: node tests/e2e/simulate.mjs http://127.0.0.1:3000 --locales fr,nl,de,es,en,ar
+
+      # Reflow at 320px, the entry points, bidirectional text and what a shared
+      # link carries. Each check here was written after the thing it checks
+      # shipped broken.
+      - name: Frontend gate
+        run: npm run verify:frontend -- http://127.0.0.1:3000
+
+  # NOT a gate on this commit, and named so nobody mistakes it for one.
+  #
+  # Lighthouse here measures whatever is deployed at the time the job runs,
+  # which on a push is usually the PREVIOUS deployment — Vercel builds in
+  # parallel with this workflow. It is a production smoke signal, kept
+  # deliberately separate from the candidate gates above and advisory only.
+  production-smoke:
+    name: Lighthouse on the live site (advisory, not this commit)
     runs-on: ubuntu-latest
-    # Only run on push to master (not every PR — saves CI minutes per ADR free-tier strategy)
-    if: github.event_name == 'push'
-    needs: build
-
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [candidate]
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: 'npm'
-
       - name: Install Lighthouse CI
         run: npm install -g @lhci/cli@0.13.x
-
-      - name: Run Lighthouse against production
+      - name: Measure the live site
         run: |
           lhci autorun \
-            --collect.url=https://vitesseeco.vercel.app/ \
-            --collect.url=https://vitesseeco.vercel.app/produits \
+            --collect.url=https://vitesse-eco.fr/ \
+            --collect.url=https://vitesse-eco.fr/produits \
             --collect.numberOfRuns=2 \
             --upload.target=temporary-public-storage \
             --assert.preset=lighthouse:recommended \
@@ -116,4 +224,4 @@ jobs:
             --assert.assertions.categories:accessibility.minScore=0.9 \
             --assert.assertions.categories:seo.minScore=0.9 \
             --assert.assertions.categories:best-practices.minScore=0.9
-        continue-on-error: true # don't block the pipeline while we tune; flip to false when stable
+        continue-on-error: true
