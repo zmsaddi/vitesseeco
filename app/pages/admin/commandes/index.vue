@@ -144,6 +144,17 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
           <span v-if="order.shippingAddress?.city" class="text-sm text-content-muted">
             {{ order.shippingAddress.city }}, {{ order.shippingAddress.country }}
           </span>
+          <!--
+            A pickup carries no city, so without this the row showed nothing at
+            all about where the order goes — and the queue could not be read as
+            "these ship, these are collected" at a glance.
+          -->
+          <span
+            v-else-if="order.shippingMethodCode === 'pickup'"
+            class="rounded-full bg-warning-subtle px-2.5 py-0.5 text-xs font-semibold text-warning"
+          >
+            {{ $t('admin.pickup') }}
+          </span>
           <span class="ms-auto font-bold text-content-strong">{{ formatDecimal(order.total) }}</span>
         </div>
 

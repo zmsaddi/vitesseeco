@@ -14,7 +14,7 @@ definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const route = useRoute()
 const { t, locale } = useI18n()
-const { formatDecimal } = useFormatPrice()
+const { formatDecimal, formatPercent } = useFormatPrice()
 const orderNumber = computed(() => String(route.params.orderNumber ?? ''))
 
 interface Address {
@@ -210,7 +210,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
                 </p>
               </div>
               <span class="text-sm text-content-muted">× {{ item.quantity }}</span>
-              <span class="w-24 text-end font-semibold text-content-strong">{{ item.lineTotal }} €</span>
+              <span class="w-24 text-end font-semibold text-content-strong">{{ formatDecimal(item.lineTotal) }}</span>
             </li>
           </ul>
 
@@ -223,11 +223,11 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
               <dt class="text-content-muted">
                 {{ $t('cart.discount') }}<span v-if="order.promoCode"> ({{ order.promoCode }})</span>
               </dt>
-              <dd class="text-success">−{{ order.discount }} €</dd>
+              <dd class="text-success">−{{ formatDecimal(order.discount) }}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('checkout.shipping') }}</dt>
-              <dd class="text-content">{{ order.shipping }} €</dd>
+              <dd class="text-content">{{ formatDecimal(order.shipping) }}</dd>
             </div>
             <div class="flex justify-between border-t border-surface-border pt-2 font-bold">
               <dt class="text-content-strong">{{ $t('cart.total') }}</dt>
@@ -235,9 +235,9 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
             </div>
             <div class="flex justify-between text-xs">
               <dt class="text-content-muted">
-                {{ $t('admin.vat_in_price') }} ({{ order.vat.ratePercent }} % · {{ order.marketCountry }})
+                {{ $t('admin.vat_in_price') }} ({{ formatPercent(order.vat.ratePercent) }} · {{ order.marketCountry }})
               </dt>
-              <dd class="text-content-muted">{{ order.vat.amount }} €</dd>
+              <dd class="text-content-muted">{{ formatDecimal(order.vat.amount) }}</dd>
             </div>
           </dl>
         </section>
@@ -255,7 +255,19 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
                 {{ order.shippingAddress.phone }}
               </a>
             </p>
-            <p class="mt-3 text-xs text-content-muted">{{ order.shippingMethodCode }}</p>
+            <!--
+              A pickup order has no address by design, so this card would
+              otherwise read as missing data on the one kind of order that needs
+              a different action: nothing to ship, someone is coming to Poitiers.
+              The method was here before as a bare machine code in 12px grey.
+            -->
+            <p class="mt-3 text-sm">
+              <span class="text-content-muted">{{ $t('checkout.how') }}&nbsp;: </span>
+              <span class="font-semibold text-content-strong">
+                {{ order.shippingMethodCode === 'pickup' ? $t('admin.pickup') : $t('checkout.shipping') }}
+              </span>
+              <span class="ms-1 font-mono text-xs text-content-muted">{{ order.shippingMethodCode }}</span>
+            </p>
           </section>
 
           <section class="card p-4">
