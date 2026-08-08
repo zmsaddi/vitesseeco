@@ -24,7 +24,8 @@
 | EXT | Sentry + Resend + Merchant Center + AI key — **with owner, after build** | ⏸ owner |
 
 > † This row read `✅ 2026-07-05` for a month while the switcher did not exist. The
-> old root-level `layouts/admin.vue` had one; the rebuilt `app/layouts/admin.vue`
+> pre-cutover admin shell — root-level, gone from this branch, still in git
+> history — had one; the rebuilt `app/layouts/admin.vue`
 > was written from a blank file in `fd2ef41` and never got it back, so the panel
 > was reachable only at `/admin` — which under `prefix_except_default` is the
 > French route. Six translated locales, one of them ever visible. The tick is
