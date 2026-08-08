@@ -1,1 +1,25 @@
 cms/
+
+# ── Nothing below this line may leave this machine ──────────────────────────
+#
+# The Vercel CLI reads THIS file and its own defaults. It does not read
+# .gitignore — so a file being untracked says nothing about whether
+# `vercel deploy` would upload it. Its defaults exclude .env.local and not .env.
+#
+# Every deployment of this project so far has been git-based (94 of 94 checked
+# via the deployments API: zero without a commit sha), so nothing here has ever
+# been uploaded. This list is what keeps that true the first time someone runs
+# a deploy from the folder instead of pushing.
+#
+# Secrets and the legacy order backup — which held real customer names and
+# addresses — now live outside the project entirely, in a sibling directory.
+# .env stays because the local production build reads it.
+.env
+.env.*
+!.env.example
+.rebuild-secrets.json
+.sanity-*
+.simshots*
+.devdb/
+*.pem
+*.key
