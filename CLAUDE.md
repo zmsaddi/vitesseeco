@@ -18,8 +18,8 @@ Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 | **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers |
 | **Company** | VITESSE ECO SAS · SIREN 100 732 247 · TVA FR43 100 732 247 |
 | **Markets** | FR (primary) · BE · NL · DE · ES |
-| **Languages** | fr (default) · en · nl · de · es · ar — 754 keys × 6, kept in sync by a gate |
-| **Catalogue** | Sanity `2jvnjf0c` / `production` — 144 products, one per colour |
+| **Languages** | fr (default) · en · nl · de · es · ar — 789 keys × 6, kept in sync by a gate |
+| **Catalogue** | Sanity `2jvnjf0c` / `production` — 146 products, one per colour |
 | **Node** | v24 |
 
 ---
@@ -35,7 +35,9 @@ Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 4. **The Sanity dataset is public today.** No customer data may ever be written
    into it. Identity, addresses and orders live in PostgreSQL.
 5. **Run the gates before every commit:** `check:langs`, `check:hex`,
-   `check:invariants`. They are cheap and each has caught a real defect.
+   `check:invariants`, `check:docs`. They are cheap and each has caught a real
+   defect — `check:docs` caught four broken links and five drifted counts in
+   this document alone.
 6. **PowerShell 5.1: never put `"` inside a git commit message.** Use a bash
    heredoc with `git commit -F -`.
 7. **Money is asserted in the database, never in the UI.** A page can say
@@ -45,13 +47,41 @@ Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 
 ---
 
+## Before you write code
+
+Six habits, each of which exists because its absence cost something here.
+
+1. **Name the domain first, then find who already owns the rule.** Money lives
+   in `shared/money.ts`; stock in `server/services/stock.ts`; order status in
+   `orderState.ts`; the delivery footprint in `shared/markets.ts`. A rule
+   implemented twice will disagree eventually — a page once promised delivery to
+   three countries while the feed promised six.
+2. **Never trust money, quantity or availability from a browser.** The cart
+   schema takes `{ productId, quantity }` and a promo *code*. Everything else is
+   recomputed server-side. Do not add a field that lets a client state a price.
+3. **Keep the two stores apart.** Sanity owns the catalogue and is **public** —
+   an unauthenticated query returns it. PostgreSQL owns identity, addresses,
+   orders and stock. Nothing crosses.
+4. **Never bypass the transactional stock path.** Reserve and consume through
+   `server/services/stock.ts`, inside a transaction that locks the row. A
+   reservation is not a decrement, and cancelling a paid order restocks.
+5. **Test the candidate, never a deployment.** Build the commit, serve it, then
+   point the gate at it. "It works on vitesse-eco.fr" says nothing about the
+   code you just wrote — that mistake kept a pipeline red for ten days without
+   anyone being able to tell.
+6. **Read [docs/architecture/CURRENT.md](docs/architecture/CURRENT.md) before a
+   structural change.** It is the only document that describes the system as it
+   is; everything in `docs/archive/` describes a state that has passed.
+
+---
+
 ## Commands
 
 ```bash
 npm run dev                 # dev server
 npm run build               # production build — clear .nuxt first if in any doubt
 npm run test                # unit + integration (integration needs a database)
-npm run test:unit           # 276 tests, no database needed
+npm run test:unit           # 306 tests, no database needed
 npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
@@ -74,11 +104,11 @@ client-side cannot show a server-side rendering defect.
 ```
 app/                       ← Nuxt 4 layout: everything client-facing
   pages/                   ← 31 pages, incl. admin/ (5) compte/ (4) commande/ (2)
-  components/              ← CaptchaWidget, ContactLink, MarketSuggestion, SiteHeader, SiteFooter
-  composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useWishlist
+  components/              ← BrandBolt, BrandMark, CaptchaWidget, ContactLink, MarketSuggestion, SiteHeader, SiteFooter
+  composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useFormatPrice, useWishlist
   layouts/ middleware/ plugins/
 server/
-  api/                     ← 34 routes. Every one declares access + rate limit via defineRoute
+  api/                     ← 35 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types
@@ -88,10 +118,10 @@ server/
   payments/                ← adapter registry (index.ts): stripe | cod | in_store
   feeds/ middleware/ plugins/
 shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
-i18n/locales/              ← 6 files × 754 keys
+i18n/locales/              ← 6 files × 789 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + redact-sanity-order-pii
-tests/                     ← unit/ (11 files) integration/ (6 suites, real PostgreSQL) e2e/ (simulate, money-path)
+tests/                     ← unit/ (14 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
@@ -192,8 +222,7 @@ nothing aspirational. The ones without a `#` are required for a working shop.
 
 ## Where to look next
 
-- **Working on the code:** [docs/REBUILD_ARCHITECTURE.md](docs/REBUILD_ARCHITECTURE.md)
-- **Picking up a task:** [docs/REBUILD_EXECUTION.md](docs/REBUILD_EXECUTION.md)
-- **Going live:** [docs/CUTOVER.md](docs/CUTOVER.md)
+- **What is true right now:** [docs/architecture/CURRENT.md](docs/architecture/CURRENT.md)
+- **How the rebuild was done and how it went live:** [docs/archive/rebuild/](docs/archive/rebuild/) — history, not instructions
 - **Why something is the way it is:** [docs/adr/](docs/adr/)
 - **How not to ship a green build that is broken:** [skills/reality-check/SKILL.md](skills/reality-check/SKILL.md)

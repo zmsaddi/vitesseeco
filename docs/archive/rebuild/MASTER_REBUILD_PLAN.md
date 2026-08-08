@@ -1,5 +1,12 @@
 # Vitesse Eco — Master Rebuild Plan
 
+> **ARCHIVED — historical record, not instructions.** The rebuild finished and
+> the cutover happened on 2026-07-30; this document is written about a state that
+> has passed. For what is true now read
+> [docs/architecture/CURRENT.md](../../architecture/CURRENT.md).
+
+---
+
 > **Status:** Approved — THE official reference for all work
 > **Created:** 2026-07-05 · **Owner:** zmsaddi
 > **Mission:** Rebuild the entire website experience once, expert-grade, mobile-first —
@@ -9,7 +16,7 @@
 > **Supersedes:** the experience-reconstruction plan, absorbed into this one and retired 2026-07-30.
 > The security backlog it referred to was retired with it: eight of its ten items are structural
 > in the rebuild, one is moot, and the one still open lives in [CUTOVER.md](CUTOVER.md).
-> See [README.md](README.md) for what was retired and why.
+> See [README.md](../../README.md) for what was retired and why.
 
 ---
 

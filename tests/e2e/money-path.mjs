@@ -57,9 +57,20 @@ async function call(who, path, options = {}) {
 // This harness wipes rate limits and moves real stock. An order from anyone
 // outside the sim domain marks the database as LIVE — walk away, loudly.
 if (!process.argv.includes('--force-live')) {
+  /*
+   * An order placed by a REGISTERED customer carries no guest_email — it is
+   * null, and the identity hangs off customer_id. The first version of this
+   * check read a null as "not one of ours", so the walk's own order made the
+   * next walk refuse to start, reporting the harness's leftovers as real
+   * customers. The gate was unusable twice in a row and the message pointed at
+   * the wrong thing entirely.
+   *
+   * An order is ours if either identity is in the sim domain.
+   */
   const { rows: [real] } = await db.query(
-    `SELECT count(*)::int AS n FROM orders
-      WHERE guest_email IS NULL OR guest_email NOT LIKE '%@vitesse-eco.test'`
+    `SELECT count(*)::int AS n FROM orders o
+       LEFT JOIN customers c ON c.id = o.customer_id
+      WHERE COALESCE(o.guest_email, c.email, '') NOT LIKE '%@vitesse-eco.test'`
   )
   if (real.n > 0) {
     console.error(
@@ -81,9 +92,28 @@ const CUSTOMER = 'sim-client@vitesse-eco.test'
 const ADMIN = 'sim-admin@vitesse-eco.test'
 const CAPTCHA = 'sim.DUMMY.TOKEN'
 
+// The previous walk's order is still here, and the guard above counts orders
+// rather than knowing which are its own — so a second run refused to start,
+// reporting its own leftovers as real customers. It clears them itself now.
+await db.query(
+  `DELETE FROM stock_reservations WHERE order_id IN
+     (SELECT id FROM orders WHERE guest_email LIKE '%@vitesse-eco.test')`
+)
+await db.query(
+  `DELETE FROM order_items WHERE order_id IN
+     (SELECT id FROM orders WHERE guest_email LIKE '%@vitesse-eco.test')`
+)
+await db.query(`DELETE FROM orders WHERE guest_email LIKE '%@vitesse-eco.test'`)
+
 console.log('\n1. A product with real stock')
+// `AND EXISTS (…)` is not possible here — the catalogue lives in Sanity, not in
+// this database — so the tie is broken by id to make the choice repeatable. A
+// row whose product the catalogue does not serve makes /api/cart/price answer
+// 404 and the whole walk fail three steps later, which is a confusing way to
+// learn that the inventory table holds a stale fixture.
 const { rows: [product] } = await db.query(
-  `SELECT product_id, on_hand FROM inventory WHERE on_hand >= 2 ORDER BY on_hand DESC LIMIT 1`
+  `SELECT product_id, on_hand FROM inventory
+    WHERE on_hand >= 2 ORDER BY on_hand DESC, product_id ASC LIMIT 1`
 )
 assert(!!product, `picked ${product?.product_id} with on_hand=${product?.on_hand}`)
 const startOnHand = product.on_hand
@@ -114,6 +144,25 @@ for (const [who, email] of [['customer', CUSTOMER], ['admin', ADMIN]]) {
     assert(res.status === 200, `${who} registered (${email})`, JSON.stringify(res.body).slice(0, 120))
   }
 }
+
+/*
+ * Stand in for the Google sign-in the real administrator completed.
+ *
+ * `requireAdmin` needs the address to be on the allowlist AND verified, because
+ * an allowlisted address nobody has ever claimed can be claimed by whoever types
+ * it. Registration here issues a session against an address nobody checked, so
+ * the sim admin is allowlisted and unverified — and steps 6 and 7 answered 403
+ * for it, which read like a broken money path and is in fact the guard working.
+ *
+ * Writing the column directly is honest about what it is: this harness already
+ * owns this database, and only a completed Google sign-in sets it for real.
+ */
+const verified = await db.query(
+  `UPDATE customers SET email_verified_at = COALESCE(email_verified_at, now())
+    WHERE email = $1`,
+  [ADMIN]
+)
+assert(verified.rowCount === 1, 'sim admin marked verified, as a Google sign-in would')
 
 console.log('\n3. Price the basket as the customer sees it')
 const priced = await call('customer', '/api/cart/price', {

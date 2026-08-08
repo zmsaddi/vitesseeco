@@ -1,5 +1,12 @@
 # Rebuild Execution Tracker
 
+> **ARCHIVED — historical record, not instructions.** The rebuild finished and
+> the cutover happened on 2026-07-30; this document is written about a state that
+> has passed. For what is true now read
+> [docs/architecture/CURRENT.md](../../architecture/CURRENT.md).
+
+---
+
 > Live checklist for [MASTER_REBUILD_PLAN.md](MASTER_REBUILD_PLAN.md). One unit = one commit/PR,
 > shipped with tests + 6-locale keys + checks green. Status: ✅ done · 🔄 in progress · ⬜ queued.
 > Updated every working session.
@@ -77,7 +84,7 @@
 |---|---|---|
 | U-Q1 | Verified already built: ci.yml runs bundle budget (13MB gzip, blocking) + Lighthouse CI on master pushes (perf≥85/a11y≥90/seo≥90, continue-on-error while tuning) | ✅ pre-existing |
 | U-Q3a | Known issues closed: #3 Turnstile reset (verified already fixed), #4 guest_email hygiene (fixed both creation paths). #2 hydration mismatch remains open | ✅ 2026-07-05 |
-| U-Q2 | E2E locale matrix (fr/nl/de/es × desktop/mobile × 7 pages + hreflang + mobile chrome) in locale-matrix.spec.ts; visual coverage 5→10 pages (regenerate baselines post-deploy: `npm run test:visual:update`) | ✅ 2026-07-05 |
+| U-Q2 | E2E locale matrix + visual baselines, as Playwright specs | ❌ **did not survive the cutover** — those specs belonged to the pre-rebuild tree (`origin/master-legacy`); this tree's `tests/e2e/` holds standalone `.mjs` gates and `tests/visual/` does not exist. Recorded, not repaired: rewriting them is its own piece of work |
 | U-Q3 | Hydration mismatch (known-issue #2) FIXED — cart localStorage restore during hydration; /panier + /commande now ClientOnly with skeletons. axe/RTL dedicated pass still open | 🔄 2026-07-05 |
 | U-M3 | Back-in-stock alerts (needs Resend) | ⏸ owner |
 | U-M4 | PWA: hand-rolled sw.js (network-first nav + offline.html, cache-first /_nuxt, SWR images capped 120, never touches api/checkout/account), client plugin registration, manifest pre-existing | ✅ 2026-07-05 |

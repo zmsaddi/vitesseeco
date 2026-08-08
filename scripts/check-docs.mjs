@@ -103,7 +103,15 @@ function withoutHistory(text) {
   // in it exempts every path, which is more honest than annotating each line and
   // pretending they are individually special.
   if (/<!--\s*verify-docs:\s*historical\s*-->/.test(text)) return ''
-  const lines = text.split('\n')
+  // Split on either ending, and drop the carriage return.
+  //
+  // `\r` is a line TERMINATOR in JavaScript regular expressions, so `.` does not
+  // match it and `$` does not sit before it. On a CRLF checkout the heading
+  // pattern `^(#{1,6})\s+(.*)$` therefore failed on every heading, no section
+  // was ever recognised as historical, and this gate reported a file it had
+  // passed an hour earlier — the difference being a `git checkout` on Windows.
+  // A gate whose verdict depends on line endings is a gate nobody believes.
+  const lines = text.split(/\r?\n/)
   let skipDepth = 0
   return lines
     .map((line) => {
@@ -215,6 +223,88 @@ if (existsSync(join(ROOT, CONFIG.envExample))) {
     if (read.has(name) || optional.has(name)) continue
     if (CONFIG.frameworkInjected.some((p) => p.test(name))) continue
     note(CONFIG.envExample, `advertises ${name}, which no code reads`)
+  }
+}
+
+// ─── 4. counted claims are counted, not remembered ─────────────────────────
+/*
+ * A path that disappears is caught above. A COUNT that drifts is not, and it
+ * drifts silently: CLAUDE.md claimed 754 locale keys against 789, 144 products
+ * against 146, 34 API routes against 35, 276 unit tests against 306. Every one
+ * had been true when written.
+ *
+ * A number nobody can check is a number nobody should write. Each claim below
+ * is a pattern with a capture group and a function that produces the real
+ * figure from the filesystem — never from the network, so this stays a build
+ * gate rather than a thing that fails when Sanity is slow.
+ *
+ * Adding a countable number to a document means adding it here too. That is
+ * the cost, and it is the point.
+ */
+{
+  const count = (dir, filter) => {
+    const out = []
+    const walk = (d) => {
+      const full = join(ROOT, d)
+      if (!existsSync(full)) return
+      for (const name of readdirSync(full)) {
+        if (name === 'node_modules' || name.startsWith('.')) continue
+        const p = join(d, name)
+        if (statSync(join(ROOT, p)).isDirectory()) walk(p)
+        else if (filter(name, p)) out.push(p)
+      }
+    }
+    walk(dir)
+    return out.length
+  }
+
+  const localeKeys = () => {
+    const file = join(ROOT, 'i18n', 'locales', 'fr.json')
+    if (!existsSync(file)) return null
+    const deep = (o) => Object.values(o).reduce((n, v) => n + (v && typeof v === 'object' ? deep(v) : 1), 0)
+    return deep(JSON.parse(readFileSync(file, 'utf8')))
+  }
+
+  const vue = (n) => n.endsWith('.vue')
+  const spec = (n) => n.endsWith('.spec.ts')
+
+  /*
+   * Each claim names the file that OWNS it. Scoping matters: an early version
+   * matched "19 pages × 6 locales" — the simulator's route sweep — against the
+   * number of .vue files, and "766 keys" inside an archived document against
+   * today's locale file. A rule that reports things that are not wrong is a
+   * rule that gets switched off.
+   */
+  const CLAIMS = [
+    ['CLAUDE.md', /(\d+) keys × 6/, localeKeys, 'locale keys'],
+    ['CLAUDE.md', /(\d+) pages, incl/, () => count('app/pages', vue), 'pages under app/pages'],
+    ['CLAUDE.md', /(\d+) routes\. Every one declares/, () => count('server/api', (n) => n.endsWith('.ts')), 'routes under server/api'],
+    ['CLAUDE.md', /(\d+) machine files/, () => count('server/routes', () => true), 'files under server/routes'],
+    ['CLAUDE.md', /unit\/ \((\d+) files\)/, () => count('tests/unit', spec), 'unit spec files'],
+    ['CLAUDE.md', /integration\/ \((\d+) suites/, () => count('tests/integration', spec), 'integration spec files'],
+    ['docs/architecture/CURRENT.md', /(\d+) pages · \d+ components/, () => count('app/pages', vue), 'pages under app/pages'],
+    ['docs/architecture/CURRENT.md', /\d+ pages · (\d+) components/, () => count('app/components', vue), 'components'],
+    ['docs/architecture/CURRENT.md', /(\d+) composables/, () => count('app/composables', (n) => n.endsWith('.ts')), 'composables'],
+    ['docs/architecture/CURRENT.md', /(\d+) routes, each declaring/, () => count('server/api', (n) => n.endsWith('.ts')), 'routes under server/api'],
+    ['docs/architecture/CURRENT.md', /(\d+) machine files/, () => count('server/routes', () => true), 'files under server/routes'],
+    ['docs/architecture/CURRENT.md', /(\d+) unit files/, () => count('tests/unit', spec), 'unit spec files'],
+    ['docs/architecture/CURRENT.md', /(\d+) integration files/, () => count('tests/integration', spec), 'integration spec files'],
+    ['docs/architecture/CURRENT.md', /(\d+) browser gates/, () => count('tests/e2e', (n) => n.endsWith('.mjs')), 'browser gates'],
+    ['docs/architecture/CURRENT.md', /(\d+) gate and tooling scripts/, () => count('scripts', (n) => n.endsWith('.mjs')), 'scripts'],
+    ['docs/architecture/CURRENT.md', /(\d+) migration file/, () => count('server/db/migrations', (n) => n.endsWith('.sql')), 'migration files'],
+  ]
+
+  for (const [owner, pattern, actual, what] of CLAIMS) {
+    const path = join(ROOT, owner)
+    if (!existsSync(path)) continue
+    const match = pattern.exec(withoutHistory(readFileSync(path, 'utf8')))
+    if (!match) {
+      note(owner, `no longer states its ${what}; the claim this gate checks was removed or reworded`)
+      continue
+    }
+    const real = actual()
+    if (real === null || Number(match[1]) === real) continue
+    note(owner, `claims ${match[1]} ${what}; there are ${real}`)
   }
 }
 
