@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { alternatesFor, getLocale, localizedUrl, resolvePath, type LocaleCode } from '~~/shared/locales'
+import { LOCALES, alternatesFor, getLocale, localizedUrl, resolvePath, type LocaleCode } from '~~/shared/locales'
 import { ORGANISATION, SITE_URL } from '~~/shared/organisation'
 
 /**
@@ -96,7 +96,67 @@ const organisationJsonLd = {
   ],
 }
 
+/**
+ * What a shared link looks like.
+ *
+ * The site shipped with no OpenGraph tags at all: pasting vitesse-eco.fr into
+ * WhatsApp produced a bare URL with no picture, no title and no description —
+ * and the contact page itself says WhatsApp is how most customers open a
+ * conversation. Product pages carried an og:image and nothing else, so a shared
+ * bike showed a photograph with no name and no price beside it.
+ *
+ * These are DEFAULTS. A page that knows better — a product, an article — sets
+ * its own ogImage and wins, because a page's useSeoMeta is resolved after the
+ * root's.
+ *
+ * There is deliberately NO og:title or og:description here. The obvious way to
+ * write them — `ogTitle: '%s'` — was tried and shipped the literal two
+ * characters `%s` into the tag: Unhead only substitutes that parameter inside a
+ * title template, and it was checked in the served HTML rather than assumed.
+ * A root component cannot see the title a page will set, and every scraper that
+ * matters falls back to <title> and <meta name="description"> when these are
+ * absent — so the honest fix is the titleTemplate below, which makes that
+ * fallback carry the shop's name.
+ *
+ * The card is generated from the brand kit rather than cropped from a poster —
+ * public/brand/og-card.svg, rendered by scripts/build-og-image.mjs. It is a
+ * JPEG on purpose: Facebook and WhatsApp are still inconsistent about SVG and
+ * WebP, and a preview that fails to load looks broken rather than absent.
+ */
+useSeoMeta({
+  ogSiteName: ORGANISATION.name,
+  ogType: 'website',
+  ogUrl: () => canonicalOverride.value ?? seo.value.canonical,
+  ogImage: `${SITE_URL}/og-default.jpg`,
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
+  ogImageType: 'image/jpeg',
+  ogImageAlt: () => `${ORGANISATION.name} — ${ORGANISATION.address.city}`,
+  // Facebook wants xx_XX; the manifest's format locale is the same value with
+  // a hyphen, and 'ar' has no region to give.
+  ogLocale: () => (getLocale(locale.value as LocaleCode)?.formatLocale ?? 'fr-FR').replace('-', '_'),
+  ogLocaleAlternate: () =>
+    LOCALES.filter((entry) => entry.code !== locale.value).map((entry) =>
+      entry.formatLocale.replace('-', '_')
+    ),
+  twitterCard: 'summary_large_image',
+  twitterImage: `${SITE_URL}/og-default.jpg`,
+})
+
 useHead(() => ({
+  /**
+   * Tabs said "Panier" and "Nos produits" — true, and true of any shop. A
+   * customer with six tabs open could not tell which one was ours, and a shared
+   * link inherited the same anonymous title.
+   *
+   * A function rather than a '%s · Vitesse Eco' string, because some titles
+   * already carry the name: product SEO titles are authored in Studio and most
+   * of them end in "| Vitesse Eco". A plain suffix would have printed it twice.
+   */
+  titleTemplate: (title?: string) =>
+    !title ? ORGANISATION.name
+    : title.includes(ORGANISATION.name) ? title
+    : `${title} · ${ORGANISATION.name}`,
   htmlAttrs: { lang: locale.value, dir: seo.value.dir },
   link: [
     { rel: 'canonical', href: canonicalOverride.value ?? seo.value.canonical },

@@ -1,12 +1,16 @@
 {
+  "id": "/",
   "name": "Vitesse Eco — Vélos électriques",
   "short_name": "Vitesse Eco",
   "description": "Vélos électriques, pièces et accessoires — Poitiers, France",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#edebe0",
   "theme_color": "#054239",
   "lang": "fr",
+  "dir": "ltr",
+  "categories": ["shopping", "lifestyle"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -19,6 +23,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -77,6 +77,8 @@ Charcoal speaks (text). The spark electrifies (the bolt, nothing else).
 | `invoice-header.svg` | A4-width letterhead band |
 | `invoice-stamp.svg` | The roundel — documents, packaging, stickers |
 | `social-cover.svg` | 1500×500 — Facebook/X/LinkedIn covers |
+| `og-card.svg` | 1200×630 — the link preview; rasterised to `public/og-default.jpg` |
+| `icon-maskable.svg` | 512×512 full-bleed — rasterised to `public/icon-maskable-512.png` |
 | `social-post-square.svg` | 1080×1080 campaign template |
 | `story-template.svg` | 1080×1920 story/reel frame — brand elements clear of platform UI bands |
 | `brochure-outer.svg` · `brochure-inner.svg` | DL **roll-fold** (flap 2 mm narrower); dashed lines = fold guides |

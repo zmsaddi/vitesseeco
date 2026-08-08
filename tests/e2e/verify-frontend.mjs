@@ -171,6 +171,38 @@ try {
   if (phonesSeen === 0) fail('no phone number found on any Arabic page — the check proved nothing')
   if (failures === beforeBidi) pass(`${phonesSeen} phone number(s) read left-to-right inside Arabic pages`)
 
+  // ── 4. A shared link has to look like something ────────────────────────────
+  // The site shipped with no og:image and no og:site_name, so pasting the home
+  // page into WhatsApp — which the contact page calls the way most customers
+  // open a conversation — produced a bare URL. Product pages had an image and
+  // no name beside it.
+  console.log('\nshared links')
+  const beforeShare = failures
+  for (const route of ['/', '/produits']) {
+    await page.goto(`${BASE}${route}`, { waitUntil: 'domcontentloaded' })
+    const meta = await page.evaluate(() => {
+      const content = (selector) => document.querySelector(selector)?.getAttribute('content')?.trim() ?? ''
+      return {
+        title: document.title.trim(),
+        description: content('meta[name="description"]'),
+        image: content('meta[property="og:image"]'),
+        siteName: content('meta[property="og:site_name"]'),
+        url: content('meta[property="og:url"]'),
+        locale: content('meta[property="og:locale"]'),
+      }
+    })
+    for (const [what, value] of Object.entries(meta)) {
+      if (!value) fail(`${route || '/'} shares with no ${what}`)
+      // The mistake this check was written after: `ogTitle: '%s'` is only
+      // substituted inside a title template, and shipped those two characters.
+      else if (value.includes('%s')) fail(`${route} ${what} is the literal "${value}"`)
+    }
+    if (meta.image && !/^https:\/\//.test(meta.image)) {
+      fail(`${route} og:image is not absolute`, meta.image)
+    }
+  }
+  if (failures === beforeShare) pass('title, description, image, site name, url and locale on shared pages')
+
   console.log('')
   if (failures > 0) {
     console.error(`❌ ${failures} frontend problem(s)\n`)

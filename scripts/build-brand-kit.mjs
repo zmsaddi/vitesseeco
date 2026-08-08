@@ -376,6 +376,44 @@ for (const [name, bg] of [['tile-forest', P.forest.deep], ['tile-forest-black', 
   sto += `<text x="540" y="1010" text-anchor="middle" font-family="Manrope, Arial" font-weight="700" font-size="36" fill="${P.charcoal.mid}" opacity="0.35">[ contenu ]</text>`
   sto += `<text x="540" y="1668" text-anchor="middle" font-family="Manrope, Arial" font-weight="800" font-size="38" letter-spacing="5" fill="${P.wheat.mid}">VITESSE-ECO.FR</text>`
   write('story-template.svg', svg(1080, 1920, sto))
+
+  /*
+   * The link preview — 1200×630, the size every scraper crops to.
+   *
+   * The site shipped with no og:image at all, so a link pasted into WhatsApp
+   * showed a bare URL — and WhatsApp is, by the shop's own contact page, how
+   * most customers open a conversation. The cover above is 1500×500 and would
+   * be cropped through the lockup; this is the same identity composed for 1.91:1.
+   *
+   * Rendered to public/og-default.jpg by scripts/build-og-image.mjs, because
+   * Facebook and WhatsApp still do not agree about SVG or WebP.
+   */
+  const Lo = lockup(84, { stagFill: P.wheat.mid, vitesseFill: P.wheat.light, ecoFill: P.forestTint, gradId: 'og' })
+  let og = `<rect width="1200" height="630" fill="${P.forest.black}"/>` + sparkDefs('og')
+  const ogH = 560, ogW = ogH * (SW / SH)
+  og += `<g opacity="0.14">${stagAt(1200 - ogW - 40, (630 - ogH) / 2, ogH, P.wheat.mid)}</g>`
+  // The lockup draws ABOVE its origin — the baseline sits at the translate
+  // point — so this is a baseline, not a top edge. Computing it from the height
+  // put the antlers off the top of the card.
+  og += `<g transform="translate(80 250)">${Lo.body}</g>`
+  og += `<text x="86" y="404" font-family="Manrope, Arial" font-weight="600" font-size="34" letter-spacing="2" fill="${P.wheat.light}" opacity="0.9">Vélos électriques — choisis et préparés à Poitiers.</text>`
+  og += `<rect x="86" y="446" width="120" height="5" fill="${P.forestTint}"/>`
+  og += `<text x="86" y="530" font-family="Manrope, Arial" font-weight="800" font-size="30" letter-spacing="5" fill="${P.wheat.mid}">VITESSE-ECO.FR</text>`
+  write('og-card.svg', svg(1200, 630, og))
+
+  /*
+   * The maskable app icon — 512×512.
+   *
+   * The manifest declared only `purpose: "any"` icons, and the existing one is
+   * a rounded square with the stag filling it edge to edge. Android crops a
+   * maskable icon to whatever shape the launcher uses, most often a circle, and
+   * would have taken the antlers off. This is full-bleed with the stag inside
+   * the 80% safe zone, which is the whole point of the purpose.
+   */
+  const iconH = 512 * 0.52
+  let ic = `<rect width="512" height="512" fill="${P.forest.black}"/>`
+  ic += stagAt((512 - iconH * (SW / SH)) / 2, (512 - iconH) / 2, iconH, P.wheat.mid)
+  write('icon-maskable.svg', svg(512, 512, ic))
 }
 
 // ═══ 10. e-mail signature ══════════════════════════════════════════════════

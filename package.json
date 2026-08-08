@@ -32,7 +32,8 @@
     "test:watch": "vitest",
     "typecheck": "nuxi typecheck",
     "verify:frontend": "node tests/e2e/verify-frontend.mjs",
-    "walk:ux": "node tests/e2e/ux-walk.mjs"
+    "walk:ux": "node tests/e2e/ux-walk.mjs",
+    "build:brand": "node scripts/build-brand-kit.mjs && node scripts/build-web-images.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
