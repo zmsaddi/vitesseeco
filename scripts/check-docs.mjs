@@ -103,7 +103,15 @@ function withoutHistory(text) {
   // in it exempts every path, which is more honest than annotating each line and
   // pretending they are individually special.
   if (/<!--\s*verify-docs:\s*historical\s*-->/.test(text)) return ''
-  const lines = text.split('\n')
+  // Split on either ending, and drop the carriage return.
+  //
+  // `\r` is a line TERMINATOR in JavaScript regular expressions, so `.` does not
+  // match it and `$` does not sit before it. On a CRLF checkout the heading
+  // pattern `^(#{1,6})\s+(.*)$` therefore failed on every heading, no section
+  // was ever recognised as historical, and this gate reported a file it had
+  // passed an hour earlier — the difference being a `git checkout` on Windows.
+  // A gate whose verdict depends on line endings is a gate nobody believes.
+  const lines = text.split(/\r?\n/)
   let skipDepth = 0
   return lines
     .map((line) => {
