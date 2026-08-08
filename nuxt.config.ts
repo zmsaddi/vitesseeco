@@ -1,6 +1,15 @@
 import { DEFAULT_LOCALE, LOCALES, PRIMARY_DOMAIN } from './shared/locales'
 
 /**
+ * The catalogue's Sanity coordinates, needed at BUILD time by the image
+ * provider. The server reads the same names from the environment at runtime;
+ * these fall back to the project's own values so a build never silently
+ * produces image URLs pointing at a dataset that does not exist.
+ */
+const SANITY_PROJECT_ID = process.env.SANITY_PROJECT_ID ?? '2jvnjf0c'
+const SANITY_DATASET = process.env.SANITY_DATASET ?? 'production'
+
+/**
  * Nuxt configuration for the rebuild.
  *
  * Locale configuration is DERIVED from shared/locales.ts rather than repeated
@@ -17,6 +26,30 @@ export default defineNuxtConfig({
   future: { compatibilityVersion: 4 },
 
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/i18n', '@nuxt/image', '@nuxt/icon', '@nuxt/fonts'],
+
+  /**
+   * Images.
+   *
+   * The module was registered and never configured, so every `<NuxtImg>` passed
+   * its absolute cdn.sanity.io URL straight through. The `width` attribute set
+   * the layout box and nothing else — a phone downloaded the same 2048x2048
+   * master a desktop did, on a listing showing two dozen of them.
+   *
+   * @nuxt/image ships a Sanity provider, and it understands the absolute CDN
+   * URLs this catalogue stores. A hand-written provider was tried first and took
+   * production down with "setup is not a function": a custom provider has to be
+   * wrapped in the module's own `defineProvider`, and the built-in one already
+   * is. There was no reason to write one.
+   *
+   * The screens are the breakpoints the layout actually uses, so a generated
+   * srcset offers widths the browser can choose between rather than a ladder
+   * invented by the default.
+   */
+  image: {
+    provider: 'sanity',
+    sanity: { projectId: SANITY_PROJECT_ID, dataset: SANITY_DATASET },
+    screens: { xs: 320, sm: 400, md: 640, lg: 900, xl: 1200, xxl: 1600 },
+  },
 
   tailwindcss: {
     // `~` already IS app/ under the Nuxt 4 layout. The previous value said
