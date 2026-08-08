@@ -11,9 +11,15 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 
 const { formatShortDate } = useFormatDate()
-const { data: me } = await useFetch<{ firstName: string; lastName: string; email: string } | null>(
-  '/api/auth/me'
-)
+// Prices arrive as dot-decimal wire strings; rendering them raw shows a French
+// customer '1498.00 €' where their own locale reads '1 498,00 €'.
+const { formatDecimal } = useFormatPrice()
+const { data: me } = await useFetch<{
+  firstName: string
+  lastName: string
+  email: string
+  isAdmin: boolean
+} | null>('/api/auth/me')
 
 interface OrderLine {
   name: string
@@ -59,7 +65,17 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
         <h1 class="font-display text-3xl font-extrabold text-content-strong">{{ $t('account.title') }}</h1>
         <p v-if="me" class="mt-1 text-content-muted">{{ me.firstName }} {{ me.lastName }} · {{ me.email }}</p>
       </div>
-      <button type="button" class="btn-secondary" @click="signOut">{{ $t('account.sign_out') }}</button>
+      <div class="flex items-center gap-3">
+        <!--
+          The panel's only door. Typing "/admin" by hand always lands on the
+          unprefixed — French — route, so the owner's language is lost before
+          the page even loads. Arriving by a localePath link carries it in.
+        -->
+        <NuxtLink v-if="me?.isAdmin" :to="localePath('/admin')" class="btn-secondary">
+          {{ $t('admin.title') }}
+        </NuxtLink>
+        <button type="button" class="btn-secondary" @click="signOut">{{ $t('account.sign_out') }}</button>
+      </div>
     </div>
 
     <section class="mt-10">
@@ -98,7 +114,7 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
                 <span v-if="item.color" class="text-content-muted">· {{ item.color }}</span>
                 <span class="text-content-muted"> × {{ item.quantity }}</span>
               </span>
-              <span class="text-content-strong">{{ item.lineTotal }} €</span>
+              <span class="text-content-strong">{{ formatDecimal(item.lineTotal) }}</span>
             </li>
           </ul>
 
@@ -108,7 +124,7 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
               <span class="font-mono text-content-strong">{{ order.trackingNumber }}</span>
               <span v-if="order.carrier"> · {{ order.carrier }}</span>
             </p>
-            <p class="ms-auto font-bold text-content-strong">{{ order.total }} €</p>
+            <p class="ms-auto font-bold text-content-strong">{{ formatDecimal(order.total) }}</p>
           </div>
         </li>
       </ul>

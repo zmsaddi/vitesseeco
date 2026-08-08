@@ -17,11 +17,19 @@
 | U-D3 | DS batch 3: ProductCard v2, TrustRow, StickyBar, PageLoading | ⬜ |
 | U-A1 | Admin orders: date-range + payment filters, column sort, CSV export | ✅ 2026-07-05 |
 | U-A2 | Admin UX pass: bulk select + bulk status change (audited per order via existing PATCH), sticky table header, keyboard shortcuts (/ search, N/P pages, Esc reset) | ✅ 2026-07-05 |
-| U-A3 | Admin full i18n: 105 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-07-05 |
+| U-A3 | Admin full i18n: 65 keys × 6 locales, language switcher, locale-aware dates/currency | ✅ 2026-08-08 † |
 | U-X1 | Shipping carrier adapter interface (`server/shipping/`) mirroring payment registry; checkout quotes by destination country with FR fallback | ✅ 2026-07-05 |
 | U-CMS1 | Sanity Studio v2: catalog-quality desk section (no-GTIN/no-images/missing-translations/no-SEO/no-modelFamily — empty lists = marketplace-ready), browse by brand/category, singleton delete/duplicate protection, create-menu limited to hand-made types, per-type product templates, order mirror fully readOnly (PG-primary split-brain guard), duplicateAsColor /desk→/structure route fix, product orderings (+newest, +family) | ✅ 2026-07-05 |
 | U-X2 | Aggregator integration (Sendcloud/Boxtal): labels + tracking webhooks + Bancontact/iDEAL via PSP adapter | ⏸ owner accounts |
 | EXT | Sentry + Resend + Merchant Center + AI key — **with owner, after build** | ⏸ owner |
+
+> † This row read `✅ 2026-07-05` for a month while the switcher did not exist. The
+> old root-level `layouts/admin.vue` had one; the rebuilt `app/layouts/admin.vue`
+> was written from a blank file in `fd2ef41` and never got it back, so the panel
+> was reachable only at `/admin` — which under `prefix_except_default` is the
+> French route. Six translated locales, one of them ever visible. The tick is
+> what stopped anyone from looking. Invariant rule *Every layout can change
+> language* now fails the build if a layout ships without one.
 
 ## Phase R1 — Money path (rebuild from blank file)
 

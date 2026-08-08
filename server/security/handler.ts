@@ -63,13 +63,24 @@ function adminEmails(): Set<string> {
   )
 }
 
+/**
+ * Whether an address is on the allowlist.
+ *
+ * Exported so the session endpoint can tell its own owner that the panel exists
+ * without duplicating the comparison. It answers a question about the caller's
+ * own identity only — never use it to decide what to render for someone else.
+ */
+export function isAdminEmail(email: string): boolean {
+  const allowlist = adminEmails()
+  return allowlist.size > 0 && allowlist.has(email.toLowerCase())
+}
+
 async function requireAdmin(event: H3Event): Promise<AuthenticatedCustomer> {
   const customer = await requireCustomer(event)
-  const allowlist = adminEmails()
 
   // An empty allowlist means nobody is an admin. Failing closed is the point:
   // a missing environment variable must not open the panel to every customer.
-  if (allowlist.size === 0 || !allowlist.has(customer.email.toLowerCase())) {
+  if (!isAdminEmail(customer.email)) {
     throw new AppError(ERROR_CODES.FORBIDDEN, {
       internal: `${customer.email} attempted admin route ${routeKey(event)}`,
     })

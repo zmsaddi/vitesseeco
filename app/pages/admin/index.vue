@@ -10,6 +10,7 @@
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
+const { formatDecimal, formatPercent } = useFormatPrice()
 const period = ref<'24h' | '7d' | '30d' | '90d'>('7d')
 
 interface Dashboard {
@@ -75,7 +76,7 @@ useSeoMeta({ title: () => t('admin.overview'), robots: 'noindex' })
 
       <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div class="card p-5">
-          <p class="text-2xl font-extrabold text-content-strong">{{ data.revenue }} €</p>
+          <p class="text-2xl font-extrabold text-content-strong">{{ formatDecimal(data.revenue) }}</p>
           <p class="mt-1 text-sm text-content-muted">{{ $t('admin.revenue_paid') }}</p>
         </div>
         <div class="card p-5">
@@ -83,12 +84,12 @@ useSeoMeta({ title: () => t('admin.overview'), robots: 'noindex' })
           <p class="mt-1 text-sm text-content-muted">{{ $t('admin.orders_paid') }}</p>
         </div>
         <div class="card p-5">
-          <p class="text-2xl font-extrabold text-content-strong">{{ data.conversion }} %</p>
+          <p class="text-2xl font-extrabold text-content-strong">{{ formatPercent(data.conversion) }}</p>
           <!-- Placed versus paid. The difference is baskets lost at payment. -->
           <p class="mt-1 text-sm text-content-muted">{{ $t('admin.conversion') }}</p>
         </div>
         <div class="card p-5">
-          <p class="text-2xl font-extrabold text-content-strong">{{ data.averageOrder }} €</p>
+          <p class="text-2xl font-extrabold text-content-strong">{{ formatDecimal(data.averageOrder) }}</p>
           <p class="mt-1 text-sm text-content-muted">{{ $t('admin.average_order') }}</p>
         </div>
       </div>
@@ -106,7 +107,7 @@ useSeoMeta({ title: () => t('admin.overview'), robots: 'noindex' })
         >
           <span class="min-w-0 flex-1 truncate text-content-strong">{{ product.name }}</span>
           <span class="text-sm text-content-muted">× {{ product.units }}</span>
-          <span class="font-semibold text-content-strong">{{ product.revenue }} €</span>
+          <span class="font-semibold text-content-strong">{{ formatDecimal(product.revenue) }}</span>
         </li>
       </ul>
     </section>

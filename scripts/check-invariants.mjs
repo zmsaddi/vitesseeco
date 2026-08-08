@@ -136,11 +136,41 @@ if (FILES.length === 0) {
     if (!rel.endsWith('.vue') || !rel.startsWith('app/')) continue
     const lines = readFileSync(file, 'utf8').split('\n')
     lines.forEach((line, i) => {
-      if (!/toFixed\(2\)/.test(line)) return
+      // A wire string with a currency or percent glyph stuck on the end is the
+      // same defect wearing different clothes: "1498.00 €" instead of
+      // "1 498,00 €". The toFixed rule below reported green while twelve of
+      // these sat in the admin panel, because none of them calls toFixed.
+      // Any closing brace followed by the glyph: catches both `{{ x }} €` and
+      // the `${x} €` inside a template literal, which the narrower form missed
+      // on a shipping line that read "12.90 €" to every customer.
+      const suffixed = /\}\s*[€%]/.test(line)
+      if (!/toFixed\(2\)/.test(line) && !suffixed) return
       if (isSuppressed(lines, i, rule, rel)) return
       bad++
-      fail(rule, rel, i + 1, `raw toFixed on a price: ${line.trim().slice(0, 90)}`)
+      const why = suffixed ? 'a wire value with a currency glyph appended' : 'raw toFixed on a price'
+      fail(rule, rel, i + 1, `${why}: ${line.trim().slice(0, 90)}`)
     })
+  }
+  if (bad === 0) pass(rule)
+}
+
+// ── 2c. Every layout offers a way to change language ─────────────────────────
+// A layout that replaces SiteHeader inherits none of its controls. The admin
+// shell did exactly that and shipped with no switcher, so the panel was
+// reachable only by typing "/admin" — which under prefix_except_default IS the
+// French route. Six translated locales, one of them ever visible.
+{
+  const rule = 'Every layout can change language'
+  const dir = join(ROOT, 'app', 'layouts')
+  let bad = 0
+  if (existsSync(dir)) {
+    for (const file of walk(dir, ['.vue'])) {
+      const rel = relative(ROOT, file).split('\\').join('/')
+      const text = readFileSync(file, 'utf8')
+      if (/<SiteHeader|useSwitchLocalePath/.test(text)) continue
+      bad++
+      fail(rule, rel, null, 'renders neither <SiteHeader nor a useSwitchLocalePath switcher')
+    }
   }
   if (bad === 0) pass(rule)
 }

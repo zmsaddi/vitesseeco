@@ -22,6 +22,21 @@ const oauthError = computed(() => {
   return typeof value === 'string' ? value : null
 })
 
+/**
+ * Where Google should return to.
+ *
+ * A plain link to `/api/auth/google` loses two things across the round trip:
+ * the page the guard was protecting, and the language. Google comes back to a
+ * bare callback that knows neither, so both have to be handed over on the way
+ * out. Falling back to `localePath('/compte')` rather than `/compte` is what
+ * keeps a Dutch sign-in from landing on the French account page.
+ */
+const googleHref = computed(() => {
+  const next = String(route.query.next ?? '')
+  const safe = next.startsWith('/') && !next.startsWith('//') ? next : localePath('/compte')
+  return `/api/auth/google?next=${encodeURIComponent(safe)}`
+})
+
 async function submit(): Promise<void> {
   if (submitting.value) return
   submitting.value = true
@@ -57,7 +72,7 @@ useSeoMeta({ title: () => t('auth.sign_in'), robots: 'noindex' })
     <div class="mx-auto max-w-sm">
       <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('auth.sign_in') }}</h1>
 
-      <a href="/api/auth/google" class="btn-secondary mt-6 w-full">
+      <a :href="googleHref" class="btn-secondary mt-6 w-full">
         <Icon name="ph:google-logo" class="h-5 w-5" />
         {{ $t('auth.continue_with_google') }}
       </a>

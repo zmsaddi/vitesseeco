@@ -20,6 +20,10 @@ import { parseAmountInput } from '~~/shared/money'
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
+// The two bare "€" glyphs beside the price inputs stay: an input holds the raw
+// editable number, and formatting a value someone is about to type over would
+// fight them. Only rendered text goes through the formatter.
+const { formatDecimal } = useFormatPrice()
 
 interface MarketPrice {
   country: string
@@ -234,7 +238,7 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
                   required
                   class="field h-10 w-28"
                   :class="row.market.isOverride ? 'font-semibold' : 'text-content-muted'"
-                  :title="`${$t('admin.vat_neutral')}: ${row.market.vatNeutral} €`"
+                  :title="`${$t('admin.vat_neutral')}: ${formatDecimal(row.market.vatNeutral)}`"
                   :disabled="saving === `${row.id}:market`"
                   @blur="saveMarketPrice(row, ($event.target as HTMLInputElement).value)"
                   @keyup.enter="($event.target as HTMLInputElement).blur()"

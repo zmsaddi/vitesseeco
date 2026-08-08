@@ -18,6 +18,7 @@ const localePath = useLocalePath()
 const { t } = useI18n()
 const cart = useCart()
 const { formatLongDate, formatDateTime } = useFormatDate()
+const { formatDecimal, formatPercent } = useFormatPrice()
 
 const orderNumber = computed(() => String(route.params.orderNumber ?? ''))
 
@@ -275,40 +276,40 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('account.orders')}`, rob
                 <p v-else class="font-medium text-content-strong">{{ item.name }}</p>
                 <p class="text-sm text-content-muted">
                   <span v-if="item.color">{{ item.color }} · </span>
-                  <span>{{ item.unitPrice }} € × {{ item.quantity }}</span>
+                  <span>{{ formatDecimal(item.unitPrice) }} × {{ item.quantity }}</span>
                 </p>
               </div>
 
-              <span class="shrink-0 font-semibold text-content-strong">{{ item.lineTotal }} €</span>
+              <span class="shrink-0 font-semibold text-content-strong">{{ formatDecimal(item.lineTotal) }}</span>
             </li>
           </ul>
 
           <dl class="mt-4 space-y-1 border-t border-surface-border pt-4 text-sm">
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('cart.subtotal') }}</dt>
-              <dd class="text-content">{{ order.subtotal }} €</dd>
+              <dd class="text-content">{{ formatDecimal(order.subtotal) }}</dd>
             </div>
             <div v-if="order.discount !== '0.00'" class="flex justify-between">
               <dt class="text-content-muted">
                 {{ $t('cart.discount') }}<span v-if="order.promoCode"> ({{ order.promoCode }})</span>
               </dt>
-              <dd class="text-success">−{{ order.discount }} €</dd>
+              <dd class="text-success">−{{ formatDecimal(order.discount) }}</dd>
             </div>
             <div class="flex justify-between">
               <dt class="text-content-muted">{{ $t('checkout.shipping') }}</dt>
               <dd class="text-content">
-                {{ order.shipping === '0.00' ? $t('checkout.free') : `${order.shipping} €` }}
+                {{ order.shipping === '0.00' ? $t('checkout.free') : formatDecimal(order.shipping) }}
               </dd>
             </div>
             <div class="flex justify-between border-t border-surface-border pt-2 text-base font-bold">
               <dt class="text-content-strong">{{ $t('cart.total') }}</dt>
-              <dd class="text-content-strong">{{ order.total }} €</dd>
+              <dd class="text-content-strong">{{ formatDecimal(order.total) }}</dd>
             </div>
             <div class="flex justify-between text-xs">
               <dt class="text-content-muted">
-                {{ $t('order.vat_included') }} ({{ order.vat.ratePercent }} %)
+                {{ $t('order.vat_included') }} ({{ formatPercent(order.vat.ratePercent) }})
               </dt>
-              <dd class="text-content-muted">{{ order.vat.amount }} €</dd>
+              <dd class="text-content-muted">{{ formatDecimal(order.vat.amount) }}</dd>
             </div>
           </dl>
         </section>

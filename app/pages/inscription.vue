@@ -64,7 +64,8 @@ useSeoMeta({ title: () => t('auth.create_account'), robots: 'noindex' })
     <div class="mx-auto max-w-sm">
       <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('auth.create_account') }}</h1>
 
-      <a href="/api/auth/google" class="btn-secondary mt-6 w-full">
+      <!-- Hands the language over the Google round trip; see connexion.vue. -->
+      <a :href="`/api/auth/google?next=${encodeURIComponent(localePath('/compte'))}`" class="btn-secondary mt-6 w-full">
         <Icon name="ph:google-logo" class="h-5 w-5" />
         {{ $t('auth.continue_with_google') }}
       </a>

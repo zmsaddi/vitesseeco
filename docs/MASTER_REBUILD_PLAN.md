@@ -256,7 +256,8 @@ them means not ranking, regardless of code quality.
 - Terminology per market researched, not translated (e.g. DE "E-Bike" not "elektrisches
   Fahrrad" in headlines; NL "e-bike"/"elektrische fiets" per search volume).
 - Locale-correct number/date/currency formatting everywhere (Intl APIs) — admin panel
-  included (fully i18n since 2026-07-05, 6 languages + language switcher).
+  included (6 languages + language switcher; the switcher was missing from the rebuilt
+  admin shell until 2026-08-08, see U-A3 in REBUILD_EXECUTION.md).
 
 ### 7.4 Market-entry compliance (R4 — legal/ops, owner + code)
 

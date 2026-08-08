@@ -20,7 +20,7 @@ import { customers, oauthIdentities } from '../../../db/schema'
 import { createSession } from '../../../security/session'
 import { applyApiHeaders } from '../../../security/headers'
 import { audit } from '../../../services/audit'
-import { OAUTH_STATE_COOKIE } from './index.get'
+import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE, localePrefixOf, safeNext } from './index.get'
 
 interface GoogleTokenResponse {
   access_token?: string
@@ -44,15 +44,26 @@ export default defineEventHandler(async (event) => {
   const expectedState = getCookie(event, OAUTH_STATE_COOKIE)
   deleteCookie(event, OAUTH_STATE_COOKIE, { path: '/' })
 
+  // Read and clear before the first exit, so an abandoned attempt cannot leave
+  // a destination behind for the next one. Re-validated on the way out: the
+  // cookie is ours and httpOnly, but a value is only ever as safe as its check.
+  const next = safeNext(getCookie(event, OAUTH_NEXT_COOKIE))
+  deleteCookie(event, OAUTH_NEXT_COOKIE, { path: '/' })
+
+  // Google returns to a bare callback URL. The path the visitor was heading for
+  // is the only thing that still remembers their language.
+  const prefix = localePrefixOf(next)
+  const fail = (reason: string) => sendRedirect(event, `${prefix}/connexion?error=${reason}`, 302)
+
   if (!code || !state || !expectedState || state !== expectedState) {
-    return sendRedirect(event, '/connexion?error=invalid_state', 302)
+    return fail('invalid_state')
   }
 
   const clientId = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const siteUrl = process.env.NUXT_PUBLIC_SITE_URL ?? 'https://vitesse-eco.fr'
   if (!clientId || !clientSecret) {
-    return sendRedirect(event, '/connexion?error=oauth_unavailable', 302)
+    return fail('oauth_unavailable')
   }
 
   let profile: GoogleUserInfo
@@ -69,7 +80,7 @@ export default defineEventHandler(async (event) => {
     })) as GoogleTokenResponse
 
     if (!tokenResponse.access_token) {
-      return sendRedirect(event, '/connexion?error=oauth_failed', 302)
+      return fail('oauth_failed')
     }
 
     profile = (await $fetch<GoogleUserInfo>('https://openidconnect.googleapis.com/v1/userinfo', {
@@ -77,14 +88,14 @@ export default defineEventHandler(async (event) => {
     })) as GoogleUserInfo
   } catch (error) {
     console.error('[oauth] Google exchange failed', error)
-    return sendRedirect(event, '/connexion?error=oauth_failed', 302)
+    return fail('oauth_failed')
   }
 
   const email = profile.email?.trim().toLowerCase()
   const providerAccountId = profile.sub
 
   if (!email || !providerAccountId) {
-    return sendRedirect(event, '/connexion?error=oauth_failed', 302)
+    return fail('oauth_failed')
   }
 
   // The check the old build did not make.
@@ -94,7 +105,7 @@ export default defineEventHandler(async (event) => {
       resourceType: 'customer',
       metadata: { provider: 'google', email },
     })
-    return sendRedirect(event, '/connexion?error=email_unverified', 302)
+    return fail('email_unverified')
   }
 
   const customerId = await withTransaction(async (tx) => {
@@ -162,7 +173,7 @@ export default defineEventHandler(async (event) => {
     metadata: { provider: 'google' },
   })
 
-  return sendRedirect(event, '/compte', 302)
+  return sendRedirect(event, next ?? `${prefix}/compte`, 302)
 })
 
 export { db }

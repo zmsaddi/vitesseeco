@@ -36,6 +36,14 @@ function csvCell(value: unknown): string {
  * The street address and the line items are here because an export without them
  * cannot be used to pack or to deliver anything — which is most of what an
  * export is for in a shop that drives its own van.
+ *
+ * These headers stay French while the rest of the panel follows the admin's
+ * language, and that is a decision rather than an oversight: the file feeds the
+ * accounting of a French SAS, and a column name is a key someone's spreadsheet
+ * formula or import mapping already points at. Translating them would silently
+ * break every sheet built on a previous export. If a second language is ever
+ * needed here, add the labels to i18n/locales as `admin.export.*` and resolve
+ * them against the caller's locale — do not rename these in place.
  */
 const COLUMNS = [
   'Numéro',
