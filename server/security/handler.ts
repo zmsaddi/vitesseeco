@@ -75,6 +75,19 @@ export function isAdminEmail(email: string): boolean {
   return allowlist.size > 0 && allowlist.has(email.toLowerCase())
 }
 
+/**
+ * Admin needs an address on the allowlist AND proof someone can read it.
+ *
+ * The allowlist alone is a comparison against a string the caller chose.
+ * Registration issues a session immediately against an address nobody checked,
+ * so an allowlisted address that has never been claimed can be claimed by
+ * anyone who types it — and the panel opens. Requiring `emailVerified` closes
+ * that: only a completed Google sign-in sets it, and Google will not hand over
+ * an address its owner has not confirmed.
+ *
+ * Both real administrators here signed in with Google and are verified, so this
+ * costs nothing today and makes the allowlist mean what it looks like it means.
+ */
 async function requireAdmin(event: H3Event): Promise<AuthenticatedCustomer> {
   const customer = await requireCustomer(event)
 
@@ -83,6 +96,14 @@ async function requireAdmin(event: H3Event): Promise<AuthenticatedCustomer> {
   if (!isAdminEmail(customer.email)) {
     throw new AppError(ERROR_CODES.FORBIDDEN, {
       internal: `${customer.email} attempted admin route ${routeKey(event)}`,
+    })
+  }
+
+  if (!customer.emailVerified) {
+    // Deliberately the same error as not being on the list at all: which of the
+    // two failed is not the caller's business.
+    throw new AppError(ERROR_CODES.FORBIDDEN, {
+      internal: `${customer.email} is allowlisted but unverified — refused ${routeKey(event)}`,
     })
   }
   return customer

@@ -7,7 +7,8 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { and, eq, sql } from 'drizzle-orm'
-import { closePool, hasDatabase, resetDatabase, schema, testDb } from './setup'
+import { closePool, hasDatabase, inTransaction, resetDatabase, schema, testDb } from './setup'
+import { revokeSessionsFor } from '../../server/security/session'
 import { createSessionToken, hashPassword, hashToken, verifyPassword } from '../../server/security/crypto'
 
 async function makeCustomer(email: string): Promise<string> {
@@ -115,6 +116,91 @@ describe.skipIf(!hasDatabase)('accounts', () => {
         sql`SELECT COUNT(*)::text AS count FROM sessions`
       )
       expect(Number(remaining.rows[0]?.count)).toBe(0)
+    })
+
+    it('signs an account out of every browser at once, and only that account', async () => {
+      // What makes taking an account back possible. Anyone can register an
+      // address they cannot read and hold a live session against it; when the
+      // real owner finally proves the address through Google, that earlier
+      // session has to stop being a way in.
+      const squatter = await makeCustomer('contested@example.com')
+      const bystander = await makeCustomer('bystander@example.com')
+      for (const customerId of [squatter, squatter, squatter, bystander]) {
+        await testDb()
+          .insert(schema.sessions)
+          .values({
+            customerId,
+            tokenHash: createSessionToken().tokenHash,
+            expiresAt: new Date(Date.now() + 60_000),
+          })
+      }
+
+      const revoked = await inTransaction((tx) => revokeSessionsFor(tx, squatter))
+      expect(revoked).toBe(3)
+
+      const left = await testDb().execute<{ customer_id: string }>(
+        sql`SELECT customer_id FROM sessions`
+      )
+      expect(left.rows).toHaveLength(1)
+      expect(left.rows[0]?.customer_id).toBe(bystander)
+    })
+  })
+
+  describe('taking back an address someone else registered', () => {
+    it('an account registered by password is not proof of owning the address', async () => {
+      // The state the Google callback now reacts to. Registration writes a
+      // password hash and no emailVerifiedAt, and hands out a session on the
+      // spot — so this row means "someone typed this address", never "this
+      // person can read it".
+      const id = await makeCustomer('squatted@example.com')
+      const [row] = await testDb()
+        .select({
+          verified: schema.customers.emailVerifiedAt,
+          password: schema.customers.passwordHash,
+        })
+        .from(schema.customers)
+        .where(eq(schema.customers.id, id))
+
+      expect(row?.verified).toBeNull()
+      expect(row?.password).toBeTruthy()
+    })
+
+    it('proving the address revokes the sessions and retires the password', async () => {
+      // The reclaim the callback performs, asserted on the database rather than
+      // read from the code. Afterwards the address is verified — which is what
+      // admin access now requires — the squatter's session is gone, and the
+      // password nobody ever proved no longer signs anyone in.
+      const id = await makeCustomer('reclaimed@example.com')
+      await testDb()
+        .insert(schema.sessions)
+        .values({
+          customerId: id,
+          tokenHash: createSessionToken().tokenHash,
+          expiresAt: new Date(Date.now() + 60_000),
+        })
+
+      await inTransaction(async (tx) => {
+        await tx
+          .update(schema.customers)
+          .set({ emailVerifiedAt: new Date(), passwordHash: null })
+          .where(eq(schema.customers.id, id))
+        await revokeSessionsFor(tx, id)
+      })
+
+      const [row] = await testDb()
+        .select({
+          verified: schema.customers.emailVerifiedAt,
+          password: schema.customers.passwordHash,
+        })
+        .from(schema.customers)
+        .where(eq(schema.customers.id, id))
+      expect(row?.verified).not.toBeNull()
+      expect(row?.password).toBeNull()
+
+      const left = await testDb().execute<{ count: string }>(
+        sql`SELECT COUNT(*)::text AS count FROM sessions WHERE customer_id = ${id}`
+      )
+      expect(Number(left.rows[0]?.count)).toBe(0)
     })
   })
 

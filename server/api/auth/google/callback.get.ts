@@ -17,7 +17,7 @@ import { deleteCookie, defineEventHandler, getCookie, getQuery, sendRedirect } f
 import { and, eq } from 'drizzle-orm'
 import { db, withTransaction } from '../../../db/client'
 import { customers, oauthIdentities } from '../../../db/schema'
-import { createSession } from '../../../security/session'
+import { createSession, revokeSessionsFor } from '../../../security/session'
 import { applyApiHeaders } from '../../../security/headers'
 import { audit } from '../../../services/audit'
 import { OAUTH_NEXT_COOKIE, OAUTH_STATE_COOKIE, localePrefixOf, safeNext } from './index.get'
@@ -108,6 +108,10 @@ export default defineEventHandler(async (event) => {
     return fail('email_unverified')
   }
 
+  // Set inside the transaction when an unverified record is taken back by the
+  // owner who proved the address; audited afterwards, outside it.
+  let reclaimedSessions = 0
+
   const customerId = await withTransaction(async (tx) => {
     // An identity we already know: sign that customer in, whatever the email
     // says now. The provider account id is the stable link, not the address.
@@ -123,7 +127,7 @@ export default defineEventHandler(async (event) => {
 
     // A verified address that already has an account: link them.
     const [existing] = await tx
-      .select({ id: customers.id })
+      .select({ id: customers.id, emailVerifiedAt: customers.emailVerifiedAt })
       .from(customers)
       .where(eq(customers.email, email))
       .limit(1)
@@ -134,6 +138,27 @@ export default defineEventHandler(async (event) => {
         provider: 'google',
         providerAccountId,
       })
+
+      // Registration issues a live session against an address nobody checked,
+      // so an unverified record is not evidence that its holder owns the
+      // address — it is only evidence that someone typed it. Google has just
+      // produced the first real proof, and it did not necessarily come from
+      // whoever is holding that session.
+      //
+      // So the account goes to the party who proved it: mark it verified, drop
+      // every session opened before the proof, and clear the password nobody
+      // ever demonstrated ownership of. The legitimate owner keeps the account
+      // and signs in with Google; anyone squatting the address loses both their
+      // session and their way back in. Linking silently, as this did, handed a
+      // squatter a permanent foothold in the real owner's account — and if the
+      // address were on ADMIN_EMAILS, a foothold in the panel.
+      if (existing.emailVerifiedAt === null) {
+        await tx
+          .update(customers)
+          .set({ emailVerifiedAt: new Date(), passwordHash: null })
+          .where(eq(customers.id, existing.id))
+        reclaimedSessions = await revokeSessionsFor(tx, existing.id)
+      }
       return existing.id
     }
 
@@ -163,6 +188,20 @@ export default defineEventHandler(async (event) => {
   await withTransaction(async (tx) => {
     await createSession(event, tx, customerId)
   })
+
+  if (reclaimedSessions > 0) {
+    // Worth a line of its own: somebody was signed out of an account they were
+    // holding, and a password stopped working. If that was ever wrong, this is
+    // the record that shows it happened and when.
+    await audit({
+      action: 'customer.oauth_reclaimed_unverified',
+      actorType: 'customer',
+      actorId: customerId,
+      resourceType: 'customer',
+      resourceId: customerId,
+      metadata: { provider: 'google', sessionsRevoked: reclaimedSessions, passwordCleared: true },
+    })
+  }
 
   await audit({
     action: 'customer.login_oauth',

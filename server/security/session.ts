@@ -38,6 +38,16 @@ export interface AuthenticatedCustomer {
   lastName: string
   locale: string
   sessionId: string
+  /**
+   * Whether anyone has ever proved they can read this address.
+   *
+   * Registration hands out a session against an address nobody checked, so this
+   * is false for every password account: there is no verification mail on this
+   * branch to make it true. Only a Google sign-in sets it. Admin access reads
+   * it, because an allowlist compared against an unproven address is an
+   * allowlist anyone can join.
+   */
+  emailVerified: boolean
 }
 
 function cookieOptions(maxAgeSeconds: number) {
@@ -96,6 +106,7 @@ export async function resolveSession(event: H3Event): Promise<AuthenticatedCusto
       firstName: customers.firstName,
       lastName: customers.lastName,
       locale: customers.locale,
+      emailVerifiedAt: customers.emailVerifiedAt,
     })
     .from(sessions)
     .innerJoin(customers, eq(customers.id, sessions.customerId))
@@ -118,6 +129,7 @@ export async function resolveSession(event: H3Event): Promise<AuthenticatedCusto
     lastName: row.lastName,
     locale: row.locale,
     sessionId: row.sessionId,
+    emailVerified: row.emailVerifiedAt !== null,
   }
 }
 
@@ -155,6 +167,23 @@ export async function destroySession(event: H3Event): Promise<void> {
   clearSessionCookies(event)
 }
 
+
+/**
+ * Sign out of every browser this account is open in.
+ *
+ * Used when who owns an account changes hands — an identity linked, a password
+ * cleared. Anyone can register an address they cannot read and hold a live
+ * session against it, so when the real owner finally proves the address, that
+ * earlier session has to stop being a way in. Takes a transaction so the
+ * revocation commits with the change that caused it, never separately.
+ */
+export async function revokeSessionsFor(tx: Transaction, customerId: string): Promise<number> {
+  const removed = await tx
+    .delete(sessions)
+    .where(eq(sessions.customerId, customerId))
+    .returning({ id: sessions.id })
+  return removed.length
+}
 
 export function clearSessionCookies(event: H3Event): void {
   deleteCookie(event, SESSION_COOKIE, { path: '/' })
