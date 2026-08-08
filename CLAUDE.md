@@ -1,8 +1,11 @@
 # Vitesse Eco
 
-> **Branch:** `rebuild` — a clean build that replaces `master`. `master` stays
-> deployable until [docs/CUTOVER.md](docs/CUTOVER.md) passes.
-> **Last verified against the code:** 2026-07-30.
+> **Branch:** the cutover has happened. `origin/master` and `origin/rebuild`
+> point at the same commit, and **production builds from `master`** — so this
+> codebase is what vitesse-eco.fr serves. A local `master` checked out before
+> the cutover is the old root-level structure and is not what ships; check
+> `git ls-remote origin master rebuild` before believing otherwise.
+> **Last verified against the code:** 2026-08-08.
 > Every path, command and variable below was checked to exist. If something here
 > is wrong, the document is the bug — fix it in the same commit.
 
