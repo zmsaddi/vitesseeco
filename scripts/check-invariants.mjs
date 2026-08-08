@@ -203,6 +203,37 @@ if (FILES.length === 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 2b3. Search and Merchant state the SAME product group id ─────────────────
+// The feed emits it as item_group_id and the product page as
+// inProductGroupWithID. Shortening the feed value to Google's 50-character
+// limit without shortening the page's left them declaring two different groups
+// for one model — Search and Merchant each grouping the colours their own way.
+// Both must go through shared/product-group.ts, which is the only thing that
+// keeps them equal.
+{
+  const rule = 'Search and Merchant agree on the product group id'
+  let bad = 0
+  const sites = [
+    ['server/feeds/merchant.ts', 'item_group_id'],
+    ['app/pages/produits/[slug].vue', 'inProductGroupWithID'],
+  ]
+  for (const [rel, attribute] of sites) {
+    const file = join(ROOT, rel)
+    if (!existsSync(file)) continue
+    const lines = readFileSync(file, 'utf8').split('\n')
+    lines.forEach((line, i) => {
+      if (!line.includes(attribute)) return
+      // The declaration itself, not a comment mentioning it.
+      if (/^\s*(\/\/|\*)/.test(line)) return
+      if (line.includes('groupId(')) return
+      if (isSuppressed(lines, i, rule, rel)) return
+      bad++
+      fail(rule, rel, i + 1, `${attribute} is set without groupId(), so it can drift from the other side`)
+    })
+  }
+  if (bad === 0) pass(rule)
+}
+
 // ── 2c. Every layout offers a way to change language ─────────────────────────
 // A layout that replaces SiteHeader inherits none of its controls. The admin
 // shell did exactly that and shipped with no switcher, so the panel was

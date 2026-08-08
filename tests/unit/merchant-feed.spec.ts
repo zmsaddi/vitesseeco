@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { groupId } from '../../server/feeds/merchant'
+import { groupId } from '../../shared/product-group'
 
 /**
  * Merchant Center reported this one itself: "[item_group_id] attribute text too

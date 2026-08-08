@@ -3,6 +3,7 @@ import type { ProductDetail } from '~~/server/catalog/types'
 import { localizedUrl, type LocaleCode } from '~~/shared/locales'
 import { ORGANISATION, RETURN_POLICY, SITE_URL } from '~~/shared/organisation'
 import { marketForLocale } from '~~/shared/markets'
+import { groupId } from '~~/shared/product-group'
 
 /**
  * Product page.
@@ -227,9 +228,25 @@ useHead(() => {
         gtin13: item.gtin ?? undefined,
         mpn: item.manufacturerMpn ?? undefined,
         color: item.color ?? undefined,
-        // Ties the colours of one model together, the same grouping the
-        // Merchant feed uses as item_group_id.
-        inProductGroupWithID: item.modelFamily ?? undefined,
+        // Ties the colours of one model together, and it must be the SAME
+        // string the Merchant feed emits as item_group_id — Search and Merchant
+        // reading two different group ids for one model is two groups. Shortening
+        // the feed value to Google's 50-character limit without shortening this
+        // one is exactly how they drifted apart.
+        inProductGroupWithID: item.modelFamily ? groupId(item.modelFamily) : undefined,
+        // Google's documented shape for a variant on its own URL: the variant
+        // names its group and what varies. Six colours become six colours of one
+        // model rather than six pages competing as duplicates — which is the
+        // problem the old family-canonical was reaching for, solved the way the
+        // documentation says to solve it.
+        isVariantOf: item.modelFamily
+          ? {
+              '@type': 'ProductGroup',
+              productGroupID: groupId(item.modelFamily),
+              name: item.name,
+              variesBy: 'https://schema.org/color',
+            }
+          : undefined,
         brand: item.brand ? { '@type': 'Brand', name: item.brand.name } : undefined,
         offers: {
           '@type': 'Offer',

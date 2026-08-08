@@ -27,6 +27,7 @@ import { MARKET_PRICING_QUERY } from '../catalog/queries'
 import { db } from '../db/client'
 import { readAvailability } from '../services/stock'
 import { toDecimalString, fromEuros, add, type Cents } from '../../shared/money'
+import { groupId } from '../../shared/product-group'
 import { localizedUrl, type LocaleCode } from '../../shared/locales'
 import { marketForLocale } from '../../shared/markets'
 
@@ -168,34 +169,6 @@ function identifiers(product: {
   return parts.join('')
 }
 
-/**
- * `item_group_id`, within Google's 50-character limit.
- *
- * `modelFamily` is a slug, and some of ours run to 98 characters — Merchant
- * Center reported it as "attribute too long" and served those products with
- * limited visibility across BE, FR and NL. Truncating alone is unsafe: two
- * families whose slugs share a long prefix would collapse into one group and
- * Google would show one model's colours under another's.
- *
- * So a value that fits is passed through untouched, and one that does not keeps
- * a readable prefix plus a short digest of the WHOLE original. The digest is
- * what preserves the property that actually matters: colours of one model group
- * together, and colours of different models never do.
- */
-export function groupId(modelFamily: string): string {
-  const LIMIT = 50
-  if (modelFamily.length <= LIMIT) return modelFamily
-
-  // FNV-1a: a few lines, stable across runs and platforms, and this is a
-  // grouping key rather than anything anyone has to defend cryptographically.
-  let hash = 0x811c9dc5
-  for (let i = 0; i < modelFamily.length; i++) {
-    hash ^= modelFamily.charCodeAt(i)
-    hash = Math.imul(hash, 0x01000193) >>> 0
-  }
-  const digest = hash.toString(36).padStart(7, '0')
-  return `${modelFamily.slice(0, LIMIT - digest.length - 1)}-${digest}`
-}
 
 function brandName(product: FeedProduct, locale: FeedLocale): string | null {
   const raw = product.brand?.name
@@ -323,6 +296,10 @@ export async function buildMerchantFeed(locale: FeedLocale): Promise<BuiltFeed> 
     <g:title>${esc(name)}${variant.titleSuffix}</g:title>
     <g:description>${esc(description)}</g:description>
     <g:link>${esc(localizedUrl(`/produits/${product.slug}`, locale))}</g:link>
+    <!-- Merchant matches the landing page against the Search index through
+         this attribute. Each colour is its own canonical page, so it is the
+         same URL — stated rather than inferred. -->
+    <g:canonical_link>${esc(localizedUrl(`/produits/${product.slug}`, locale))}</g:canonical_link>
     <g:image_link>${esc(image)}</g:image_link>${extraImages}
     <g:availability>${available > 0 ? 'in_stock' : 'out_of_stock'}</g:availability>
     <g:price>${toDecimalString(variant.listPrice)} EUR</g:price>${
