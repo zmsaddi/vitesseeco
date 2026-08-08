@@ -80,7 +80,8 @@ useHead(() => {
 <template>
   <article v-if="article" class="container-page py-10">
     <NuxtLink :to="localePath('/blog')" class="text-sm text-content-muted hover:text-content-strong">
-      ← {{ $t('blog.title') }}
+      <Icon name="ph:arrow-left" class="inline h-4 w-4 align-[-2px] rtl:rotate-180" />
+      {{ $t('blog.title') }}
     </NuxtLink>
 
     <header class="mt-4 max-w-3xl">

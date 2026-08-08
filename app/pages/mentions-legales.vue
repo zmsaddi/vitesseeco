@@ -74,26 +74,19 @@ useSeoMeta({
           <div class="flex flex-wrap gap-x-4 gap-y-1 p-4">
             <dt class="w-56 shrink-0 text-content-muted">{{ $t('mentions.email') }}</dt>
             <dd>
-              <a class="text-accent hover:underline" href="mailto:contact@vitesse-eco.fr">
-                contact@vitesse-eco.fr
-              </a>
+              <ContactLink kind="email" class="text-accent hover:underline" />
             </dd>
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-1 p-4">
             <dt class="w-56 shrink-0 text-content-muted">{{ $t('mentions.phone') }}</dt>
             <dd>
-              <a class="text-accent hover:underline" href="tel:+33745830049">+33 7 45 83 00 49</a>
+              <ContactLink kind="phone" class="text-accent hover:underline" />
             </dd>
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-1 p-4">
             <dt class="w-56 shrink-0 text-content-muted">{{ $t('mentions.whatsapp') }}</dt>
             <dd>
-              <a
-                class="text-accent hover:underline"
-                href="https://wa.me/33745830049"
-                rel="noopener"
-                target="_blank"
-              >wa.me/33745830049</a>
+              <ContactLink kind="whatsapp" class="text-accent hover:underline" target="_blank" />
             </dd>
           </div>
         </dl>

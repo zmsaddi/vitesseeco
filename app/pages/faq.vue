@@ -183,9 +183,9 @@ useHead({
       <p class="mt-3 text-content">{{ $t('faq.still_body') }}</p>
 
       <ul class="mt-5 space-y-1 text-sm text-content-muted">
-        <li><a class="hover:text-content-strong" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a></li>
-        <li><a class="hover:text-content-strong" href="tel:+33745830049">+33 7 45 83 00 49</a></li>
-        <li><a class="hover:text-content-strong" href="https://wa.me/33745830049" rel="noopener">WhatsApp</a></li>
+        <li><ContactLink kind="email" class="hover:text-content-strong" /></li>
+        <li><ContactLink kind="phone" class="hover:text-content-strong" /></li>
+        <li><ContactLink kind="whatsapp" label="WhatsApp" class="hover:text-content-strong" /></li>
       </ul>
 
       <NuxtLink :to="localePath('/contact')" class="btn-primary mt-6">{{ $t('nav.contact') }}</NuxtLink>

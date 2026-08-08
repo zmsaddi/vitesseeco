@@ -48,9 +48,9 @@ const explore = [
             <p>32 Rue du Faubourg du Pont Neuf</p>
             <p>86000 Poitiers, France</p>
             <p>
-              <a class="hover:text-content-strong" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
+              <ContactLink kind="email" class="hover:text-content-strong" />
             </p>
-            <p><a class="hover:text-content-strong" href="tel:+33745830049">+33 7 45 83 00 49</a></p>
+            <p><ContactLink kind="phone" class="hover:text-content-strong" /></p>
           </address>
         </div>
 

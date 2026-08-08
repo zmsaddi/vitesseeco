@@ -107,8 +107,8 @@ useSeoMeta({
           Wenn wir mit unserem eigenen Fahrzeug zu Ihnen liefern — Belgien, die Niederlande und das
           französische Département 86 — können wir den alten Akku bei der Lieferung mitnehmen. Bitte
           kündigen Sie das vorher unter
-          <a class="hover:text-accent" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
-          oder <a class="hover:text-accent" href="tel:+33745830049">+33 7 45 83 00 49</a> an, damit
+          <ContactLink kind="email" class="hover:text-accent" />
+          oder <ContactLink kind="phone" class="hover:text-accent" /> an, damit
           wir den Transport als Gefahrgut korrekt vorbereiten können.
         </p>
       </section>
@@ -207,10 +207,10 @@ useSeoMeta({
         <h2 class="font-display text-xl font-bold text-content-strong">Fragen zur Rückgabe</h2>
         <p class="mt-3 text-content">
           Schreiben Sie an
-          <a class="hover:text-accent" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>,
-          rufen Sie <a class="hover:text-accent" href="tel:+33745830049">+33 7 45 83 00 49</a> an
+          <ContactLink kind="email" class="hover:text-accent" />,
+          rufen Sie <ContactLink kind="phone" class="hover:text-accent" /> an
           oder schreiben Sie uns über
-          <a class="hover:text-accent" href="https://wa.me/33745830049" rel="noopener">WhatsApp</a>.
+          <ContactLink kind="whatsapp" label="WhatsApp" class="hover:text-accent" />.
           Unsere vollständigen Anbieterangaben stehen im
           <NuxtLink :to="localePath('/impressum')" class="text-accent hover:underline">Impressum</NuxtLink>.
         </p>

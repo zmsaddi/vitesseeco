@@ -194,7 +194,8 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('account.orders')}`, rob
 <template>
   <div class="container-page py-10">
     <NuxtLink :to="localePath('/compte')" class="text-sm text-content-muted hover:text-content-strong">
-      ← {{ $t('account.orders') }}
+      <Icon name="ph:arrow-left" class="inline h-4 w-4 align-[-2px] rtl:rotate-180" />
+      {{ $t('account.orders') }}
     </NuxtLink>
 
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
@@ -203,7 +204,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('account.orders')}`, rob
     <template v-else>
       <div class="mt-3 flex flex-wrap items-center gap-3">
         <h1 class="font-mono text-2xl font-extrabold text-content-strong">
-          {{ order.orderNumber }}
+          <bdi dir="ltr">{{ order.orderNumber }}</bdi>
         </h1>
         <span class="rounded-full px-3 py-1 text-xs font-semibold" :class="statusTone(order.status)">
           {{ $t(`order_status.${order.status}`) }}
@@ -341,7 +342,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('account.orders')}`, rob
 
             <p v-if="order.trackingNumber" class="mt-4 border-t border-surface-border pt-3 text-sm text-content-muted">
               {{ $t('account.tracking') }}
-              <span class="font-mono text-content-strong">{{ order.trackingNumber }}</span>
+              <span class="font-mono text-content-strong"><bdi dir="ltr">{{ order.trackingNumber }}</bdi></span>
               <span v-if="order.carrier"> · {{ order.carrier }}</span>
             </p>
           </section>

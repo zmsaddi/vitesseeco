@@ -112,6 +112,47 @@ try {
       : 'header entry points reachable (product-page checks skipped)')
   }
 
+  // ── 3. Arabic must not reorder a phone number ──────────────────────────────
+  // `+33 7 45 83 00 49` opens with a PLUS, which the bidi algorithm treats as a
+  // neutral; in a right-to-left paragraph a neutral takes the paragraph's
+  // direction, so the plus was laid out AFTER the digits. Measured, not read:
+  // the plus sat at x=1169 and the final digit at x=1061. The number a customer
+  // would dial was displayed wrong on every Arabic page that shows it.
+  console.log('\nbidirectional text')
+  const beforeBidi = failures
+  let phonesSeen = 0
+  for (const route of ['/contact', '/mentions-legales', '/faq']) {
+    const response = await page.goto(`${BASE}/ar${route}`, { waitUntil: 'domcontentloaded' })
+    if (!response || response.status() >= 400) {
+      fail(`/ar${route} returned ${response ? response.status() : 'no response'}`)
+      continue
+    }
+    const probe = await page.evaluate(() => {
+      const out = []
+      for (const el of document.querySelectorAll('a[href^="tel:"] bdi, a[href^="tel:"]')) {
+        const text = el.textContent.trim()
+        if (!text.startsWith('+') || el.childNodes.length !== 1 || el.firstChild.nodeType !== 3) continue
+        const node = el.firstChild
+        const xOf = (i) => {
+          const r = document.createRange()
+          r.setStart(node, i); r.setEnd(node, i + 1)
+          return r.getBoundingClientRect().x
+        }
+        out.push({ text, plusReadsFirst: xOf(0) < xOf(text.length - 1) })
+      }
+      return { dir: document.documentElement.dir, phones: out }
+    })
+    if (probe.dir !== 'rtl') fail(`/ar${route} is not marked dir="rtl"`)
+    phonesSeen += probe.phones.length
+    for (const phone of probe.phones) {
+      if (!phone.plusReadsFirst) {
+        fail(`/ar${route} renders ${phone.text} with the plus after the digits`, 'isolate it: <bdi dir="ltr">')
+      }
+    }
+  }
+  if (phonesSeen === 0) fail('no phone number found on any Arabic page — the check proved nothing')
+  if (failures === beforeBidi) pass(`${phonesSeen} phone number(s) read left-to-right inside Arabic pages`)
+
   console.log('')
   if (failures > 0) {
     console.error(`❌ ${failures} frontend problem(s)\n`)

@@ -61,18 +61,18 @@ useSeoMeta({
         <dl class="mt-3 space-y-1 text-content">
           <div class="flex flex-wrap gap-x-2">
             <dt class="text-content-muted">Telefon:</dt>
-            <dd><a class="hover:text-accent" href="tel:+33745830049">+33 7 45 83 00 49</a></dd>
+            <dd><ContactLink kind="phone" class="hover:text-accent" /></dd>
           </div>
           <div class="flex flex-wrap gap-x-2">
             <dt class="text-content-muted">WhatsApp:</dt>
             <dd>
-              <a class="hover:text-accent" href="https://wa.me/33745830049" rel="noopener">wa.me/33745830049</a>
+              <ContactLink kind="whatsapp" class="hover:text-accent" />
             </dd>
           </div>
           <div class="flex flex-wrap gap-x-2">
             <dt class="text-content-muted">E-Mail:</dt>
             <dd>
-              <a class="hover:text-accent" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
+              <ContactLink kind="email" class="hover:text-accent" />
             </dd>
           </div>
           <div class="flex flex-wrap gap-x-2">
@@ -124,7 +124,7 @@ useSeoMeta({
           Wir sind nicht verpflichtet und nicht bereit, an einem Streitbeilegungsverfahren vor einer
           Verbraucherschlichtungsstelle teilzunehmen. Bei Beanstandungen wenden Sie sich bitte
           direkt an
-          <a class="hover:text-accent" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
+          <ContactLink kind="email" class="hover:text-accent" />
           — wir beantworten jede Nachricht.
         </p>
       </section>

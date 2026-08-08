@@ -153,11 +153,11 @@ useSeoMeta({
       <ul class="mt-4 space-y-2 text-content">
         <li>
           <span class="text-content-muted">{{ $t('withdrawal.how_by_email') }}</span>
-          <a class="ms-1 text-accent hover:underline" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
+          <ContactLink kind="email" class="ms-1 text-accent hover:underline" />
         </li>
         <li>
           <span class="text-content-muted">{{ $t('withdrawal.how_by_phone') }}</span>
-          <a class="ms-1 text-accent hover:underline" href="tel:+33745830049">+33 7 45 83 00 49</a>
+          <ContactLink kind="phone" class="ms-1 text-accent hover:underline" />
         </li>
         <li>
           <span class="text-content-muted">{{ $t('withdrawal.how_by_post') }}</span>
@@ -297,8 +297,8 @@ useSeoMeta({
       <h2 class="font-display text-xl font-bold text-content-strong">{{ $t('withdrawal.help_title') }}</h2>
       <p class="mt-3 text-content">{{ $t('withdrawal.help_body') }}</p>
       <div class="mt-4 flex flex-wrap gap-3">
-        <a class="btn-primary" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a>
-        <a class="btn-secondary" href="https://wa.me/33745830049" rel="noopener">WhatsApp</a>
+        <ContactLink kind="email" class="btn-primary" />
+        <ContactLink kind="whatsapp" label="WhatsApp" class="btn-secondary" />
       </div>
     </section>
   </article>

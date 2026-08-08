@@ -236,7 +236,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
           <span v-if="address.line2" class="block">{{ address.line2 }}</span>
           <span class="block">{{ address.postalCode }} {{ address.city }}</span>
           <span class="block">{{ countryName(address.country) }}</span>
-          <span v-if="address.phone" class="mt-1 block text-content-muted">{{ address.phone }}</span>
+          <span v-if="address.phone" class="mt-1 block text-content-muted"><bdi dir="ltr">{{ address.phone }}</bdi></span>
         </address>
 
         <p class="mt-3 text-xs text-content-muted">

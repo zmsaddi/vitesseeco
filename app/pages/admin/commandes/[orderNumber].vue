@@ -140,7 +140,8 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
 <template>
   <div class="container-page">
     <NuxtLink :to="useLocalePath()('/admin/commandes')" class="text-sm text-content-muted hover:text-content-strong">
-      ← {{ $t('admin.orders') }}
+      <Icon name="ph:arrow-left" class="inline h-4 w-4 align-[-2px] rtl:rotate-180" />
+      {{ $t('admin.orders') }}
     </NuxtLink>
 
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
@@ -148,7 +149,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
 
     <template v-else>
       <div class="mt-3 flex flex-wrap items-center gap-3">
-        <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ order.orderNumber }}</h1>
+        <h1 class="font-display text-2xl font-extrabold text-content-strong"><bdi dir="ltr">{{ order.orderNumber }}</bdi></h1>
         <span class="rounded-full bg-accent-subtle px-2.5 py-0.5 text-sm font-semibold text-accent">
           {{ $t(`order_status.${order.status}`) }}
         </span>
@@ -252,7 +253,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
             <p v-else class="mt-2 text-sm text-content-muted">{{ $t('admin.no_address') }}</p>
             <p v-if="order.shippingAddress?.phone" class="mt-2 text-sm">
               <a :href="`tel:${order.shippingAddress.phone}`" class="text-accent">
-                {{ order.shippingAddress.phone }}
+                <bdi dir="ltr">{{ order.shippingAddress.phone }}</bdi>
               </a>
             </p>
             <!--
@@ -277,7 +278,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
               <a
                 :href="`mailto:${order.customerSnapshot?.email ?? order.guestEmail ?? ''}`"
                 class="text-accent"
-              >{{ order.customerSnapshot?.email ?? order.guestEmail ?? '—' }}</a>
+              ><bdi dir="ltr">{{ order.customerSnapshot?.email ?? order.guestEmail ?? '—' }}</bdi></a>
             </p>
             <!--
               Tappable, because the owner reads this on a phone in the workshop
@@ -289,7 +290,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
               <a
                 :href="`tel:${order.customerSnapshot?.phone ?? order.shippingAddress?.phone}`"
                 class="font-semibold text-accent"
-              >{{ order.customerSnapshot?.phone ?? order.shippingAddress?.phone }}</a>
+              ><bdi dir="ltr">{{ order.customerSnapshot?.phone ?? order.shippingAddress?.phone }}</bdi></a>
             </p>
             <p v-if="order.notes" class="mt-3 whitespace-pre-wrap rounded-lg bg-surface-sunken p-2 text-sm text-content">
               {{ order.notes }}

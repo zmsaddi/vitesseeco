@@ -96,7 +96,7 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
               <NuxtLink
                 :to="localePath(`/compte/orders/${order.orderNumber}`)"
                 class="font-mono font-bold text-content-strong underline-offset-4 hover:underline"
-              >{{ order.orderNumber }}</NuxtLink>
+              ><bdi dir="ltr">{{ order.orderNumber }}</bdi></NuxtLink>
               <p class="text-sm text-content-muted">
                 {{ formatShortDate(order.createdAt) }}
               </p>
@@ -128,7 +128,7 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
           <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-surface-border pt-3">
             <p v-if="order.trackingNumber" class="text-sm text-content-muted">
               {{ $t('account.tracking') }}
-              <span class="font-mono text-content-strong">{{ order.trackingNumber }}</span>
+              <span class="font-mono text-content-strong"><bdi dir="ltr">{{ order.trackingNumber }}</bdi></span>
               <span v-if="order.carrier"> · {{ order.carrier }}</span>
             </p>
             <p class="ms-auto font-bold text-content-strong">{{ formatDecimal(order.total) }}</p>

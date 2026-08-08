@@ -513,6 +513,54 @@ if (suppressed.length > 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 15. The shop's own contact details come from one place ──────────────────
+// shared/organisation.ts existed to be the single source, and ten pages
+// hard-coded the phone and the email anyway — thirty-two literals. The
+// Impressum a German customer reads could drift from the Organization data
+// Google reads, which is the kind of mismatch that costs a Knowledge Panel.
+// app/components/ContactLink.vue renders them, and isolates them for Arabic.
+{
+  const rule = 'Contact details render through ContactLink, not literals'
+  let bad = 0
+  const appDir = join(ROOT, 'app')
+  const LITERAL = /(tel:\+?33\s*7\s*45|mailto:contact@vitesse-eco\.fr|wa\.me\/33745830049)/
+  for (const file of walk(appDir, ['.vue'])) {
+    const rel = relative(ROOT, file).split('\\').join('/')
+    if (rel.endsWith('components/ContactLink.vue')) continue
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
+    lines.forEach((line, i) => {
+      // A label may still SAY wa.me/…; only a destination is a duplicate.
+      if (!LITERAL.test(line) || /label="/.test(line)) return
+      if (isSuppressed(lines, i, rule, rel)) return
+      bad++
+      fail(rule, rel, i + 1, 'hard-codes a contact detail that shared/organisation.ts owns')
+    })
+  }
+  if (bad === 0) pass(rule)
+}
+
+// ── 16. A back arrow must point back in every language ──────────────────────
+// Three pages drew "back" as a literal ← character. A character always points
+// the same way; in Arabic, back is to the right, so the control pointed
+// forward. Measured, not guessed: the same paragraph in a browser puts a
+// leading "+" of a phone number after the digits under `dir="rtl"`.
+{
+  const rule = 'Directional arrows mirror with the page direction'
+  let bad = 0
+  const appDir = join(ROOT, 'app')
+  for (const file of walk(appDir, ['.vue'])) {
+    const rel = relative(ROOT, file).split('\\').join('/')
+    const lines = readFileSync(file, 'utf8').split(/\r?\n/)
+    lines.forEach((line, i) => {
+      if (!/[←→]/.test(line)) return
+      if (isSuppressed(lines, i, rule, rel)) return
+      bad++
+      fail(rule, rel, i + 1, 'draws direction as a character; use an icon with `rtl:rotate-180`')
+    })
+  }
+  if (bad === 0) pass(rule)
+}
+
 console.log('')
 if (failures > 0) {
   console.error(`❌ ${failures} invariant violation(s) across ${checks + 1} rules`)

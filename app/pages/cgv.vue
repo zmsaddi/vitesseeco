@@ -202,12 +202,10 @@ useSeoMeta({
             <p>SIREN 100 732 247</p>
             <p>TVA intracommunautaire FR43 100 732 247</p>
             <p>32 Rue du Faubourg du Pont Neuf, 86000 Poitiers, France</p>
-            <p><a class="text-accent hover:underline" href="mailto:contact@vitesse-eco.fr">contact@vitesse-eco.fr</a></p>
-            <p><a class="text-accent hover:underline" href="tel:+33745830049">+33 7 45 83 00 49</a></p>
+            <p><ContactLink kind="email" class="text-accent hover:underline" /></p>
+            <p><ContactLink kind="phone" class="text-accent hover:underline" /></p>
             <p>
-              <a class="text-accent hover:underline" href="https://wa.me/33745830049" target="_blank" rel="noopener noreferrer">
-                WhatsApp wa.me/33745830049
-              </a>
+              <ContactLink kind="whatsapp" label="WhatsApp wa.me/33745830049" class="text-accent hover:underline" target="_blank" />
             </p>
           </address>
 

@@ -620,9 +620,7 @@ useSeoMeta({
       <p class="mt-3 text-content">{{ $t('guide.help_body') }}</p>
       <div class="mt-5 flex flex-wrap gap-3">
         <NuxtLink :to="localePath('/contact')" class="btn-primary">{{ $t('nav.contact') }}</NuxtLink>
-        <a href="https://wa.me/33745830049" rel="noopener" class="btn-secondary">
-          {{ $t('contact.whatsapp') }}
-        </a>
+        <ContactLink kind="whatsapp" class="btn-secondary">{{ $t('contact.whatsapp') }}</ContactLink>
       </div>
     </section>
   </div>

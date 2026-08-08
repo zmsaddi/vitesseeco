@@ -181,15 +181,10 @@ useSeoMeta({
           <!-- WhatsApp first and as the primary button: it is how most of our
                customers actually open a conversation, and burying it behind a
                form costs us the ones who will not fill in a form. -->
-          <a
-            class="btn-primary mt-4 w-full"
-            href="https://wa.me/33745830049"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <ContactLink kind="whatsapp" class="btn-primary mt-4 w-full" target="_blank">
             <Icon name="ph:whatsapp-logo" class="h-5 w-5" />
             {{ $t('contact.whatsapp') }}
-          </a>
+          </ContactLink>
           <p class="mt-2 text-sm text-content-muted">{{ $t('contact.whatsapp_note') }}</p>
 
           <dl class="mt-6 space-y-4 text-sm">
@@ -198,9 +193,7 @@ useSeoMeta({
               <div>
                 <dt class="text-content-muted">{{ $t('contact.phone') }}</dt>
                 <dd>
-                  <a class="font-medium text-content-strong hover:text-accent" href="tel:+33745830049">
-                    +33 7 45 83 00 49
-                  </a>
+                  <ContactLink kind="phone" class="font-medium text-content-strong hover:text-accent" />
                 </dd>
               </div>
             </div>
@@ -210,9 +203,7 @@ useSeoMeta({
               <div>
                 <dt class="text-content-muted">{{ $t('auth.email') }}</dt>
                 <dd>
-                  <a class="font-medium text-content-strong hover:text-accent" href="mailto:contact@vitesse-eco.fr">
-                    contact@vitesse-eco.fr
-                  </a>
+                  <ContactLink kind="email" class="font-medium text-content-strong hover:text-accent" />
                 </dd>
               </div>
             </div>

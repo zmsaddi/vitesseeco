@@ -58,7 +58,7 @@ npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purch
 npm run test:money -- <url> # the critical path, asserted in the database
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 10 project rules
+npm run check:invariants    # 16 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```
@@ -74,7 +74,7 @@ client-side cannot show a server-side rendering defect.
 ```
 app/                       ← Nuxt 4 layout: everything client-facing
   pages/                   ← 31 pages, incl. admin/ (5) compte/ (4) commande/ (2)
-  components/              ← CaptchaWidget, MarketSuggestion, SiteHeader, SiteFooter
+  components/              ← CaptchaWidget, ContactLink, MarketSuggestion, SiteHeader, SiteFooter
   composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useWishlist
   layouts/ middleware/ plugins/
 server/

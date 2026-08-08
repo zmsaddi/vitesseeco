@@ -134,12 +134,12 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
           <NuxtLink
             :to="useLocalePath()(`/admin/commandes/${order.orderNumber}`)"
             class="font-mono font-bold text-content-strong underline-offset-4 hover:underline"
-          >{{ order.orderNumber }}</NuxtLink>
+          ><bdi dir="ltr">{{ order.orderNumber }}</bdi></NuxtLink>
           <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" :class="statusTone(order.status)">
             {{ $t(`order_status.${order.status}`) }}
           </span>
           <span class="text-sm text-content-muted">
-            {{ order.customerSnapshot?.email ?? order.guestEmail ?? '—' }}
+            <bdi dir="ltr">{{ order.customerSnapshot?.email ?? order.guestEmail ?? '—' }}</bdi>
           </span>
           <span v-if="order.shippingAddress?.city" class="text-sm text-content-muted">
             {{ order.shippingAddress.city }}, {{ order.shippingAddress.country }}

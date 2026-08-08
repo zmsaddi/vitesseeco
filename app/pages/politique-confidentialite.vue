@@ -103,9 +103,7 @@ useSeoMeta({
           VITESSE ECO SAS<br />
           32 Rue du Faubourg du Pont Neuf<br />
           86000 Poitiers, France<br />
-          <a class="text-accent hover:underline" href="mailto:contact@vitesse-eco.fr">
-            contact@vitesse-eco.fr
-          </a>
+          <ContactLink kind="email" class="text-accent hover:underline" />
         </address>
         <p class="mt-3 text-content">{{ $t('privacy.controller_no_dpo') }}</p>
       </section>
