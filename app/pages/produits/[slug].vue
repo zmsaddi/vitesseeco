@@ -17,6 +17,9 @@ const localePath = useLocalePath()
 const { locale, t } = useI18n()
 const { formatCents } = useFormatPrice()
 const cart = useCart()
+const wishlist = useWishlist()
+
+onMounted(wishlist.restore)
 
 const slug = computed(() => String(route.params.slug))
 
@@ -39,6 +42,37 @@ if (!product.value) {
 const selectedImage = ref(0)
 const quantity = ref(1)
 const added = ref(false)
+const cartFull = ref(false)
+
+/**
+ * The specification rows worth showing.
+ *
+ * Only fields the product actually carries: an empty row reads as a gap in the
+ * data rather than as an absent feature. The three numeric fields carry their
+ * unit here, because a bare "25" tells a customer nothing.
+ */
+const visibleSpecs = computed(() => {
+  const s = product.value?.specifications
+  if (!s) return []
+  const withUnit = (value: number | null, unit: string) =>
+    value === null || value === undefined ? null : `${value} ${unit}`
+  const rows: Array<{ key: string; value: string | null }> = [
+    { key: 'motor', value: s.motor },
+    { key: 'battery', value: s.battery },
+    { key: 'range', value: s.range },
+    { key: 'maxSpeed', value: withUnit(s.maxSpeed, 'km/h') },
+    { key: 'brakeType', value: s.brakeType },
+    { key: 'suspension', value: s.suspension },
+    { key: 'gears', value: s.gears },
+    { key: 'tireSize', value: s.tireSize },
+    { key: 'frame', value: s.frame },
+    { key: 'weight', value: withUnit(s.weight, 'kg') },
+    { key: 'maxLoad', value: withUnit(s.maxLoad, 'kg') },
+    { key: 'chargeTime', value: s.chargeTime },
+    { key: 'dimensions', value: s.dimensions },
+  ]
+  return rows.filter((row): row is { key: string; value: string } => Boolean(row.value))
+})
 
 /** Resolved once so the template never indexes an array that may be empty. */
 /**
@@ -73,7 +107,14 @@ watch(product, () => {
 
 function addToCart(): void {
   if (!product.value) return
-  cart.add(product.value.id, quantity.value)
+  // The basket silently refuses a 21st line. Announcing success anyway told the
+  // customer their bike was in a cart it had never entered.
+  const accepted = cart.add(product.value.id, quantity.value)
+  if (!accepted) {
+    cartFull.value = true
+    setTimeout(() => { cartFull.value = false }, 4000)
+    return
+  }
   added.value = true
   setTimeout(() => {
     added.value = false
@@ -331,7 +372,33 @@ useHead(() => {
           >
             {{ added ? $t('product.added') : $t('product.add_to_cart') }}
           </button>
+
+          <!--
+            The wishlist had storage, a page and a composable, and not one
+            control anywhere in the shop could put anything into it. This is
+            that control.
+          -->
+          <button
+            type="button"
+            class="btn-secondary shrink-0 px-4"
+            :aria-pressed="wishlist.has(product.id)"
+            :aria-label="$t('wishlist.save_item', { name: product.name })"
+            @click="wishlist.toggle(product.id)"
+          >
+            <Icon
+              :name="wishlist.has(product.id) ? 'ph:heart-fill' : 'ph:heart'"
+              class="h-5 w-5"
+              :class="wishlist.has(product.id) ? 'text-accent' : ''"
+            />
+            <span class="ms-2 hidden sm:inline">
+              {{ wishlist.has(product.id) ? $t('wishlist.saved') : $t('wishlist.save') }}
+            </span>
+          </button>
         </div>
+
+        <p v-if="cartFull" role="alert" class="mt-3 text-sm text-danger">
+          {{ $t('cart.full') }}
+        </p>
 
         <ul v-if="product.highlights.length" class="mt-8 space-y-2">
           <li v-for="highlight in product.highlights" :key="highlight" class="flex gap-2 text-sm text-content">
@@ -369,6 +436,24 @@ useHead(() => {
     <section v-if="product.description" class="mt-14 max-w-3xl">
       <h2 class="font-display text-xl font-bold text-content-strong">{{ $t('product.description') }}</h2>
       <p class="mt-3 whitespace-pre-line text-content">{{ product.description }}</p>
+    </section>
+
+    <!--
+      The specifications were already being collected — and spent entirely on
+      the meta description Google reads. A customer deciding on a 1 349 € bike
+      could not see its motor, its battery or its range anywhere on the page
+      that sells it.
+    -->
+    <section v-if="visibleSpecs.length" class="mt-14 max-w-3xl">
+      <h2 class="font-display text-xl font-bold text-content-strong">
+        {{ $t('product.specifications') }}
+      </h2>
+      <dl class="mt-4 divide-y divide-surface-border border-y border-surface-border">
+        <div v-for="spec in visibleSpecs" :key="spec.key" class="flex justify-between gap-6 py-3">
+          <dt class="text-content-muted">{{ $t(`product.spec.${spec.key}`) }}</dt>
+          <dd class="text-end font-medium text-content-strong">{{ spec.value }}</dd>
+        </div>
+      </dl>
     </section>
   </article>
 </template>

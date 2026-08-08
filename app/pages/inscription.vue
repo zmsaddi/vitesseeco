@@ -77,14 +77,17 @@ useSeoMeta({ title: () => t('auth.create_account'), robots: 'noindex' })
       </div>
 
       <form class="space-y-4" @submit.prevent="submit">
-        <div class="grid grid-cols-2 gap-3">
+        <!-- Two columns crush both name fields at 320px; they stack until 400px. -->
+        <div class="grid gap-3 min-[400px]:grid-cols-2">
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('auth.first_name') }}</span>
             <input v-model="form.firstName" type="text" autocomplete="given-name" required class="field mt-1" />
+            <span v-if="fieldErrors.firstName" class="mt-1 block text-sm text-danger">{{ fieldErrors.firstName }}</span>
           </label>
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('auth.last_name') }}</span>
             <input v-model="form.lastName" type="text" autocomplete="family-name" required class="field mt-1" />
+            <span v-if="fieldErrors.lastName" class="mt-1 block text-sm text-danger">{{ fieldErrors.lastName }}</span>
           </label>
         </div>
 
@@ -107,11 +110,13 @@ useSeoMeta({ title: () => t('auth.create_account'), robots: 'noindex' })
           <span class="mt-1 block text-xs" :class="passwordTooShort ? 'text-danger' : 'text-content-muted'">
             {{ $t('auth.password_hint', { min: MIN_PASSWORD }) }}
           </span>
+          <span v-if="fieldErrors.password" class="mt-1 block text-sm text-danger">{{ fieldErrors.password }}</span>
         </label>
 
         <label class="block">
           <span class="text-sm text-content-muted">{{ $t('auth.phone_optional') }}</span>
           <input v-model="form.phone" type="tel" autocomplete="tel" class="field mt-1" />
+          <span v-if="fieldErrors.phone" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
         </label>
 
         <CaptchaWidget ref="captcha" v-model="captchaToken" />

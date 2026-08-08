@@ -72,16 +72,25 @@ export function useCart() {
     }
   }
 
-  function add(productId: string, quantity = 1): void {
+  /**
+   * Returns whether the basket accepted the product.
+   *
+   * It used to return nothing and bail silently at the line cap, so the page
+   * had no way to tell a refusal from a success — and announced "added" for a
+   * bike that never entered the basket. A caller must be able to see the
+   * difference, which is why this answers rather than just acting.
+   */
+  function add(productId: string, quantity = 1): boolean {
     restore()
     const existing = lines.value.find((line) => line.productId === productId)
     if (existing) {
       existing.quantity = Math.min(MAX_PER_LINE, existing.quantity + quantity)
     } else {
-      if (lines.value.length >= MAX_LINES) return
+      if (lines.value.length >= MAX_LINES) return false
       lines.value.push({ productId, quantity: Math.min(MAX_PER_LINE, Math.max(1, quantity)) })
     }
     persist()
+    return true
   }
 
   function setQuantity(productId: string, quantity: number): void {

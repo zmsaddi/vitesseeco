@@ -31,6 +31,7 @@
     "test:visual:update": "npx playwright test --project=visual --update-snapshots",
     "test:watch": "vitest",
     "typecheck": "nuxi typecheck",
+    "verify:frontend": "node tests/e2e/verify-frontend.mjs",
     "walk:ux": "node tests/e2e/ux-walk.mjs"
   },
   "dependencies": {

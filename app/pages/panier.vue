@@ -90,6 +90,17 @@ async function remove(productId: string): Promise<void> {
 }
 
 const promoInput = ref('')
+
+/**
+ * A basket that cannot be fulfilled must not walk to the payment form.
+ *
+ * The shortfall was already shown on each line, and the button beside it was a
+ * plain link that ignored it — so a customer could reach Stripe with two of a
+ * bike the shop has one of, and the refusal would arrive after they had paid.
+ */
+const shortfall = computed(() =>
+  (pricing.value?.lines ?? []).filter((line) => line.available < line.quantity)
+)
 async function applyPromo(): Promise<void> {
   cart.applyPromo(promoInput.value)
   await refresh()
@@ -200,9 +211,19 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
             </p>
           </div>
 
-          <NuxtLink :to="localePath('/commande')" class="btn-primary mt-6 w-full">
+          <p v-if="shortfall.length" role="alert" class="mt-6 text-sm text-danger">
+            {{ $t('cart.fix_quantities') }}
+          </p>
+          <NuxtLink
+            v-if="!shortfall.length"
+            :to="localePath('/commande')"
+            class="btn-primary mt-6 w-full"
+          >
             {{ $t('cart.checkout') }}
           </NuxtLink>
+          <span v-else class="btn-primary mt-2 w-full cursor-not-allowed opacity-50" aria-disabled="true">
+            {{ $t('cart.checkout') }}
+          </span>
         </aside>
       </div>
 

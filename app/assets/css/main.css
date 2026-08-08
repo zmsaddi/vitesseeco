@@ -32,7 +32,7 @@
     /* Text — Charcoal. Muted is a derived mid-step that keeps AA on cream. */
     --content-strong: 22 22 22;      /* #161616 */
     --content-default: 61 58 59;     /* #3d3a3b */
-    --content-muted: 110 108 105;    /* derived */
+    --content-muted: 101 99 96;    /* derived */
     --content-inverse: 255 255 255;
 
     /* Actions — deep Forest (#054239), darkening to the near-black step. */
@@ -51,7 +51,7 @@
     /* Status. Danger is Deep Umber (#6b1f2a) straight from the palette. */
     --danger: 107 31 42;
     --danger-subtle: 245 228 230;    /* derived */
-    --warning: 122 104 71;           /* derived text-safe deep wheat */
+    --warning: 115 97 64;           /* derived text-safe deep wheat */
     --warning-subtle: 240 234 217;   /* derived */
     --success: 46 96 88;             /* derived text-safe Forest light */
     --success-subtle: 223 234 230;   /* derived */
@@ -71,8 +71,8 @@
       --content-muted: 150 160 152;    /* derived */
       --content-inverse: 0 38 35;
 
-      --accent: 66 129 119;            /* #428177 Forest light */
-      --accent-hover: 96 158 148;      /* derived */
+      --accent: 96 159 149;            /* #428177 Forest light */
+      --accent-hover: 132 194 184;      /* derived */
       --accent-contrast: 255 255 255;
       --accent-subtle: 13 61 55;       /* derived */
 
@@ -82,7 +82,7 @@
       --spark-from: 49 198 255;
       --spark-to: 0 119 255;
 
-      --danger: 205 110 122;           /* derived light umber */
+      --danger: 215 120 132;           /* derived light umber */
       --danger-subtle: 58 24 30;
       --warning: 185 167 121;          /* gold carries warnings at night */
       --warning-subtle: 51 44 30;

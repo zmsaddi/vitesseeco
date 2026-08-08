@@ -159,6 +159,8 @@
     "checkout": "Zur Kasse",
     "discount": "Rabatt",
     "empty": "Ihr Warenkorb ist leer.",
+    "fix_quantities": "Passen Sie die rot markierten Mengen an, bevor Sie fortfahren.",
+    "full": "Ihr Warenkorb hat die Zeilengrenze erreicht. Entfernen Sie einen Artikel, um einen anderen hinzuzufügen.",
     "only_left": "Nur noch {count} verfügbar",
     "promo": "Gutscheincode",
     "promo_applied": "Code {code} angewendet",
@@ -718,6 +720,22 @@
     "in_stock": "Auf Lager ({count} verfügbar)",
     "other_colours": "Weitere Farben",
     "quantity": "Menge",
+    "spec": {
+      "battery": "Akku",
+      "brakeType": "Bremsen",
+      "chargeTime": "Ladezeit",
+      "dimensions": "Abmessungen",
+      "frame": "Rahmen",
+      "gears": "Gänge",
+      "maxLoad": "Maximale Zuladung",
+      "maxSpeed": "Höchstgeschwindigkeit",
+      "motor": "Motor",
+      "range": "Reichweite",
+      "suspension": "Federung",
+      "tireSize": "Reifen",
+      "weight": "Gewicht"
+    },
+    "specifications": "Technische Daten",
     "view_image": "Foto ansehen"
   },
   "products": {
@@ -744,6 +762,9 @@
     "in_cart": "Bereits {count} in Ihrem Warenkorb",
     "intro": "Preise und Verfügbarkeit unten gelten für heute: Wir speichern das Produkt, nie seinen Preis.",
     "remove_item": "{name} von der Wunschliste entfernen",
+    "save": "Merken",
+    "save_item": "{name} zu den Favoriten hinzufügen",
+    "saved": "Gemerkt",
     "title": "Ihre Wunschliste"
   },
   "withdrawal": {

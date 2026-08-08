@@ -159,6 +159,8 @@
     "checkout": "Finalizar compra",
     "discount": "Descuento",
     "empty": "Su cesta está vacía.",
+    "fix_quantities": "Ajuste las cantidades marcadas en rojo antes de continuar.",
+    "full": "Su cesta ha alcanzado el límite de líneas. Retire un artículo para añadir otro.",
     "only_left": "Solo quedan {count}",
     "promo": "Código promocional",
     "promo_applied": "Código {code} aplicado",
@@ -718,6 +720,22 @@
     "in_stock": "En stock ({count} disponibles)",
     "other_colours": "Otros colores",
     "quantity": "Cantidad",
+    "spec": {
+      "battery": "Batería",
+      "brakeType": "Frenos",
+      "chargeTime": "Tiempo de carga",
+      "dimensions": "Dimensiones",
+      "frame": "Cuadro",
+      "gears": "Marchas",
+      "maxLoad": "Carga máxima",
+      "maxSpeed": "Velocidad máxima",
+      "motor": "Motor",
+      "range": "Autonomía",
+      "suspension": "Suspensión",
+      "tireSize": "Neumáticos",
+      "weight": "Peso"
+    },
+    "specifications": "Características técnicas",
     "view_image": "Ver foto"
   },
   "products": {
@@ -744,6 +762,9 @@
     "in_cart": "Ya tiene {count} en su cesta",
     "intro": "Los precios y la disponibilidad que ve aquí son los de hoy: guardamos el producto, nunca su precio.",
     "remove_item": "Quitar {name} de favoritos",
+    "save": "Guardar",
+    "save_item": "Guardar {name} en favoritos",
+    "saved": "Guardado",
     "title": "Sus favoritos"
   },
   "withdrawal": {

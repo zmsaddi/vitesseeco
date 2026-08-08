@@ -159,6 +159,8 @@
     "checkout": "Commander",
     "discount": "Remise",
     "empty": "Votre panier est vide.",
+    "fix_quantities": "Ajustez les quantités en rouge avant de continuer.",
+    "full": "Votre panier a atteint sa limite de lignes. Retirez un article pour en ajouter un autre.",
     "only_left": "Plus que {count} en stock",
     "promo": "Code promo",
     "promo_applied": "Code {code} appliqué",
@@ -718,6 +720,22 @@
     "in_stock": "En stock ({count} disponibles)",
     "other_colours": "Autres coloris",
     "quantity": "Quantité",
+    "spec": {
+      "battery": "Batterie",
+      "brakeType": "Freins",
+      "chargeTime": "Temps de charge",
+      "dimensions": "Dimensions",
+      "frame": "Cadre",
+      "gears": "Vitesses",
+      "maxLoad": "Charge maximale",
+      "maxSpeed": "Vitesse maximale",
+      "motor": "Moteur",
+      "range": "Autonomie",
+      "suspension": "Suspension",
+      "tireSize": "Pneus",
+      "weight": "Poids"
+    },
+    "specifications": "Caractéristiques techniques",
     "view_image": "Voir la photo"
   },
   "products": {
@@ -744,6 +762,9 @@
     "in_cart": "Déjà {count} dans votre panier",
     "intro": "Les prix et la disponibilité ci-dessous sont ceux d'aujourd'hui : nous enregistrons le produit, jamais son prix.",
     "remove_item": "Retirer {name} des favoris",
+    "save": "Enregistrer",
+    "save_item": "Enregistrer {name} dans les favoris",
+    "saved": "Enregistré",
     "title": "Vos favoris"
   },
   "withdrawal": {

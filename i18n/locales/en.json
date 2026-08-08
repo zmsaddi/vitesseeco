@@ -159,6 +159,8 @@
     "checkout": "Checkout",
     "discount": "Discount",
     "empty": "Your basket is empty.",
+    "fix_quantities": "Adjust the quantities marked in red before continuing.",
+    "full": "Your basket has reached its line limit. Remove an item to add another.",
     "only_left": "Only {count} left",
     "promo": "Promo code",
     "promo_applied": "Code {code} applied",
@@ -718,6 +720,22 @@
     "in_stock": "In stock ({count} available)",
     "other_colours": "Other colours",
     "quantity": "Quantity",
+    "spec": {
+      "battery": "Battery",
+      "brakeType": "Brakes",
+      "chargeTime": "Charge time",
+      "dimensions": "Dimensions",
+      "frame": "Frame",
+      "gears": "Gears",
+      "maxLoad": "Maximum load",
+      "maxSpeed": "Top speed",
+      "motor": "Motor",
+      "range": "Range",
+      "suspension": "Suspension",
+      "tireSize": "Tyres",
+      "weight": "Weight"
+    },
+    "specifications": "Specifications",
     "view_image": "View photo"
   },
   "products": {
@@ -744,6 +762,9 @@
     "in_cart": "Already {count} in your basket",
     "intro": "The prices and availability below are today's: we save the product, never its price.",
     "remove_item": "Remove {name} from your wishlist",
+    "save": "Save",
+    "save_item": "Save {name} to your wishlist",
+    "saved": "Saved",
     "title": "Your wishlist"
   },
   "withdrawal": {

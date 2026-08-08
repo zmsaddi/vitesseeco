@@ -1,6 +1,6 @@
 # Documentation index
 
-Five documents, each with one job. If a fact appears in two of them, the one
+Six documents, each with one job. If a fact appears in two of them, the one
 named here as the owner wins.
 
 | Document | Owns | Read it when |
@@ -8,6 +8,7 @@ named here as the owner wins.
 | [REBUILD_ARCHITECTURE.md](REBUILD_ARCHITECTURE.md) | The invariants and boundaries of the code | Before writing anything on this branch |
 | [MASTER_REBUILD_PLAN.md](MASTER_REBUILD_PLAN.md) | Scope, markets, commercial intent | Deciding whether something is in scope |
 | [REBUILD_EXECUTION.md](REBUILD_EXECUTION.md) | Unit-by-unit status — what is actually done | Picking up work |
+| [FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md](FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md) | Evidence-backed frontend findings and the WP0–WP8 mobile-first acceptance contract | Planning or executing frontend improvement work |
 | [CUTOVER.md](CUTOVER.md) | The gate for replacing `master`, and what only the owner can do | Preparing to go live |
 | [OWNER_ACCOUNTS_PLAYBOOK.md](OWNER_ACCOUNTS_PLAYBOOK.md) | The external-accounts session, step by step (Arabic) | Sitting down with the owner |
 | [adr/](adr/) | Decisions and their reasoning, permanent | Wondering why something is the way it is |

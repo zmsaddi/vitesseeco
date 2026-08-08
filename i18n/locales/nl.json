@@ -159,6 +159,8 @@
     "checkout": "Afrekenen",
     "discount": "Korting",
     "empty": "Uw winkelmand is leeg.",
+    "fix_quantities": "Pas de rood gemarkeerde aantallen aan voordat u verdergaat.",
+    "full": "Je winkelwagen heeft de regellimiet bereikt. Verwijder een artikel om een ander toe te voegen.",
     "only_left": "Nog {count} op voorraad",
     "promo": "Kortingscode",
     "promo_applied": "Code {code} toegepast",
@@ -718,6 +720,22 @@
     "in_stock": "Op voorraad ({count} beschikbaar)",
     "other_colours": "Andere kleuren",
     "quantity": "Aantal",
+    "spec": {
+      "battery": "Accu",
+      "brakeType": "Remmen",
+      "chargeTime": "Laadtijd",
+      "dimensions": "Afmetingen",
+      "frame": "Frame",
+      "gears": "Versnellingen",
+      "maxLoad": "Maximale belasting",
+      "maxSpeed": "Topsnelheid",
+      "motor": "Motor",
+      "range": "Actieradius",
+      "suspension": "Vering",
+      "tireSize": "Banden",
+      "weight": "Gewicht"
+    },
+    "specifications": "Specificaties",
     "view_image": "Foto bekijken"
   },
   "products": {
@@ -744,6 +762,9 @@
     "in_cart": "Al {count} in uw winkelwagen",
     "intro": "De prijzen en de beschikbaarheid hieronder zijn die van vandaag: wij bewaren het product, nooit de prijs ervan.",
     "remove_item": "{name} uit uw favorieten verwijderen",
+    "save": "Bewaren",
+    "save_item": "{name} bewaren in je favorieten",
+    "saved": "Bewaard",
     "title": "Uw favorieten"
   },
   "withdrawal": {

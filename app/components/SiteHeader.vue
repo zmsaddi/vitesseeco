@@ -4,10 +4,18 @@ import { LOCALES } from '~~/shared/locales'
 /**
  * The header.
  *
- * Search sits in its own row on small screens rather than behind a tap, because
- * a shop's search is not a secondary action. The basket count is client-only:
- * it comes from localStorage, so rendering it on the server would guarantee a
- * hydration mismatch.
+ * There is no search here. The comment that used to sit in this spot described
+ * one "in its own row on small screens", and an audit found the sentence but
+ * not the control — so it is written down as absent rather than described as
+ * present.
+ *
+ * The row is deliberately short on a phone: at 320px the wordmark plus the
+ * controls overflowed the viewport on every page, in every language. Language,
+ * wishlist and account live in the menu below that width and in the row from md
+ * up.
+ *
+ * The basket count is client-only: it comes from localStorage, so rendering it
+ * on the server would guarantee a hydration mismatch.
  */
 const localePath = useLocalePath()
 const switchLocalePath = useSwitchLocalePath()
@@ -18,6 +26,40 @@ onMounted(cart.restore)
 
 const menuOpen = ref(false)
 const languageOpen = ref(false)
+const languageRoot = ref<HTMLElement | null>(null)
+
+/**
+ * A popover that only closes by clicking the button that opened it is a trap
+ * for anyone using a keyboard, and a surprise for everyone else. Escape closes
+ * it and returns focus; a click anywhere outside dismisses it.
+ */
+function closeLanguage(returnFocus = false): void {
+  if (!languageOpen.value) return
+  languageOpen.value = false
+  if (returnFocus) {
+    languageRoot.value?.querySelector<HTMLButtonElement>('button')?.focus()
+  }
+}
+
+onMounted(() => {
+  const onKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      closeLanguage(true)
+      menuOpen.value = false
+    }
+  }
+  const onPointer = (event: MouseEvent) => {
+    if (languageOpen.value && !languageRoot.value?.contains(event.target as Node)) {
+      closeLanguage()
+    }
+  }
+  document.addEventListener('keydown', onKey)
+  document.addEventListener('click', onPointer)
+  onUnmounted(() => {
+    document.removeEventListener('keydown', onKey)
+    document.removeEventListener('click', onPointer)
+  })
+})
 
 const navigation = computed(() => [
   { to: localePath('/produits'), label: 'nav.products' },
@@ -74,7 +116,14 @@ watch(() => route.fullPath, () => {
         </nav>
 
         <div class="ms-auto flex items-center gap-1">
-          <div class="relative">
+          <!--
+            At 320px this row plus the wordmark overflowed the viewport on every
+            page, in every language. Language, wishlist and account live in the
+            menu on a phone and in the row from md up, so the phone row is only
+            basket + menu and there is space for the two entry points the shop
+            never had.
+          -->
+          <div ref="languageRoot" class="relative hidden md:block">
             <button
               type="button"
               class="btn min-w-11 px-2 text-content"
@@ -100,6 +149,22 @@ watch(() => route.fullPath, () => {
               </li>
             </ul>
           </div>
+
+          <NuxtLink
+            :to="localePath('/favoris')"
+            class="btn hidden min-w-11 px-2 text-content md:inline-flex"
+            :aria-label="$t('wishlist.title')"
+          >
+            <Icon name="ph:heart" class="h-5 w-5" />
+          </NuxtLink>
+
+          <NuxtLink
+            :to="localePath('/compte')"
+            class="btn hidden min-w-11 px-2 text-content md:inline-flex"
+            :aria-label="$t('account.title')"
+          >
+            <Icon name="ph:user" class="h-5 w-5" />
+          </NuxtLink>
 
           <NuxtLink :to="localePath('/panier')" class="btn relative min-w-11 px-2 text-content">
             <Icon name="ph:shopping-bag" class="h-5 w-5" />
@@ -135,6 +200,40 @@ watch(() => route.fullPath, () => {
         >
           {{ $t(item.label) }}
         </NuxtLink>
+
+        <!-- The two destinations a phone visitor previously had no way to reach. -->
+        <NuxtLink
+          :to="localePath('/favoris')"
+          class="flex items-center gap-2 px-1 py-3 text-sm font-medium text-content"
+        >
+          <Icon name="ph:heart" class="h-4 w-4" />
+          {{ $t('wishlist.title') }}
+        </NuxtLink>
+        <NuxtLink
+          :to="localePath('/compte')"
+          class="flex items-center gap-2 px-1 py-3 text-sm font-medium text-content"
+        >
+          <Icon name="ph:user" class="h-4 w-4" />
+          {{ $t('account.title') }}
+        </NuxtLink>
+
+        <div class="mt-2 border-t border-surface-border pt-3">
+          <p class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-content-muted">
+            {{ $t('nav.change_language') }}
+          </p>
+          <div class="flex flex-wrap gap-1">
+            <NuxtLink
+              v-for="entry in LOCALES"
+              :key="entry.code"
+              :to="switchLocalePath(entry.code)"
+              class="rounded-lg px-3 py-2 text-sm text-content hover:bg-surface-sunken"
+              :class="entry.code === locale ? 'bg-accent-subtle font-semibold text-accent' : ''"
+              :lang="entry.hreflang"
+            >
+              {{ entry.label }}
+            </NuxtLink>
+          </div>
+        </div>
       </nav>
     </div>
   </header>

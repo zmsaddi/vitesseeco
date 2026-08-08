@@ -89,7 +89,14 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
         <li v-for="order in orders.orders" :key="order.orderNumber" class="card p-5">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p class="font-mono font-bold text-content-strong">{{ order.orderNumber }}</p>
+              <!--
+                The detail page existed and nothing linked to it. A customer could
+                see that an order was placed and never open it.
+              -->
+              <NuxtLink
+                :to="localePath(`/compte/orders/${order.orderNumber}`)"
+                class="font-mono font-bold text-content-strong underline-offset-4 hover:underline"
+              >{{ order.orderNumber }}</NuxtLink>
               <p class="text-sm text-content-muted">
                 {{ formatShortDate(order.createdAt) }}
               </p>
