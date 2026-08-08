@@ -144,7 +144,9 @@ const heading = computed(() => {
   }
 })
 
-useSeoMeta({ title: () => t('confirmation.title'), robots: 'noindex' })
+// The tab follows the page. Leaving it on "Commande reçue" while the page says
+// there is no order is the same false claim, moved somewhere less visible.
+useSeoMeta({ title: () => heading.value, robots: 'noindex' })
 </script>
 
 <template>
