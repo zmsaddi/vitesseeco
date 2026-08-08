@@ -192,8 +192,7 @@ nothing aspirational. The ones without a `#` are required for a working shop.
 
 ## Where to look next
 
-- **Working on the code:** [docs/REBUILD_ARCHITECTURE.md](docs/REBUILD_ARCHITECTURE.md)
-- **Picking up a task:** [docs/REBUILD_EXECUTION.md](docs/REBUILD_EXECUTION.md)
-- **Going live:** [docs/CUTOVER.md](docs/CUTOVER.md)
+- **What is true right now:** [docs/architecture/CURRENT.md](docs/architecture/CURRENT.md)
+- **How the rebuild was done and how it went live:** [docs/archive/rebuild/](docs/archive/rebuild/) — history, not instructions
 - **Why something is the way it is:** [docs/adr/](docs/adr/)
 - **How not to ship a green build that is broken:** [skills/reality-check/SKILL.md](skills/reality-check/SKILL.md)

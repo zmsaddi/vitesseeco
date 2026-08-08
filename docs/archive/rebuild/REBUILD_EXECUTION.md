@@ -1,5 +1,12 @@
 # Rebuild Execution Tracker
 
+> **ARCHIVED — historical record, not instructions.** The rebuild finished and
+> the cutover happened on 2026-07-30; this document is written about a state that
+> has passed. For what is true now read
+> [docs/architecture/CURRENT.md](../../architecture/CURRENT.md).
+
+---
+
 > Live checklist for [MASTER_REBUILD_PLAN.md](MASTER_REBUILD_PLAN.md). One unit = one commit/PR,
 > shipped with tests + 6-locale keys + checks green. Status: ✅ done · 🔄 in progress · ⬜ queued.
 > Updated every working session.

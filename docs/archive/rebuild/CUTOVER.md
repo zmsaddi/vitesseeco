@@ -1,5 +1,12 @@
 # Cutover — rebuild → production
 
+> **ARCHIVED — historical record, not instructions.** The rebuild finished and
+> the cutover happened on 2026-07-30; this document is written about a state that
+> has passed. For what is true now read
+> [docs/architecture/CURRENT.md](../../architecture/CURRENT.md).
+
+---
+
 > The acceptance gate for replacing `master` with `rebuild`. Nothing here is
 > aspirational: every line is either checkable by a command or is a named account
 > the owner must open. Carried forward from the retired production-upgrade plan,
@@ -39,7 +46,7 @@ running shop. It is the first act of the switch below.
 | 7 | **The word "switch"** | Going live is a business decision, not a technical one | §5 |
 | 8 | **Duplicate product decision** | `v20-pro-10-0-gris-narde` duplicates `-nardo` in Studio — hide or delete one | catalogue hygiene |
 
-Detail and step-by-step: [OWNER_ACCOUNTS_PLAYBOOK.md](OWNER_ACCOUNTS_PLAYBOOK.md).
+Detail and step-by-step: [OWNER_ACCOUNTS_PLAYBOOK.md](../../OWNER_ACCOUNTS_PLAYBOOK.md).
 
 ---
 

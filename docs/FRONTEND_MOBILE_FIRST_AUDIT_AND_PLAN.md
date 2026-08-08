@@ -27,7 +27,7 @@ and all existing security wrappers and route contracts remain in force.
 ## 2. How Claude Code must use this document
 
 1. Read `CLAUDE.md` and `skills/reality-check/SKILL.md` first.
-2. Treat the current code as truth. `docs/REBUILD_EXECUTION.md` contains
+2. Treat the current code as truth. `docs/archive/rebuild/REBUILD_EXECUTION.md` contains
    completion marks for UI that is not present in this tree.
 3. Do not restore the former frontend wholesale and do not blindly cherry-pick
    historical commits. Old code is reference material only.
@@ -131,7 +131,7 @@ and all existing security wrappers and route contracts remain in force.
 
 #### P0.1 Documentation and code disagree
 
-`docs/REBUILD_EXECUTION.md` marks search, mobile filters, filter chips, cart
+`docs/archive/rebuild/REBUILD_EXECUTION.md` marks search, mobile filters, filter chips, cart
 drawer/undo, breadcrumbs, trust rows, wishlist entry points, checkout validation,
 sticky checkout actions, visual tests, and locale browser tests as complete.
 The current tree does not contain those components or behaviors. Even the header
@@ -493,7 +493,7 @@ Do not postpone basic accessibility or mobile behavior to the final sweep.
 
 Tasks:
 
-1. Reconcile `docs/REBUILD_EXECUTION.md` with the current tree. Mark absent
+1. Reconcile `docs/archive/rebuild/REBUILD_EXECUTION.md` with the current tree. Mark absent
    behavior absent; preserve history in the change log rather than false ticks.
 2. Add a cross-platform `build:production` wrapper that always builds SSR with
    a node-server preset locally. Keep the Vercel deploy build separate if
@@ -1269,7 +1269,7 @@ Read CLAUDE.md in full, then read skills/reality-check/SKILL.md in full, then
 read docs/FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md in full.
 
 Execute WP0A only. Do not begin WP0B or WP1. Treat the current code and measured runtime
-as truth; docs/REBUILD_EXECUTION.md contains stale completion claims. Inspect
+as truth; docs/archive/rebuild/REBUILD_EXECUTION.md contains stale completion claims. Inspect
 the worktree first and preserve unrelated changes. Build the smallest coherent
 WP0A patch, update tests and documentation with it, and run every acceptance
 check applicable to WP0A against a cold production-shaped SSR build. Do not

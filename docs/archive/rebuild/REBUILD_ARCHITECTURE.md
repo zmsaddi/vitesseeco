@@ -1,5 +1,13 @@
 # Vitesse Eco — Rebuild Architecture Contract
 
+> **ARCHIVED — historical record, not instructions.** The rebuild finished and
+> the cutover happened on 2026-07-30; this document is written about a state that
+> has passed. For what is true now read
+> [docs/architecture/CURRENT.md](../../architecture/CURRENT.md).
+
+---
+
+
 > Branch: `rebuild`. Clean build. `master` stays deployable until this replaces it.
 > Every section is independently simulated (unit + integration + contract tests) before it is
 > considered done. A section without passing tests does not exist.
