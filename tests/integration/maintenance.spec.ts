@@ -12,6 +12,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 import { runMaintenance, MAINTENANCE_CONSTANTS } from '../../server/services/maintenance'
+import { transitionOrder } from '../../server/services/orders'
 import {
   CASH_RESERVATION_TTL_MS,
   consumeReservations,
@@ -43,6 +44,37 @@ async function expireReservation(orderId: string): Promise<void> {
   await testDb().execute(
     sql`UPDATE stock_reservations SET expires_at = NOW() - interval '1 minute' WHERE order_id = ${orderId}`
   )
+}
+
+/** Restocking reads order_items, so a stock case needs one to have anything to give back. */
+async function addItem(orderId: string, productId: string, quantity: number): Promise<void> {
+  await testDb().insert(schema.orderItems).values({
+    orderId,
+    productId,
+    sku: productId,
+    nameSnapshot: 'V20 Pro — Noir',
+    unitPriceCents: 95000,
+    quantity,
+    lineTotalCents: 95000 * quantity,
+  })
+}
+
+/** The shelf itself. `available` nets off live holds and would mask an inflated one. */
+async function onHandOf(productId: string): Promise<number | undefined> {
+  const [row] = await testDb()
+    .select({ onHand: schema.inventory.onHand })
+    .from(schema.inventory)
+    .where(sql`${schema.inventory.productId} = ${productId}`)
+  return row?.onHand
+}
+
+async function orderNumberOf(orderId: string): Promise<string> {
+  const [row] = await testDb()
+    .select({ orderNumber: schema.orders.orderNumber })
+    .from(schema.orders)
+    .where(sql`${schema.orders.id} = ${orderId}`)
+  if (!row) throw new Error('orderNumberOf: no such order')
+  return row.orderNumber
 }
 
 describe.skipIf(!hasDatabase)('maintenance sweep', () => {
@@ -96,6 +128,50 @@ describe.skipIf(!hasDatabase)('maintenance sweep', () => {
       .from(schema.orders)
       .where(sql`${schema.orders.id} = ${orderId}`)
     expect(row?.status).toBe('cancelled')
+  })
+
+  it('does not invent stock when the hold expired before the sweep reached the order', async () => {
+    // The state every abandoned online checkout actually reaches, and the one
+    // the test above cannot: the hold lives 30 minutes, the cancellation sweep
+    // waits 60, so by the time an order is cancelled its reservation is ALWAYS
+    // already gone. The test above ages only `orders.created_at` and leaves the
+    // reservation live — a combination the clock cannot produce — which is why
+    // it passed while the shop's stock climbed.
+    //
+    // The sweep settles the expired hold first, so the cancellation then finds
+    // nothing to release, reads that zero as "this order was paid, its hold
+    // already became a decrement", and adds the units back. They were never
+    // taken away: a reservation holds, it does not decrement. Stock grows.
+    await seedProduct(BIKE, 5)
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+
+    await ageOrder(orderId, MAINTENANCE_CONSTANTS.UNPAID_ORDER_TTL_MINUTES + 5)
+    await expireReservation(orderId)
+
+    const report = await runMaintenance(inTransaction, testDb())
+    expect(report.ordersCancelled).toHaveLength(1)
+
+    // on_hand, not `available`: availability nets off live holds and would hide
+    // an inflated shelf behind a released one.
+    expect(await onHandOf(BIKE)).toBe(5)
+  })
+
+  it('still restocks an order that really was paid', async () => {
+    // The other half of the same decision. Paying consumes the hold and takes
+    // the units off the shelf, so cancelling afterwards must put them back —
+    // the fix must not turn restocking off wholesale.
+    await seedProduct(BIKE, 5)
+    const orderId = await seedOrder({ status: 'paid', paymentMethod: 'stripe', paidAt: new Date() })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+    await inTransaction((tx) => consumeReservations(tx, orderId))
+    expect(await onHandOf(BIKE)).toBe(3)
+
+    await transitionOrder(await orderNumberOf(orderId), 'cancelled', { runTransaction: inTransaction })
+
+    expect(await onHandOf(BIKE)).toBe(5)
   })
 
   it('leaves a recent unpaid order alone', async () => {

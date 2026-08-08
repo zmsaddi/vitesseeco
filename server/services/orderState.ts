@@ -43,6 +43,24 @@ const STOCK_HOLDING: ReadonlySet<OrderStatus> = new Set<OrderStatus>([
   'processing',
 ])
 
+/**
+ * Of those, the ones where the units have actually left the shelf.
+ *
+ * "Holding stock" covers two different things, and conflating them inflated the
+ * shop's inventory on every abandoned checkout. Before payment a reservation
+ * *holds* — `on_hand` is untouched and availability nets the hold off in the
+ * query. Payment *consumes* the hold and decrements `on_hand` for real.
+ *
+ * So cancelling has two different jobs: release the hold, and — only if the
+ * money had already turned that hold into a decrement — put the units back.
+ * The old code inferred which by counting released reservations and treating
+ * zero as "must have been paid". The sweep settles expired holds before it
+ * cancels anything, so an abandoned order reached that branch with zero live
+ * holds and was credited units it never took. Ask the state machine, which
+ * knows, instead of inferring from a count that has two possible causes.
+ */
+const STOCK_DECREMENTED: ReadonlySet<OrderStatus> = new Set<OrderStatus>(['paid', 'processing'])
+
 export function canTransition(from: OrderStatus, to: OrderStatus): boolean {
   return TRANSITIONS[from].includes(to)
 }
@@ -57,6 +75,11 @@ export function assertTransition(from: OrderStatus, to: OrderStatus): void {
 
 export function holdsStock(status: OrderStatus): boolean {
   return STOCK_HOLDING.has(status)
+}
+
+/** Whether leaving this status means units have to be put back on the shelf. */
+export function stockWasDecremented(status: OrderStatus): boolean {
+  return STOCK_DECREMENTED.has(status)
 }
 
 export function isTerminal(status: OrderStatus): boolean {

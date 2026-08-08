@@ -27,7 +27,7 @@ import type { OrderStatus } from '../../shared/schemas'
 import type { AddressInput } from '../../shared/schemas'
 import type { LocaleCode } from '../../shared/locales'
 import type { MarketDefinition } from '../../shared/markets'
-import { assertTransition, holdsStock, timestampFor } from './orderState'
+import { assertTransition, holdsStock, stockWasDecremented, timestampFor } from './orderState'
 import {
   CASH_RESERVATION_TTL_MS,
   consumeReservations,
@@ -351,10 +351,18 @@ export async function transitionOrder(
         )
       }
     } else if (to === 'cancelled' && holdsStock(current.status)) {
-      // A live hold is released. An order that already paid has none — its hold
-      // became a decrement — so those units are put back explicitly.
-      const released = await releaseReservations(tx, current.id)
-      if (released === 0) await restockOrder(tx, current.id)
+      // Two separate jobs, decided separately.
+      //
+      // Any live hold is released — and finding none is perfectly normal, since
+      // the sweep settles expired holds before it cancels anything.
+      await releaseReservations(tx, current.id)
+      // Units go back only if they ever left: a reservation holds without
+      // touching on_hand, and only payment turns it into a decrement. This used
+      // to be inferred from the released count, and zero has two causes — paid,
+      // or expired. Reading it as "paid" credited the shop stock it never sold
+      // on every abandoned checkout, deterministically, because the 30-minute
+      // hold always dies before the 60-minute cancellation.
+      if (stockWasDecremented(current.status)) await restockOrder(tx, current.id)
       // An order that never took money gives its promotion use back too.
       if (current.status !== 'paid' && current.status !== 'processing') {
         await releasePromo(tx, current.id)
