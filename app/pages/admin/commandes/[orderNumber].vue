@@ -52,7 +52,7 @@ interface AdminOrder {
   total: string
   vat: { ratePercent: number; amount: string }
   promoCode: string | null
-  customerSnapshot: { name?: string; email?: string } | null
+  customerSnapshot: { name?: string; email?: string; phone?: string } | null
   guestEmail: string | null
   shippingAddress: Address | null
   billingAddress: Address | null
@@ -278,6 +278,18 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
                 :href="`mailto:${order.customerSnapshot?.email ?? order.guestEmail ?? ''}`"
                 class="text-accent"
               >{{ order.customerSnapshot?.email ?? order.guestEmail ?? '—' }}</a>
+            </p>
+            <!--
+              Tappable, because the owner reads this on a phone in the workshop
+              and the next action after opening an order is usually to ring.
+              Falls back to the address so orders placed before the number was
+              collected at checkout still show whatever they carry.
+            -->
+            <p v-if="order.customerSnapshot?.phone ?? order.shippingAddress?.phone" class="text-sm">
+              <a
+                :href="`tel:${order.customerSnapshot?.phone ?? order.shippingAddress?.phone}`"
+                class="font-semibold text-accent"
+              >{{ order.customerSnapshot?.phone ?? order.shippingAddress?.phone }}</a>
             </p>
             <p v-if="order.notes" class="mt-3 whitespace-pre-wrap rounded-lg bg-surface-sunken p-2 text-sm text-content">
               {{ order.notes }}

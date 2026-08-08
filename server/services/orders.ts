@@ -58,6 +58,12 @@ export interface PlaceOrderInput {
   idempotencyKey: string
   customer: { id: string; email: string; firstName: string; lastName: string } | null
   guestEmail?: string
+  /**
+   * How to reach whoever placed this. Required, and frozen onto the order like
+   * the money: the number the shop rings to arrange delivery or collection must
+   * be the one given that day, not whatever the account holds two years later.
+   */
+  phone: string
   /** Injectable so the whole path can be exercised against a test database. */
   runTransaction?: TransactionRunner
   read?: SqlExecutor
@@ -145,14 +151,19 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
           promoCode: breakdown.promo?.applied ? breakdown.promo.code : null,
           shippingMethodCode: input.shipping.methodCode,
           paymentMethod: input.paymentMethod,
-          shippingAddress: input.shippingAddress ?? null,
+          // The order's phone also fills the address, so a picking slip or a
+          // carrier label carries a number without anyone copying it across.
+          shippingAddress: input.shippingAddress
+            ? { ...input.shippingAddress, phone: input.shippingAddress.phone ?? input.phone }
+            : null,
           billingAddress: input.billingAddress ?? input.shippingAddress ?? null,
           customerSnapshot: input.customer
             ? {
                 name: `${input.customer.firstName} ${input.customer.lastName}`.trim(),
                 email: input.customer.email,
+                phone: input.phone,
               }
-            : { email: input.guestEmail ?? null },
+            : { email: input.guestEmail ?? null, phone: input.phone },
           notes: input.notes ?? null,
         })
         .returning({ id: orders.id })

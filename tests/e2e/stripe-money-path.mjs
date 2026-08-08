@@ -105,6 +105,9 @@ ok('checkout page rendered with a restored basket')
 await page.locator('input[autocomplete="postal-code"]').fill('86000')
 await page.locator('input[autocomplete="address-level2"]').fill('Poitiers')
 await page.locator('input[type="email"]').fill('sim-stripe@vitesse-eco.test')
+// Required for every order now, collection included, so it is filled here
+// rather than inside the address block that only a delivery renders.
+await page.locator('input[autocomplete="tel"]').fill('+33745830049')
 
 // Delivery options answer the address; prefer a real delivery over pickup so
 // the address block and the van path are exercised too.
@@ -119,7 +122,6 @@ if (await page.locator('input[autocomplete="given-name"]').isVisible().catch(() 
   await page.locator('input[autocomplete="given-name"]').fill('Sim')
   await page.locator('input[autocomplete="family-name"]').fill('Stripe')
   await page.locator('input[autocomplete="address-line1"]').fill('32 Rue du Faubourg du Pont Neuf')
-  await page.locator('input[autocomplete="tel"]').fill('+33745830049')
   ok('delivery address filled')
 }
 

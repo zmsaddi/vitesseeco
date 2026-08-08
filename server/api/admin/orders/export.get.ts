@@ -109,7 +109,7 @@ export default defineRoute({
 
     const lines = [COLUMNS.join(';')]
     for (const row of rows) {
-      const snapshot = (row.customerSnapshot ?? {}) as { name?: string; email?: string }
+      const snapshot = (row.customerSnapshot ?? {}) as { name?: string; email?: string; phone?: string }
       const address = (row.shippingAddress ?? {}) as {
         firstName?: string
         lastName?: string
@@ -132,7 +132,9 @@ export default defineRoute({
           row.shippingMethodCode,
           recipient,
           snapshot.email ?? row.guestEmail ?? '',
-          address.phone ?? '',
+          // The order's own number first: a collection order has no address to
+          // hold one, and that is the row most likely to need a call.
+          snapshot.phone ?? address.phone ?? '',
           address.line1 ?? '',
           address.line2 ?? '',
           address.postalCode ?? '',

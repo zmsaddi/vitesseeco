@@ -33,6 +33,10 @@ interface ShippingOption {
 
 const destination = reactive({ country: 'FR', postalCode: '' })
 const email = ref(me.value?.email ?? '')
+// Required for every order. /api/auth/me does not carry one, so even a signed-in
+// customer states it here — the number frozen onto the order is the number given
+// that day, not whatever the account holds later.
+const phone = ref('')
 const selectedShipping = ref<string | null>(null)
 const selectedPayment = ref<'stripe' | 'cod' | 'in_store'>('stripe')
 
@@ -152,7 +156,6 @@ async function refreshTotals(): Promise<void> {
 const address = reactive({
   firstName: '',
   lastName: '',
-  phone: '',
   line1: '',
   line2: '',
 })
@@ -179,6 +182,7 @@ onMounted(() => {
     destination.postalCode = saved.postalCode ?? ''
     city.value = saved.city ?? ''
     if (saved.email) email.value = saved.email
+    if (saved.phone) phone.value = saved.phone
     Object.assign(address, saved.address ?? {})
     // Shipping and payment can only be re-applied once the options for the
     // restored address have been fetched — the destination watcher does it.
@@ -195,6 +199,7 @@ watch(
     destination.postalCode,
     city.value,
     email.value,
+    phone.value,
     { ...address },
     selectedShipping.value,
     selectedPayment.value,
@@ -208,6 +213,7 @@ watch(
           postalCode: destination.postalCode,
           city: city.value,
           email: email.value,
+          phone: phone.value,
           address: { ...address },
           shipping: selectedShipping.value,
           payment: selectedPayment.value,
@@ -240,6 +246,7 @@ const canSubmit = computed(
     !cart.isEmpty.value &&
     !!selectedShipping.value &&
     !!email.value &&
+    phone.value.trim().length > 0 &&
     !!captchaToken.value &&
     (!needsAddress.value || addressComplete.value) &&
     !submitting.value
@@ -266,6 +273,7 @@ async function submit(): Promise<void> {
         paymentMethod: selectedPayment.value,
         locale: locale.value,
         email: email.value,
+        phone: phone.value.trim(),
         // Sent only when it is required and complete. The country and postcode
         // come from the same fields that produced the shipping quote, so the
         // address delivered to and the address priced for are one address.
@@ -274,7 +282,7 @@ async function submit(): Promise<void> {
               shippingAddress: {
                 firstName: address.firstName.trim(),
                 lastName: address.lastName.trim(),
-                ...(address.phone.trim() ? { phone: address.phone.trim() } : {}),
+                phone: phone.value.trim(),
                 line1: address.line1.trim(),
                 ...(address.line2.trim() ? { line2: address.line2.trim() } : {}),
                 postalCode: destination.postalCode.trim(),
@@ -371,10 +379,28 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
                 <span class="text-sm text-content-muted">{{ $t('checkout.city') }}</span>
                 <input v-model="city" type="text" autocomplete="address-level2" class="field mt-1" />
               </label>
-              <label class="sm:col-span-2">
+              <label>
                 <span class="text-sm text-content-muted">{{ $t('checkout.email') }}</span>
                 <input v-model="email" type="email" autocomplete="email" class="field mt-1" required />
               </label>
+              <!--
+                Beside the email and not inside the address block, because a
+                collection order has no address block at all — and collection is
+                the order we most need to ring about.
+              -->
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.phone') }}</span>
+                <input
+                  v-model="phone"
+                  type="tel"
+                  inputmode="tel"
+                  autocomplete="tel"
+                  maxlength="24"
+                  class="field mt-1"
+                  required
+                />
+              </label>
+              <p class="text-xs text-content-muted sm:col-span-2">{{ $t('checkout.phone_why') }}</p>
             </div>
 
             <!-- Shown only when we are driving to it. Collection in store needs
@@ -422,18 +448,6 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
                   maxlength="200"
                   class="field mt-1"
                 />
-              </label>
-              <label class="sm:col-span-2">
-                <span class="text-sm text-content-muted">{{ $t('checkout.phone') }}</span>
-                <!-- Not decoration: the van calls before it arrives. -->
-                <input
-                  v-model="address.phone"
-                  type="tel"
-                  autocomplete="tel"
-                  maxlength="24"
-                  class="field mt-1"
-                />
-                <span class="mt-1 block text-xs text-content-muted">{{ $t('checkout.phone_why') }}</span>
               </label>
             </div>
           </section>

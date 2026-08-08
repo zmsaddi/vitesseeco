@@ -50,6 +50,7 @@ export default defineRoute({
       ...(body.cart.promoCode ? { promoCode: body.cart.promoCode } : {}),
       ...(body.notes ? { notes: body.notes } : {}),
       idempotencyKey: body.idempotencyKey,
+      phone: body.phone,
       customer: customer
         ? {
             id: customer.id,
