@@ -193,20 +193,27 @@ useHead(() => {
   const url = localizedUrl(`/produits/${item.slug}`, locale.value as LocaleCode)
   const market = marketForLocale(locale.value as LocaleCode)
 
-  const shippingDetails = ORGANISATION.deliversTo.map((country) => ({
+  /**
+   * Delivery, taken from the same shipping documents the checkout quotes and the
+   * Merchant feed advertises.
+   *
+   * It used to be built from a hardcoded list of three countries while the feed
+   * advertised six — so Google was handed two different delivery footprints for
+   * one product, and Spain, added at 149 EUR, appeared in neither the page nor
+   * the reader's understanding of it. A price stated here that the till would
+   * refuse is exactly what Merchant suspends an account for.
+   */
+  const coverage = item.deliveryCoverage ?? []
+  const shippingDetails = coverage.map(({ country, priceCents }) => ({
     '@type': 'OfferShippingDetails',
     shippingRate: {
       '@type': 'MonetaryAmount',
-      // Free where the own fleet goes. Claiming free delivery anywhere else
-      // would be a promise the checkout refuses.
-      value: '0.00',
+      value: (priceCents / 100).toFixed(2), // invariant-ok: schema.org money is machine format, dot-decimal by spec
       currency: 'EUR',
     },
     shippingDestination: {
       '@type': 'DefinedRegion',
       addressCountry: country,
-      // France is department 86 only; the rest of the country collects in store.
-      ...(country === 'FR' ? { postalCodePrefix: ['86'] } : {}),
     },
     deliveryTime: {
       '@type': 'ShippingDeliveryTime',

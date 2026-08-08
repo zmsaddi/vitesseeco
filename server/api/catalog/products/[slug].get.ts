@@ -7,7 +7,7 @@
 import { z } from 'zod'
 import { getRouterParam } from 'h3'
 import { defineRoute } from '../../../security/handler'
-import { getProduct } from '../../../catalog'
+import { deliveryCoverage, getProduct } from '../../../catalog'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { localeSchema } from '../../../../shared/schemas'
 import type { LocaleCode } from '../../../../shared/locales'
@@ -27,6 +27,12 @@ export default defineRoute({
     if (!parsed.success) {
       throw new AppError(ERROR_CODES.NOT_FOUND, { internal: 'malformed product slug' })
     }
-    return getProduct(parsed.data, query.locale as LocaleCode, market)
+    // Fetched together so the page can state a delivery footprint that matches
+    // the feed exactly. Both reads are cached, so this costs no round trip.
+    const [product, coverage] = await Promise.all([
+      getProduct(parsed.data, query.locale as LocaleCode, market),
+      deliveryCoverage(),
+    ])
+    return { ...product, deliveryCoverage: coverage }
   },
 })

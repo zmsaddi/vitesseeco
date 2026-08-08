@@ -64,6 +64,12 @@ export interface ProductSpecifications {
 }
 
 export interface ProductDetail extends ProductSummary {
+  /**
+   * Where this can actually be delivered, and for how much. Read from the same
+   * shipping documents the checkout and the Merchant feed use, so the page
+   * cannot claim a delivery footprint the feed contradicts.
+   */
+  deliveryCoverage?: Array<{ country: string; priceCents: number }>
   sku: string | null
   /** EAN-13 for the bike as it ships in its box. */
   gtin: string | null

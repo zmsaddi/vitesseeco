@@ -8,7 +8,7 @@
 import { db } from '../db/client'
 import { readAvailability } from '../services/stock'
 import { AppError, ERROR_CODES } from '../../shared/errors'
-import type { LocaleCode } from '../../shared/locales'
+import { DEFAULT_LOCALE, type LocaleCode } from '../../shared/locales'
 import {
   isServableDestination,
   marketForLocale,
@@ -331,6 +331,36 @@ export async function listBrands(): Promise<Brand[]> {
  * later refuse walks a customer all the way to payment before failing — which
  * is what the previous build did for every German and Spanish address.
  */
+/**
+ * Where the shop genuinely delivers, and what it charges there.
+ *
+ * Derived from the same  documents the checkout quotes and the
+ * Merchant feed advertises, because a product page that claims a different
+ * delivery footprint from the feed hands Google two answers for one product.
+ * It claimed France, Belgium and the Netherlands from a hardcoded constant
+ * while the feed advertised six countries — and never mentioned Spain at all.
+ *
+ * Collection is excluded: picking an order up in Poitiers is not delivery, and
+ * listing it as a shipping rate advertises service the shop does not run.
+ */
+export async function deliveryCoverage(): Promise<Array<{ country: string; priceCents: number }>> {
+  const documents = await cachedFetch<unknown[]>('shipping', SHIPPING_METHODS_QUERY, {}, 300_000)
+  const cheapest = new Map<string, number>()
+
+  for (const document of documents) {
+    const method = parseShippingMethod(document, DEFAULT_LOCALE)
+    if (!method || method.code === 'pickup') continue
+    for (const country of method.countries) {
+      const current = cheapest.get(country)
+      if (current === undefined || method.price < current) cheapest.set(country, method.price)
+    }
+  }
+
+  return [...cheapest.entries()]
+    .map(([country, priceCents]) => ({ country, priceCents }))
+    .sort((a, b) => a.country.localeCompare(b.country))
+}
+
 export async function shippingMethodsFor(
   destination: { country: string; postalCode?: string },
   locale: LocaleCode
