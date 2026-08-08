@@ -18,9 +18,30 @@ const SANITY_DATASET = process.env.SANITY_DATASET ?? 'production'
  * ends up advertising an hreflang that 404s.
  */
 export default defineNuxtConfig({
-  // Server-rendered in production. Rendering on the server is also what lets the
-  // catalogue be read with a token the browser never sees.
-  ssr: process.env.VERCEL === '1',
+  /**
+   * Server-rendered. Always, everywhere, on every machine.
+   *
+   * This read `process.env.VERCEL === '1'` from the first foundation commit,
+   * which described it as "SSR on Vercel only (ssr: false on Windows)" — a
+   * dev-time workaround for a Nuxt 3.21 problem that no longer exists. The
+   * consequence outlived the reason: the application's most basic behaviour
+   * depended on a hosting provider's environment variable.
+   *
+   * What that cost, measured on the same source with and without the variable:
+   *
+   *              /produits HTML   <title>   canonical   og: tags
+   *   without         3,027 B      absent        0           0
+   *   with           17,986 B     present        1          14
+   *
+   * Both served by `node .output/server/index.mjs`, the command the docs give.
+   * So following the documentation produced an SEO-less shell, and nothing
+   * failed — every gate that reads server-rendered HTML silently proved
+   * nothing, and the one that mattered would have been the SEO work.
+   *
+   * Rendering on the server is also what lets the catalogue be read with a
+   * token the browser never sees, which is not an optional property.
+   */
+  ssr: true,
   compatibilityDate: '2024-11-01',
 
   future: { compatibilityVersion: 4 },
