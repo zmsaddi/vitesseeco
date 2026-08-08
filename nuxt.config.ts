@@ -18,6 +18,26 @@ export default defineNuxtConfig({
 
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/i18n', '@nuxt/image', '@nuxt/icon', '@nuxt/fonts'],
 
+  /**
+   * Images.
+   *
+   * The module was registered and never configured, so every product photo was
+   * delivered at its full master size — up to 2048x2048 — to phones included.
+   * The provider below asks the Sanity CDN for the size actually needed.
+   *
+   * The screens are the breakpoints the layout really uses, so a generated
+   * srcset offers widths the browser can choose between instead of a ladder
+   * invented by the default.
+   */
+  image: {
+    provider: 'sanityCdn',
+    providers: {
+      sanityCdn: { name: 'sanityCdn', provider: '~~/providers/sanity-cdn.ts' },
+    },
+    domains: ['cdn.sanity.io'],
+    screens: { xs: 320, sm: 400, md: 640, lg: 900, xl: 1200, xxl: 1600 },
+  },
+
   tailwindcss: {
     // `~` already IS app/ under the Nuxt 4 layout. The previous value said
     // `~/app/assets/…`, which resolves to app/app/… — a path that does not
