@@ -84,10 +84,49 @@ async function setQuantity(line: { productId: string; quantity: number }, input:
   await refresh()
 }
 
+/**
+ * Removal, with a way back.
+ *
+ * "Retirer" sits next to a number input the customer is already clicking in,
+ * and it deleted the line with no confirmation and no undo — the only recovery
+ * was to remember what the bike was called and find it again. Nothing here is
+ * destructive enough to deserve a modal, so it gets an undo instead: the line
+ * is kept, with its quantity, until the customer either restores it or leaves.
+ */
+const undo = ref<{ productId: string; quantity: number; name: string } | null>(null)
+let undoTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Long enough to notice and act, short enough not to linger over the basket. */
+const UNDO_MS = 10_000
+
 async function remove(productId: string): Promise<void> {
+  const line = pricing.value?.lines.find((entry) => entry.productId === productId)
   cart.remove(productId)
+  if (line) {
+    undo.value = { productId, quantity: line.quantity, name: line.name }
+    clearTimeout(undoTimer)
+    undoTimer = setTimeout(() => { undo.value = null }, UNDO_MS)
+  }
   await refresh()
 }
+
+async function restore(): Promise<void> {
+  const line = undo.value
+  if (!line) return
+  undo.value = null
+  clearTimeout(undoTimer)
+  // add() answers whether the basket accepted it — at the line cap it does not,
+  // and saying "restored" for a line that is not there is the bug this page
+  // already fixed once for adding.
+  if (!cart.add(line.productId, line.quantity)) {
+    error.value = t('cart.undo_failed')
+    return
+  }
+  await refresh()
+}
+
+// A timer that outlives the page would restore a basket the customer left.
+onBeforeUnmount(() => clearTimeout(undoTimer))
 
 const promoInput = ref('')
 
@@ -113,9 +152,51 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
   <div class="container-page py-10">
     <h1 class="font-display text-3xl font-extrabold text-content-strong">{{ $t('cart.title') }}</h1>
 
-    <!-- The basket lives in localStorage, so the server cannot render it and
-         any server-rendered guess would flash and then be replaced. -->
-    <ClientOnly>
+    <!--
+      The basket lives in localStorage, so the server cannot render it. It can
+      render the right SHAPE: the line count travels in a cookie (see useCart)
+      for no other purpose than reserving the height the real rows will take.
+
+      This sits OUTSIDE ClientOnly, and that is the part that took two attempts.
+      In the #fallback slot it only covered hydration: the placeholder vanished
+      the moment the client took over, the page fell back to a one-line
+      "loading" while the pricing request was still in flight, and the footer
+      jumped up 211px and back down 218px. Two shifts instead of none, and a
+      worse score than no placeholder at all — 0.138 became 0.192.
+
+      `!pricing` is false on the server and stays false on the client until
+      there is something real to draw, so the first client render is identical
+      to the HTML it hydrates and nothing moves until the content is ready.
+    -->
+    <div
+      v-if="!pricing && !error && cart.reservedLines.value"
+      class="mt-8 grid gap-8 lg:grid-cols-3"
+      aria-hidden="true"
+    >
+      <!-- 158px and 327px, measured on the settled page. A basket row is a
+           96px thumbnail beside a fixed stack of controls, so unlike a product
+           card its height does not follow the viewport. -->
+      <ul class="space-y-4 lg:col-span-2">
+        <li v-for="row in cart.reservedLines.value" :key="row" class="skeleton h-40" />
+      </ul>
+      <div class="skeleton h-80" />
+    </div>
+
+    <ClientOnly v-else>
+      <!-- Announced, not just drawn: the line it refers to has just vanished
+           from the list, so a screen reader would otherwise report nothing. -->
+      <p
+        v-if="undo"
+        class="card mt-6 flex flex-wrap items-center gap-3 p-3 text-sm"
+        role="status"
+        aria-live="polite"
+      >
+        <span class="flex-1 text-content">{{ $t('cart.undo_removed', { name: undo.name }) }}</span>
+        <button type="button" class="btn-secondary h-9 px-3 text-xs" @click="restore">
+          {{ $t('cart.undo') }}
+        </button>
+      </p>
+
       <p v-if="pending && !pricing" class="mt-8 text-content-muted">{{ $t('common.loading') }}</p>
 
       <div v-else-if="cart.isEmpty.value" class="mt-8">

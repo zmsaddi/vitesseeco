@@ -19,9 +19,24 @@ const MAX_ITEMS = 50
 /** An id long enough to be a Sanity document id and no longer. */
 const MAX_ID_LENGTH = 200
 
+/**
+ * How many products are saved — a count, nothing more — mirrored into a cookie
+ * so the server can reserve the right number of placeholder cards. The list
+ * itself stays in localStorage for the reasons above; this exists only so
+ * /favoris stops adding 132px of content after the page has been painted.
+ */
+const COUNT_COOKIE = 'vs_wishlist_count'
+const COUNT_COOKIE_DAYS = 90
+
 export function useWishlist() {
   const ids = useState<string[]>('wishlist-ids', () => [])
   const restored = useState('wishlist-restored', () => false)
+
+  const reservedCards = useCookie<number | null>(COUNT_COOKIE, {
+    maxAge: COUNT_COOKIE_DAYS * 24 * 60 * 60,
+    sameSite: 'lax',
+    path: '/',
+  })
 
   function restore(): void {
     if (import.meta.server || restored.value) return
@@ -35,13 +50,21 @@ export function useWishlist() {
       )
       // Duplicates would each occupy one of the fifty slots and render twice.
       ids.value = [...new Set(clean)].slice(0, MAX_ITEMS)
+      syncReserved()
     } catch {
       ids.value = []
+      syncReserved()
     }
+  }
+
+  /** Kept truthful in both directions: a stale count reserves the wrong space. */
+  function syncReserved(): void {
+    reservedCards.value = ids.value.length ? Math.min(MAX_ITEMS, ids.value.length) : null
   }
 
   function persist(): void {
     if (import.meta.server) return
+    syncReserved()
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ids: ids.value }))
     } catch {
@@ -102,5 +125,5 @@ export function useWishlist() {
   const count = computed(() => ids.value.length)
   const isEmpty = computed(() => ids.value.length === 0)
 
-  return { ids, count, isEmpty, restore, has, add, remove, toggle, clear }
+  return { ids, count, isEmpty, reservedCards, restore, has, add, remove, toggle, clear }
 }

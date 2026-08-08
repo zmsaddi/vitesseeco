@@ -12,6 +12,19 @@ const STORAGE_KEY = 'vitesse.cart.v1'
 const MAX_LINES = 20
 const MAX_PER_LINE = 10
 
+/**
+ * How many lines the basket holds — and nothing else — mirrored into a cookie.
+ *
+ * The basket itself stays in localStorage, which the server cannot read, so
+ * /panier and /commande render behind <ClientOnly> and the server sent a
+ * heading above empty space. Hydration then dropped the real rows in and
+ * everything moved. This cookie exists so the server can reserve the right
+ * number of rows: it carries a COUNT, never a product, never a price, and
+ * nothing may be decided from it but how tall a placeholder is.
+ */
+const LINES_COOKIE = 'vs_cart_lines'
+const LINES_COOKIE_DAYS = 30
+
 export interface CartLine {
   productId: string
   quantity: number
@@ -41,6 +54,12 @@ export function useCart() {
   const promoCode = useState<string | null>('cart-promo', () => null)
   const restored = useState('cart-restored', () => false)
 
+  const reservedLines = useCookie<number | null>(LINES_COOKIE, {
+    maxAge: LINES_COOKIE_DAYS * 24 * 60 * 60,
+    sameSite: 'lax',
+    path: '/',
+  })
+
   function restore(): void {
     if (import.meta.server || restored.value) return
     restored.value = true
@@ -57,14 +76,27 @@ export function useCart() {
         )
         .slice(0, MAX_LINES)
       promoCode.value = typeof raw?.promoCode === 'string' ? raw.promoCode : null
+      syncReserved()
     } catch {
       lines.value = []
       promoCode.value = null
+      syncReserved()
     }
+  }
+
+  /**
+   * Clamped, and null when empty, so a tampered value can only ever ask for a
+   * slightly wrong placeholder height. Called on the way IN as well as out: a
+   * cookie that outlives the storage it mirrors would reserve rows for a basket
+   * that is no longer there, and the placeholder would never be replaced.
+   */
+  function syncReserved(): void {
+    reservedLines.value = lines.value.length ? Math.min(MAX_LINES, lines.value.length) : null
   }
 
   function persist(): void {
     if (import.meta.server) return
+    syncReserved()
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines: lines.value, promoCode: promoCode.value }))
     } catch {
@@ -121,5 +153,18 @@ export function useCart() {
   const count = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
   const isEmpty = computed(() => lines.value.length === 0)
 
-  return { lines, promoCode, count, isEmpty, restore, add, setQuantity, remove, clear, applyPromo }
+  return {
+    lines,
+    promoCode,
+    count,
+    isEmpty,
+    /** Layout only — how many placeholder rows the server should reserve. */
+    reservedLines,
+    restore,
+    add,
+    setQuantity,
+    remove,
+    clear,
+    applyPromo,
+  }
 }

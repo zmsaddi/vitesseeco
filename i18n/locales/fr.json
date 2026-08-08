@@ -170,7 +170,10 @@
     "subtotal": "Sous-total",
     "summary": "Récapitulatif",
     "title": "Votre panier",
-    "total": "Total"
+    "total": "Total",
+    "undo_removed": "{name} retiré du panier.",
+    "undo": "Annuler",
+    "undo_failed": "Impossible de restaurer cet article."
   },
   "cgv": {
     "data_link": "Politique de confidentialité",
@@ -749,7 +752,8 @@
     "sort_price_asc": "Prix croissant",
     "sort_price_desc": "Prix décroissant",
     "sort_relevance": "Pertinence",
-    "title": "Nos produits"
+    "title": "Nos produits",
+    "results": "Résultats : {count}"
   },
   "profile": {
     "language": "Langue",

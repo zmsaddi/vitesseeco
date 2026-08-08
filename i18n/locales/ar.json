@@ -170,7 +170,10 @@
     "subtotal": "المجموع الفرعي",
     "summary": "الملخّص",
     "title": "سلتك",
-    "total": "الإجمالي"
+    "total": "الإجمالي",
+    "undo_removed": "أُزيل {name} من السلة.",
+    "undo": "تراجع",
+    "undo_failed": "تعذّرت استعادة هذا المنتج."
   },
   "cgv": {
     "data_link": "سياسة الخصوصية",
@@ -749,7 +752,8 @@
     "sort_price_asc": "السعر: من الأقل",
     "sort_price_desc": "السعر: من الأعلى",
     "sort_relevance": "الأنسب",
-    "title": "منتجاتنا"
+    "title": "منتجاتنا",
+    "results": "النتائج: {count}"
   },
   "profile": {
     "language": "اللغة",

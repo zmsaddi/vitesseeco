@@ -131,9 +131,38 @@ useSeoMeta({ title: () => t('wishlist.title'), robots: 'noindex' })
     <h1 class="font-display text-3xl font-extrabold text-content-strong">{{ $t('wishlist.title') }}</h1>
     <p class="mt-2 max-w-2xl text-content-muted">{{ $t('wishlist.intro') }}</p>
 
-    <!-- The list lives in localStorage, so the server cannot render it and any
-         server-rendered guess would flash and then be replaced. -->
-    <ClientOnly>
+    <!--
+      The list lives in localStorage, so the server cannot render it. How many
+      cards there are travels in a cookie, and this placeholder holds their
+      space until the catalogue answers — outside ClientOnly and conditioned on
+      the DATA, not on hydration, so it does not disappear a beat before the
+      content that replaces it arrives.
+
+      It mirrors the real card's STRUCTURE rather than guessing a height. A
+      card is a square image above a body, so its height follows the column
+      width and therefore the viewport: a fixed 384px placeholder measured well
+      at one width and made the shift worse at another.
+    -->
+    <ul
+      v-if="!products.length && !error && wishlist.reservedCards.value"
+      class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+      aria-hidden="true"
+    >
+      <li v-for="card in wishlist.reservedCards.value" :key="card" class="card flex flex-col overflow-hidden">
+        <div class="skeleton aspect-square rounded-none" />
+        <div class="flex flex-1 flex-col p-4">
+          <div class="skeleton h-5 w-3/4" />
+          <div class="skeleton mt-1.5 h-4 w-1/3" />
+          <div class="skeleton mt-3 h-7 w-2/5" />
+          <div class="mt-auto flex items-center gap-3 pt-4">
+            <div class="skeleton h-11 flex-1" />
+            <div class="skeleton h-11 w-11" />
+          </div>
+        </div>
+      </li>
+    </ul>
+
+    <ClientOnly v-else>
       <p v-if="pending" class="mt-10 text-content-muted">{{ $t('common.loading') }}</p>
 
       <p v-else-if="error" class="mt-10 text-danger">{{ error }}</p>

@@ -170,7 +170,10 @@
     "subtotal": "Zwischensumme",
     "summary": "Übersicht",
     "title": "Ihr Warenkorb",
-    "total": "Gesamt"
+    "total": "Gesamt",
+    "undo_removed": "{name} aus dem Warenkorb entfernt.",
+    "undo": "Rückgängig",
+    "undo_failed": "Dieser Artikel konnte nicht wiederhergestellt werden."
   },
   "cgv": {
     "data_link": "Datenschutzerklärung",
@@ -749,7 +752,8 @@
     "sort_price_asc": "Preis aufsteigend",
     "sort_price_desc": "Preis absteigend",
     "sort_relevance": "Relevanz",
-    "title": "Unsere Produkte"
+    "title": "Unsere Produkte",
+    "results": "Ergebnisse: {count}"
   },
   "profile": {
     "language": "Sprache",

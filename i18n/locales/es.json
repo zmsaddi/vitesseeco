@@ -170,7 +170,10 @@
     "subtotal": "Subtotal",
     "summary": "Resumen",
     "title": "Su cesta",
-    "total": "Total"
+    "total": "Total",
+    "undo_removed": "{name} eliminado de la cesta.",
+    "undo": "Deshacer",
+    "undo_failed": "No se ha podido restaurar este artículo."
   },
   "cgv": {
     "data_link": "Política de privacidad",
@@ -749,7 +752,8 @@
     "sort_price_asc": "Precio: de menor a mayor",
     "sort_price_desc": "Precio: de mayor a menor",
     "sort_relevance": "Relevancia",
-    "title": "Nuestros productos"
+    "title": "Nuestros productos",
+    "results": "Resultados: {count}"
   },
   "profile": {
     "language": "Idioma",

@@ -170,7 +170,10 @@
     "subtotal": "Subtotaal",
     "summary": "Overzicht",
     "title": "Uw winkelmand",
-    "total": "Totaal"
+    "total": "Totaal",
+    "undo_removed": "{name} uit je winkelwagen verwijderd.",
+    "undo": "Ongedaan maken",
+    "undo_failed": "Dit artikel kon niet worden hersteld."
   },
   "cgv": {
     "data_link": "Privacybeleid",
@@ -749,7 +752,8 @@
     "sort_price_asc": "Prijs: laag naar hoog",
     "sort_price_desc": "Prijs: hoog naar laag",
     "sort_relevance": "Relevantie",
-    "title": "Onze producten"
+    "title": "Onze producten",
+    "results": "Resultaten: {count}"
   },
   "profile": {
     "language": "Taal",

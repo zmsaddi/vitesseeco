@@ -114,6 +114,23 @@ useSeoMeta({
       </label>
     </div>
 
+    <!--
+      How many. A search box that answers with a grid and no number leaves the
+      customer counting cards to find out whether the filter did anything, and
+      leaves "no results" indistinguishable from "still loading".
+
+      aria-live, because for someone using a screen reader the grid changing
+      under a debounced search is otherwise silent.
+    -->
+    <p
+      v-if="data && data.total > 0"
+      class="mt-6 text-sm text-content-muted"
+      aria-live="polite"
+      role="status"
+    >
+      {{ $t('products.results', { count: data.total }) }}
+    </p>
+
     <p v-if="status === 'pending'" class="mt-10 text-content-muted">{{ $t('common.loading') }}</p>
 
     <p v-else-if="!data?.items?.length" class="mt-10 text-content-muted">

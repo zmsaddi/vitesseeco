@@ -174,4 +174,20 @@
   .container-page {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
   }
+
+  /*
+   * A placeholder that occupies the space real content will take.
+   *
+   * The basket, the wishlist and the checkout all live behind <ClientOnly>,
+   * because their contents are in localStorage and the server cannot know them.
+   * With no fallback the server sent a heading and nothing else, and hydration
+   * then added between 124 and 132 pixels of content — measured as a 0.055 to
+   * 0.064 layout shift on a page a customer is reading while it moves.
+   *
+   * The pulse is decorative and the reduced-motion rule above already stills
+   * it; the reserved height is the part that matters and does not depend on it.
+   */
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-surface-sunken;
+  }
 }

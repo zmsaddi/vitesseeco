@@ -13,8 +13,25 @@ import { getMarket, marketForLocale } from '~~/shared/markets'
  *
  * Dismissal is remembered, because a banner that returns on every page is not a
  * suggestion, it is nagging.
+ *
+ * It is remembered in a COOKIE rather than in localStorage, and that is the
+ * whole point of the storage choice. localStorage is invisible to the server,
+ * so the strip could never be rendered in the first paint: the page arrived
+ * without it, hydration decided it belonged, and everything below moved down.
+ * Measured on the home page for a visitor in the Netherlands: a 0.0462 layout
+ * shift of <main>, the largest single shift on the page, and it moved the
+ * content under the reader's eyes a beat after they started reading. A cookie
+ * travels with the request, so the server renders the right thing once.
+ *
+ * The middleware already sends `Vary: Accept-Language, Cookie`, so a shared
+ * cache cannot serve a dismissed visitor's page to someone who has not
+ * dismissed it. The old localStorage key is left where it is — inert, and not
+ * worth code that runs on every page load to delete it once.
  */
 const DISMISS_KEY = 'vs_market_suggestion'
+
+/** Long enough to mean "remembered", short enough not to be permanent. */
+const DISMISS_DAYS = 180
 
 const { locale } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
@@ -33,17 +50,26 @@ const suggestion = useState<{ locale: LocaleCode; market: string } | null>(
   }
 )
 
-const dismissed = ref(true)
-onMounted(() => {
-  dismissed.value = localStorage.getItem(DISMISS_KEY) === '1'
+/**
+ * Read as a number, not a string.
+ *
+ * useCookie parses through destr, so a cookie written as "1" comes back as the
+ * NUMBER 1 — and `value !== '1'` is then true for a visitor who dismissed the
+ * strip yesterday. It typed cleanly, it rendered without error, and the banner
+ * simply came back forever. Caught by checking the server HTML with the cookie
+ * set, which is the only place the difference is visible.
+ */
+const dismissed = useCookie<number | null>(DISMISS_KEY, {
+  maxAge: DISMISS_DAYS * 24 * 60 * 60,
+  sameSite: 'lax',
+  path: '/',
 })
 
 function dismiss(): void {
-  dismissed.value = true
-  localStorage.setItem(DISMISS_KEY, '1')
+  dismissed.value = 1
 }
 
-const visible = computed(() => Boolean(suggestion.value) && !dismissed.value)
+const visible = computed(() => Boolean(suggestion.value) && dismissed.value !== 1)
 
 /** Endonym, so a Dutch visitor reads "Nederlands" and not "néerlandais". */
 const suggestedLabel = computed(

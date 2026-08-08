@@ -393,7 +393,29 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
   <div class="container-page py-10">
     <h1 class="font-display text-3xl font-extrabold text-content-strong">{{ $t('checkout.title') }}</h1>
 
-    <ClientOnly>
+    <!--
+      The same reservation as the basket page, and outside ClientOnly for the
+      same reason: the count is in a cookie so the checkout form does not appear
+      out of nowhere and push the page down while the customer is reading it.
+
+      The condition is the restored basket rather than hydration — it is true
+      when the server renders and stops being true the moment the lines come
+      back out of localStorage, which is the moment there is a form to show.
+    -->
+    <div
+      v-if="!cart.lines.value.length && cart.reservedLines.value"
+      class="mt-8 grid gap-8 lg:grid-cols-3"
+      aria-hidden="true"
+    >
+      <div class="space-y-8 lg:col-span-2">
+        <!-- 588px and 60px, measured: the address block and the strip under it. -->
+        <div class="skeleton h-[588px]" />
+        <div class="skeleton h-[60px]" />
+      </div>
+      <div class="skeleton h-56" />
+    </div>
+
+    <ClientOnly v-else>
       <div v-if="cart.isEmpty.value" class="mt-8">
         <p class="text-content-muted">{{ $t('cart.empty') }}</p>
         <NuxtLink :to="localePath('/produits')" class="btn-primary mt-6">{{ $t('cart.browse') }}</NuxtLink>

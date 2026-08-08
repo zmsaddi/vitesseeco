@@ -170,7 +170,10 @@
     "subtotal": "Subtotal",
     "summary": "Summary",
     "title": "Your basket",
-    "total": "Total"
+    "total": "Total",
+    "undo_removed": "{name} removed from your basket.",
+    "undo": "Undo",
+    "undo_failed": "That item could not be restored."
   },
   "cgv": {
     "data_link": "Privacy policy",
@@ -749,7 +752,8 @@
     "sort_price_asc": "Price: low to high",
     "sort_price_desc": "Price: high to low",
     "sort_relevance": "Relevance",
-    "title": "Our products"
+    "title": "Our products",
+    "results": "Results: {count}"
   },
   "profile": {
     "language": "Language",
