@@ -9,7 +9,12 @@ import { db } from '../db/client'
 import { readAvailability } from '../services/stock'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import type { LocaleCode } from '../../shared/locales'
-import { marketForLocale, type MarketDefinition, type MarketPriceRule } from '../../shared/markets'
+import {
+  isServableDestination,
+  marketForLocale,
+  type MarketDefinition,
+  type MarketPriceRule,
+} from '../../shared/markets'
 import { cachedFetch } from './client'
 import {
   parseArticle,
@@ -330,9 +335,16 @@ export async function shippingMethodsFor(
   destination: { country: string; postalCode?: string },
   locale: LocaleCode
 ): Promise<ShippingMethod[]> {
-  const documents = await cachedFetch<unknown[]>('shipping', SHIPPING_METHODS_QUERY, {}, 300_000)
   const country = destination.country.toUpperCase()
   const postal = (destination.postalCode ?? '').replace(/\s/g, '').toUpperCase()
+
+  // Somewhere we do not sell to at all gets nothing — not even collection.
+  // Store collection is offered everywhere else because it has no destination,
+  // and that made it the one way an order from the Canaries could still be
+  // placed after every delivery method had correctly refused.
+  if (!isServableDestination(country, postal)) return []
+
+  const documents = await cachedFetch<unknown[]>('shipping', SHIPPING_METHODS_QUERY, {}, 300_000)
 
   return documents
     .map((document) => parseShippingMethod(document, locale))

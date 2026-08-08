@@ -7,6 +7,7 @@ import {
   marketForHost,
   marketForLocale,
   marketForVisitorCountry,
+  isServableDestination,
   isServableMarket,
   marketPrice,
   resolveMarket,
@@ -219,5 +220,46 @@ describe('VAT contained in a gross price', () => {
   it('refuses a rate that is not a whole basis point', () => {
     expect(() => vatIncludedIn(fromEuros(100), 20.5)).toThrow()
     expect(() => vatIncludedIn(fromEuros(100), -1)).toThrow()
+  })
+})
+describe('isServableDestination — places we do not sell to at all', () => {
+  it('serves mainland Spain', () => {
+    for (const postcode of ['28001', '08001', '46001', '50001', '01001']) {
+      expect(isServableDestination('ES', postcode)).toBe(true)
+    }
+  })
+
+  it('refuses the Canaries, Ceuta and Melilla — outside the EU customs and VAT union', () => {
+    // A parcel there is an export declaration and a different VAT treatment, so
+    // a 149 EUR promise is a loss taken on every order.
+    expect(isServableDestination('ES', '35001')).toBe(false)  // Las Palmas
+    expect(isServableDestination('ES', '38001')).toBe(false)  // Tenerife
+    expect(isServableDestination('ES', '51001')).toBe(false)  // Ceuta
+    expect(isServableDestination('ES', '52001')).toBe(false)  // Melilla
+  })
+
+  it('refuses the Balearics', () => {
+    expect(isServableDestination('ES', '07001')).toBe(false)
+    expect(isServableDestination('ES', '07800')).toBe(false)
+  })
+
+  it('ignores spacing and case, as a typed postcode arrives', () => {
+    expect(isServableDestination('ES', '35 001')).toBe(false)
+    expect(isServableDestination('es', '35001')).toBe(false)
+  })
+
+  it('leaves every other market alone', () => {
+    // The rule must not quietly narrow a country nobody asked it to narrow.
+    for (const country of ['FR', 'BE', 'NL', 'DE', 'LU']) {
+      expect(isServableDestination(country, '35001')).toBe(true)
+      expect(isServableDestination(country, '07001')).toBe(true)
+    }
+  })
+
+  it('does not refuse before the postcode is typed', () => {
+    // Blocking on a half-entered address stops a customer mid-form; the checkout
+    // asks again with the real postcode before anything is priced.
+    expect(isServableDestination('ES')).toBe(true)
+    expect(isServableDestination('ES', '')).toBe(true)
   })
 })

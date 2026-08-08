@@ -96,6 +96,43 @@ export function isServableMarket(country: unknown, mode: RoutingMode = ROUTING_M
   return servableMarkets(mode).some((m) => m.country === upper)
 }
 
+/**
+ * Territories inside a market we do not sell to at all.
+ *
+ * A market is a country in the price list, but a country is not always one
+ * shipping reality. The Canaries, Ceuta and Melilla sit outside the EU customs
+ * and VAT union — a parcel there is an export declaration, different VAT and a
+ * different cost — and the Balearics are a ferry crossing away from the price
+ * the mainland pays. The owner's decision is not to sell to any of them.
+ *
+ * This is a property of the DESTINATION, not of any one shipping method, which
+ * is why it lives here rather than in a method's postcode prefixes. Those are
+ * global to a method: adding Spanish prefixes to store collection, the one
+ * method offered everywhere, would have removed collection from France.
+ *
+ * Matched on the leading digits of the postcode.
+ */
+export const UNSERVED_POSTAL_PREFIXES: Readonly<Record<string, readonly string[]>> = {
+  // 07 Illes Balears · 35 Las Palmas · 38 Santa Cruz de Tenerife · 51 Ceuta · 52 Melilla
+  ES: ['07', '35', '38', '51', '52'],
+}
+
+/**
+ * Whether we sell to this address at all.
+ *
+ * An unknown postcode is servable: the checkout asks again with the real one
+ * before anything is priced or charged, and refusing early would block the
+ * customer before they have finished typing.
+ */
+export function isServableDestination(country: unknown, postalCode?: string | null): boolean {
+  if (typeof country !== 'string') return false
+  const excluded = UNSERVED_POSTAL_PREFIXES[country.trim().toUpperCase()]
+  if (!excluded) return true
+  const postal = (postalCode ?? '').replace(/\s/g, '').toUpperCase()
+  if (!postal) return true
+  return !excluded.some((prefix) => postal.startsWith(prefix))
+}
+
 const BY_COUNTRY = new Map<string, MarketDefinition>(MARKETS.map((m) => [m.country, m]))
 
 export function isMarketCountry(value: unknown): boolean {
