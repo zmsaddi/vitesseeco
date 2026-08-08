@@ -343,21 +343,28 @@ export async function listBrands(): Promise<Brand[]> {
  * Collection is excluded: picking an order up in Poitiers is not delivery, and
  * listing it as a shipping rate advertises service the shop does not run.
  */
-export async function deliveryCoverage(): Promise<Array<{ country: string; priceCents: number }>> {
+export async function deliveryCoverage(): Promise<
+  Array<{ country: string; priceCents: number; postalPrefixes: string[] }>
+> {
   const documents = await cachedFetch<unknown[]>('shipping', SHIPPING_METHODS_QUERY, {}, 300_000)
-  const cheapest = new Map<string, number>()
+  const cheapest = new Map<string, { priceCents: number; postalPrefixes: string[] }>()
 
   for (const document of documents) {
     const method = parseShippingMethod(document, DEFAULT_LOCALE)
     if (!method || method.code === 'pickup') continue
     for (const country of method.countries) {
       const current = cheapest.get(country)
-      if (current === undefined || method.price < current) cheapest.set(country, method.price)
+      // The cheapest option decides, and it brings its postal scoping with it.
+      // Free delivery in France is department 86 only; stating the price without
+      // the restriction advertises a nationwide service the till refuses.
+      if (current === undefined || method.price < current.priceCents) {
+        cheapest.set(country, { priceCents: method.price, postalPrefixes: method.postalPrefixes })
+      }
     }
   }
 
   return [...cheapest.entries()]
-    .map(([country, priceCents]) => ({ country, priceCents }))
+    .map(([country, entry]) => ({ country, ...entry }))
     .sort((a, b) => a.country.localeCompare(b.country))
 }
 

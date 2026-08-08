@@ -69,7 +69,7 @@ export interface ProductDetail extends ProductSummary {
    * shipping documents the checkout and the Merchant feed use, so the page
    * cannot claim a delivery footprint the feed contradicts.
    */
-  deliveryCoverage?: Array<{ country: string; priceCents: number }>
+  deliveryCoverage?: Array<{ country: string; priceCents: number; postalPrefixes: string[] }>
   sku: string | null
   /** EAN-13 for the bike as it ships in its box. */
   gtin: string | null

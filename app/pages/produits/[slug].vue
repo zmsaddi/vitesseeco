@@ -204,7 +204,7 @@ useHead(() => {
    * refuse is exactly what Merchant suspends an account for.
    */
   const coverage = item.deliveryCoverage ?? []
-  const shippingDetails = coverage.map(({ country, priceCents }) => ({
+  const shippingDetails = coverage.map(({ country, priceCents, postalPrefixes }) => ({
     '@type': 'OfferShippingDetails',
     shippingRate: {
       '@type': 'MonetaryAmount',
@@ -214,6 +214,11 @@ useHead(() => {
     shippingDestination: {
       '@type': 'DefinedRegion',
       addressCountry: country,
+      // Carried through from the shipping document: free delivery in France is
+      // department 86, not the country. Dropping the scope would advertise a
+      // service the checkout refuses — which is Misrepresentation, and it is
+      // enforced by suspension rather than by a warning.
+      ...(postalPrefixes.length ? { postalCodePrefix: postalPrefixes } : {}),
     },
     deliveryTime: {
       '@type': 'ShippingDeliveryTime',
