@@ -49,3 +49,12 @@ skills/*.zip
 .rebuild-secrets.json
 STRIP.TXT
 .sanity-legacy-orders-backup.json
+
+# A file called SANITY_TOKEN.env sat here holding a Sanity token. It matched
+# neither ".env" nor ".env.*" — those anchor at the START of the name, and this
+# one only ENDS in .env. It was one `git add -A` away from a public repository.
+# Suffix and substring, not just prefix.
+*.env
+!.env.example
+*token*
+*secret*
