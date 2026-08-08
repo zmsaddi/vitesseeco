@@ -58,7 +58,7 @@ npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purch
 npm run test:money -- <url> # the critical path, asserted in the database
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 16 project rules
+npm run check:invariants    # 17 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```

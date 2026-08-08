@@ -116,12 +116,32 @@ export function applySecurityHeaders(event: H3Event): void {
 }
 
 /**
- * Headers for API responses: never cached, never sniffed, never framed.
- * A cached authenticated response served to the next visitor is a data leak,
- * and shared caches are exactly where that happens.
+ * Headers for API responses: never sniffed, never leaked in a referrer, and by
+ * default never cached. A cached authenticated response served to the next
+ * visitor is a data leak, and shared caches are exactly where that happens.
+ *
+ * `seconds` opts a route into a SHARED cache, and defineRoute only allows it on
+ * a route whose access is 'public' — the safety is a property of the route
+ * definition, checked in code and by an invariant, not a comment asking the
+ * next person to be careful.
+ *
+ * `private` is dropped in that case and `s-maxage` used rather than `max-age`:
+ * the CDN may hold the response, the browser is told to revalidate. Vary names
+ * Accept-Language because content routes answer in the visitor's language, and
+ * a shared cache with no Vary would serve the first caller's language to
+ * everyone behind it.
  */
-export function applyApiHeaders(event: H3Event): void {
-  setResponseHeader(event, 'Cache-Control', 'no-store, private')
+export function applyApiHeaders(event: H3Event, seconds = 0): void {
+  if (seconds > 0) {
+    setResponseHeader(
+      event,
+      'Cache-Control',
+      `public, max-age=0, s-maxage=${seconds}, stale-while-revalidate=${seconds * 4}`
+    )
+    setResponseHeader(event, 'Vary', 'Accept-Language')
+  } else {
+    setResponseHeader(event, 'Cache-Control', 'no-store, private')
+  }
   setResponseHeader(event, 'X-Content-Type-Options', 'nosniff')
   setResponseHeader(event, 'Referrer-Policy', 'no-referrer')
 }

@@ -561,6 +561,26 @@ if (suppressed.length > 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 17. Only a public route may be held by a shared cache ───────────────────
+// defineRoute throws on this too, but a throw at module load is discovered when
+// the route is first requested, which on some presets is in front of a
+// customer. A cached response is served to the NEXT visitor: this is the rule
+// whose violation hands one customer's order to another.
+{
+  const rule = 'cacheSeconds appears only on access: public routes'
+  let bad = 0
+  const apiDir = join(ROOT, 'server', 'api')
+  for (const file of walk(apiDir, ['.ts'])) {
+    const rel = relative(ROOT, file).split('\\').join('/')
+    const text = readFileSync(file, 'utf8')
+    if (!/cacheSeconds\s*:\s*[1-9]/.test(text)) continue
+    if (/access:\s*'public'/.test(text)) continue
+    bad++
+    fail(rule, rel, null, 'asks a shared cache to hold a response that is not public')
+  }
+  if (bad === 0) pass(rule)
+}
+
 console.log('')
 if (failures > 0) {
   console.error(`❌ ${failures} invariant violation(s) across ${checks + 1} rules`)

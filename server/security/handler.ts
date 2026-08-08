@@ -50,6 +50,18 @@ export interface RouteDefinition<TBody, TQuery> {
   body?: ZodType<TBody>
   /** Schema for the query string. Omit for routes that take none. */
   query?: ZodType<TQuery>
+  /**
+   * Seconds a SHARED cache may hold this response. Omitted means no-store,
+   * which is the only safe default: every API response was no-store, and that
+   * is right for anything carrying a customer, an order or an address.
+   *
+   * Only a route whose access is 'public' may set it, enforced below rather
+   * than trusted — a cached response is served to the NEXT visitor, so getting
+   * this wrong on an authenticated route hands one customer's data to another.
+   * Do not set it on anything that reads stock: the number would be as stale as
+   * the value here, and a shopper would be told a bike is available that is not.
+   */
+  cacheSeconds?: number
   handler: (context: RouteContext<TBody, TQuery>) => Promise<unknown> | unknown
 }
 
@@ -125,8 +137,17 @@ function formatIssues(error: z.ZodError): Array<{ path: string; message: string 
 export function defineRoute<TBody = undefined, TQuery = undefined>(
   definition: RouteDefinition<TBody, TQuery>
 ) {
+  // Thrown at module load, so a route that asks a shared cache to hold an
+  // authenticated response cannot start rather than failing quietly in front of
+  // a customer.
+  if (definition.cacheSeconds && definition.access !== 'public') {
+    throw new Error(
+      `cacheSeconds is only allowed on a public route; this one is '${definition.access}'`
+    )
+  }
+
   return defineEventHandler(async (event: H3Event) => {
-    applyApiHeaders(event)
+    applyApiHeaders(event, definition.cacheSeconds ?? 0)
 
     try {
       // 1. Cross-site state changes never reach a handler.
