@@ -108,6 +108,8 @@ await page.locator('input[type="email"]').fill('sim-stripe@vitesse-eco.test')
 // Required for every order now, collection included, so it is filled here
 // rather than inside the address block that only a delivery renders.
 await page.locator('input[autocomplete="tel"]').fill('+33745830049')
+await page.locator('input[autocomplete="given-name"]').fill('Sim')
+await page.locator('input[autocomplete="family-name"]').fill('Stripe')
 
 // Delivery options answer the address; prefer a real delivery over pickup so
 // the address block and the van path are exercised too.
@@ -118,9 +120,7 @@ const shippingPick = values.find((v) => v !== 'pickup' && v !== 'stripe' && v !=
 await page.locator(`input[type="radio"][value="${shippingPick}"]`).first().check()
 ok(`shipping selected: ${shippingPick}`)
 
-if (await page.locator('input[autocomplete="given-name"]').isVisible().catch(() => false)) {
-  await page.locator('input[autocomplete="given-name"]').fill('Sim')
-  await page.locator('input[autocomplete="family-name"]').fill('Stripe')
+if (await page.locator('input[autocomplete="address-line1"]').isVisible().catch(() => false)) {
   await page.locator('input[autocomplete="address-line1"]').fill('32 Rue du Faubourg du Pont Neuf')
   ok('delivery address filled')
 }

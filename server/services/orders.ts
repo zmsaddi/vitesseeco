@@ -59,10 +59,13 @@ export interface PlaceOrderInput {
   customer: { id: string; email: string; firstName: string; lastName: string } | null
   guestEmail?: string
   /**
-   * How to reach whoever placed this. Required, and frozen onto the order like
-   * the money: the number the shop rings to arrange delivery or collection must
-   * be the one given that day, not whatever the account holds two years later.
+   * Who placed this and how to reach them. Required, and frozen onto the order
+   * like the money: the name that goes on the invoice and the number the shop
+   * rings must be the ones given that day, not whatever the account holds two
+   * years later.
    */
+  firstName: string
+  lastName: string
   phone: string
   /** Injectable so the whole path can be exercised against a test database. */
   runTransaction?: TransactionRunner
@@ -157,13 +160,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
             ? { ...input.shippingAddress, phone: input.shippingAddress.phone ?? input.phone }
             : null,
           billingAddress: input.billingAddress ?? input.shippingAddress ?? null,
-          customerSnapshot: input.customer
-            ? {
-                name: `${input.customer.firstName} ${input.customer.lastName}`.trim(),
-                email: input.customer.email,
-                phone: input.phone,
-              }
-            : { email: input.guestEmail ?? null, phone: input.phone },
+          // The name stated at checkout, not the one on the account: someone
+          // buying for a partner or a company must be able to say so, and it is
+          // this name that goes on the invoice.
+          customerSnapshot: {
+            name: `${input.firstName} ${input.lastName}`.trim(),
+            email: input.customer?.email ?? input.guestEmail ?? null,
+            phone: input.phone,
+          },
           notes: input.notes ?? null,
         })
         .returning({ id: orders.id })

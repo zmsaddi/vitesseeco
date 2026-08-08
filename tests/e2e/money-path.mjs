@@ -149,6 +149,8 @@ const order = await call('customer', '/api/checkout/start', {
     },
     paymentMethod: 'cod',
     locale: 'fr',
+    firstName: 'Sim',
+    lastName: 'Client',
     phone: '+32470123456',
     idempotencyKey: crypto.randomUUID(),
     captchaToken: CAPTCHA,

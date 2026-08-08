@@ -20,7 +20,12 @@ const { locale, t } = useI18n()
 const { formatDecimal } = useFormatPrice()
 const config = useRuntimeConfig()
 
-const { data: me } = await useFetch<{ id: string; email: string } | null>('/api/auth/me')
+const { data: me } = await useFetch<{
+  id: string
+  email: string
+  firstName: string
+  lastName: string
+} | null>('/api/auth/me')
 
 interface ShippingOption {
   code: string
@@ -33,6 +38,10 @@ interface ShippingOption {
 
 const destination = reactive({ country: 'FR', postalCode: '' })
 const email = ref(me.value?.email ?? '')
+// Prefilled for a signed-in customer but still editable: someone buying for a
+// partner or a company must be able to put that name on the invoice.
+const firstName = ref(me.value?.firstName ?? '')
+const lastName = ref(me.value?.lastName ?? '')
 // Required for every order. /api/auth/me does not carry one, so even a signed-in
 // customer states it here — the number frozen onto the order is the number given
 // that day, not whatever the account holds later.
@@ -154,8 +163,6 @@ async function refreshTotals(): Promise<void> {
  * delivery, cash on collection — for a Spanish address.
  */
 const address = reactive({
-  firstName: '',
-  lastName: '',
   line1: '',
   line2: '',
 })
@@ -183,6 +190,8 @@ onMounted(() => {
     city.value = saved.city ?? ''
     if (saved.email) email.value = saved.email
     if (saved.phone) phone.value = saved.phone
+    if (saved.firstName) firstName.value = saved.firstName
+    if (saved.lastName) lastName.value = saved.lastName
     Object.assign(address, saved.address ?? {})
     // Shipping and payment can only be re-applied once the options for the
     // restored address have been fetched — the destination watcher does it.
@@ -200,6 +209,8 @@ watch(
     city.value,
     email.value,
     phone.value,
+    firstName.value,
+    lastName.value,
     { ...address },
     selectedShipping.value,
     selectedPayment.value,
@@ -214,6 +225,8 @@ watch(
           city: city.value,
           email: email.value,
           phone: phone.value,
+          firstName: firstName.value,
+          lastName: lastName.value,
           address: { ...address },
           shipping: selectedShipping.value,
           payment: selectedPayment.value,
@@ -225,12 +238,9 @@ watch(
   }
 )
 
+/** The street part only — the name is asked of every order, above. */
 const addressComplete = computed(
-  () =>
-    address.firstName.trim().length > 0 &&
-    address.lastName.trim().length > 0 &&
-    address.line1.trim().length > 0 &&
-    city.value.trim().length > 0
+  () => address.line1.trim().length > 0 && city.value.trim().length > 0
 )
 
 /** Collection needs no address; anything we drive to does. */
@@ -247,6 +257,8 @@ const canSubmit = computed(
     !!selectedShipping.value &&
     !!email.value &&
     phone.value.trim().length > 0 &&
+    firstName.value.trim().length > 0 &&
+    lastName.value.trim().length > 0 &&
     !!captchaToken.value &&
     (!needsAddress.value || addressComplete.value) &&
     !submitting.value
@@ -273,6 +285,8 @@ async function submit(): Promise<void> {
         paymentMethod: selectedPayment.value,
         locale: locale.value,
         email: email.value,
+        firstName: firstName.value.trim(),
+        lastName: lastName.value.trim(),
         phone: phone.value.trim(),
         // Sent only when it is required and complete. The country and postcode
         // come from the same fields that produced the shipping quote, so the
@@ -280,8 +294,10 @@ async function submit(): Promise<void> {
         ...(needsAddress.value
           ? {
               shippingAddress: {
-                firstName: address.firstName.trim(),
-                lastName: address.lastName.trim(),
+                // The same three the order carries, so the label and the
+                // invoice cannot disagree about who this is.
+                firstName: firstName.value.trim(),
+                lastName: lastName.value.trim(),
                 phone: phone.value.trim(),
                 line1: address.line1.trim(),
                 ...(address.line2.trim() ? { line2: address.line2.trim() } : {}),
@@ -379,15 +395,40 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
                 <span class="text-sm text-content-muted">{{ $t('checkout.city') }}</span>
                 <input v-model="city" type="text" autocomplete="address-level2" class="field mt-1" />
               </label>
+              <!--
+                Name, email and telephone all sit here rather than in the
+                address block below, because a collection order never renders
+                that block — so anything asked only there is never asked at all
+                for exactly the orders someone walks in to claim. The name is
+                what goes on the invoice; without it a paid order cannot be
+                invoiced without ringing to ask who bought.
+              -->
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.first_name') }}</span>
+                <input
+                  v-model="firstName"
+                  type="text"
+                  autocomplete="given-name"
+                  maxlength="100"
+                  class="field mt-1"
+                  required
+                />
+              </label>
+              <label>
+                <span class="text-sm text-content-muted">{{ $t('checkout.last_name') }}</span>
+                <input
+                  v-model="lastName"
+                  type="text"
+                  autocomplete="family-name"
+                  maxlength="100"
+                  class="field mt-1"
+                  required
+                />
+              </label>
               <label>
                 <span class="text-sm text-content-muted">{{ $t('checkout.email') }}</span>
                 <input v-model="email" type="email" autocomplete="email" class="field mt-1" required />
               </label>
-              <!--
-                Beside the email and not inside the address block, because a
-                collection order has no address block at all — and collection is
-                the order we most need to ring about.
-              -->
               <label>
                 <span class="text-sm text-content-muted">{{ $t('checkout.phone') }}</span>
                 <input
@@ -404,30 +445,9 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
             </div>
 
             <!-- Shown only when we are driving to it. Collection in store needs
-                 a name at the counter, not a street. -->
+                 a name at the counter, not a street — and that name is asked
+                 above, for every order. -->
             <div v-if="needsAddress" class="mt-4 grid gap-4 sm:grid-cols-2">
-              <label>
-                <span class="text-sm text-content-muted">{{ $t('checkout.first_name') }}</span>
-                <input
-                  v-model="address.firstName"
-                  type="text"
-                  autocomplete="given-name"
-                  maxlength="100"
-                  class="field mt-1"
-                  required
-                />
-              </label>
-              <label>
-                <span class="text-sm text-content-muted">{{ $t('checkout.last_name') }}</span>
-                <input
-                  v-model="address.lastName"
-                  type="text"
-                  autocomplete="family-name"
-                  maxlength="100"
-                  class="field mt-1"
-                  required
-                />
-              </label>
               <label class="sm:col-span-2">
                 <span class="text-sm text-content-muted">{{ $t('checkout.address') }}</span>
                 <input
