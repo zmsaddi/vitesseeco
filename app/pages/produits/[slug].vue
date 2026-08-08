@@ -312,9 +312,6 @@ useHead(() => {
             :alt="activeImage.alt"
             width="900"
             height="900"
-            sizes="xs:100vw sm:100vw md:100vw lg:50vw"
-            preload
-            fetchpriority="high"
             class="h-full w-full object-cover"
           />
         </div>
@@ -328,7 +325,7 @@ useHead(() => {
             :aria-label="`${$t('product.view_image')} ${index + 1}`"
             @click="selectedImage = index"
           >
-            <NuxtImg :src="image.url" :alt="image.alt" width="80" height="80" sizes="80px" loading="lazy" class="h-full w-full object-cover" />
+            <NuxtImg :src="image.url" :alt="image.alt" width="80" height="80" class="h-full w-full object-cover" />
           </button>
         </div>
       </div>

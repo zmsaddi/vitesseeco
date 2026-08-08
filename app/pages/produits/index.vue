@@ -131,7 +131,6 @@ useSeoMeta({
               width="600"
               height="600"
               loading="lazy"
-                            sizes="xs:100vw sm:100vw md:50vw lg:33vw"
               class="h-full w-full object-cover transition-transform group-hover:scale-105"
             />
           </div>
