@@ -122,32 +122,28 @@ function addToCart(): void {
 }
 
 /**
- * One canonical for a model, not one per colour.
+ * Every colour is its own canonical page.
  *
- * Six colours of the same bike are near-identical pages, and Search Console was
- * reporting exactly that on the live site: "duplicate, submitted URL not
- * selected as canonical". Pointing the family at one URL stops them competing
- * with each other for the same query. The choice is alphabetical among the
- * family so that every colour agrees on the same winner — a rule that depended
- * on which page you were standing on would produce a canonical loop.
+ * This used to point all colours of a model at whichever slug sorted first
+ * alphabetically — a well-meant answer to Search Console reporting "duplicate,
+ * submitted URL not selected as canonical" on the live site. But the fix was
+ * applied in exactly one of the six places that state a product's identity, and
+ * the result was worse than either strategy on its own: the black bike's page
+ * declared the blue one canonical, while the sitemap submitted the black URL,
+ * hreflang self-referenced it, and the Merchant feed sold it under its own
+ * g:id. The shop was handing Google a URL that disowned itself.
+ *
+ * Self-canonical is the only reading consistent with everything else this
+ * system does: one product is one colour, each colour carries its own price,
+ * its own stock and its own feed entry, and Merchant requires a landing page
+ * that is the product's own. Duplicate-content clustering is answered where it
+ * should be — by pages that genuinely differ, which is why the specifications
+ * and the colour now render — and by the sibling links below.
+ *
+ * If Search Console later shows these clustering again, the alternative is a
+ * family canonical applied to ALL SIX places at once, never to one of them.
  */
-const canonicalSlug = computed(() => {
-  const item = product.value
-  if (!item) return ''
-  if (!item.modelFamily) return item.slug
-  const family = [item.slug, ...item.siblings.map((sibling) => sibling.slug)].filter(Boolean)
-  return family.sort((a, b) => a.localeCompare(b))[0] ?? item.slug
-})
-
 watchEffect(() => {
-  canonicalOverride.value = canonicalSlug.value
-    ? localizedUrl(`/produits/${canonicalSlug.value}`, locale.value as LocaleCode)
-    : null
-})
-
-// Left behind, the override would follow the visitor onto the next page and
-// canonicalise it to a product.
-onUnmounted(() => {
   canonicalOverride.value = null
 })
 

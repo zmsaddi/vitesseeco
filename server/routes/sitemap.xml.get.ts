@@ -52,7 +52,7 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&apos;')
 }
 
-function urlEntry(path: string, priority: string, changefreq: string, lastmod: string): string {
+function urlEntry(path: string, priority: string, changefreq: string, lastmod?: string): string {
   const alternates = alternatesFor(path)
     .map(
       (alternate) =>
@@ -67,7 +67,7 @@ function urlEntry(path: string, priority: string, changefreq: string, lastmod: s
     return [
       '  <url>',
       `    <loc>${loc}</loc>`,
-      `    <lastmod>${lastmod}</lastmod>`,
+      ...(lastmod ? [`    <lastmod>${lastmod}</lastmod>`] : []),
       `    <changefreq>${changefreq}</changefreq>`,
       `    <priority>${locale.code === DEFAULT_LOCALE ? priority : String(Math.max(0.1, Number(priority) - 0.1))}</priority>`,
       alternates,
@@ -77,11 +77,16 @@ function urlEntry(path: string, priority: string, changefreq: string, lastmod: s
 }
 
 export default defineEventHandler(async (event) => {
-  const lastmod = new Date().toISOString().slice(0, 10)
+  // Only used as a fallback for a document whose own date is missing.
+  const today = new Date().toISOString().slice(0, 10)
   const entries: string[] = []
 
+  // Static pages carry NO lastmod. Stamping today on /cgv every day tells a
+  // crawler the terms of sale changed this morning, every morning — and a
+  // field that lies daily is a field the crawler learns to ignore, including
+  // on the product pages where it is true. Omitting it is valid and honest.
   for (const page of STATIC_PATHS) {
-    entries.push(urlEntry(page.path, page.priority, page.changefreq, lastmod))
+    entries.push(urlEntry(page.path, page.priority, page.changefreq))
   }
 
   // The catalogue is fetched defensively: a sitemap missing its products is
@@ -92,7 +97,7 @@ export default defineEventHandler(async (event) => {
     const [products, articles] = await Promise.all([listAllProductSlugs(), listArticleSlugs()])
 
     for (const article of articles) {
-      entries.push(urlEntry(`/blog/${article.slug}`, '0.6', 'monthly', article.updatedAt || lastmod))
+      entries.push(urlEntry(`/blog/${article.slug}`, '0.6', 'monthly', article.updatedAt || today))
     }
 
     for (const product of products) {
@@ -100,7 +105,7 @@ export default defineEventHandler(async (event) => {
       // a lastmod that changes daily for a page that has not changed teaches a
       // crawler to ignore the field.
       entries.push(
-        urlEntry(`/produits/${product.slug}`, '0.8', 'weekly', product.updatedAt || lastmod)
+        urlEntry(`/produits/${product.slug}`, '0.8', 'weekly', product.updatedAt || today)
       )
     }
   } catch (error) {

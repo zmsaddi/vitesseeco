@@ -79,6 +79,16 @@ function disallowLines(): string[] {
 
 export default defineEventHandler((event) => {
   const disallow = disallowLines()
+  // A preview deployment is the same shop on a different hostname. Indexed, it
+  // competes with the real one for its own product queries and can show a
+  // customer a build that was never released. Vercel sets VERCEL_ENV on every
+  // deployment; anything that is not production refuses everyone outright.
+  if (process.env.VERCEL_ENV && process.env.VERCEL_ENV !== 'production') {
+    setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
+    setResponseHeader(event, 'X-Robots-Tag', 'noindex, nofollow')
+    return ['User-agent: *', 'Disallow: /', ''].join('\n')
+  }
+
   const lines: string[] = []
 
   // A named group REPLACES the wildcard group for that agent, so the private
