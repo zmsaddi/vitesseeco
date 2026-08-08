@@ -38,6 +38,24 @@ const browser = await chromium.launch()
 try {
   console.log(`\nfrontend gate against ${BASE}\n`)
 
+  // ── 0. Is this the shop at all? ────────────────────────────────────────────
+  // Run against a Vercel deployment that is still building and every page
+  // answers 200 with a placeholder: no dir="rtl", no phone links, no products.
+  // The gate duly reported seven frontend problems, none of which existed. A
+  // verdict on the wrong page is worse than no verdict, so refuse to give one.
+  {
+    const preflight = await browser.newPage()
+    const response = await preflight.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' })
+    const isApp = await preflight.locator('#__nuxt').count()
+    await preflight.close()
+    if (!response || response.status() >= 400 || isApp === 0) {
+      console.error(`  ❌ ${BASE} did not serve the application`)
+      console.error(`     status ${response ? response.status() : 'none'}, #__nuxt ${isApp ? 'found' : 'missing'}`)
+      console.error('     A deployment still building answers 200 with a placeholder.\n')
+      process.exit(1)
+    }
+  }
+
   // ── 1. No horizontal overflow at 320px ─────────────────────────────────────
   console.log(`horizontal reflow at ${NARROW}px`)
   const page = await browser.newPage({ viewport: { width: NARROW, height: 720 } })
