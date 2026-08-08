@@ -24,6 +24,24 @@ export const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? ''
 /** Integration tests skip rather than fail when no scratch database is configured. */
 export const hasDatabase = TEST_DATABASE_URL.length > 0
 
+/**
+ * Point the production accessor at the scratch database.
+ *
+ * Service code reaches for `db()` on purpose — a harness that opens its own
+ * connection leaves the real connection path untested, which is how a driver
+ * that could only speak to one vendor's proxy passed eighty "real database"
+ * tests. Most suites here hand a transaction in, but anything that prices a
+ * basket goes through `db()` two calls deep and cannot be handed anything.
+ *
+ * Validated before it is set, and deliberately overwriting whatever the shell
+ * carried: a DATABASE_URL pointing somewhere real must never survive into a
+ * suite that truncates tables.
+ */
+if (hasDatabase) {
+  assertSafeTarget(TEST_DATABASE_URL)
+  process.env.DATABASE_URL = TEST_DATABASE_URL
+}
+
 function assertSafeTarget(url: string): void {
   const lowered = url.toLowerCase()
   const isLocal = lowered.includes('localhost') || lowered.includes('127.0.0.1')

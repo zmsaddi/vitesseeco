@@ -192,6 +192,10 @@ onMounted(() => {
     if (saved.phone) phone.value = saved.phone
     if (saved.firstName) firstName.value = saved.firstName
     if (saved.lastName) lastName.value = saved.lastName
+    // Restored so a customer returning from a failed payment retries INTO the
+    // order they already have, instead of creating a second one.
+    if (typeof saved.purchaseKey === 'string') purchaseKey.value = saved.purchaseKey
+    if (typeof saved.keyBelongsTo === 'string') keyBelongsTo = saved.keyBelongsTo
     Object.assign(address, saved.address ?? {})
     // Shipping and payment can only be re-applied once the options for the
     // restored address have been fetched — the destination watcher does it.
@@ -227,6 +231,8 @@ watch(
           phone: phone.value,
           firstName: firstName.value,
           lastName: lastName.value,
+          purchaseKey: purchaseKey.value,
+          keyBelongsTo,
           address: { ...address },
           shipping: selectedShipping.value,
           payment: selectedPayment.value,
@@ -248,6 +254,40 @@ const needsAddress = computed(
   () => selectedPayment.value !== 'in_store' && selectedShipping.value !== 'pickup'
 )
 
+/**
+ * One key per purchase attempt, not one per click.
+ *
+ * A new UUID was minted inline on every submit, so a lost response, a retry, or
+ * a Stripe failure in the browser wrote a SECOND order and a second stock hold
+ * for the same basket — the shelf lost units to a customer who bought nothing.
+ * The key now survives a failed attempt and a return to this page.
+ *
+ * It must still change when the purchase itself changes: reusing it after the
+ * basket is edited would resolve to the earlier order and charge for contents
+ * the customer no longer wants. So it is tied to a fingerprint of everything
+ * that decides what is being bought and what it costs, and checked at the only
+ * moment it matters — just before sending.
+ */
+const purchaseKey = ref('')
+let keyBelongsTo = ''
+
+const purchaseFingerprint = computed(() =>
+  JSON.stringify({
+    lines: cart.lines.value,
+    promo: cart.promoCode.value,
+    shipping: selectedShipping.value,
+    payment: selectedPayment.value,
+    country: destination.country,
+    postalCode: destination.postalCode,
+  })
+)
+
+function refreshPurchaseKey(): void {
+  if (purchaseKey.value && purchaseFingerprint.value === keyBelongsTo) return
+  purchaseKey.value = crypto.randomUUID()
+  keyBelongsTo = purchaseFingerprint.value
+}
+
 const captchaToken = ref('')
 const captcha = ref<{ reset: () => void } | null>(null)
 
@@ -266,6 +306,10 @@ const canSubmit = computed(
 
 async function submit(): Promise<void> {
   if (!canSubmit.value) return
+  // Mints a key on the first attempt and keeps it across retries, unless what
+  // is being bought has changed since — checked here, the last moment before
+  // the basket leaves the browser.
+  refreshPurchaseKey()
   submitting.value = true
   error.value = null
 
@@ -307,9 +351,7 @@ async function submit(): Promise<void> {
               },
             }
           : {}),
-        // A new key per attempt that reached the server, so a retry after a
-        // failure is a new order rather than silently resolving to the last one.
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: purchaseKey.value,
         captchaToken: captchaToken.value,
       },
     })

@@ -11,7 +11,7 @@ import { verifyCaptcha } from '../../security/captcha'
 import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
 import { placeOrder, attachPaymentSession } from '../../services/orders'
-import { assertMethodAllowed, isOnline } from '../../payments'
+import { isOnline } from '../../payments'
 import { createCheckoutSession } from '../../payments/stripe'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
@@ -62,14 +62,6 @@ export default defineRoute({
           }
         : null,
       guestEmail: email,
-    })
-
-    // Checked against the real total, which only exists after pricing — a cash
-    // ceiling cannot be enforced against a number the client proposed.
-    assertMethodAllowed(body.paymentMethod, {
-      country: body.shipping.destination.country,
-      shippingCode: body.shipping.methodCode,
-      total: order.breakdown.total,
     })
 
     const summary = {

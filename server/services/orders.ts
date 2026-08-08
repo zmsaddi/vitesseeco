@@ -38,6 +38,7 @@ import {
 import { redeemPromo, releasePromo } from './promo'
 import { priceBasket, type PriceBreakdown, type RequestedLine } from './pricing'
 import { getPromo } from '../catalog'
+import { assertMethodAllowed } from '../payments'
 
 export interface PlaceOrderInput {
   lines: RequestedLine[]
@@ -115,6 +116,20 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
       internal: `promo ${breakdown.promo.code} rejected: ${breakdown.promo.reason}`,
     })
   }
+
+  // Before anything is written, and here rather than in the route.
+  //
+  // A cash ceiling and a country rule can only be checked against the real
+  // total, which exists only once the basket is priced — so the route ran this
+  // AFTER placing the order. A refused method then answered 400 having already
+  // written the order, its lines, its stock hold and its promotion redemption,
+  // and the hold sat on the shelf until the sweep collected it an hour later.
+  // Refusing a sale must not cost the shop a bike for an hour.
+  assertMethodAllowed(input.paymentMethod, {
+    country: input.shipping.country,
+    shippingCode: input.shipping.methodCode,
+    total: breakdown.total,
+  })
 
   const promoDefinition = breakdown.promo?.applied ? await getPromo(breakdown.promo.code) : null
   const orderNumber = generateOrderNumber()
