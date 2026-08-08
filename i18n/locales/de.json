@@ -325,6 +325,8 @@
     "failed_body": "Es wurde nichts abgebucht. Ihr Warenkorb bleibt erhalten — Sie können es jederzeit erneut versuchen.",
     "failed_title": "Die Zahlung war nicht erfolgreich",
     "next_steps": "Wir melden uns, sobald Ihre Bestellung bereit ist.",
+    "no_order_title": "Keine Bestellung anzuzeigen",
+    "no_order_body": "Diese Seite bestätigt eine Bestellung nach der Zahlung. Ihr Warenkorb ist unverändert.",
     "number": "Nummer:",
     "paid_title": "Zahlung eingegangen — Bestellung bestätigt",
     "processing_body": "Ihre Bank schließt die Zahlung ab. Ihre Bestellung startet, sobald sie bestätigt ist — Sie finden sie in Ihrem Konto.",

@@ -27,9 +27,18 @@ const sessionId = computed(() => {
   return typeof value === 'string' && /^cs_(test|live)_[A-Za-z0-9]+$/.test(value) ? value : null
 })
 
-/** none = cash/pickup (no online payment to report on). */
-type PayState = 'none' | 'checking' | 'paid' | 'processing' | 'failed'
-const payState = ref<PayState>(sessionId.value ? 'checking' : 'none')
+/**
+ * none    = cash or collection, no online payment to report on.
+ * unknown = neither a session nor an order number, so there is nothing here to
+ *           confirm. Opening this URL directly used to reach the same branch as
+ *           a completed cash order: it announced "Commande reçue", emptied a
+ *           basket the customer was still filling, and threw away their typed
+ *           checkout form. A page must not confirm an order it cannot name.
+ */
+type PayState = 'none' | 'checking' | 'paid' | 'processing' | 'failed' | 'unknown'
+const payState = ref<PayState>(
+  sessionId.value ? 'checking' : orderNumber.value ? 'none' : 'unknown'
+)
 
 // The checkout form's saved typing has served its purpose once an order is on
 // its way; after a failure it stays, so the retry costs one click.
@@ -91,6 +100,11 @@ onMounted(async () => {
     // Unreadable storage only costs the review invitation.
   }
 
+  if (payState.value === 'unknown') {
+    // Nothing was bought. Leave the basket and the typed form exactly as they are.
+    return
+  }
+
   if (!sessionId.value) {
     // Cash or collection: the order is agreed, the basket has done its job.
     offerGoogleReviewsOptIn(mirrorEmail, mirrorCountry)
@@ -125,6 +139,7 @@ const heading = computed(() => {
     case 'processing': return t('confirmation.processing_title')
     case 'failed': return t('confirmation.failed_title')
     case 'checking': return t('confirmation.checking')
+    case 'unknown': return t('confirmation.no_order_title')
     default: return t('confirmation.title')
   }
 })
@@ -139,11 +154,14 @@ useSeoMeta({ title: () => t('confirmation.title'), robots: 'noindex' })
         class="mx-auto flex h-16 w-16 items-center justify-center rounded-full"
         :class="{
           'bg-success-subtle': payState === 'none' || payState === 'paid',
+          'bg-surface-sunken': payState === 'unknown',
           'bg-warning-subtle': payState === 'processing' || payState === 'checking',
           'bg-danger-subtle': payState === 'failed',
         }"
       >
         <Icon v-if="payState === 'none' || payState === 'paid'" name="ph:check-bold" class="h-8 w-8 text-success" />
+        <!-- Nothing to confirm gets no tick: the mark is the message. -->
+        <Icon v-else-if="payState === 'unknown'" name="ph:shopping-bag" class="h-8 w-8 text-content-muted" />
         <Icon v-else-if="payState === 'failed'" name="ph:x-bold" class="h-8 w-8 text-danger" />
         <Icon v-else name="ph:clock-bold" class="h-8 w-8 text-warning" />
       </div>
@@ -157,7 +175,10 @@ useSeoMeta({ title: () => t('confirmation.title'), robots: 'noindex' })
         <span class="font-mono font-bold text-content-strong">{{ orderNumber }}</span>
       </p>
 
-      <p v-if="payState === 'processing'" class="mt-4 text-content-muted">
+      <p v-if="payState === 'unknown'" class="mt-4 text-content-muted">
+        {{ $t('confirmation.no_order_body') }}
+      </p>
+      <p v-else-if="payState === 'processing'" class="mt-4 text-content-muted">
         {{ $t('confirmation.processing_body') }}
       </p>
       <p v-else-if="payState === 'failed'" class="mt-4 text-content-muted">
@@ -176,8 +197,22 @@ useSeoMeta({ title: () => t('confirmation.title'), robots: 'noindex' })
             {{ $t('cart.title') }}
           </NuxtLink>
         </template>
+        <template v-else-if="payState === 'unknown'">
+          <NuxtLink :to="localePath('/panier')" class="btn-primary">
+            {{ $t('cart.title') }}
+          </NuxtLink>
+          <NuxtLink :to="localePath('/produits')" class="btn-secondary">
+            {{ $t('cart.browse') }}
+          </NuxtLink>
+        </template>
         <template v-else>
-          <NuxtLink :to="localePath('/compte/commandes')" class="btn-primary">
+          <!--
+            /compte, not /compte/orders: the orders folder holds only
+            [orderNumber].vue, so the list lives on the account page itself.
+            The original link went to /compte/commandes, which is a third path
+            that has never existed.
+          -->
+          <NuxtLink :to="localePath('/compte')" class="btn-primary">
             {{ $t('confirmation.view_orders') }}
           </NuxtLink>
           <NuxtLink :to="localePath('/produits')" class="btn-secondary">

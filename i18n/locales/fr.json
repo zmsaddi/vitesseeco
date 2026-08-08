@@ -325,6 +325,8 @@
     "failed_body": "Aucun montant n'a été prélevé. Votre panier est conservé — vous pouvez réessayer quand vous voulez.",
     "failed_title": "Le paiement n'a pas abouti",
     "next_steps": "Nous vous contactons dès que votre commande est prête.",
+    "no_order_title": "Aucune commande à afficher",
+    "no_order_body": "Cette page confirme une commande après un paiement. Votre panier est intact.",
     "number": "Numéro :",
     "paid_title": "Paiement reçu — commande confirmée",
     "processing_body": "Votre banque finalise le paiement. Votre commande démarre dès sa confirmation — vous la retrouverez dans votre compte.",

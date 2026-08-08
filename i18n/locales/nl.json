@@ -325,6 +325,8 @@
     "failed_body": "Er is niets afgeschreven. Uw winkelmand is bewaard — u kunt het opnieuw proberen wanneer u wilt.",
     "failed_title": "De betaling is niet gelukt",
     "next_steps": "Wij nemen contact op zodra uw bestelling klaar is.",
+    "no_order_title": "Geen bestelling om te tonen",
+    "no_order_body": "Deze pagina bevestigt een bestelling na betaling. Uw winkelwagen is ongewijzigd.",
     "number": "Nummer:",
     "paid_title": "Betaling ontvangen — bestelling bevestigd",
     "processing_body": "Uw bank rondt de betaling af. Uw bestelling start zodra deze is bevestigd — u vindt haar terug in uw account.",

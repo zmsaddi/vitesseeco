@@ -154,6 +154,55 @@ if (FILES.length === 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 2b2. Every internal link points at a page that exists ────────────────────
+// The confirmation page sent every customer who completed an order to
+// /compte/commandes. The folder is /compte/orders. It rendered, it looked
+// right, and it 404'd for everyone — a dead end at the end of the happy path.
+// Only literal arguments are checked; a template literal is a runtime value.
+{
+  const rule = 'Internal links point at pages that exist'
+  const pagesDir = join(ROOT, 'app', 'pages')
+  let bad = 0
+  if (existsSync(pagesDir)) {
+    const known = new Set()
+    for (const file of walk(pagesDir, ['.vue'])) {
+      const rel = relative(pagesDir, file).split('\\').join('/').replace(/\.vue$/, '')
+      // index.vue is its folder; [param].vue matches anything, so its parent is
+      // recorded and the segment itself is not compared literally.
+      known.add('/' + rel.replace(/\/index$/, '').replace(/^index$/, ''))
+    }
+    for (const file of FILES) {
+      const rel = relative(ROOT, file).split('\\').join('/')
+      if (!rel.startsWith('app/')) continue
+      const lines = readFileSync(file, 'utf8').split('\n')
+      lines.forEach((line, i) => {
+        for (const m of line.matchAll(/localePath\(\s*'(\/[^']*)'\s*\)/g)) {
+          const path = m[1].replace(/\/$/, '') || '/'
+          if (path === '/' || known.has(path)) continue
+          // A concrete path may be served by a dynamic segment — /produits/x by
+          // produits/[slug].vue — but only at the SAME depth, and only where
+          // every other segment matches literally. Matching on "some page under
+          // this parent is dynamic" is what let /compte/commandes through on the
+          // first attempt: /compte/orders/[orderNumber] made the whole of
+          // /compte/ look dynamic, and the rule reported green on the very
+          // defect it was written for.
+          const segments = path.split('/').filter(Boolean)
+          const servedByDynamic = [...known].some((candidate) => {
+            const parts = candidate.split('/').filter(Boolean)
+            if (parts.length !== segments.length) return false
+            return parts.every((part, idx) => part === segments[idx] || part.startsWith('['))
+          })
+          if (servedByDynamic) continue
+          if (isSuppressed(lines, i, rule, rel)) continue
+          bad++
+          fail(rule, rel, i + 1, `links to ${path}, which no page serves`)
+        }
+      })
+    }
+  }
+  if (bad === 0) pass(rule)
+}
+
 // ── 2c. Every layout offers a way to change language ─────────────────────────
 // A layout that replaces SiteHeader inherits none of its controls. The admin
 // shell did exactly that and shipped with no switcher, so the panel was
