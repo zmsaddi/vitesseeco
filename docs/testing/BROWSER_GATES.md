@@ -19,11 +19,25 @@ Server              node .output/server/index.mjs, built from THIS commit
 The fixture catalogue is served by [`server/catalog/fixture.ts`](../../server/catalog/fixture.ts),
 a fake Sanity client dispatching the same GROQ constants the production client
 sends, over documents stored in the projected shape those queries return — so
-the whole `parse.ts` validation pipeline runs unchanged. It refuses to
-construct on Vercel and warns loudly on activation. Six products, four
+the whole `parse.ts` validation pipeline runs unchanged. Six products, four
 categories, four shipping methods, one promo code, one article, two FAQ
 entries; at least five products must stay sellable or the Merchant feeds
 refuse to publish (`MINIMUM_PLAUSIBLE_OFFERS`).
+
+**Activation is a runtime contract, not a flag.** Setting
+`CATALOG_SOURCE=fixture` at build time is inert; on the first catalogue read
+the server checks, and refuses with every unmet term named, unless ALL of
+these hold:
+
+- `CANDIDATE_TEST_RIG=1` — the explicit human statement that this process is
+  a test rig; no hosting provider's name is load-bearing;
+- `NUXT_PUBLIC_SITE_URL` is loopback (`localhost` / `127.0.0.1` / `::1`);
+- `DATABASE_URL`, when set, is loopback too;
+- the process is not on Vercel (`VERCEL`/`VERCEL_ENV` unset) — defense in
+  depth on top of the contract, never the only gate.
+
+The contract is a pure function (`fixtureActivationProblems`) proven by
+`tests/unit/candidateRig.spec.ts` — no rig needs booting to know it refuses.
 
 Product image URLs in the fixture are fabrications in Sanity CDN shape (the
 `@nuxt/image` sanity provider rewrites every src onto `cdn.sanity.io`, so no
@@ -39,7 +53,8 @@ Playwright through its shared `test` fixture, the simulator through
 npm run dev:db                                        # embedded PostgreSQL on 5544
 node scripts/seed-candidate.mjs postgres://vitesse:vitesse@localhost:5544/vitesse_dev
 npx nuxi build                                        # NITRO_PRESET=node-server
-CATALOG_SOURCE=fixture DATABASE_URL=postgres://vitesse:vitesse@localhost:5544/vitesse_dev \
+CATALOG_SOURCE=fixture CANDIDATE_TEST_RIG=1 \
+  DATABASE_URL=postgres://vitesse:vitesse@localhost:5544/vitesse_dev \
   AUTH_SECRET=local IP_HASH_SALT=local \
   TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA \
   NUXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA \
@@ -57,8 +72,9 @@ npm run test:visual         # visual regression (needs this platform's baselines
 **Re-seed between full runs.** The checkout journey places a real cash order
 and holds real stock; a second run against the leftovers asserts stock counts
 that are no longer true. `seed-candidate` is the reset button — it truncates
-everything and rewrites the fixture inventory, and it refuses any database that
-is not localhost or named like a test.
+everything and rewrites the fixture inventory, and it accepts a LOOPBACK
+database only (`localhost`, `127.0.0.1`, `::1`), refused before any connection
+opens. A database's name buys no trust, and there is no override flag.
 
 The seed also feeds the two existing money/simulator gates:
 

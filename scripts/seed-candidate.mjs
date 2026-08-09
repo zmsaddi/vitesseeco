@@ -10,9 +10,12 @@
  *   node scripts/seed-candidate.mjs [database-url]
  *
  * The URL may also come from DATABASE_URL. It is refused unless it points at
- * localhost/127.0.0.1 or a database whose name contains "test", because this
- * script TRUNCATES EVERYTHING — determinism for a disposable rig, catastrophe
- * for anything real. There is deliberately no --force.
+ * the LOOPBACK interface — localhost, 127.0.0.1 or ::1 — because this script
+ * TRUNCATES EVERYTHING: determinism for a disposable rig, catastrophe for
+ * anything real. A database's NAME buys no trust (anyone can call a
+ * production database "test"), and there is deliberately no --force, no
+ * ALLOW_REMOTE, no escape hatch of any kind. The candidate rig this script
+ * exists for is always local; a remote database is never it.
  *
  * Unlike seed-inventory.mjs (which mirrors the LIVE Sanity stock into a real
  * database and never touches reservations), this one owns the whole database
@@ -22,6 +25,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
 import pg from 'pg'
+import { isLoopbackUrl } from '../shared/loopback-url.mjs'
 
 const DATABASE_URL = process.argv[2] || process.env.DATABASE_URL
 
@@ -32,12 +36,14 @@ function fail(message, code = 1) {
 
 if (!DATABASE_URL) fail('no database URL — pass it as the first argument or set DATABASE_URL')
 
-// The same rule the integration harness applies before it truncates.
-const parsed = new URL(DATABASE_URL)
-const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
-const looksLikeTest = /test/i.test(parsed.pathname)
-if (!isLocal && !looksLikeTest) {
-  fail(`refusing to seed ${parsed.hostname}${parsed.pathname}: not localhost and not a *test* database`, 2)
+// Refused BEFORE any connection is opened. Host only: the database name is
+// not evidence of anything.
+if (!isLoopbackUrl(DATABASE_URL)) {
+  fail(
+    'refusing to seed a non-loopback database. This script truncates everything it touches; ' +
+      'it accepts localhost, 127.0.0.1 or ::1 and nothing else — there is no override.',
+    2
+  )
 }
 
 const fixture = JSON.parse(
