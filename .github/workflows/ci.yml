@@ -95,7 +95,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U vitesse"
+          --health-cmd "pg_isready -U vitesse -d vitesse_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -171,7 +171,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U vitesse"
+          --health-cmd "pg_isready -U vitesse -d vitesse_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -199,9 +199,13 @@ jobs:
       - name: Start it
         run: node .output/server/index.mjs &
         env:
-          # The committed fixture catalogue — deterministic, secretless, and
-          # refused outright on Vercel. No SANITY_* variable is needed or set.
+          # The committed fixture catalogue — deterministic and secretless.
+          # Activation is a contract, not a flag: the sentinel below plus
+          # loopback site and database URLs, all checked at runtime, with
+          # Vercel refused outright as defense-in-depth. No SANITY_* variable
+          # is needed or set.
           CATALOG_SOURCE: fixture
+          CANDIDATE_TEST_RIG: '1'
           DATABASE_URL: postgres://vitesse:vitesse@localhost:5432/vitesse_test
           AUTH_SECRET: ci-secret-not-used-for-anything-real
           IP_HASH_SALT: ci-salt-not-used-for-anything-real
