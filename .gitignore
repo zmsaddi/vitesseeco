@@ -35,6 +35,11 @@ logs
 # Playwright
 test-results/
 playwright-report/
+# Visual baselines are committed for Linux (the CI runner) ONLY. A local run on
+# Windows/macOS writes its own platform's baselines next to them; those are
+# private mechanism-proofs, never shared truth.
+tests/e2e/playwright/visual/__screenshots__/win32/
+tests/e2e/playwright/visual/__screenshots__/darwin/
 competitor-research/
 import-data/
 cms/dist/
