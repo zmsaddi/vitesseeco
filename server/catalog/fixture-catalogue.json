@@ -1,0 +1,509 @@
+{
+  "_readme": "Deterministic candidate catalogue. Served by server/catalog/fixture.ts when CATALOG_SOURCE=fixture — never in production (the adapter refuses to start on Vercel). Documents are stored in the PROJECTED shape the GROQ queries in server/catalog/queries.ts return, so the real parse.ts pipeline runs over them unchanged. Prices are authored in EUROS exactly like the Studio; fromEuros converts once in parse.ts. GTINs are deliberately absent: assignment happens only inside the owner's licensed GS1 prefix (CLAUDE.md hard rule 3). The Merchant feed refuses to publish fewer than 5 offers, so this catalogue must always hold at least 5 sellable products. Inventory counts live at the bottom and are written to PostgreSQL by scripts/seed-candidate.mjs — Sanity-shaped documents never carry stock (queries.ts strips it on purpose).",
+  "products": [
+    {
+      "_id": "fixture-bike-in-stock",
+      "slug": "fixture-velo-ville-noir",
+      "sortOrder": 1,
+      "_createdAt": "2026-06-01T09:00:00Z",
+      "_updatedAt": "2026-08-01T09:00:00Z",
+      "name": {
+        "fr": "Vélo Fixture Ville — Noir",
+        "en": "Fixture City Bike — Black",
+        "nl": "Fixture Stadsfiets — Zwart",
+        "de": "Fixture Cityrad — Schwarz",
+        "es": "Bicicleta Fixture Ciudad — Negra",
+        "ar": "دراجة فيكستشر المدينة — أسود"
+      },
+      "price": 1199,
+      "compareAtPrice": 1349,
+      "pricesByCountry": null,
+      "productType": "bike",
+      "color": { "fr": "Noir", "en": "Black", "nl": "Zwart", "de": "Schwarz", "es": "Negro", "ar": "أسود" },
+      "colorHex": "#1f2933",
+      "modelFamily": "fixture-ville",
+      "isNew": false,
+      "isFeatured": true,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "velos-electriques",
+        "name": { "fr": "Vélos électriques", "en": "Electric bikes", "nl": "Elektrische fietsen", "de": "E-Bikes", "es": "Bicicletas eléctricas", "ar": "دراجات كهربائية" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000inst-1200x900.png", "alt": "Vélo Fixture Ville noir", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000inst-1200x900.png", "alt": "Vélo Fixture Ville noir", "width": 1200, "height": 900, "lqip": null },
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike0000000000000000000000000detail-1200x900.png", "alt": "Détail du cadre", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-VILLE-NOIR",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXV-2026-N",
+      "shortDescription": {
+        "fr": "Vélo de ville électrique de test, moteur 250 W, autonomie 60 km.",
+        "en": "Deterministic test city e-bike, 250 W motor, 60 km range.",
+        "nl": "Deterministische test stads-e-bike, 250 W motor, 60 km bereik.",
+        "de": "Deterministisches Test-City-E-Bike, 250-W-Motor, 60 km Reichweite.",
+        "es": "E-bike urbana de prueba determinista, motor de 250 W, 60 km de autonomía.",
+        "ar": "دراجة مدينة كهربائية للاختبار، محرك 250 واط، مدى 60 كم."
+      },
+      "description": {
+        "fr": "Produit fixture du banc d'essai. Il n'existe pas en magasin : il sert aux tests navigateur du commit candidat, avec un prix, un stock et des caractéristiques connus d'avance.",
+        "en": "Test-rig fixture product. It does not exist in the shop: it serves the candidate build's browser tests with a price, stock and specifications known in advance.",
+        "nl": "Fixtureproduct van de testbank. Het bestaat niet in de winkel: het dient de browsertests van de kandidaat-build met vooraf bekende prijs, voorraad en specificaties.",
+        "de": "Fixture-Produkt des Prüfstands. Es existiert nicht im Laden: es dient den Browser-Tests des Kandidaten-Builds mit im Voraus bekanntem Preis, Bestand und Daten.",
+        "es": "Producto fixture del banco de pruebas. No existe en la tienda: sirve a las pruebas de navegador del build candidato con precio, stock y especificaciones conocidos.",
+        "ar": "منتج تجريبي لمنصة الاختبار. لا وجود له في المتجر: يخدم اختبارات المتصفح لنسخة المرشّح بسعر ومخزون ومواصفات معروفة سلفًا."
+      },
+      "warranty": { "fr": "Garantie 2 ans", "en": "2-year warranty", "nl": "2 jaar garantie", "de": "2 Jahre Garantie", "es": "Garantía de 2 años", "ar": "ضمان سنتان" },
+      "highlights": [
+        { "fr": "Moteur 250 W silencieux", "en": "Quiet 250 W motor", "nl": "Stille 250 W motor", "de": "Leiser 250-W-Motor", "es": "Motor silencioso de 250 W", "ar": "محرك هادئ 250 واط" },
+        { "fr": "Batterie amovible", "en": "Removable battery", "nl": "Uitneembare accu", "de": "Herausnehmbarer Akku", "es": "Batería extraíble", "ar": "بطارية قابلة للفصل" }
+      ],
+      "videoUrl": null,
+      "specifications": {
+        "motor": "250 W",
+        "battery": "36 V · 10 Ah",
+        "tireSize": "28\"",
+        "range": { "fr": "60 km", "en": "60 km", "nl": "60 km", "de": "60 km", "es": "60 km", "ar": "60 كم" },
+        "brakeType": { "fr": "Freins à disque hydrauliques", "en": "Hydraulic disc brakes", "nl": "Hydraulische schijfremmen", "de": "Hydraulische Scheibenbremsen", "es": "Frenos de disco hidráulicos", "ar": "فرامل قرصية هيدروليكية" },
+        "maxSpeed": 25,
+        "weight": 22,
+        "chargeTime": { "fr": "4 h", "en": "4 h", "nl": "4 u", "de": "4 Std.", "es": "4 h", "ar": "4 ساعات" },
+        "maxLoad": 120,
+        "dimensions": null,
+        "suspension": null,
+        "frame": { "fr": "Aluminium", "en": "Aluminium", "nl": "Aluminium", "de": "Aluminium", "es": "Aluminio", "ar": "ألومنيوم" },
+        "gears": { "fr": "7 vitesses", "en": "7 speeds", "nl": "7 versnellingen", "de": "7 Gänge", "es": "7 velocidades", "ar": "7 سرعات" }
+      },
+      "seo": { "title": "Vélo Fixture Ville Noir — banc d'essai", "description": "Produit de test déterministe du banc d'essai Vitesse Eco." }
+    },
+    {
+      "_id": "fixture-bike-sibling",
+      "slug": "fixture-velo-ville-sable",
+      "sortOrder": 2,
+      "_createdAt": "2026-06-01T09:05:00Z",
+      "_updatedAt": "2026-08-01T09:05:00Z",
+      "name": {
+        "fr": "Vélo Fixture Ville — Sable",
+        "en": "Fixture City Bike — Sand",
+        "nl": "Fixture Stadsfiets — Zand",
+        "de": "Fixture Cityrad — Sand",
+        "es": "Bicicleta Fixture Ciudad — Arena",
+        "ar": "دراجة فيكستشر المدينة — رملي"
+      },
+      "price": 1199,
+      "compareAtPrice": null,
+      "pricesByCountry": null,
+      "productType": "bike",
+      "color": { "fr": "Sable", "en": "Sand", "nl": "Zand", "de": "Sand", "es": "Arena", "ar": "رملي" },
+      "colorHex": "#d8c49a",
+      "modelFamily": "fixture-ville",
+      "isNew": false,
+      "isFeatured": true,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "velos-electriques",
+        "name": { "fr": "Vélos électriques", "en": "Electric bikes", "nl": "Elektrische fietsen", "de": "E-Bikes", "es": "Bicicletas eléctricas", "ar": "دراجات كهربائية" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000sibl-1200x900.png", "alt": "Vélo Fixture Ville sable", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000sibl-1200x900.png", "alt": "Vélo Fixture Ville sable", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-VILLE-SABLE",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXV-2026-S",
+      "shortDescription": {
+        "fr": "Le même vélo de test, en coloris sable.",
+        "en": "The same test bike, in sand.",
+        "nl": "Dezelfde testfiets, in zand.",
+        "de": "Dasselbe Testrad, in Sand.",
+        "es": "La misma bicicleta de prueba, en arena.",
+        "ar": "الدراجة التجريبية نفسها، بلون رملي."
+      },
+      "description": {
+        "fr": "Second coloris de la famille fixture-ville, pour tester les liens entre coloris d'un même modèle.",
+        "en": "Second colour of the fixture-ville family, to test sibling colour links.",
+        "nl": "Tweede kleur van de fixture-ville familie, om kleurlinks te testen.",
+        "de": "Zweite Farbe der fixture-ville Familie, zum Testen der Farbverknüpfungen.",
+        "es": "Segundo color de la familia fixture-ville, para probar los enlaces entre colores.",
+        "ar": "اللون الثاني لعائلة fixture-ville لاختبار روابط الألوان الشقيقة."
+      },
+      "warranty": { "fr": "Garantie 2 ans", "en": "2-year warranty", "nl": "2 jaar garantie", "de": "2 Jahre Garantie", "es": "Garantía de 2 años", "ar": "ضمان سنتان" },
+      "highlights": [],
+      "videoUrl": null,
+      "specifications": {
+        "motor": "250 W",
+        "battery": "36 V · 10 Ah",
+        "tireSize": "28\"",
+        "range": { "fr": "60 km", "ar": "60 كم" },
+        "brakeType": null,
+        "maxSpeed": 25,
+        "weight": 22,
+        "chargeTime": null,
+        "maxLoad": 120,
+        "dimensions": null,
+        "suspension": null,
+        "frame": null,
+        "gears": null
+      },
+      "seo": { "title": null, "description": null }
+    },
+    {
+      "_id": "fixture-bike-out-of-stock",
+      "slug": "fixture-velo-cargo-vert",
+      "sortOrder": 3,
+      "_createdAt": "2026-06-02T09:00:00Z",
+      "_updatedAt": "2026-08-01T09:10:00Z",
+      "name": {
+        "fr": "Vélo Cargo Fixture — Vert",
+        "en": "Fixture Cargo Bike — Green",
+        "nl": "Fixture Bakfiets — Groen",
+        "de": "Fixture Lastenrad — Grün",
+        "es": "Bicicleta de carga Fixture — Verde",
+        "ar": "دراجة الشحن فيكستشر — أخضر"
+      },
+      "price": 2499,
+      "compareAtPrice": null,
+      "pricesByCountry": null,
+      "productType": "bike",
+      "color": { "fr": "Vert", "en": "Green", "nl": "Groen", "de": "Grün", "es": "Verde", "ar": "أخضر" },
+      "colorHex": "#2f6f4f",
+      "modelFamily": null,
+      "isNew": false,
+      "isFeatured": true,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "velos-electriques",
+        "name": { "fr": "Vélos électriques", "en": "Electric bikes", "nl": "Elektrische fietsen", "de": "E-Bikes", "es": "Bicicletas eléctricas", "ar": "دراجات كهربائية" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000oos0-1200x900.png", "alt": "Vélo cargo fixture vert", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebike00000000000000000000000000oos0-1200x900.png", "alt": "Vélo cargo fixture vert", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-CARGO-VERT",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXC-2026-V",
+      "shortDescription": {
+        "fr": "Vélo cargo de test, volontairement en rupture de stock.",
+        "en": "Test cargo bike, deliberately out of stock.",
+        "nl": "Test bakfiets, bewust niet op voorraad.",
+        "de": "Test-Lastenrad, absichtlich nicht auf Lager.",
+        "es": "Bicicleta de carga de prueba, agotada a propósito.",
+        "ar": "دراجة شحن تجريبية، نفد مخزونها عمدًا."
+      },
+      "description": {
+        "fr": "Ce produit existe pour prouver l'état « rupture de stock » : bouton désactivé, badge correct, flux d'achat refusé.",
+        "en": "This product exists to prove the out-of-stock state: disabled button, correct badge, purchase refused.",
+        "nl": "Dit product bestaat om de uitverkocht-status te bewijzen: knop uitgeschakeld, juiste badge, aankoop geweigerd.",
+        "de": "Dieses Produkt beweist den Ausverkauft-Zustand: Button deaktiviert, korrektes Badge, Kauf verweigert.",
+        "es": "Este producto existe para probar el estado agotado: botón desactivado, insignia correcta, compra rechazada.",
+        "ar": "هذا المنتج موجود لإثبات حالة نفاد المخزون: زر معطّل وشارة صحيحة ورفض للشراء."
+      },
+      "warranty": null,
+      "highlights": [],
+      "videoUrl": null,
+      "specifications": {
+        "motor": "250 W",
+        "battery": "48 V · 15 Ah",
+        "tireSize": null,
+        "range": { "fr": "80 km", "ar": "80 كم" },
+        "brakeType": null,
+        "maxSpeed": 25,
+        "weight": 38,
+        "chargeTime": null,
+        "maxLoad": 200,
+        "dimensions": null,
+        "suspension": null,
+        "frame": null,
+        "gears": null
+      },
+      "seo": { "title": null, "description": null }
+    },
+    {
+      "_id": "fixture-accessory",
+      "slug": "fixture-casque-urbain",
+      "sortOrder": 4,
+      "_createdAt": "2026-06-03T09:00:00Z",
+      "_updatedAt": "2026-08-01T09:15:00Z",
+      "name": {
+        "fr": "Casque Urbain Fixture",
+        "en": "Fixture Urban Helmet",
+        "nl": "Fixture Stadshelm",
+        "de": "Fixture Stadthelm",
+        "es": "Casco urbano Fixture",
+        "ar": "خوذة فيكستشر الحضرية"
+      },
+      "price": 79.9,
+      "compareAtPrice": null,
+      "pricesByCountry": null,
+      "productType": "accessory",
+      "color": { "fr": "Gris", "en": "Grey", "nl": "Grijs", "de": "Grau", "es": "Gris", "ar": "رمادي" },
+      "colorHex": "#8a8f98",
+      "modelFamily": null,
+      "isNew": false,
+      "isFeatured": true,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "accessoires",
+        "name": { "fr": "Accessoires", "en": "Accessories", "nl": "Accessoires", "de": "Zubehör", "es": "Accesorios", "ar": "إكسسوارات" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixtureacc000000000000000000000000000helm-1200x900.png", "alt": "Casque urbain fixture", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixtureacc000000000000000000000000000helm-1200x900.png", "alt": "Casque urbain fixture", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-CASQUE-GRIS",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXA-2026-C",
+      "shortDescription": {
+        "fr": "Casque de test avec un stock élevé : c'est lui que le parcours money-path achète.",
+        "en": "Test helmet with the highest stock: the money-path walk buys this one.",
+        "nl": "Testhelm met de hoogste voorraad: het money-path traject koopt deze.",
+        "de": "Testhelm mit dem höchsten Bestand: der Money-Path kauft diesen.",
+        "es": "Casco de prueba con el mayor stock: el recorrido money-path compra este.",
+        "ar": "خوذة تجريبية بأعلى مخزون: مسار المال يشتري هذه."
+      },
+      "description": {
+        "fr": "Accessoire fixture. Son stock est le plus élevé du catalogue de test pour que le parcours money-path le choisisse de façon répétable.",
+        "en": "Fixture accessory. Its stock is the highest of the test catalogue so the money-path walk picks it repeatably.",
+        "nl": "Fixture-accessoire. Zijn voorraad is de hoogste van de testcatalogus zodat de money-path hem herhaalbaar kiest.",
+        "de": "Fixture-Zubehör. Sein Bestand ist der höchste des Testkatalogs, damit der Money-Path ihn wiederholbar wählt.",
+        "es": "Accesorio fixture. Su stock es el más alto del catálogo de prueba para que el money-path lo elija de forma repetible.",
+        "ar": "إكسسوار تجريبي. مخزونه الأعلى في كتالوج الاختبار ليختاره مسار المال بشكل قابل للتكرار."
+      },
+      "warranty": null,
+      "highlights": [],
+      "videoUrl": null,
+      "specifications": {
+        "motor": null, "battery": null, "tireSize": null, "range": null, "brakeType": null,
+        "maxSpeed": null, "weight": null, "chargeTime": null, "maxLoad": null,
+        "dimensions": "54–61 cm", "suspension": null, "frame": null, "gears": null
+      },
+      "seo": { "title": null, "description": null }
+    },
+    {
+      "_id": "fixture-spare-part",
+      "slug": "fixture-batterie-36v",
+      "sortOrder": 5,
+      "_createdAt": "2026-06-04T09:00:00Z",
+      "_updatedAt": "2026-08-01T09:20:00Z",
+      "name": {
+        "fr": "Batterie Fixture 36 V",
+        "en": "Fixture 36 V Battery",
+        "nl": "Fixture 36 V accu",
+        "de": "Fixture 36-V-Akku",
+        "es": "Batería Fixture 36 V",
+        "ar": "بطارية فيكستشر 36 فولت"
+      },
+      "price": 349,
+      "compareAtPrice": null,
+      "pricesByCountry": null,
+      "productType": "spare_part",
+      "color": null,
+      "colorHex": null,
+      "modelFamily": null,
+      "isNew": false,
+      "isFeatured": false,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "pieces-detachees",
+        "name": { "fr": "Pièces détachées", "en": "Spare parts", "nl": "Onderdelen", "de": "Ersatzteile", "es": "Repuestos", "ar": "قطع غيار" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturespare0000000000000000000000000batt-1200x900.png", "alt": "Batterie fixture 36 V", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturespare0000000000000000000000000batt-1200x900.png", "alt": "Batterie fixture 36 V", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-BATT-36V",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXP-2026-B",
+      "shortDescription": {
+        "fr": "Pièce détachée de test.",
+        "en": "Test spare part.",
+        "nl": "Testonderdeel.",
+        "de": "Test-Ersatzteil.",
+        "es": "Repuesto de prueba.",
+        "ar": "قطعة غيار تجريبية."
+      },
+      "description": {
+        "fr": "Pièce détachée fixture pour la diversité des catégories du catalogue de test.",
+        "en": "Fixture spare part for category diversity of the test catalogue.",
+        "nl": "Fixture-onderdeel voor categoriediversiteit van de testcatalogus.",
+        "de": "Fixture-Ersatzteil für Kategorienvielfalt des Testkatalogs.",
+        "es": "Repuesto fixture para la diversidad de categorías del catálogo de prueba.",
+        "ar": "قطعة غيار تجريبية لتنويع فئات كتالوج الاختبار."
+      },
+      "warranty": null,
+      "highlights": [],
+      "videoUrl": null,
+      "specifications": {
+        "motor": null, "battery": "36 V · 10 Ah", "tireSize": null, "range": null, "brakeType": null,
+        "maxSpeed": null, "weight": 3, "chargeTime": null, "maxLoad": null,
+        "dimensions": null, "suspension": null, "frame": null, "gears": null
+      },
+      "seo": { "title": null, "description": null }
+    },
+    {
+      "_id": "fixture-kids",
+      "slug": "fixture-voiture-enfant-rouge",
+      "sortOrder": 6,
+      "_createdAt": "2026-06-05T09:00:00Z",
+      "_updatedAt": "2026-08-01T09:25:00Z",
+      "name": {
+        "fr": "Voiture Enfant Fixture — Rouge",
+        "en": "Fixture Kids Car — Red",
+        "nl": "Fixture Kinderauto — Rood",
+        "de": "Fixture Kinderauto — Rot",
+        "es": "Coche infantil Fixture — Rojo",
+        "ar": "سيارة الأطفال فيكستشر — أحمر"
+      },
+      "price": 189,
+      "compareAtPrice": 219,
+      "pricesByCountry": null,
+      "productType": "kids_car",
+      "color": { "fr": "Rouge", "en": "Red", "nl": "Rood", "de": "Rot", "es": "Rojo", "ar": "أحمر" },
+      "colorHex": "#b3372f",
+      "modelFamily": null,
+      "isNew": true,
+      "isFeatured": false,
+      "brand": { "slug": "fixture-cycles", "name": "Fixture Cycles" },
+      "category": {
+        "slug": "enfants",
+        "name": { "fr": "Enfants", "en": "Kids", "nl": "Kinderen", "de": "Kinder", "es": "Niños", "ar": "أطفال" }
+      },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturekids00000000000000000000000000car0-1200x900.png", "alt": "Voiture enfant fixture rouge", "width": 1200, "height": 900, "lqip": null },
+      "images": [
+        { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturekids00000000000000000000000000car0-1200x900.png", "alt": "Voiture enfant fixture rouge", "width": 1200, "height": 900, "lqip": null }
+      ],
+      "sku": "FIX-KIDS-ROUGE",
+      "gtin": null,
+      "gtinAssembled": null,
+      "manufacturerMpn": "FIXK-2026-R",
+      "shortDescription": {
+        "fr": "Voiture électrique enfant de test, marquée « nouveau ».",
+        "en": "Test kids electric car, flagged as new.",
+        "nl": "Test elektrische kinderauto, gemarkeerd als nieuw.",
+        "de": "Test-Kinder-Elektroauto, als neu markiert.",
+        "es": "Coche eléctrico infantil de prueba, marcado como nuevo.",
+        "ar": "سيارة أطفال كهربائية تجريبية، معلَّمة كجديدة."
+      },
+      "description": {
+        "fr": "Produit fixture pour la catégorie enfants, avec prix barré et badge nouveauté.",
+        "en": "Fixture product for the kids category, with strike-through price and new badge.",
+        "nl": "Fixtureproduct voor de kindercategorie, met doorgestreepte prijs en nieuw-badge.",
+        "de": "Fixture-Produkt für die Kinderkategorie, mit Streichpreis und Neu-Badge.",
+        "es": "Producto fixture para la categoría infantil, con precio tachado e insignia de novedad.",
+        "ar": "منتج تجريبي لفئة الأطفال، بسعر مشطوب وشارة جديد."
+      },
+      "warranty": null,
+      "highlights": [],
+      "videoUrl": null,
+      "specifications": {
+        "motor": "12 V", "battery": "12 V · 7 Ah", "tireSize": null, "range": null, "brakeType": null,
+        "maxSpeed": 5, "weight": 14, "chargeTime": null, "maxLoad": 30,
+        "dimensions": null, "suspension": null, "frame": null, "gears": null
+      },
+      "seo": { "title": null, "description": null }
+    }
+  ],
+  "categories": [
+    {
+      "_id": "fixture-cat-velos", "slug": "velos-electriques", "sortOrder": 1,
+      "name": { "fr": "Vélos électriques", "en": "Electric bikes", "nl": "Elektrische fietsen", "de": "E-Bikes", "es": "Bicicletas eléctricas", "ar": "دراجات كهربائية" },
+      "description": { "fr": "Catégorie de test des vélos.", "en": "Test bike category.", "ar": "فئة اختبار الدراجات." },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturecat000000000000000000000000000velo-1200x900.png", "alt": "Vélos électriques", "width": 1200, "height": 900, "lqip": null }
+    },
+    {
+      "_id": "fixture-cat-accessoires", "slug": "accessoires", "sortOrder": 2,
+      "name": { "fr": "Accessoires", "en": "Accessories", "nl": "Accessoires", "de": "Zubehör", "es": "Accesorios", "ar": "إكسسوارات" },
+      "description": { "fr": "Catégorie de test des accessoires.", "en": "Test accessory category.", "ar": "فئة اختبار الإكسسوارات." },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturecat000000000000000000000000000acce-1200x900.png", "alt": "Accessoires", "width": 1200, "height": 900, "lqip": null }
+    },
+    {
+      "_id": "fixture-cat-pieces", "slug": "pieces-detachees", "sortOrder": 3,
+      "name": { "fr": "Pièces détachées", "en": "Spare parts", "nl": "Onderdelen", "de": "Ersatzteile", "es": "Repuestos", "ar": "قطع غيار" },
+      "description": { "fr": "Catégorie de test des pièces.", "en": "Test spare-part category.", "ar": "فئة اختبار قطع الغيار." },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturecat000000000000000000000000000piec-1200x900.png", "alt": "Pièces détachées", "width": 1200, "height": 900, "lqip": null }
+    },
+    {
+      "_id": "fixture-cat-enfants", "slug": "enfants", "sortOrder": 4,
+      "name": { "fr": "Enfants", "en": "Kids", "nl": "Kinderen", "de": "Kinder", "es": "Niños", "ar": "أطفال" },
+      "description": { "fr": "Catégorie de test enfants.", "en": "Test kids category.", "ar": "فئة اختبار الأطفال." },
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturecat000000000000000000000000000kids-1200x900.png", "alt": "Enfants", "width": 1200, "height": 900, "lqip": null }
+    }
+  ],
+  "brands": [
+    {
+      "_id": "fixture-brand-cycles", "slug": "fixture-cycles", "name": "Fixture Cycles",
+      "logo": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixturebrand000000000000000000000000logo0-600x600.png", "alt": "Fixture Cycles", "width": 600, "height": 600, "lqip": null }
+    }
+  ],
+  "shippingMethods": [
+    {
+      "code": "pickup", "sortOrder": 1,
+      "name": { "fr": "Retrait en magasin à Poitiers", "en": "Pickup at the Poitiers shop", "nl": "Afhalen in de winkel in Poitiers", "de": "Abholung im Laden in Poitiers", "es": "Recogida en la tienda de Poitiers", "ar": "الاستلام من المتجر في بواتييه" },
+      "description": { "fr": "Gratuit, sous 24 h.", "en": "Free, within 24 h.", "nl": "Gratis, binnen 24 u.", "de": "Kostenlos, innerhalb von 24 Std.", "es": "Gratis, en 24 h.", "ar": "مجاني خلال 24 ساعة." },
+      "price": 0, "freeAbove": null, "estimatedDays": "0-1", "zones": [], "postalCodePrefixes": []
+    },
+    {
+      "code": "free-86", "sortOrder": 2,
+      "name": { "fr": "Livraison offerte — Vienne (86)", "en": "Free delivery — Vienne (86)", "nl": "Gratis levering — Vienne (86)", "de": "Kostenlose Lieferung — Vienne (86)", "es": "Entrega gratuita — Vienne (86)", "ar": "توصيل مجاني — فيين (86)" },
+      "description": { "fr": "Offerte dans le département 86.", "en": "Free within department 86.", "nl": "Gratis binnen departement 86.", "de": "Kostenlos im Departement 86.", "es": "Gratis en el departamento 86.", "ar": "مجاني داخل المقاطعة 86." },
+      "price": 0, "freeAbove": null, "estimatedDays": "1-2", "zones": ["FR"], "postalCodePrefixes": ["86"]
+    },
+    {
+      "code": "standard-fr", "sortOrder": 3,
+      "name": { "fr": "Livraison standard France", "en": "Standard delivery France", "nl": "Standaardlevering Frankrijk", "de": "Standardlieferung Frankreich", "es": "Entrega estándar Francia", "ar": "توصيل قياسي فرنسا" },
+      "description": { "fr": "Partout en France métropolitaine.", "en": "Anywhere in metropolitan France.", "nl": "Overal in continentaal Frankrijk.", "de": "Überall in Kontinentalfrankreich.", "es": "En toda la Francia metropolitana.", "ar": "في جميع أنحاء فرنسا." },
+      "price": 19.9, "freeAbove": null, "estimatedDays": "2-4", "zones": ["FR"], "postalCodePrefixes": []
+    },
+    {
+      "code": "free-benelux", "sortOrder": 4,
+      "name": { "fr": "Livraison Benelux", "en": "Benelux delivery", "nl": "Levering Benelux", "de": "Lieferung Benelux", "es": "Entrega Benelux", "ar": "توصيل بنلوكس" },
+      "description": { "fr": "Belgique, Pays-Bas et Luxembourg.", "en": "Belgium, the Netherlands and Luxembourg.", "nl": "België, Nederland en Luxemburg.", "de": "Belgien, Niederlande und Luxemburg.", "es": "Bélgica, Países Bajos y Luxemburgo.", "ar": "بلجيكا وهولندا ولوكسمبورغ." },
+      "price": 0, "freeAbove": null, "estimatedDays": "3-5", "zones": ["BE", "NL", "LU"], "postalCodePrefixes": []
+    }
+  ],
+  "promos": [
+    {
+      "code": "FIXTURE10", "discountType": "percentage", "discountValue": 10,
+      "minOrderAmount": null, "maxUses": null, "validFrom": null, "validUntil": null, "isActive": true
+    }
+  ],
+  "articles": [
+    {
+      "_id": "fixture-article-entretien", "slug": "fixture-entretenir-sa-batterie",
+      "title": { "fr": "Entretenir sa batterie (article de test)", "en": "Caring for your battery (test article)", "nl": "Je accu onderhouden (testartikel)", "de": "Akkupflege (Testartikel)", "es": "Cuidar la batería (artículo de prueba)", "ar": "العناية بالبطارية (مقال تجريبي)" },
+      "excerpt": { "fr": "Article fixture du banc d'essai.", "en": "Fixture article of the test rig.", "nl": "Fixture-artikel van de testbank.", "de": "Fixture-Artikel des Prüfstands.", "es": "Artículo fixture del banco de pruebas.", "ar": "مقال تجريبي لمنصة الاختبار." },
+      "content": { "fr": "Contenu déterministe. Cet article existe pour que le blog, son flux XML et les tests navigateur aient une donnée connue d'avance.", "en": "Deterministic content. This article exists so the blog, its XML feed and the browser tests have data known in advance.", "ar": "محتوى ثابت. هذا المقال موجود ليكون للمدونة وتدفق XML واختبارات المتصفح بيانات معروفة سلفًا." },
+      "publishedAt": "2026-07-10T09:00:00Z", "_updatedAt": "2026-07-10T09:00:00Z",
+      "author": "Équipe Vitesse Eco",
+      "image": { "url": "https://cdn.sanity.io/images/2jvnjf0c/production/fixtureart000000000000000000000000000batt-1200x900.png", "alt": "Batterie sur établi", "width": 1200, "height": 900, "lqip": null },
+      "seo": { "title": null, "description": null },
+      "relatedProducts": []
+    }
+  ],
+  "faqs": [
+    {
+      "_id": "fixture-faq-livraison", "sortOrder": 1, "category": "delivery",
+      "question": { "fr": "Livrez-vous partout en France ? (test)", "en": "Do you deliver everywhere in France? (test)", "nl": "Leveren jullie overal in Frankrijk? (test)", "de": "Liefern Sie überall in Frankreich? (Test)", "es": "¿Entregan en toda Francia? (prueba)", "ar": "هل توصلون إلى كل فرنسا؟ (اختبار)" },
+      "answer": { "fr": "Réponse fixture déterministe.", "en": "Deterministic fixture answer.", "nl": "Deterministisch fixture-antwoord.", "de": "Deterministische Fixture-Antwort.", "es": "Respuesta fixture determinista.", "ar": "إجابة تجريبية ثابتة." }
+    },
+    {
+      "_id": "fixture-faq-garantie", "sortOrder": 2, "category": "warranty",
+      "question": { "fr": "Quelle est la garantie ? (test)", "en": "What is the warranty? (test)", "nl": "Wat is de garantie? (test)", "de": "Wie ist die Garantie? (Test)", "es": "¿Cuál es la garantía? (prueba)", "ar": "ما هو الضمان؟ (اختبار)" },
+      "answer": { "fr": "Deux ans, réponse fixture.", "en": "Two years, fixture answer.", "nl": "Twee jaar, fixture-antwoord.", "de": "Zwei Jahre, Fixture-Antwort.", "es": "Dos años, respuesta fixture.", "ar": "سنتان، إجابة تجريبية." }
+    }
+  ],
+  "marketPricing": null,
+  "inventory": {
+    "fixture-bike-in-stock": { "sku": "FIX-VILLE-NOIR", "onHand": 8 },
+    "fixture-bike-sibling": { "sku": "FIX-VILLE-SABLE", "onHand": 5 },
+    "fixture-bike-out-of-stock": { "sku": "FIX-CARGO-VERT", "onHand": 0 },
+    "fixture-accessory": { "sku": "FIX-CASQUE-GRIS", "onHand": 10 },
+    "fixture-spare-part": { "sku": "FIX-BATT-36V", "onHand": 4 },
+    "fixture-kids": { "sku": "FIX-KIDS-ROUGE", "onHand": 3 }
+  }
+}
