@@ -36,6 +36,12 @@ export default defineConfig({
   // is a flake being hidden, and a hidden flake is a gate nobody trusts.
   retries: 0,
   fullyParallel: true,
+  // Local cap, measured not guessed: at this machine's default of 12 workers,
+  // back-to-back full runs exhausted the HOST's own sockets — navigations
+  // died with net::ERR_INSUFFICIENT_RESOURCES before reaching the server.
+  // Six keeps a full run under the host's limits with headroom; CI runners
+  // resolve to 1-2 workers on their own and are unaffected.
+  workers: process.env.CI ? undefined : 6,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI
     ? [['list'], ['html', { open: 'never' }], ['github']]

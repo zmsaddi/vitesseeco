@@ -52,6 +52,15 @@ const IGNORABLE_CONSOLE: Array<{ pattern: RegExp; reason: string }> = [
     pattern: /^Failed to load resource: the server responded with a status of 4\d\d/,
     reason: 'browser network log for asserted 4xx contract answers',
   },
+  {
+    // The TEST browser ran out of its own sockets under parallel-worker load
+    // (observed on a 12-worker local run). The request never left the
+    // machine, so it cannot witness anything about the candidate; a server
+    // that actually failed still fails the test through the 5xx watch and
+    // the page's own assertions.
+    pattern: /net::ERR_INSUFFICIENT_RESOURCES/,
+    reason: 'harness-side socket exhaustion — the candidate never saw the request',
+  },
 ]
 
 interface Harness {
