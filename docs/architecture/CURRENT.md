@@ -40,7 +40,7 @@ It runs on `master` and `rebuild`, on push and on pull request.
 | `unit` | 306 tests, pure logic, no I/O |
 | `integration` | 101 tests against **real PostgreSQL 17**, then `scripts/assert-suite-ran.mjs` proves they were not skipped |
 | `build` | production build and the bundle budget |
-| `candidate` | builds **this commit**, seeds a real PostgreSQL and the committed fixture catalogue (`CATALOG_SOURCE=fixture` — no secret needed, refuses Vercel), serves it on `127.0.0.1:3000`, then runs the 6-locale simulator, the frontend gate, the money gate, and the four Playwright suites (functional · axe · RTL/reflow · visual) against it |
+| `candidate` | builds **this commit**, seeds a real PostgreSQL and the committed fixture catalogue (`CATALOG_SOURCE=fixture` — no secret needed; activation is a runtime contract: `CANDIDATE_TEST_RIG=1` + loopback site/database, and never on Vercel), serves it on `127.0.0.1:3000`, then runs the 6-locale simulator, the frontend gate, the money gate, and the four Playwright suites (functional · axe · RTL/reflow · visual) against it |
 | `production-smoke` | Lighthouse against the live site. Advisory, and **not** a statement about the commit — Vercel deploys in parallel with this workflow |
 
 The rule that shapes it: **a commit is tested by an artifact built from that
@@ -99,7 +99,7 @@ server/
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        14 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+tests/        15 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
 scripts/      13 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```

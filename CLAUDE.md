@@ -81,7 +81,7 @@ Six habits, each of which exists because its absence cost something here.
 npm run dev                 # dev server
 npm run build               # production build — clear .nuxt first if in any doubt
 npm run test                # unit + integration (integration needs a database)
-npm run test:unit           # 306 tests, no database needed
+npm run test:unit           # 318 tests, no database needed
 npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
@@ -116,7 +116,7 @@ server/
   api/                     ← 35 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
-  catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only; refuses Vercel)
+  catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (runtime contract: CANDIDATE_TEST_RIG=1 + loopback site/db, never on Vercel)
   db/                      ← Drizzle schema + migrations. Driver chosen by URL shape.
   security/                ← handler (defineRoute), session, crypto, rateLimit, request, headers, captcha
   services/                ← orders, stock, pricing, promo, orderState, audit, maintenance
@@ -126,7 +126,7 @@ shared/                    ← used by BOTH sides: money, locales, markets, sche
 i18n/locales/              ← 6 files × 789 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (14 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (15 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
