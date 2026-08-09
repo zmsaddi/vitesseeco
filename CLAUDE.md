@@ -86,6 +86,8 @@ npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in 
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
 npm run test:money -- <url> # the critical path, asserted in the database
+npm run test:e2e            # Playwright candidate gates: functional + axe + RTL/reflow
+npm run test:visual         # visual regression against the committed Linux baselines
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
 npm run check:invariants    # 17 project rules
@@ -93,9 +95,12 @@ npm run check:feeds         # feeds parse and refuse to publish an empty catalog
 npx nuxi typecheck
 ```
 
-The two simulation commands need a running server. Point them at
+The simulation and Playwright commands need a running server. Point them at
 `node .output/server/index.mjs`, not at `nuxt dev` — a dev server that renders
-client-side cannot show a server-side rendering defect.
+client-side cannot show a server-side rendering defect. The deterministic
+candidate rig behind them — fixture catalogue (`CATALOG_SOURCE=fixture`),
+seeded PostgreSQL (`scripts/seed-candidate.mjs`), snapshot policy — is
+documented in [docs/testing/BROWSER_GATES.md](docs/testing/BROWSER_GATES.md).
 
 ---
 
@@ -111,7 +116,7 @@ server/
   api/                     ← 35 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
-  catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types
+  catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only; refuses Vercel)
   db/                      ← Drizzle schema + migrations. Driver chosen by URL shape.
   security/                ← handler (defineRoute), session, crypto, rateLimit, request, headers, captcha
   services/                ← orders, stock, pricing, promo, orderState, audit, maintenance
@@ -120,8 +125,8 @@ server/
 shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
 i18n/locales/              ← 6 files × 789 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
-scripts/                   ← the gates + dev-db + seed-inventory + redact-sanity-order-pii
-tests/                     ← unit/ (14 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates)
+scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
+tests/                     ← unit/ (14 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
