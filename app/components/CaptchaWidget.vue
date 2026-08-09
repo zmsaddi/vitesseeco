@@ -31,8 +31,15 @@ declare global {
 
 function render(): void {
   if (!container.value || !window.turnstile || !siteKey.value) return
+  // The normal widget is a fixed 300px — wider than the space a 320px viewport
+  // leaves inside a padded card, and the ONE element on the checkout that made
+  // the whole document scroll sideways (the reflow gate caught it). Cloudflare
+  // ships a 150px 'compact' rendering for exactly this; the choice is made
+  // from the container's real width at render time.
+  const size = container.value.clientWidth < 300 ? 'compact' : 'normal'
   widgetId.value = window.turnstile.render(container.value, {
     sitekey: siteKey.value,
+    size,
     callback: (value: string) => {
       token.value = value
     },
