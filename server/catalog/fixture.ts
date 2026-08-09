@@ -10,12 +10,16 @@
  * a release gate must be able to walk the shop against a catalogue that cannot
  * drift, vanish, or need a secret.
  *
- * This mode exists for the candidate test rig ONLY. Two guards enforce that:
- * it throws outright on Vercel (the platform production and previews deploy
- * to), and it warns unconditionally on activation so a log from any
- * environment says loudly what it is serving.
+ * This mode exists for the candidate test rig ONLY, and activation is a
+ * CONTRACT, not a flag: the explicit CANDIDATE_TEST_RIG sentinel must be set,
+ * the site URL and the database must both be loopback, and Vercel is refused
+ * outright as defense-in-depth. All of it is enforced at RUNTIME, on the
+ * first catalogue read — building with CATALOG_SOURCE set is inert; serving
+ * with it is what the guard stops. The contract is a pure function below so
+ * the unit suite proves every refusal without booting anything.
  */
 import type { SanityClient } from '@sanity/client'
+import { isLoopbackUrl } from '../../shared/loopback-url.mjs'
 import raw from './fixture-catalogue.json'
 import {
   ALL_PRODUCT_SLUGS_QUERY,
@@ -37,6 +41,55 @@ import {
 
 export function fixtureCatalogueEnabled(): boolean {
   return process.env.CATALOG_SOURCE === 'fixture'
+}
+
+/**
+ * The environment facts the activation contract reads. The index signature is
+ * what lets a raw process.env pass without a cast — only the five named keys
+ * are ever consulted.
+ */
+export interface FixtureRigEnv {
+  CANDIDATE_TEST_RIG?: string
+  NUXT_PUBLIC_SITE_URL?: string
+  DATABASE_URL?: string
+  VERCEL?: string
+  VERCEL_ENV?: string
+  [key: string]: string | undefined
+}
+
+/**
+ * Why this environment may NOT serve the fixture catalogue — empty means it may.
+ *
+ * The rules, in the order a reader should learn them:
+ *  - Vercel is where production and its previews deploy; the fixture never
+ *    serves there, whatever else is set. Defense-in-depth, not the main gate.
+ *  - CANDIDATE_TEST_RIG=1 is the explicit human statement "this process is a
+ *    test rig". No sentinel, no fixture — a copied .env cannot activate it by
+ *    accident, and no hosting provider's name is load-bearing.
+ *  - The site URL and the database must be loopback. A candidate rig serves
+ *    127.0.0.1 and owns a disposable local database; anything public in
+ *    either slot means this is not a candidate rig, whatever it claims.
+ *
+ * Deliberately NOT consulted: NODE_ENV (the candidate is itself a
+ * production-shaped build), branch names, and CI variables.
+ */
+export function fixtureActivationProblems(env: FixtureRigEnv): string[] {
+  const problems: string[] = []
+  if (env.VERCEL || env.VERCEL_ENV) {
+    problems.push('this process is running on Vercel — the fixture catalogue never serves a deployment')
+  }
+  if (env.CANDIDATE_TEST_RIG !== '1') {
+    problems.push('CANDIDATE_TEST_RIG=1 is not set — the explicit candidate-rig sentinel is required')
+  }
+  if (!isLoopbackUrl(env.NUXT_PUBLIC_SITE_URL)) {
+    problems.push(
+      `NUXT_PUBLIC_SITE_URL is ${env.NUXT_PUBLIC_SITE_URL ? 'not a loopback URL' : 'not set'} — a candidate rig serves localhost/127.0.0.1/::1, never a public host`
+    )
+  }
+  if (env.DATABASE_URL && !isLoopbackUrl(env.DATABASE_URL)) {
+    problems.push('DATABASE_URL is not loopback — a candidate rig owns a disposable local database')
+  }
+  return problems
 }
 
 /** The projected fields this dispatcher filters and sorts on. */
@@ -196,15 +249,16 @@ function resolve(query: string, params: Record<string, unknown>): unknown {
 }
 
 export function createFixtureClient(): SanityClient {
-  /**
-   * The fixture must be impossible to ship. Vercel is where production and
-   * every preview deploy; a candidate rig never runs there. Refusing to boot
-   * beats any amount of discipline.
-   */
-  if (process.env.VERCEL || process.env.VERCEL_ENV) {
+  // The fixture must be impossible to ship. The whole contract is checked
+  // here, on first catalogue read, and every unmet term is named at once.
+  const problems = fixtureActivationProblems(process.env)
+  if (problems.length > 0) {
     throw new Error(
-      'CATALOG_SOURCE=fixture refuses to run on Vercel. The fixture catalogue exists ' +
-        'for the local/CI candidate test rig only — unset CATALOG_SOURCE to serve the real catalogue.'
+      'CATALOG_SOURCE=fixture refuses to activate:\n' +
+        problems.map((problem) => `  - ${problem}`).join('\n') +
+        '\nThe fixture catalogue exists for the local/CI candidate test rig only — ' +
+        'unset CATALOG_SOURCE to serve the real catalogue, or complete the rig ' +
+        '(see docs/testing/BROWSER_GATES.md).'
     )
   }
   console.warn(
