@@ -17,6 +17,13 @@
  *
  * Exits non-zero when it finds something. Designed to be pointed at either
  * branch, so the rebuild can be compared against the live site directly.
+ *
+ * --fixture-images <png>: serve every cdn.sanity.io request from a local file.
+ * For candidate rigs running the fixture catalogue (CATALOG_SOURCE=fixture),
+ * whose product images are deliberate fabrications the real CDN answers 400 —
+ * without this flag every page would report console noise for images that are
+ * not supposed to exist. Never pass it against a real deployment: there the
+ * CDN's answers ARE the finding.
  */
 import { chromium } from '@playwright/test'
 import process from 'node:process'
@@ -213,8 +220,15 @@ async function checkPurchasePath(context) {
   await page.close()
 }
 
+const FIXTURE_IMAGES = flag('fixture-images', null)
+
 const browser = await chromium.launch({ headless: !HEADED })
 const context = await browser.newContext({ locale: 'fr-FR', timezoneId: 'Europe/Paris' })
+if (FIXTURE_IMAGES) {
+  await context.route('**/cdn.sanity.io/**', (route) =>
+    route.fulfill({ path: FIXTURE_IMAGES, contentType: 'image/png' })
+  )
+}
 
 /**
  * Is there a catalogue at all?
