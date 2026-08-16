@@ -4,7 +4,7 @@
 > [../archive/](../archive/) disagrees with this file, this file wins — that
 > material describes a rebuild that finished and a cutover that happened.
 >
-> **Verified against the code and against `git`:** 2026-08-08.
+> **Verified against the code and against `git`:** 2026-08-09.
 > Every count and path below was produced by a command. If one is wrong, the
 > document is the bug — fix it in the same commit.
 
@@ -40,7 +40,7 @@ It runs on `master` and `rebuild`, on push and on pull request.
 | `unit` | 306 tests, pure logic, no I/O |
 | `integration` | 101 tests against **real PostgreSQL 17**, then `scripts/assert-suite-ran.mjs` proves they were not skipped |
 | `build` | production build and the bundle budget |
-| `candidate` | builds **this commit**, serves it on `127.0.0.1:3000`, then runs the 6-locale simulator and the frontend gate against it |
+| `candidate` | builds **this commit**, seeds a real PostgreSQL and the committed fixture catalogue (`CATALOG_SOURCE=fixture` — no secret needed; activation is a runtime contract: `CANDIDATE_TEST_RIG=1` + loopback site/database, and never on Vercel), serves it on `127.0.0.1:3000`, then runs the 6-locale simulator, the frontend gate, the money gate, and the four Playwright suites (functional · axe · RTL/reflow · visual) against it |
 | `production-smoke` | Lighthouse against the live site. Advisory, and **not** a statement about the commit — Vercel deploys in parallel with this workflow |
 
 The rule that shapes it: **a commit is tested by an artifact built from that
@@ -93,14 +93,14 @@ app/          31 pages · 7 components · 4 composables — everything client-fa
 server/
   api/        35 routes, each declaring access + rate limit via defineRoute
   routes/     10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
-  catalog/    Sanity reads: cached, token-gated
+  catalog/    Sanity reads: cached, token-gated — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only)
   db/         Drizzle schema + 1 migration file
   payments/   adapter registry — cod · in_store · stripe
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        14 unit files · 7 integration files · 5 browser gates
-scripts/      12 gate and tooling scripts
+tests/        15 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+scripts/      13 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```
 
@@ -134,7 +134,7 @@ price differs from the crawled page.
 | | |
 |---|---|
 | Sanity dataset is public | An owner decision, recorded in the cutover archive. Nothing may be written into it that a stranger must not read |
-| No Playwright specs | The pre-cutover functional, a11y and visual specs did not survive; `tests/e2e/` now holds standalone gates. Rewriting them is unstarted work, recorded in [the frontend plan](../FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md) P0.2 |
+| Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail is sent. Password reset and order email are built against an account that does not exist yet |
 

@@ -13,11 +13,20 @@
  */
 import { createClient, type SanityClient } from '@sanity/client'
 import type { SQL } from 'drizzle-orm'
+import { createFixtureClient, fixtureCatalogueEnabled } from './fixture'
 
 let cachedClient: SanityClient | null = null
 
 export function sanity(): SanityClient {
   if (cachedClient) return cachedClient
+
+  // The candidate test rig swaps the network client for the committed fixture
+  // catalogue. Everything below this line is what production runs; the fixture
+  // client refuses to construct on Vercel at all. See ./fixture.ts.
+  if (fixtureCatalogueEnabled()) {
+    cachedClient = createFixtureClient()
+    return cachedClient
+  }
 
   const projectId = process.env.SANITY_PROJECT_ID ?? '2jvnjf0c'
   const dataset = process.env.SANITY_DATASET ?? 'production'

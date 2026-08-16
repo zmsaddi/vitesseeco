@@ -10,6 +10,7 @@ disagrees with it.
 |---|---|---|
 | [architecture/CURRENT.md](architecture/CURRENT.md) | What is true right now: deployment, pipeline, data ownership, invariants, known-open | Before any structural change, and whenever you are not sure what ships |
 | [FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md](FRONTEND_MOBILE_FIRST_AUDIT_AND_PLAN.md) | Evidence-backed frontend findings and the WP0–WP8 mobile-first acceptance contract | Planning or executing frontend work |
+| [testing/BROWSER_GATES.md](testing/BROWSER_GATES.md) | The deterministic candidate rig: fixture catalogue, seeded PostgreSQL, the four Playwright suites, snapshot policy | Running or extending the browser gates |
 | [OWNER_ACCOUNTS_PLAYBOOK.md](OWNER_ACCOUNTS_PLAYBOOK.md) | The external-accounts session, step by step (Arabic) | Sitting down with the owner |
 | [MARKETING_SESSION.md](MARKETING_SESSION.md) | The marketing working session | Picking up marketing work |
 | [adr/](adr/) | Decisions and their reasoning, permanent | Wondering why something is the way it is |

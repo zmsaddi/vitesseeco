@@ -95,7 +95,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U vitesse"
+          --health-cmd "pg_isready -U vitesse -d vitesse_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -137,7 +137,8 @@ jobs:
         env:
           BUNDLE_BUDGET_BYTES: '6815744' # 6.5 MB gzip, code only (native sharp/libvips excluded by the script)
 
-  # The browser gates, run against a server built from THIS commit.
+  # The browser gates, run against a server built from THIS commit — with a
+  # DETERMINISTIC world around it.
   #
   # What was here before ran `playwright test --project=e2e` against
   # https://vitesseeco.vercel.app. Two things were wrong with that. The project
@@ -147,10 +148,34 @@ jobs:
   # pipeline cannot block anything. And had it run, it would have asserted
   # against a live deployment: a pull request could not have been failed by its
   # own regression, because its own code was never the thing under test.
+  #
+  # The next failure mode was subtler: the job booted with NO catalogue and NO
+  # database, and every gate politely demoted what it could not test. A product
+  # page that was never opened looked exactly like one that passed. Now the job
+  # has a real PostgreSQL, a seed with known stock, and the committed fixture
+  # catalogue (CATALOG_SOURCE=fixture) — so PDP, basket and checkout are TESTED
+  # on every pull request, and a broken fixture fails the job instead of
+  # skipping it.
   candidate:
     name: Browser gates against the candidate build
     runs-on: ubuntu-latest
     needs: [build]
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vitesse
+          POSTGRES_PASSWORD: vitesse
+          POSTGRES_DB: vitesse_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vitesse -d vitesse_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -166,17 +191,31 @@ jobs:
         env:
           NITRO_PRESET: node-server
 
+      - name: Seed the candidate database to a known state
+        run: node scripts/seed-candidate.mjs
+        env:
+          DATABASE_URL: postgres://vitesse:vitesse@localhost:5432/vitesse_test
+
       - name: Start it
         run: node .output/server/index.mjs &
         env:
-          # No catalogue in CI without a token: both gates detect that and
-          # report catalogue-dependent findings as information rather than
-          # failing on an empty shop.
-          SANITY_TOKEN: ${{ secrets.SANITY_TOKEN || 'ci-no-catalogue' }}
-          SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
-          SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
-          DATABASE_URL: postgres://ci:ci@localhost:5432/none
+          # The committed fixture catalogue — deterministic and secretless.
+          # Activation is a contract, not a flag: the sentinel below plus
+          # loopback site and database URLs, all checked at runtime, with
+          # Vercel refused outright as defense-in-depth. No SANITY_* variable
+          # is needed or set.
+          CATALOG_SOURCE: fixture
+          CANDIDATE_TEST_RIG: '1'
+          DATABASE_URL: postgres://vitesse:vitesse@localhost:5432/vitesse_test
           AUTH_SECRET: ci-secret-not-used-for-anything-real
+          IP_HASH_SALT: ci-salt-not-used-for-anything-real
+          # Cloudflare's public always-pass test pair (.env.example) — what
+          # makes an automated walk of a captcha-gated checkout possible.
+          TURNSTILE_SECRET_KEY: 1x0000000000000000000000000000000AA
+          NUXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+          # The money gate's simulated administrator.
+          ADMIN_EMAILS: sim-admin@vitesse-eco.test
+          NUXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
           PORT: '3000'
 
       - name: Wait for it
@@ -184,14 +223,49 @@ jobs:
 
       # Catches what the other gates cannot: a raw translation key, a hydration
       # mismatch, a route that 500s, a price that changes between two screens.
+      # --fixture-images serves the fixture catalogue's fabricated image URLs
+      # from a committed PNG, so the CDN's 400s for images that are not supposed
+      # to exist do not drown the console watch.
       - name: Walk the site as a customer
-        run: node tests/e2e/simulate.mjs http://127.0.0.1:3000 --locales fr,nl,de,es,en,ar
+        run: node tests/e2e/simulate.mjs http://127.0.0.1:3000 --locales fr,nl,de,es,en,ar --fixture-images tests/e2e/playwright/assets/fixture-image.png
 
       # Reflow at 320px, the entry points, bidirectional text and what a shared
       # link carries. Each check here was written after the thing it checks
       # shipped broken.
       - name: Frontend gate
         run: npm run verify:frontend -- http://127.0.0.1:3000
+
+      # The critical path asserted in the DATABASE: reservation, TTL, the shelf
+      # dropping on payment, restock on cancellation, and a second identity
+      # refused. First runnable in CI now that the rig is deterministic.
+      - name: Money gate
+        run: node tests/e2e/money-path.mjs http://127.0.0.1:3000 postgres://vitesse:vitesse@localhost:5432/vitesse_test
+
+      # The Playwright candidate gates. Zero discovered tests is a failure, not
+      # a pass — that is Playwright's own behaviour and the reason the old red
+      # pipeline is not allowed back.
+      - name: Playwright functional
+        run: npx playwright test --project functional
+
+      - name: Playwright accessibility
+        run: npx playwright test --project a11y
+
+      - name: Playwright RTL and reflow
+        run: npx playwright test --project rtl
+
+      - name: Playwright visual
+        run: npx playwright test --project visual
+
+      - name: Keep the evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidence
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+          if-no-files-found: ignore
 
   # NOT a gate on this commit, and named so nobody mistakes it for one.
   #
