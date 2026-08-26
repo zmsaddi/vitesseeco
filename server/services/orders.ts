@@ -38,7 +38,7 @@ import {
 import { redeemPromo, releasePromo } from './promo'
 import { priceBasket, type PriceBreakdown, type RequestedLine } from './pricing'
 import { getPromo } from '../catalog'
-import { assertMethodAllowed } from '../payments'
+import { assertMethodAllowed, isOnline, type PaymentMethodCode } from '../payments'
 
 export interface PlaceOrderInput {
   lines: RequestedLine[]
@@ -49,7 +49,7 @@ export interface PlaceOrderInput {
    * market is the sensible default.
    */
   market?: MarketDefinition
-  paymentMethod: 'stripe' | 'cod' | 'in_store'
+  paymentMethod: PaymentMethodCode
   shipping: { methodCode: string; country: string; postalCode?: string }
   shippingAddress?: AddressInput
   billingAddress?: AddressInput
@@ -207,12 +207,14 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
       // Holds the units while payment is in flight. Throws OUT_OF_STOCK naming
       // every short line, which rolls the whole order back.
       // Cash and counter sales are agreed, not pending — their hold has to last
-      // until a driver has been and gone, not thirty minutes.
+      // until a driver has been and gone, not thirty minutes. Decided by what
+      // the method IS, not by naming providers: an online hold dies in thirty
+      // minutes whoever runs the payment form.
       await reserveStock(
         tx,
         orderId,
         breakdown.lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
-        input.paymentMethod === 'stripe' ? undefined : CASH_RESERVATION_TTL_MS
+        isOnline(input.paymentMethod) ? undefined : CASH_RESERVATION_TTL_MS
       )
 
       if (breakdown.promo?.applied && promoDefinition) {
@@ -405,5 +407,21 @@ export async function findOrderByStripeSession(sessionId: string): Promise<{ ord
     .where(eq(orders.stripeSessionId, sessionId))
     .limit(1)
   return row ?? null
+}
+
+// ── Temporary PayPal bridge (server/payments/paypal.ts) ──────────────────────
+// These two leave with the bridge; the columns they write stay readable.
+
+/** Attach the PayPal order id, so capture can verify the binding server-side. */
+export async function attachPayPalOrder(orderId: string, paypalOrderId: string): Promise<void> {
+  await db().update(orders).set({ paypalOrderId }).where(eq(orders.id, orderId))
+}
+
+/** The capture id is what a refund or a dispute is answered with. */
+export async function recordPayPalCapture(orderNumber: string, captureId: string): Promise<void> {
+  await db()
+    .update(orders)
+    .set({ paypalCaptureId: captureId, updatedAt: new Date() })
+    .where(eq(orders.orderNumber, orderNumber))
 }
 

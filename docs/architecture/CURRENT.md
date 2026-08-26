@@ -4,7 +4,7 @@
 > [../archive/](../archive/) disagrees with this file, this file wins — that
 > material describes a rebuild that finished and a cutover that happened.
 >
-> **Verified against the code and against `git`:** 2026-08-09.
+> **Verified against the code and against `git`:** 2026-08-26.
 > Every count and path below was produced by a command. If one is wrong, the
 > document is the bug — fix it in the same commit.
 
@@ -91,11 +91,11 @@ enforcement column is the part that matters: a rule nothing checks is a wish.
 ```
 app/          31 pages · 7 components · 4 composables — everything client-facing
 server/
-  api/        35 routes, each declaring access + rate limit via defineRoute
+  api/        37 routes, each declaring access + rate limit via defineRoute
   routes/     10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/    Sanity reads: cached, token-gated — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only)
-  db/         Drizzle schema + 1 migration file
-  payments/   adapter registry — cod · in_store · stripe
+  db/         Drizzle schema + 2 migration files
+  payments/   adapter registry — cod · in_store · stripe · paypal (a TEMPORARY direct bridge while Stripe's own PayPal support awaits activation; removal recipe in server/payments/paypal.ts)
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
@@ -137,6 +137,7 @@ price differs from the crawled page.
 | Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail is sent. Password reset and order email are built against an account that does not exist yet |
+| Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, delete the PAYPAL_* variables, and apply the removal recipe at the top of that file |
 
 ---
 

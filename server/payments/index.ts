@@ -1,7 +1,7 @@
 /**
  * Payment methods.
  *
- * Three, and only three, will ever be listed here:
+ * Three will remain here when the bridge below leaves:
  *
  *   stripe    every online method, chosen by Stripe from the amount and the
  *             customer's country — cards, iDEAL, Bancontact, Klarna, PayPal,
@@ -9,14 +9,22 @@
  *   cod       cash to our own driver, in Belgium and the Netherlands
  *   in_store  cash or card at the counter in Poitiers
  *
+ *   paypal    TEMPORARY. Stripe's own PayPal support is pending activation
+ *             review, and the shop sold through its own PayPal account before
+ *             the rebuild — so the direct integration is bridged back until
+ *             the Dashboard switch exists. It offers itself only when its
+ *             credentials are set, and removing it is deleting them plus the
+ *             files listed in server/payments/paypal.ts.
+ *
  * The cash methods are not a shortcoming of the design; they are the business.
  * No payment processor on earth can collect notes at a customer's door, so
  * those two branches stay ours forever, and they are deliberately small.
  */
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import type { Cents } from '../../shared/money'
+import { paypalConfigured } from './paypal'
 
-export type PaymentMethodCode = 'stripe' | 'cod' | 'in_store'
+export type PaymentMethodCode = 'stripe' | 'paypal' | 'cod' | 'in_store'
 
 export interface PaymentMethodDescriptor {
   code: PaymentMethodCode
@@ -35,6 +43,13 @@ const CASH_ON_DELIVERY_CEILING = 300_000 as Cents // EUR 3,000
 export const PAYMENT_METHODS: Record<PaymentMethodCode, PaymentMethodDescriptor> = {
   stripe: {
     code: 'stripe',
+    online: true,
+    countries: [],
+    shippingCodes: [],
+    maxAmount: null,
+  },
+  paypal: {
+    code: 'paypal',
     online: true,
     countries: [],
     shippingCodes: [],
@@ -71,6 +86,10 @@ export function availableMethods(context: MethodContext): PaymentMethodDescripto
 }
 
 function eligible(method: PaymentMethodDescriptor, context: MethodContext): boolean {
+  // The bridge without its credentials does not exist — not "exists but errors
+  // at the payment step, an hour of stock hold later". Checked here so the
+  // same rule refuses the order server-side that hides the option client-side.
+  if (method.code === 'paypal' && !paypalConfigured()) return false
   const country = context.country.toUpperCase()
   if (method.countries.length > 0 && !method.countries.includes(country)) return false
   if (method.shippingCodes.length > 0 && !method.shippingCodes.includes(context.shippingCode)) return false

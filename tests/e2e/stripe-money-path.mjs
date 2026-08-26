@@ -116,7 +116,7 @@ await page.locator('input[autocomplete="family-name"]').fill('Stripe')
 await page.locator('input[type="radio"]').first().waitFor({ timeout: 20_000 })
 const radios = page.locator('section:has(h2:text-is("2. Livraison")) input[type="radio"], ul input[type="radio"]')
 const values = await page.locator('input[type="radio"]').evaluateAll((els) => els.map((el) => el.value))
-const shippingPick = values.find((v) => v !== 'pickup' && v !== 'stripe' && v !== 'cod' && v !== 'in_store') ?? values[0]
+const shippingPick = values.find((v) => v !== 'pickup' && v !== 'stripe' && v !== 'paypal' && v !== 'cod' && v !== 'in_store') ?? values[0]
 await page.locator(`input[type="radio"][value="${shippingPick}"]`).first().check()
 ok(`shipping selected: ${shippingPick}`)
 

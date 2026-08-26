@@ -104,8 +104,10 @@ function nextStatuses(status: string): string[] {
   }
 }
 
+// Same rule as the list page: an online order — stripe, or the temporary
+// paypal bridge — is paid when its provider says so, never by hand.
 const canMarkCash = computed(
-  () => order.value?.status === 'awaiting_payment' && order.value?.paymentMethod !== 'stripe'
+  () => order.value?.status === 'awaiting_payment' && !['stripe', 'paypal'].includes(order.value?.paymentMethod ?? '')
 )
 
 const { formatDateTime } = useFormatDate()

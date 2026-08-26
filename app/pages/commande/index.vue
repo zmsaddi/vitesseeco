@@ -47,7 +47,10 @@ const lastName = ref(me.value?.lastName ?? '')
 // that day, not whatever the account holds later.
 const phone = ref('')
 const selectedShipping = ref<string | null>(null)
-const selectedPayment = ref<'stripe' | 'cod' | 'in_store'>('stripe')
+// 'paypal' is the temporary direct bridge (server/payments/paypal.ts); it is
+// offered only while its public client id is configured, and this union
+// shrinks back when the bridge is removed.
+const selectedPayment = ref<'stripe' | 'paypal' | 'cod' | 'in_store'>('stripe')
 
 interface Totals {
   subtotal: string
@@ -60,6 +63,9 @@ const shippingOptions = ref<ShippingOption[]>([])
 const pricing = ref<Totals | null>(null)
 const stripeContainer = ref<HTMLElement | null>(null)
 const embedded = shallowRef<StripeEmbeddedCheckout | null>(null)
+/** The order the PayPal buttons are collecting for — the bridge's counterpart of `embedded`. */
+const paypalFlow = shallowRef<{ orderNumber: string; paypalOrderId: string } | null>(null)
+const paypalContainer = ref<HTMLElement | null>(null)
 const submitting = ref(false)
 const error = ref<string | null>(null)
 
@@ -103,9 +109,15 @@ watch(
 const paymentOptions = computed(() => {
   // A bare label makes the customer open the payment form just to learn what
   // is behind it; one honest line under each option decides for them here.
-  const options: Array<{ code: 'stripe' | 'cod' | 'in_store'; label: string; desc: string }> = [
+  const options: Array<{ code: 'stripe' | 'paypal' | 'cod' | 'in_store'; label: string; desc: string }> = [
     { code: 'stripe', label: t('checkout.pay_online'), desc: t('checkout.pay_online_desc') },
   ]
+  // The temporary bridge offers itself exactly when its keys exist — the same
+  // rule the server enforces, so this list never promises what /api refuses.
+  // "PayPal" is the product's proper name in every locale, not a translation.
+  if (config.public.paypalClientId) {
+    options.push({ code: 'paypal', label: 'PayPal', desc: t('checkout.pay_paypal_desc') })
+  }
   if (['BE', 'NL'].includes(destination.country) && selectedShipping.value !== 'pickup') {
     options.push({ code: 'cod', label: t('checkout.pay_cash'), desc: t('checkout.pay_cash_desc') })
   }
@@ -176,7 +188,7 @@ const city = ref('')
  * this once an order is truly on its way; a failed one keeps it.
  */
 const CHECKOUT_STORE = 'vitesse.checkout.v1'
-const pendingRestore: { shipping: string | null; payment: 'stripe' | 'cod' | 'in_store' | null } = {
+const pendingRestore: { shipping: string | null; payment: 'stripe' | 'paypal' | 'cod' | 'in_store' | null } = {
   shipping: null,
   payment: null,
 }
@@ -316,8 +328,9 @@ async function submit(): Promise<void> {
   try {
     const result = await $fetch<{
       orderNumber: string
-      mode: 'stripe' | 'cash'
+      mode: 'stripe' | 'cash' | 'paypal'
       clientSecret?: string
+      paypalOrderId?: string
     }>('/api/checkout/start', {
       method: 'POST',
       body: {
@@ -362,6 +375,15 @@ async function submit(): Promise<void> {
       return
     }
 
+    if (result.mode === 'paypal') {
+      if (!result.paypalOrderId) throw new Error('PayPal returned no order id')
+      paypalFlow.value = { orderNumber: result.orderNumber, paypalOrderId: result.paypalOrderId }
+      // Mounted after the branch renders its container, same as Stripe below.
+      await nextTick()
+      await mountPayPalButtons()
+      return
+    }
+
     const stripe = await loadStripe(config.public.stripePublishableKey as string)
     if (!stripe || !result.clientSecret) throw new Error('Stripe failed to initialise')
 
@@ -380,6 +402,87 @@ async function submit(): Promise<void> {
   } finally {
     submitting.value = false
   }
+}
+
+/**
+ * Temporary PayPal bridge (server/payments/paypal.ts) — everything from here
+ * to `abandonPayPal` leaves with it.
+ *
+ * The SDK is injected once from the PayPal CDN; under `strict-dynamic` a
+ * script created by our own nonce'd code is trusted without a host entry. The
+ * buttons collect payment for an order that ALREADY exists server-side with
+ * its stock held, so `createOrder` hands PayPal an id rather than creating
+ * anything, and approval is settled by our capture endpoint — the browser
+ * never states an amount.
+ */
+let paypalSdkLoading: Promise<unknown> | null = null
+
+function loadPayPalSdk(): Promise<unknown> {
+  const existing = (window as { paypal?: { Buttons?: unknown } }).paypal
+  if (existing?.Buttons) return Promise.resolve(existing)
+  if (paypalSdkLoading) return paypalSdkLoading
+  paypalSdkLoading = new Promise((resolve, reject) => {
+    const script = document.createElement('script')
+    const clientId = encodeURIComponent(config.public.paypalClientId as string)
+    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=EUR&intent=capture&components=buttons`
+    script.async = true
+    script.onload = () => resolve((window as { paypal?: unknown }).paypal)
+    script.onerror = () => {
+      paypalSdkLoading = null
+      reject(new Error('PayPal SDK failed to load'))
+    }
+    document.head.appendChild(script)
+  })
+  return paypalSdkLoading
+}
+
+async function mountPayPalButtons(): Promise<void> {
+  try {
+    const paypal = (await loadPayPalSdk()) as {
+      Buttons: (options: Record<string, unknown>) => { render: (el: HTMLElement) => Promise<void> }
+    }
+    if (!paypalContainer.value || !paypalFlow.value) return
+    paypalContainer.value.innerHTML = ''
+    await paypal
+      .Buttons({
+        // The order and its amount already exist server-side; the SDK only
+        // needs to know which one is being approved.
+        createOrder: () => paypalFlow.value!.paypalOrderId,
+        onApprove: async () => {
+          try {
+            await $fetch('/api/checkout/paypal-capture', {
+              method: 'POST',
+              body: { orderNumber: paypalFlow.value!.orderNumber },
+            })
+            cart.clear()
+            await navigateTo(localePath(`/commande/confirmation?order=${paypalFlow.value!.orderNumber}`))
+          } catch (err: unknown) {
+            abandonPayPal(err)
+          }
+        },
+        onCancel: () => abandonPayPal(null),
+        onError: (err: unknown) => abandonPayPal(err),
+      })
+      .render(paypalContainer.value)
+  } catch (err: unknown) {
+    abandonPayPal(err)
+  }
+}
+
+/**
+ * Back to the form — after a cancel, an SDK failure, or a refused capture.
+ * The order and its purchase key survive, so a retry resolves to the same
+ * order; the captcha token was spent starting it, so it is reset like any
+ * other failed attempt.
+ */
+function abandonPayPal(err: unknown): void {
+  paypalFlow.value = null
+  if (err) {
+    const data = (err as { data?: { messageKey?: string } })?.data
+    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+  }
+  captchaToken.value = ''
+  captcha.value?.reset()
 }
 
 // The embedded form holds an iframe; leaving the page without destroying it
@@ -425,6 +528,21 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
            beside it invites the customer to edit an order already priced. -->
       <div v-else-if="embedded" class="mt-8">
         <div ref="stripeContainer" />
+      </div>
+
+      <!-- Same rule for the PayPal buttons: the order is placed and priced, so
+           the form is gone. Cancel returns to it; the order waits either way. -->
+      <div v-else-if="paypalFlow" class="mt-8">
+        <div class="mx-auto max-w-md">
+          <p class="mb-3 text-center text-sm text-content-muted">
+            {{ $t('confirmation.number') }}
+            <span class="font-mono font-bold text-content-strong">{{ paypalFlow.orderNumber }}</span>
+          </p>
+          <div ref="paypalContainer" />
+          <button type="button" class="btn-secondary mt-4 w-full" @click="abandonPayPal(null)">
+            {{ $t('common.cancel') }}
+          </button>
+        </div>
       </div>
 
       <div v-else class="mt-8 grid gap-8 lg:grid-cols-3">
