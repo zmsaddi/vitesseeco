@@ -10,9 +10,10 @@ import { defineRoute } from '../../security/handler'
 import { verifyCaptcha } from '../../security/captcha'
 import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
-import { placeOrder, attachPaymentSession } from '../../services/orders'
+import { placeOrder, attachPaymentSession, attachPayPalOrder } from '../../services/orders'
 import { isOnline } from '../../payments'
 import { createCheckoutSession } from '../../payments/stripe'
+import { createPayPalOrder } from '../../payments/paypal'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
 import { localizedUrl } from '../../../shared/locales'
@@ -76,6 +77,17 @@ export default defineRoute({
       // Cash: nothing to charge now. The order is agreed, the stock is held,
       // and an admin marks it paid when the money arrives.
       return { ...summary, mode: 'cash' as const }
+    }
+
+    if (body.paymentMethod === 'paypal') {
+      // Temporary bridge (server/payments/paypal.ts). The amount handed to
+      // PayPal is the placed order's own total; the browser stated nothing.
+      const { paypalOrderId } = await createPayPalOrder({
+        orderNumber: order.orderNumber,
+        total: order.breakdown.total,
+      })
+      await attachPayPalOrder(order.id, paypalOrderId)
+      return { ...summary, mode: 'paypal' as const, paypalOrderId }
     }
 
     const session = await createCheckoutSession({

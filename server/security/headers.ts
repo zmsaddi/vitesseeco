@@ -16,6 +16,8 @@ const CONNECT_SOURCES = [
   'https://api.stripe.com', // payment session updates
   'https://cdn.sanity.io', // catalogue images
   'https://challenges.cloudflare.com', // CAPTCHA verification round trip
+  'https://www.paypal.com', // temporary PayPal bridge: the buttons SDK phones home
+  'https://www.sandbox.paypal.com', // its sandbox twin, for preview testing
 ]
 
 const FRAME_SOURCES = [
@@ -23,6 +25,8 @@ const FRAME_SOURCES = [
   'https://hooks.stripe.com', // 3-D Secure challenge
   'https://challenges.cloudflare.com', // the CAPTCHA renders in an iframe
   'https://www.google.com', // Google Customer Reviews opt-in dialog
+  'https://www.paypal.com', // temporary PayPal bridge: buttons render in iframes
+  'https://www.sandbox.paypal.com',
 ]
 
 // Host entries are the CSP2 fallback only — under strict-dynamic a CSP3
@@ -32,9 +36,18 @@ const SCRIPT_SOURCES = [
   'https://challenges.cloudflare.com',
   'https://apis.google.com', // Google Customer Reviews platform.js
   'https://www.gstatic.com', // its children
+  'https://www.paypal.com', // temporary PayPal bridge: the buttons SDK
+  'https://www.sandbox.paypal.com',
 ]
 
-const IMAGE_SOURCES = ["'self'", 'data:', 'blob:', 'https://cdn.sanity.io', 'https://www.gstatic.com']
+const IMAGE_SOURCES = [
+  "'self'",
+  'data:',
+  'blob:',
+  'https://cdn.sanity.io',
+  'https://www.gstatic.com',
+  'https://www.paypalobjects.com', // temporary PayPal bridge: button artwork
+]
 
 export const NONCE_KEY = 'cspNonce'
 
@@ -105,9 +118,13 @@ export function applySecurityHeaders(event: H3Event): void {
   setResponseHeader(
     event,
     'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com"), interest-cohort=()'
+    'camera=(), microphone=(), geolocation=(), payment=(self "https://js.stripe.com" "https://www.paypal.com"), interest-cohort=()'
   )
-  setResponseHeader(event, 'Cross-Origin-Opener-Policy', 'same-origin')
+  // `same-origin-allow-popups`, not `same-origin`: the PayPal bridge pays in a
+  // popup that must keep talking to the page that opened it, and full
+  // same-origin severs exactly that link. Windows WE open keep their opener;
+  // nobody who opens US gets one. Restore `same-origin` when the bridge goes.
+  setResponseHeader(event, 'Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
   setResponseHeader(event, 'Cross-Origin-Resource-Policy', 'same-site')
 
   if (isProduction) {

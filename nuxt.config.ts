@@ -125,6 +125,11 @@ export default defineNuxtConfig({
     public: {
       siteUrl: `https://${PRIMARY_DOMAIN}`,
       stripePublishableKey: '',
+      // Temporary PayPal bridge (server/payments/paypal.ts). The client id is
+      // public by design — the browser SDK is loaded with it. Empty = the
+      // method does not exist anywhere in the UI.
+      paypalClientId: '',
+      paypalMode: '',
       turnstileSiteKey: '',
     },
   },

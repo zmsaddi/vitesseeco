@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   ADMIN_SETTABLE,
   assertTransition,
@@ -180,15 +180,49 @@ describe('payment methods', () => {
 
   it('knows which methods send the customer to a payment form', () => {
     expect(isOnline('stripe')).toBe(true)
+    expect(isOnline('paypal')).toBe(true)
     expect(isOnline('cod')).toBe(false)
     expect(isOnline('in_store')).toBe(false)
   })
 
-  it('names no card brand or wallet in code', () => {
-    // Card, iDEAL, Bancontact, Klarna, PayPal, SEPA and the wallets all arrive
-    // through the one online method and are enabled in the Stripe Dashboard.
+  it('names no card brand or wallet in code — except the recorded exception', () => {
+    // Card, iDEAL, Bancontact, Klarna, SEPA and the wallets all arrive through
+    // the one online method and are enabled in the Stripe Dashboard.
     // Hard-coding any of them here would make each addition a deployment.
+    //
+    // `paypal` is the deliberate, temporary exception: Stripe's own PayPal
+    // support is pending activation review, so the direct bridge documented in
+    // server/payments/paypal.ts stands in until the Dashboard switch exists.
+    // When it is removed, this list shrinks back to three — that removal
+    // failing THIS test is exactly the reminder it is here to give.
     const codes = Object.keys(PAYMENT_METHODS)
-    expect(codes).toEqual(['stripe', 'cod', 'in_store'])
+    expect(codes).toEqual(['stripe', 'paypal', 'cod', 'in_store'])
+  })
+
+  describe('the temporary paypal bridge', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it('does not exist while its credentials are absent', () => {
+      // The suite runs with no PAYPAL_* environment, so this asserts the
+      // default: no keys, no method — anywhere, for any basket.
+      const codes = availableMethods({ country: 'FR', shippingCode: 'standard', total: BIKE_TOTAL }).map((m) => m.code)
+      expect(codes).not.toContain('paypal')
+      expect(() =>
+        assertMethodAllowed('paypal', { country: 'FR', shippingCode: 'standard', total: BIKE_TOTAL })
+      ).toThrow(AppError)
+    })
+
+    it('offers itself everywhere we ship once its credentials exist', () => {
+      vi.stubEnv('PAYPAL_CLIENT_ID', 'test-client-id')
+      vi.stubEnv('PAYPAL_CLIENT_SECRET', 'test-client-secret')
+      for (const country of ['FR', 'BE', 'NL', 'DE', 'ES']) {
+        const codes = availableMethods({ country, shippingCode: 'standard', total: BIKE_TOTAL }).map((m) => m.code)
+        expect(codes).toContain('paypal')
+      }
+      // Still nothing to pay for on a zero total, keys or no keys.
+      expect(availableMethods({ country: 'FR', shippingCode: 'pickup', total: cents(0) })).toEqual([])
+    })
   })
 })

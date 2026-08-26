@@ -68,7 +68,7 @@ async function cancelAbandonedOrders(
       SELECT order_number
         FROM orders
        WHERE status = 'awaiting_payment'
-         AND payment_method = 'stripe'
+         AND payment_method IN ('stripe', 'paypal')
          AND paid_at IS NULL
          AND created_at < NOW() - (${UNPAID_ORDER_TTL_MINUTES} || ' minutes')::interval
        ORDER BY created_at

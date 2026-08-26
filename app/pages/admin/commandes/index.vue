@@ -75,8 +75,10 @@ function nextStatuses(order: AdminOrder): string[] {
   }
 }
 
+// Online methods settle through their provider; only genuinely-cash orders
+// may be hand-marked. 'paypal' is the temporary bridge (server/payments/paypal.ts).
 const canMarkCash = (order: AdminOrder) =>
-  order.status === 'awaiting_payment' && order.paymentMethod !== 'stripe'
+  order.status === 'awaiting_payment' && !['stripe', 'paypal'].includes(order.paymentMethod)
 
 function statusTone(status: string): string {
   if (status === 'cancelled') return 'bg-danger-subtle text-danger'
@@ -118,6 +120,7 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
       <select v-model="filters.payment" class="field w-auto" @change="filters.page = 1">
         <option value="">{{ $t('admin.all_payments') }}</option>
         <option value="stripe">{{ $t('checkout.pay_online') }}</option>
+        <option value="paypal">PayPal</option>
         <option value="cod">{{ $t('checkout.pay_cash') }}</option>
         <option value="in_store">{{ $t('checkout.pay_in_store') }}</option>
       </select>

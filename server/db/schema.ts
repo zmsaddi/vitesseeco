@@ -41,7 +41,10 @@ export const orderStatusEnum = pgEnum('order_status', [
   'cancelled',
 ])
 
-export const paymentMethodEnum = pgEnum('payment_method', ['stripe', 'cod', 'in_store'])
+// 'paypal' is the temporary direct bridge (server/payments/paypal.ts). Enum
+// values cannot be dropped from PostgreSQL, so it stays in the type after the
+// bridge is removed — harmless, and the orders it labelled keep their truth.
+export const paymentMethodEnum = pgEnum('payment_method', ['stripe', 'paypal', 'cod', 'in_store'])
 
 export const actorTypeEnum = pgEnum('actor_type', ['system', 'customer', 'admin'])
 
@@ -247,6 +250,13 @@ export const orders = pgTable(
 
     stripeSessionId: text('stripe_session_id'),
     stripePaymentIntentId: text('stripe_payment_intent_id'),
+    /**
+     * The PayPal order and capture behind a `paypal` order — the id a refund
+     * or a dispute is answered with. Bridge columns: they stop being written
+     * when the bridge goes, but the rows that carry them stay readable.
+     */
+    paypalOrderId: text('paypal_order_id'),
+    paypalCaptureId: text('paypal_capture_id'),
 
     trackingNumber: text('tracking_number'),
     carrier: text('carrier'),
@@ -265,6 +275,7 @@ export const orders = pgTable(
     uniqueIndex('orders_order_number_key').on(t.orderNumber),
     uniqueIndex('orders_idempotency_key').on(t.idempotencyKey),
     uniqueIndex('orders_stripe_session_key').on(t.stripeSessionId).where(sql`${t.stripeSessionId} is not null`),
+    uniqueIndex('orders_paypal_order_key').on(t.paypalOrderId).where(sql`${t.paypalOrderId} is not null`),
     index('orders_customer_idx').on(t.customerId),
     index('orders_status_created_idx').on(t.status, t.createdAt),
     index('orders_guest_email_idx').on(t.guestEmail),

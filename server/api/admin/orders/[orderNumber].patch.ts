@@ -16,6 +16,7 @@ import { orders } from '../../../db/schema'
 import { orderNumberSchema, LIMITS } from '../../../../shared/schemas'
 import { ADMIN_SETTABLE } from '../../../services/orderState'
 import { transitionOrder } from '../../../services/orders'
+import { isOnline } from '../../../payments'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { audit } from '../../../services/audit'
 
@@ -51,9 +52,10 @@ export default defineRoute({
     if (!before) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
 
     if (body.markCashReceived) {
-      if (before.paymentMethod === 'stripe') {
-        // An online order is paid when the provider says so. Letting an admin
-        // assert it by hand would make the audit trail a matter of opinion.
+      if (isOnline(before.paymentMethod)) {
+        // An online order — Stripe, or the temporary PayPal bridge — is paid
+        // when the provider says so. Letting an admin assert it by hand would
+        // make the audit trail a matter of opinion.
         throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
           internal: 'an online order cannot be marked paid by hand',
         })
