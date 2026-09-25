@@ -205,7 +205,13 @@ export async function enforceRateLimit(
   event: H3Event,
   preset: RateLimitPreset,
   extra: Omit<RateLimitOptions, 'limit' | 'windowMs'> & { ephemeral?: boolean } = {},
-  database: Executor = db()
+  // NOT a default parameter. `database = db()` would be evaluated at every call
+  // site before this body runs, so the ephemeral path — which needs no database
+  // at all — still demanded one, and `db()` throws when DATABASE_URL is absent.
+  // That threw outside the try below and turned the whole product listing into a
+  // 500 on any deployment without the variable. Resolved lazily instead, so
+  // "does not touch the database" means it does not even ask for a handle.
+  database?: Executor
 ): Promise<void> {
   const { ephemeral = false, ...options } = extra
   const config = RATE_LIMITS[preset]
@@ -213,7 +219,7 @@ export async function enforceRateLimit(
   try {
     result = ephemeral
       ? consumeInMemory(event, { ...config, ...options })
-      : await consumeRateLimit(event, { ...config, ...options }, database)
+      : await consumeRateLimit(event, { ...config, ...options }, database ?? db())
   } catch (error) {
     console.error('[rate-limit] store unavailable, allowing request', error)
     return

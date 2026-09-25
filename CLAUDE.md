@@ -81,7 +81,7 @@ Six habits, each of which exists because its absence cost something here.
 npm run dev                 # dev server
 npm run build               # production build — clear .nuxt first if in any doubt
 npm run test                # unit + integration (integration needs a database)
-npm run test:unit           # 329 tests, no database needed
+npm run test:unit           # 330 tests, no database needed
 npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path

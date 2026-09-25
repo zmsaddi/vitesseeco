@@ -60,6 +60,25 @@ describe('in-memory rate limiting for anonymous reads', () => {
     expect(spy.calls()).toBe(0)
   })
 
+  it('does not even ask for a database handle, with no DATABASE_URL and no executor passed', async () => {
+    // The regression this catches shipped and was caught by a preview deployment:
+    // `database: Executor = db()` was a DEFAULT PARAMETER, so it was evaluated at
+    // the call site before the function body ran, and `db()` throws when
+    // DATABASE_URL is absent. The throw landed outside the try that swallows
+    // store failures, so every product listing answered 500 on any deployment
+    // missing the variable — while passing every test that supplied an executor.
+    const saved = process.env.DATABASE_URL
+    delete process.env.DATABASE_URL
+    try {
+      await expect(
+        enforceRateLimit(eventFor('203.0.113.80'), 'lookup', { ephemeral: true })
+      ).resolves.toBeUndefined()
+    } finally {
+      if (saved === undefined) delete process.env.DATABASE_URL
+      else process.env.DATABASE_URL = saved
+    }
+  })
+
   it('does use the database when not ephemeral — so the flag is load-bearing', async () => {
     const spy = executorSpy()
     await enforceRateLimit(
