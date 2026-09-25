@@ -31,10 +31,30 @@ const slug = computed(() => String(route.params.slug))
  */
 const canonicalOverride = useState<string | null>('canonical-override', () => null)
 
-const { data: product } = await useFetch<ProductDetail>(
+const { data: product, error: productError } = await useFetch<ProductDetail>(
   () => `/api/catalog/products/${slug.value}`,
   { query: computed(() => ({ locale: locale.value })) }
 )
+
+/**
+ * A missing product and a broken request are not the same answer.
+ *
+ * `!product.value` is true for both, so this page answered 404 to every product
+ * URL during an outage — and a 404 tells a search engine the product is *gone*,
+ * which is how a catalogue gets deindexed over a fault that lasted an afternoon.
+ * A 503 says "ask again later" and costs nothing once it is over.
+ *
+ * The route's own 404 for an unknown slug arrives as a 404 status here, so the
+ * distinction is the status the API actually gave, never the absence of data.
+ */
+if (productError.value) {
+  const status = productError.value.statusCode ?? 503
+  throw createError({
+    statusCode: status === 404 ? 404 : 503,
+    statusMessage: status === 404 ? 'Product not found' : 'Catalogue temporarily unavailable',
+    fatal: true,
+  })
+}
 
 if (!product.value) {
   throw createError({ statusCode: 404, statusMessage: 'Product not found', fatal: true })
@@ -267,8 +287,17 @@ useHead(() => {
           price: (item.price / 100).toFixed(2),
           priceCurrency: 'EUR',
           itemCondition: 'https://schema.org/NewCondition',
+          // Omitted, not guessed, when the stock store is unreadable. schema.org
+          // has no "unknown" value, and `OutOfStock` is a machine-readable claim
+          // that Merchant Center and the rich result both act on — stating it
+          // because a query failed would suppress the listing for as long as the
+          // outage lasts, and for as long as the crawl takes to notice it is over.
           availability:
-            item.available > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            item.available === null
+              ? undefined
+              : item.available > 0
+                ? 'https://schema.org/InStock'
+                : 'https://schema.org/OutOfStock',
           seller: { '@id': `${SITE_URL}/#organization` },
           eligibleRegion: { '@type': 'Country', name: market.country },
           shippingDetails,
@@ -346,7 +375,15 @@ useHead(() => {
 
         <p v-if="product.shortDescription" class="mt-4 text-content">{{ product.shortDescription }}</p>
 
-        <p class="mt-4 text-sm" :class="product.available > 0 ? 'text-success' : 'text-danger'">
+        <!-- No stock line at all when the quantity could not be read. The page
+             still sells: the basket reprices server-side and the reservation at
+             checkout is the real gate, so a silent stock line costs nothing while
+             a wrong one costs the sale. -->
+        <p
+          v-if="product.available !== null"
+          class="mt-4 text-sm"
+          :class="product.available > 0 ? 'text-success' : 'text-danger'"
+        >
           {{ product.available > 0 ? $t('product.in_stock', { count: product.available }) : $t('products.out_of_stock') }}
         </p>
 
@@ -388,14 +425,14 @@ useHead(() => {
               v-model.number="quantity"
               type="number"
               min="1"
-              :max="Math.max(1, Math.min(10, product.available))"
+              :max="Math.max(1, Math.min(10, product.available ?? 10))"
               class="field w-20"
             />
           </label>
           <button
             type="button"
             class="btn-primary flex-1 sm:flex-none sm:px-8"
-            :disabled="product.available <= 0"
+            :disabled="product.available !== null && product.available <= 0"
             @click="addToCart"
           >
             {{ added ? $t('product.added') : $t('product.add_to_cart') }}
@@ -453,10 +490,14 @@ useHead(() => {
         <button
           type="button"
           class="btn-primary shrink-0 px-6"
-          :disabled="product.available <= 0"
+          :disabled="product.available !== null && product.available <= 0"
           @click="addToCart"
         >
-          {{ added ? $t('product.added') : product.available > 0 ? $t('product.add_to_cart') : $t('products.out_of_stock') }}
+          {{ added
+            ? $t('product.added')
+            : product.available !== null && product.available <= 0
+              ? $t('products.out_of_stock')
+              : $t('product.add_to_cart') }}
         </button>
       </div>
     </div>

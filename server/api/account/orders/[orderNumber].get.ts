@@ -147,7 +147,7 @@ export default defineRoute({
      * one market does not read as withdrawn from all of them.
      */
     const catalogueLocale = isLocaleCode(order.locale) ? order.locale : DEFAULT_LOCALE
-    let live: Map<string, { slug: string; available: number }> | null = null
+    let live: Map<string, { slug: string; available: number | null }> | null = null
     try {
       const current = await getProductsByIds(
         lines.map((line) => line.productId),
@@ -205,8 +205,16 @@ export default defineRoute({
           lineTotal: toDecimalString(cents(line.lineTotalCents)),
           /** Null when the product is no longer published — nothing to link to. */
           slug: now?.slug ?? null,
-          /** Null when we could not ask the catalogue at all. */
-          available: live ? (now?.available ?? 0) : null,
+          /**
+           * Three states, and collapsing any two of them misleads someone
+           * looking at their own order: `null` when the catalogue could not be
+           * asked OR when it answered but the stock store behind it could not,
+           * `0` when the catalogue answered and this product is simply no longer
+           * there, and a number when it is. `now?.available ?? 0` used to fold
+           * the first case into the second as soon as availability became
+           * nullable.
+           */
+          available: live ? (now ? now.available : 0) : null,
         }
       }),
     }

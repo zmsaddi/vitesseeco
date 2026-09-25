@@ -31,7 +31,10 @@ export default defineEventHandler(async (event) => {
         const attributes = [
           product.brand?.name,
           product.color,
-          product.available > 0 ? 'in stock' : 'out of stock',
+          // Omitted entirely when unknown: a machine-readable listing that
+          // states "out of stock" because a query failed is worse than one that
+          // says nothing about stock at all.
+          product.available === null ? null : product.available > 0 ? 'in stock' : 'out of stock',
         ].filter(Boolean)
         rows.push(`- ${product.name}${attributes.length ? ` (${attributes.join(', ')})` : ''} — ${SITE_URL}/produits/${product.slug}`)
       }
