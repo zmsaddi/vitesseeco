@@ -43,8 +43,14 @@ export interface ProductSummary {
    * Sellable quantity, read from Postgres — never from the catalogue. The
    * document store cannot decrement anything atomically, so it does not get to
    * hold a number that decides whether a sale is possible.
+   *
+   * `null` means the stock store could not be asked, which is NOT zero. A
+   * consumer must render it as "unknown" and must not claim the product is sold
+   * out: a Postgres outage once turned the whole shop into an empty page, and
+   * turning it into a shop where everything reads "out of stock" would only
+   * replace one lie with another. The server remains the authority at checkout.
    */
-  available: number
+  available: number | null
 }
 
 export interface ProductSpecifications {

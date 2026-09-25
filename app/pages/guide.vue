@@ -160,9 +160,12 @@ const models = computed<ModelEntry[]>(() => {
   return [...families.values()]
     .map((group) => {
       // The colour a customer can actually have today represents the model.
+      // An unknown quantity sorts as "not known to be in stock", which is only a
+      // tie-break and never a claim — with stock unreadable every colour ties
+      // here and the cheapest represents the model, as it would anyway.
       const representative = [...group].sort(
         (a, b) =>
-          Number(b.available > 0) - Number(a.available > 0) || a.price - b.price
+          Number((b.available ?? 0) > 0) - Number((a.available ?? 0) > 0) || a.price - b.price
       )[0]
       return representative ? { product: representative, colours: group.length } : null
     })
@@ -323,7 +326,14 @@ function assess(entry: ModelEntry): Recommendation {
     }
   }
 
-  if (entry.product.available > 0) {
+  // Three branches, not two. An unreadable stock store must neither earn the
+  // recommendation points nor produce the "out of stock" caveat: the honest
+  // answer is to say nothing about availability and let the rest of the score
+  // stand. Falling into the `else` would have told every visitor that the whole
+  // catalogue was unavailable.
+  if (entry.product.available === null) {
+    // say nothing
+  } else if (entry.product.available > 0) {
     score += 18
     reasons.push({ key: 'guide.why_in_stock' })
   } else {

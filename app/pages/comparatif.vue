@@ -63,7 +63,8 @@ interface ColourOption {
   slug: string
   label: string
   hex: string | null
-  available: number
+  /** Null when the stock store could not be asked — not the same as sold out. */
+  available: number | null
 }
 
 interface ModelGroup {
@@ -74,8 +75,12 @@ interface ModelGroup {
   image: ProductImage | null
   minPrice: number
   maxPrice: number
-  /** Summed across the colours: the model is buyable while any colour is. */
-  available: number
+  /**
+   * Summed across the colours: the model is buyable while any colour is. Null
+   * when no colour had a readable quantity, so the table can leave the stock
+   * cell blank instead of claiming the model is gone.
+   */
+  available: number | null
   colours: ColourOption[]
   /** The colour names in one string, for the dots' screen-reader equivalent. */
   colourNames: string
@@ -122,7 +127,13 @@ const groups = computed<ModelGroup[]>(() => {
       image: sorted.find((colour) => colour.image)?.image ?? null,
       minPrice: Math.min(...prices),
       maxPrice: Math.max(...prices),
-      available: sorted.reduce((sum, colour) => sum + Math.max(0, colour.available), 0),
+      // Null only when NO colour had a readable quantity: one unknown among
+      // known ones still leaves a meaningful floor for the model, while all
+      // unknown means the stock store is down and the total is not a number we
+      // are entitled to state.
+      available: sorted.every((colour) => colour.available === null)
+        ? null
+        : sorted.reduce((sum, colour) => sum + Math.max(0, colour.available ?? 0), 0),
       colours: sorted.map((colour) => ({
         slug: colour.slug,
         label: colour.color ?? colour.name,
@@ -434,7 +445,10 @@ useSeoMeta({
                   v-for="colour in group.colours"
                   :key="colour.slug"
                   class="block h-3 w-3 rounded-full border border-surface-border"
-                  :class="[colour.hex ? '' : 'bg-surface-sunken', colour.available > 0 ? '' : 'opacity-40']"
+                  :class="[
+                    colour.hex ? '' : 'bg-surface-sunken',
+                    colour.available === null || colour.available > 0 ? '' : 'opacity-40',
+                  ]"
                   :style="colour.hex ? { backgroundColor: colour.hex } : undefined"
                   aria-hidden="true"
                 />
@@ -494,7 +508,15 @@ useSeoMeta({
                     ? formatCents(column.group.minPrice)
                     : $t('compare.from_price', { price: formatCents(column.group.minPrice) }) }}
                 </p>
-                <p class="mt-1 text-xs" :class="column.group.available > 0 ? 'text-success' : 'text-danger'">
+                <!-- Dropped entirely rather than guessed when the stock store is
+                     unreadable: a comparison table exists to be trusted, and a
+                     red "out of stock" on every model would be the least
+                     trustworthy thing on the page. -->
+                <p
+                  v-if="column.group.available !== null"
+                  class="mt-1 text-xs"
+                  :class="column.group.available > 0 ? 'text-success' : 'text-danger'"
+                >
                   {{ column.group.available > 0
                     ? $t('product.in_stock', { count: column.group.available })
                     : $t('products.out_of_stock') }}
@@ -507,13 +529,16 @@ useSeoMeta({
                          can be bought today rather than what was ever made. -->
                     <span
                       class="block h-4 w-4 rounded-full border border-surface-border"
-                      :class="[colour.hex ? '' : 'bg-surface-sunken', colour.available > 0 ? '' : 'opacity-40']"
+                      :class="[
+                        colour.hex ? '' : 'bg-surface-sunken',
+                        colour.available === null || colour.available > 0 ? '' : 'opacity-40',
+                      ]"
                       :style="colour.hex ? { backgroundColor: colour.hex } : undefined"
                       aria-hidden="true"
                     />
                     <span class="sr-only">
                       {{ colour.label }}
-                      <template v-if="colour.available <= 0">— {{ $t('products.out_of_stock') }}</template>
+                      <template v-if="colour.available !== null && colour.available <= 0">— {{ $t('products.out_of_stock') }}</template>
                     </span>
                   </li>
                 </ul>

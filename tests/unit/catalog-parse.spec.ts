@@ -92,6 +92,31 @@ describe('parseProductSummary', () => {
     expect(product?.available).toBe(3)
   })
 
+  describe('an unreadable stock store is not the same as no stock', () => {
+    // A Postgres quota wall once returned 500 for the whole product listing and
+    // 404 for every product page, because the catalogue — which had already been
+    // fetched from Sanity successfully — was discarded when a decorative stock
+    // number could not be read. `null` carries "not checked" all the way to the
+    // page so it can stay silent instead of claiming the shop is sold out.
+    const unknown = { ...context, availability: null }
+
+    it('reports null, never zero, when the store could not be asked', () => {
+      expect(parseProductSummary(VALID_PRODUCT, unknown)?.available).toBeNull()
+    })
+
+    it('still parses the product itself — the catalogue does not depend on stock', () => {
+      const product = parseProductSummary(VALID_PRODUCT, unknown)
+      expect(product?.slug).toBe('v20-pro-noir')
+      expect(product?.price).toBe(95000)
+    })
+
+    it('keeps zero meaning zero when the store answered', () => {
+      // The distinction is the entire point: this product has no inventory row,
+      // which is a real answer, and must not be softened into "unknown".
+      expect(parseProductSummary({ ...VALID_PRODUCT, _id: 'unknown' }, context)?.available).toBe(0)
+    })
+  })
+
   describe('malformed documents are dropped, not propagated', () => {
     it('drops a product with no slug — one of these took down the whole sitemap', () => {
       const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

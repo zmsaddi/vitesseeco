@@ -204,12 +204,18 @@ useSeoMeta({ title: () => t('wishlist.title'), robots: 'noindex' })
               >{{ formatCents(product.compareAtPrice) }}</span>
             </p>
 
-            <p v-if="product.available <= 0" class="mt-1 text-sm text-danger">
+            <p v-if="product.available !== null && product.available <= 0" class="mt-1 text-sm text-danger">
               {{ $t('products.out_of_stock') }}
             </p>
             <!-- Worth saying on this page in particular: the customer saved it
-                 rather than buying it, and there may not be one left next time. -->
-            <p v-else-if="product.available <= 3" class="mt-1 text-sm text-warning">
+                 rather than buying it, and there may not be one left next time.
+                 Both branches test `!== null` explicitly: `null <= 3` is true in
+                 JavaScript, so an unknown quantity would otherwise render as
+                 "only null left" the moment the stock store went down. -->
+            <p
+              v-else-if="product.available !== null && product.available <= 3"
+              class="mt-1 text-sm text-warning"
+            >
               {{ $t('cart.only_left', { count: product.available }) }}
             </p>
 
@@ -221,7 +227,7 @@ useSeoMeta({ title: () => t('wishlist.title'), robots: 'noindex' })
               <button
                 type="button"
                 class="btn-primary flex-1"
-                :disabled="product.available <= 0"
+                :disabled="product.available !== null && product.available <= 0"
                 :aria-label="$t('wishlist.add_item', { name: product.name })"
                 @click="addToCart(product.id)"
               >

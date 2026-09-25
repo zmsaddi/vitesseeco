@@ -88,16 +88,58 @@ async function pricingFor(
   return { market: resolved, priceRule: rules.get(resolved.country) ?? null }
 }
 
-/** Availability for a set of products, defaulting to zero for anything unknown. */
-async function availabilityFor(productIds: string[]): Promise<Map<string, number>> {
+/** How long to stop asking the stock store after it has refused once. */
+const STOCK_COOL_OFF_MS = 10_000
+
+/** When the cool-off ends. Zero means "ask normally". */
+let stockCoolOffUntil = 0
+
+/**
+ * Availability for a set of products — or `null` when the stock store could not
+ * be asked at all.
+ *
+ * The distinction is the whole point, and it is the same one
+ * `api/account/orders/[orderNumber]` already draws: `0` means "none left",
+ * `null` means "not checked". A product missing from the rows is a real zero —
+ * it has no inventory row — but a failed query says nothing about any product.
+ *
+ * This used to throw, and a Postgres outage therefore blanked the entire shop:
+ * the catalogue itself lives in Sanity and had already been fetched
+ * successfully, then the whole request died on a number that only decorates a
+ * listing. The rate limiter one directory away had the right instinct all along
+ * ("a database failure must not take the site down") and this now matches it.
+ *
+ * Reserving stock at checkout must keep failing loudly — that path goes through
+ * `services/stock.ts` under a row lock and is not affected by this.
+ */
+async function availabilityFor(productIds: string[]): Promise<Map<string, number> | null> {
   if (productIds.length === 0) return new Map()
 
-  const rows = await readAvailability(db(), productIds)
-  const result = new Map<string, number>()
-  for (const id of productIds) {
-    result.set(id, rows.get(id)?.available ?? 0)
+  // Nothing is gained by asking a store that just refused, and something is
+  // lost: every page pays the round trip, and a quota refusal is itself a billed
+  // request, so retrying in a loop deepens the exact hole the outage is in.
+  // Neon marks even a 402 `neon:retryable`, so the driver's own advice cannot be
+  // taken at face value here.
+  //
+  // Deliberately per-instance and best-effort. It is a cool-off, not a
+  // consensus: getting it wrong costs one unnecessary query or one extra page
+  // with stock unstated, and both are survivable in a way that a hot loop
+  // against a failing database is not.
+  if (Date.now() < stockCoolOffUntil) return null
+
+  try {
+    const rows = await readAvailability(db(), productIds)
+    const result = new Map<string, number>()
+    for (const id of productIds) {
+      result.set(id, rows.get(id)?.available ?? 0)
+    }
+    stockCoolOffUntil = 0
+    return result
+  } catch (error) {
+    stockCoolOffUntil = Date.now() + STOCK_COOL_OFF_MS
+    console.error('[catalog] stock store unreachable, availability unknown', error)
+    return null
   }
-  return result
 }
 
 export async function listProducts(query: ProductQuery): Promise<Paginated<ProductSummary>> {
@@ -145,8 +187,14 @@ export async function listProducts(query: ProductQuery): Promise<Paginated<Produ
   // Filtering on stock happens here rather than in GROQ, because the numbers
   // live in Postgres. The count above is therefore the catalogue count; the
   // page is what is actually buyable.
-  if (query.inStockOnly) {
-    items = items.filter((product) => product.available > 0)
+  //
+  // With the stock store unreachable the filter is skipped rather than applied
+  // to guesses: filtering on an unknown quantity would empty the page, which is
+  // the failure this whole path exists to avoid. The visitor sees the catalogue
+  // without stock badges, and the basket — which reprices server-side — stays
+  // the authority on what can actually be bought.
+  if (query.inStockOnly && availability !== null) {
+    items = items.filter((product) => (product.available ?? 0) > 0)
   }
 
   return {

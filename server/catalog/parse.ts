@@ -192,8 +192,12 @@ function toCompareAtPrice(compareAt: number | null | undefined, price: Cents): C
 
 export interface ParseContext {
   locale: LocaleCode
-  /** Sellable quantities from Postgres, keyed by product id. */
-  availability: Map<string, number>
+  /**
+   * Sellable quantities from Postgres, keyed by product id — or `null` when the
+   * stock store could not be reached, which is not the same as everything being
+   * sold out. See `availabilityFor` in ./index.ts.
+   */
+  availability: Map<string, number> | null
   /** Whose price list applies. Derived from the URL — see shared/markets.ts. */
   market: MarketDefinition
   /** That market's catalogue-wide adjustment, when the owner has set one. */
@@ -329,7 +333,9 @@ export function parseProductSummary(document: unknown, context: ParseContext): P
     modelFamily: raw.modelFamily ?? null,
     isNew: raw.isNew ?? false,
     isFeatured: raw.isFeatured ?? false,
-    available: context.availability.get(raw._id) ?? 0,
+    // Null propagates deliberately: "we could not ask" must not render as "sold
+    // out". A product absent from a successful read is a real zero.
+    available: context.availability ? (context.availability.get(raw._id) ?? 0) : null,
   }
 }
 

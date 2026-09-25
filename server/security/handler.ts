@@ -165,8 +165,23 @@ export function defineRoute<TBody = undefined, TQuery = undefined>(
       }
 
       // 3. Budget.
+      //
+      // An anonymous read is counted in memory rather than in Postgres. The
+      // durable store writes a row per request, which kept the Neon compute
+      // permanently awake and burned the plan's quota twice — and a quota wall
+      // takes the whole shop down, so the limiter was costing far more than the
+      // abuse it prevents on a GET. Everything else keeps the durable counter:
+      // credentials, registration, contact, checkout and every authenticated
+      // route, where one budget per serverless instance would be a real hole.
+      const method = (event.method ?? 'GET').toUpperCase()
+      const ephemeral =
+        definition.access === 'public' &&
+        customer === null &&
+        (method === 'GET' || method === 'HEAD')
+
       await enforceRateLimit(event, definition.rateLimit, {
         subject: customer?.id,
+        ephemeral,
       })
 
       // 4. Input. Parsed, not merely checked — the handler receives the parsed

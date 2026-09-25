@@ -162,7 +162,10 @@ useSeoMeta({
                 class="text-sm text-content-muted line-through"
               >{{ formatCents(product.compareAtPrice) }}</span>
             </p>
-            <p v-if="product.available <= 0" class="mt-1 text-sm text-danger">
+            <!-- `!== null` first: an unknown quantity is not a sold-out one, and
+                 `null <= 0` is true in JavaScript, so dropping the guard would
+                 mark the entire catalogue out of stock during a stock outage. -->
+            <p v-if="product.available !== null && product.available <= 0" class="mt-1 text-sm text-danger">
               {{ $t('products.out_of_stock') }}
             </p>
           </div>

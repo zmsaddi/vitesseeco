@@ -65,6 +65,69 @@ export const RATE_LIMITS = {
 
 export type RateLimitPreset = keyof typeof RATE_LIMITS
 
+/** The bucket a request counts against. Shared so both stores agree on it. */
+function bucketFor(event: H3Event, options: RateLimitOptions): string {
+  const identity = hashIp(clientIp(event))
+  const scope = options.scope ?? routeKey(event)
+  return options.subject ? `${identity}:${scope}:${options.subject}` : `${identity}:${scope}`
+}
+
+/**
+ * The in-memory store, for anonymous reads.
+ *
+ * Why a second store exists at all: the SQL limiter writes a row on *every*
+ * request, so a shop with steady crawler traffic never stops writing, and a
+ * Neon compute that is never idle is never suspended — it bills continuously
+ * until the plan's quota is gone. That is not a hypothetical; it took the shop
+ * down twice. An anonymous GET must therefore be servable without touching
+ * Postgres at all, so the database can actually go to sleep.
+ *
+ * It is per-instance and best-effort, and that is the accepted trade: a
+ * distributed scraper gets a budget per serverless instance rather than one
+ * globally. Worth it for reads, and never used for anything that spends money,
+ * sends mail or checks a credential — those keep the durable store, where
+ * cross-instance accuracy is the entire point.
+ */
+const memoryBuckets = new Map<string, { count: number; expiresAt: number }>()
+
+/** Bounded so a long-lived instance under a spray of unique IPs cannot grow without end. */
+const MEMORY_BUCKET_CAP = 20_000
+
+function consumeInMemory(event: H3Event, options: RateLimitOptions): RateLimitResult {
+  const bucket = bucketFor(event, options)
+  const now = Date.now()
+
+  // Opportunistic eviction: cheaper than a timer, and the cap is only reached by
+  // traffic that is itself evicting as it goes.
+  if (memoryBuckets.size >= MEMORY_BUCKET_CAP) {
+    for (const [key, value] of memoryBuckets) {
+      if (value.expiresAt <= now) memoryBuckets.delete(key)
+    }
+    // Still full: every bucket is live, so drop the oldest insertions rather
+    // than start refusing requests over a bookkeeping limit.
+    if (memoryBuckets.size >= MEMORY_BUCKET_CAP) {
+      let toDrop = Math.ceil(MEMORY_BUCKET_CAP / 10)
+      for (const key of memoryBuckets.keys()) {
+        memoryBuckets.delete(key)
+        if (--toDrop <= 0) break
+      }
+    }
+  }
+
+  const existing = memoryBuckets.get(bucket)
+  const entry =
+    existing && existing.expiresAt > now
+      ? { count: existing.count + 1, expiresAt: existing.expiresAt }
+      : { count: 1, expiresAt: now + options.windowMs }
+  memoryBuckets.set(bucket, entry)
+
+  return {
+    allowed: entry.count <= options.limit,
+    remaining: Math.max(0, options.limit - entry.count),
+    retryAfterSeconds: Math.max(1, Math.ceil((entry.expiresAt - now) / 1000)),
+  }
+}
+
 /**
  * Consume one unit of budget.
  *
@@ -76,9 +139,7 @@ export async function consumeRateLimit(
   options: RateLimitOptions,
   database: Executor = db()
 ): Promise<RateLimitResult> {
-  const identity = hashIp(clientIp(event))
-  const scope = options.scope ?? routeKey(event)
-  const bucket = options.subject ? `${identity}:${scope}:${options.subject}` : `${identity}:${scope}`
+  const bucket = bucketFor(event, options)
   const windowSeconds = Math.ceil(options.windowMs / 1000)
 
   // One statement: insert the bucket, or — if the window has rolled over —
@@ -134,17 +195,25 @@ export async function consumeRateLimit(
  * A database failure must not take the site down, so an error here is logged
  * and allowed through: the limiter is a defence in depth, not the only one, and
  * every protected route also requires a session, a CAPTCHA or a signature.
+ *
+ * `ephemeral` picks the in-memory store instead of Postgres. The caller decides,
+ * because only the caller knows whether the request is an anonymous read — see
+ * `defineRoute`, which passes it for public GETs so that ordinary browsing and
+ * crawling leave the database untouched and let it suspend.
  */
 export async function enforceRateLimit(
   event: H3Event,
   preset: RateLimitPreset,
-  extra: Omit<RateLimitOptions, 'limit' | 'windowMs'> = {},
+  extra: Omit<RateLimitOptions, 'limit' | 'windowMs'> & { ephemeral?: boolean } = {},
   database: Executor = db()
 ): Promise<void> {
+  const { ephemeral = false, ...options } = extra
   const config = RATE_LIMITS[preset]
   let result: RateLimitResult
   try {
-    result = await consumeRateLimit(event, { ...config, ...extra }, database)
+    result = ephemeral
+      ? consumeInMemory(event, { ...config, ...options })
+      : await consumeRateLimit(event, { ...config, ...options }, database)
   } catch (error) {
     console.error('[rate-limit] store unavailable, allowing request', error)
     return
