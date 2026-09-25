@@ -232,8 +232,62 @@ export function defineRoute<TBody = undefined, TQuery = undefined>(
  * internal message, a stack, or a database error string — those go to the log,
  * which is where they are useful and where they are not a disclosure.
  */
+/**
+ * Signatures that mean "the database could not be reached", not "the code is wrong".
+ *
+ * Deliberately narrow. Anything matched here is reported to the caller as a
+ * temporary 503 instead of a 500, and a pattern that is too generous would hide
+ * real defects behind a status that says "try again" — so this lists the things a
+ * database says when it is unavailable, and nothing that a bug says.
+ */
+const DATABASE_UNAVAILABLE = [
+  'DATABASE_URL is not set',
+  'exceeded the quota',
+  'exceeded the compute time quota',
+  'HTTP status 402',
+  'ECONNREFUSED',
+  'ETIMEDOUT',
+  'ENOTFOUND',
+  'Connection terminated',
+  'too many connections',
+  'Client has encountered a connection error',
+]
+
+/**
+ * Whether this error is the database being unavailable.
+ *
+ * Walks `cause`, because drizzle wraps the driver's error in a
+ * `DrizzleQueryError` and the useful text is one or two levels down — the Neon
+ * 402 that took the shop down was only visible on the inner cause.
+ *
+ * Exported for its tests. A list of strings that decides between "temporary" and
+ * "broken" is exactly the kind of thing that rots unnoticed, so it is asserted
+ * rather than trusted — including that it does NOT match an ordinary bug.
+ */
+export function isDatabaseUnavailable(error: unknown): boolean {
+  let current: unknown = error
+  for (let depth = 0; depth < 5 && current; depth++) {
+    const message = current instanceof Error ? `${current.name}: ${current.message}` : String(current)
+    if (DATABASE_UNAVAILABLE.some((needle) => message.includes(needle))) return true
+    current = (current as { cause?: unknown })?.cause
+  }
+  return false
+}
+
 function respond(event: H3Event, error: unknown) {
-  const appError = toAppError(error)
+  let appError = toAppError(error)
+
+  // A database outage is not an internal defect, and saying so matters to more
+  // than tidiness: a 500 invites a crawler to treat the page as broken and a
+  // monitor to page someone about a bug, while a 503 says "temporary" to both.
+  // Only reclassified when nothing more specific was already thrown, so a route
+  // that has diagnosed its own failure keeps its own answer.
+  if (appError.code === ERROR_CODES.INTERNAL && isDatabaseUnavailable(error)) {
+    appError = new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, {
+      internal: appError.internal ?? 'database unavailable',
+      cause: error,
+    })
+  }
 
   if (appError.status >= 500) {
     console.error(`[${appError.code}] ${routeKey(event)}`, appError.internal ?? appError.message, appError.cause ?? '')

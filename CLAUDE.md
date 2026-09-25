@@ -81,7 +81,7 @@ Six habits, each of which exists because its absence cost something here.
 npm run dev                 # dev server
 npm run build               # production build — clear .nuxt first if in any doubt
 npm run test                # unit + integration (integration needs a database)
-npm run test:unit           # 330 tests, no database needed
+npm run test:unit           # 347 tests, no database needed
 npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
@@ -126,7 +126,7 @@ shared/                    ← used by BOTH sides: money, locales, markets, sche
 i18n/locales/              ← 6 files × 790 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (16 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (17 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
