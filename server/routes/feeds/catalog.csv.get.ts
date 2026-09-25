@@ -72,10 +72,25 @@ export default defineEventHandler(async (event) => {
 
   const market = defaultMarket()
   const priceRule = parseMarketRules(ruleDocuments).get(market.country) ?? null
-  const availability = await readAvailability(
-    db(),
-    products.map((p) => String(p._id))
-  )
+  /**
+   * Stock is a column here, so an unreadable stock store means this file cannot
+   * be produced — every row would claim `out_of_stock` and whoever consumes the
+   * export would act on it.
+   *
+   * 503, like the Merchant feed next door, and for the same reason: it asks the
+   * consumer to come back instead of handing them a wrong answer they will cache.
+   * It used to be an unhandled 500, which says the same thing far less clearly.
+   */
+  let availability: Awaited<ReturnType<typeof readAvailability>>
+  try {
+    availability = await readAvailability(
+      db(),
+      products.map((p) => String(p._id))
+    )
+  } catch (error) {
+    console.error('[feeds/catalog.csv] stock store unreachable, refusing to publish', error)
+    throw createError({ statusCode: 503, statusMessage: 'STOCK_UNAVAILABLE' })
+  }
 
   const rows: string[] = []
   for (const raw of products) {

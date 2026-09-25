@@ -123,7 +123,28 @@ export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown
     })
   }
 
-  const availability = await readAvailability(db(), productIds)
+  /**
+   * Pricing is the one read path that must NOT soften a stock failure.
+   *
+   * The catalogue can be browsed without knowing quantities — that is what the
+   * nullable availability elsewhere is for — but a basket exists to be bought,
+   * and the per-line `available` figure is what stops someone ordering four of
+   * something there is one of. Guessing here would move the failure to the
+   * moment of payment, after the card details, which is the worst place to put
+   * it.
+   *
+   * So it still fails. What changes is that it says so: 503 and a translated
+   * "temporarily unavailable" instead of a bare 500 that reads as a bug in the
+   * shop. Reserving stock at checkout remains the authoritative gate either way.
+   */
+  let availability: Awaited<ReturnType<typeof readAvailability>>
+  try {
+    availability = await readAvailability(db(), productIds)
+  } catch (error) {
+    throw new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, {
+      internal: `priceBasket: stock store unreachable — ${(error as Error)?.message ?? 'unknown'}`,
+    })
+  }
 
   const lines: PricedLine[] = request.lines.map((line) => {
     const product = products.get(line.productId) as ProductSummary
