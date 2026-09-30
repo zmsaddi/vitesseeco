@@ -40,6 +40,7 @@ const links = computed(() => [
   { to: '/admin/commandes', label: 'admin.orders', badge: dashboard.value?.queue.toProcess ?? 0 },
   { to: '/admin/stock', label: 'admin.stock', badge: 0 },
   { to: '/admin/messages', label: 'admin.messages', badge: dashboard.value?.queue.unreadMessages ?? 0 },
+  { to: '/admin/factures', label: 'admin.invoices', badge: 0 },
 ])
 
 const isActive = (to: string) => route.path === localePath(to)

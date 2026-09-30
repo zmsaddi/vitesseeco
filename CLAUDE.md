@@ -92,7 +92,7 @@ npm run test:e2e            # Playwright candidate gates: functional + axe + RTL
 npm run test:visual         # visual regression against the committed Linux baselines
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 18 project rules
+npm run check:invariants    # 17 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```
@@ -110,19 +110,19 @@ documented in [docs/testing/BROWSER_GATES.md](docs/testing/BROWSER_GATES.md).
 
 ```
 app/                       ← Nuxt 4 layout: everything client-facing
-  pages/                   ← 31 pages, incl. admin/ (5) compte/ (4) commande/ (2)
-  components/              ← BrandBolt, BrandMark, CaptchaWidget, ContactLink, MarketSuggestion, SiteHeader, SiteFooter
+  pages/                   ← 32 pages, incl. admin/ (6) compte/ (4) commande/ (2)
+  components/              ← BrandBolt, BrandMark, CaptchaWidget, ContactLink, MarketSuggestion, SignaturePad, SiteHeader, SiteFooter
   composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useFormatPrice, useWishlist
   layouts/ middleware/ plugins/
 server/
-  api/                     ← 37 routes. Every one declares access + rate limit via defineRoute
+  api/                     ← 40 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (runtime contract: CANDIDATE_TEST_RIG=1 + loopback site/db, never on Vercel)
   db/                      ← Drizzle schema + migrations. Driver chosen by URL shape.
   security/                ← handler (defineRoute), session, crypto, rateLimit, request, headers, captcha
   services/                ← orders, stock, pricing, promo, orderState, audit, maintenance
-  payments/                ← adapter registry (index.ts): stripe | cod | in_store — plus paypal, a TEMPORARY direct bridge until Stripe's own PayPal activates (removal recipe in server/payments/paypal.ts)
+  payments/                ← adapter registry (index.ts): stripe | cod | in_store — linkInvoices + handover invoice Payment Link sales from admin/factures — plus paypal, a TEMPORARY direct bridge until Stripe's own PayPal activates (removal recipe in server/payments/paypal.ts)
   feeds/ middleware/ plugins/
 shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
 i18n/locales/              ← 6 files × 817 keys

@@ -60,6 +60,7 @@ regression anyway.
 | Money on a placed order | frozen onto the order row at placement | never recomputed from today's rules |
 | Whether an online order was paid | **the provider** — the sweep asks Stripe (or reads the PayPal capture) before cancelling (`server/payments/reconcile.ts`); a webhook that failed is re-claimed by the provider's retry (`server/services/webhookClaims.ts`) | never cancelled on our database's word alone; a payment that lands after its hold expired takes its stock from the order lines (`takeStockForLatePayment`) |
 | How long an online order holds its stock | `server/services/stock.ts` — 30 minutes from placement (`shared/holds.ts`), stretched to the expiry of the Stripe session opened over it (`stretchLiveHold`, called when the session is attached). The PayPal bridge holds by its own rule (`holdForPayment`): a capture stretches a live hold by 10 minutes or takes a lapsed one again if its units are still free, and a capture under PayPal review keeps its units 72 hours (`holdStockForPayPalCapture`, `holdStockForPayPalReview` in `server/services/orders.ts`) | never offered for payment again once lapsed: a replayed checkout, card or PayPal, whose hold has lapsed closes that attempt (`errors.order_closed`) and the customer starts a fresh order; a PayPal capture whose units are gone is refused before any money moves. Not a promise that no money arrives after a hold: a Stripe delayed method (SEPA) settling days after its session, a webhook reconciled late, a PayPal capture taken earlier or cleared after its review hold all land late, and each takes its units through `takeStockForLatePayment`, which writes OVERSOLD on the order when they are gone |
+| Payment Link sales (sold outside the shop, e.g. the Vienna pickup link) | **Stripe** — the session, and the invoice id written back onto its PaymentIntent | never an order row, never a stock movement; invoiced from `/admin/factures` (`server/payments/linkInvoices.ts`) with a signed bon de livraison stored as a private `dispute_evidence` file (`server/payments/handover.ts`) |
 
 **The Sanity dataset is public today.** An unauthenticated query returns the
 catalogue. That is why no customer data may ever be written into it, and why
@@ -91,9 +92,9 @@ enforcement column is the part that matters: a rule nothing checks is a wish.
 ## 5. The shape of the code
 
 ```
-app/          31 pages · 7 components · 4 composables — everything client-facing
+app/          32 pages · 8 components · 4 composables — everything client-facing
 server/
-  api/        37 routes, each declaring access + rate limit via defineRoute
+  api/        40 routes, each declaring access + rate limit via defineRoute
   routes/     10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/    Sanity reads: cached, token-gated — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only)
   db/         Drizzle schema + 2 migration files
@@ -139,6 +140,7 @@ price differs from the crawled page.
 | Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail reaches customers. Password reset and order email are built against an account that does not exist yet. The OWNER is told of every paid order (including one the sweep reconciles, with any stock shortfall), every cash order placed, every Payment Link sale (once per session, however often its event is redelivered), and any Stripe or PayPal payment that lands on a cancelled order, by `server/services/notify.ts` — Telegram and/or Resend email, each live only once its variables are set in Vercel. The two channels carry different things because they are different recipients: the Resend email (a processor under its DPA with the EU standard clauses) is a pointer — order number, amount, items, payment and handover method, postcode and town, the admin link, no name, email, phone or street — while Telegram (no processor agreement) gets a ping that says what happened and links to the admin list, nothing about the customer or the order. The privacy policy says exactly this. An admin cancelling an unpaid online order first expires its Checkout Session and is refused while the provider reports money paid, travelling or unconfirmed; every admin status change carries the status the page showed, and is refused if the order moved since |
+| Payment Link sales bypass stock | A link sale has no order and moves no stock; if its units share the shop's stock, the count is corrected by hand in `/admin/stock` |
 | Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, wait until no PayPal order is awaiting payment, then apply the removal recipe at the top of that file — the PAYPAL_* variables go last, because without them the sweep can no longer ask PayPal about an open order and defers it forever |
 
 ---
