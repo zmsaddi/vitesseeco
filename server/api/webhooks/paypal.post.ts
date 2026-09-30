@@ -22,6 +22,7 @@ import { webhookEvents } from '../../db/schema'
 import { claimWebhookEvent } from '../../services/webhookClaims'
 import { paypalConfigured, verifyPayPalWebhook, paidOrderNumberFromWebhook } from '../../payments/paypal'
 import { transitionOrder } from '../../services/orders'
+import { notifyOrder } from '../../services/notify'
 import { applyApiHeaders } from '../../security/headers'
 import { toAppError } from '../../../shared/errors'
 
@@ -87,7 +88,8 @@ export default defineEventHandler(async (event) => {
       try {
         // Idempotent against the capture endpoint: whoever flips first wins,
         // the other updates nothing and settles nothing.
-        await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+        const moved = await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+        if (moved.changed) await notifyOrder(orderNumber, 'paid')
       } catch (error) {
         const appError = toAppError(error)
         if (appError.code !== 'NOT_FOUND') throw error

@@ -20,6 +20,7 @@ import {
 } from '../../services/orders'
 import { holdIsLive } from '../../services/stock'
 import { audit } from '../../services/audit'
+import { notifyOrder } from '../../services/notify'
 import { isOnline } from '../../payments'
 import { createCheckoutSession, stripe } from '../../payments/stripe'
 import { eq } from 'drizzle-orm'
@@ -100,7 +101,9 @@ export default defineRoute({
 
     if (!isOnline(body.paymentMethod)) {
       // Cash: nothing to charge now. The order is agreed, the stock is held,
-      // and an admin marks it paid when the money arrives.
+      // and an admin marks it paid when the money arrives — so the owner is
+      // told now, once: a replayed request is the same order, not a new one.
+      if (!order.replayed) await notifyOrder(order.orderNumber, 'placed')
       return { ...summary, mode: 'cash' as const }
     }
 

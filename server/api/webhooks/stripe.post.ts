@@ -24,6 +24,8 @@ import { webhookEvents } from '../../db/schema'
 import { claimWebhookEvent } from '../../services/webhookClaims'
 import { outcomeFor, verifyWebhook } from '../../payments/stripe'
 import { findOrderByStripeSession, transitionOrder } from '../../services/orders'
+import { linkSaleMessage, notifyOrder, notifyOwner } from '../../services/notify'
+import { stripe } from '../../payments/stripe'
 import { AppError, toAppError } from '../../../shared/errors'
 import { applyApiHeaders } from '../../security/headers'
 
@@ -99,6 +101,18 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
 
   const order = await findOrderByStripeSession(resolved.sessionId)
   if (!order) {
+    const session = stripeEvent.data.object as import('stripe').Stripe.Checkout.Session
+    if (session.payment_link && resolved.outcome === 'paid') {
+      // A Payment Link sale: no order row by design, but still money the
+      // owner must hear about. The event carries no line items, so they are
+      // read — and a failure there still sends the message, just unnamed.
+      const items = await stripe()
+        .checkout.sessions.listLineItems(session.id, { limit: 10 })
+        .then((page) => page.data.map((item) => `${item.quantity ?? 1} × ${item.description}`))
+        .catch(() => [])
+      await notifyOwner(linkSaleMessage(session, items))
+      return
+    }
     // Not ours, or the session was never attached. Nothing to do, and nothing
     // worth failing the delivery over.
     console.warn(`[webhook] no order for session ${resolved.sessionId}`)
@@ -109,7 +123,11 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
     case 'paid':
       // Consumes the stock hold. Forward-only: an order already shipped stays
       // shipped, because the transition table forbids going back.
-      await transitionOrder(order.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+      if ((await transitionOrder(order.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })).changed) {
+        // Only the delivery that actually moved the order speaks: a redelivered
+        // event changes nothing and must not announce the same money twice.
+        await notifyOrder(order.orderNumber, 'paid')
+      }
       break
 
     case 'failed':

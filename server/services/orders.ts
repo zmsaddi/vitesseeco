@@ -82,6 +82,8 @@ export interface PlacedOrder {
   orderNumber: string
   status: OrderStatus
   breakdown: PriceBreakdown
+  /** True when an earlier request with the same idempotency key placed it. */
+  replayed?: boolean
 }
 
 /**
@@ -95,7 +97,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   const run = input.runTransaction ?? withTransaction
 
   const existing = await findByIdempotencyKey(input.idempotencyKey, input.read)
-  if (existing) return existing
+  if (existing) return { ...existing, replayed: true }
 
   // Priced before the transaction opens: it reads the catalogue over the
   // network, and holding database locks across an external call is how a busy

@@ -22,6 +22,7 @@ import { orders } from '../../db/schema'
 import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
 import { stateOfPayPalOrder } from '../../payments/reconcile'
 import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
+import { closedOrderPaymentMessage, notifyOrder, notifyOwner } from '../../services/notify'
 import { audit } from '../../services/audit'
 import { holdStockForPayPalCapture, holdStockForPayPalReview } from '../../services/orders'
 import { orderNumberSchema } from '../../../shared/schemas'
@@ -200,8 +201,12 @@ export default defineRoute({
         // The payment is the fact and the answer must still reach the payer.
         console.error(`[paypal] ${body.orderNumber}: could not record the closed-order note`, error)
       })
+      await notifyOwner(closedOrderPaymentMessage(body.orderNumber, captured.captureId, moved.from))
     }
     // ── end of the closed-order capture ─────────────────────────────────────
+    // Whichever of this and the webhook moved the order announces it; the other
+    // changed nothing and stays quiet.
+    if (moved.changed) await notifyOrder(body.orderNumber, 'paid')
 
     await audit({
       action: 'order.paypal_captured',
