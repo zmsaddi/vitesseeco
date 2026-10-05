@@ -46,7 +46,8 @@ export function drawable(text: string): string {
     .join('')
 }
 
-export type ReceiptLanguage = 'fr' | 'de' | 'nl' | 'es' | 'en'
+import { ACKNOWLEDGEMENT, type ReceiptLanguage } from '../../shared/receiptLanguage'
+export { acknowledgementLines, type ReceiptLanguage } from '../../shared/receiptLanguage'
 
 interface ReceiptText {
   title: string
@@ -69,38 +70,33 @@ const RECEIPT: Record<ReceiptLanguage, ReceiptText> = {
   fr: {
     title: 'Bon de livraison', seller: 'Vendeur', customer: 'Client', item: 'Article', frame: 'N° de cadre',
     date: 'Date de remise', pickup: 'retrait', delivery: 'livraison à domicile',
-    statement: 'Le client confirme avoir reçu l’article ci-dessus, complet et en bon état.',
+    statement: ACKNOWLEDGEMENT.fr,
     signature: 'Signature du client',
   },
   de: {
     title: 'Übergabeprotokoll', seller: 'Verkäufer', customer: 'Kunde', item: 'Artikel', frame: 'Rahmennummer',
     date: 'Übergabedatum', pickup: 'Abholung', delivery: 'Lieferung',
-    statement: 'Der Kunde bestätigt, den oben genannten Artikel vollständig und in einwandfreiem Zustand erhalten zu haben.',
+    statement: ACKNOWLEDGEMENT.de,
     signature: 'Unterschrift des Kunden',
   },
   nl: {
     title: 'Afleveringsbon', seller: 'Verkoper', customer: 'Klant', item: 'Artikel', frame: 'Framenummer',
     date: 'Datum van overdracht', pickup: 'afhaling', delivery: 'thuislevering',
-    statement: 'De klant bevestigt het bovenstaande artikel volledig en in goede staat te hebben ontvangen.',
+    statement: ACKNOWLEDGEMENT.nl,
     signature: 'Handtekening van de klant',
   },
   es: {
     title: 'Albarán de entrega', seller: 'Vendedor', customer: 'Cliente', item: 'Artículo', frame: 'N.º de cuadro',
     date: 'Fecha de entrega', pickup: 'recogida', delivery: 'entrega a domicilio',
-    statement: 'El cliente confirma haber recibido el artículo anterior, completo y en buen estado.',
+    statement: ACKNOWLEDGEMENT.es,
     signature: 'Firma del cliente',
   },
   en: {
     title: 'Delivery receipt', seller: 'Seller', customer: 'Customer', item: 'Item', frame: 'Frame number',
     date: 'Handover date', pickup: 'collection', delivery: 'home delivery',
-    statement: 'The customer confirms having received the item above, complete and in good condition.',
+    statement: ACKNOWLEDGEMENT.en,
     signature: 'Customer signature',
   },
-}
-
-/** What the customer reads before signing: French, then their own language. */
-export function acknowledgementLines(language: ReceiptLanguage): string[] {
-  return language === 'fr' ? [RECEIPT.fr.statement] : [RECEIPT.fr.statement, RECEIPT[language].statement]
 }
 
 export interface HandoverDetails {

@@ -23,7 +23,7 @@
  *      or it is discarded while still an unnumbered draft;
  *   4. the final invoice id on the PaymentIntent, which refuses re-issue.
  */
-import { createHash } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { sql } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { stripe } from './stripe'
@@ -31,7 +31,8 @@ import { cents, type Cents } from '../../shared/money'
 import { ORGANISATION } from '../../shared/organisation'
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import { withTransaction } from '../db/client'
-import { acknowledgementLines, buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
+import { buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
+import { languageFor, type ReceiptLanguage } from '../../shared/receiptLanguage'
 
 /**
  * Per-link settings live on the Payment Link itself, as metadata, so a new link
@@ -55,19 +56,9 @@ export function feeFromMetadata(metadata: Record<string, string> | null | undefi
   return value > 0 ? cents(value) : null
 }
 
-/** The language the customer is written to in, from their billing country. */
-export type MessageLanguage = 'fr' | 'de' | 'nl' | 'es' | 'en'
-
-const LANGUAGE_BY_COUNTRY: Record<string, MessageLanguage> = {
-  FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
-  DE: 'de', AT: 'de', CH: 'de', LI: 'de',
-  NL: 'nl',
-  ES: 'es',
-}
-
-export function languageFor(country: string | null | undefined): MessageLanguage {
-  return LANGUAGE_BY_COUNTRY[(country ?? '').toUpperCase()] ?? 'en'
-}
+/** The language the customer is written to in — the rule lives in shared/, beside the signing screen's. */
+export type MessageLanguage = ReceiptLanguage
+export { languageFor }
 
 /** French VAT, inclusive: link prices are what the customer pays. */
 const VAT_PERCENT = 20
@@ -124,8 +115,8 @@ export interface LinkSale {
   /** The link's settings could not be read; a delivery sale waits until they can. */
   feeUnknown: boolean
   language: MessageLanguage
-  /** What the customer reads before signing: French, then their language. */
-  acknowledgement: string[]
+  /** An earlier attempt stopped part-way; issuing again finishes or discards it. */
+  pendingAttempt: boolean
   blocked: Blocked
   /** The invoice Stripe itself issued for this sale, when the link asks it to. */
   stripeInvoiceNumber: string | null
@@ -398,7 +389,7 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache): Promi
     deliveryFee: feeFromMetadata(metadata),
     feeUnknown: metadata === null,
     language,
-    acknowledgement: acknowledgementLines(language),
+    pendingAttempt: Boolean(intent.metadata?.invoice_pending),
     blocked: invoiceId ? null : blockedReason(session, charge),
     stripeInvoiceNumber:
       typeof stripeInvoice === 'object' && stripeInvoice ? (stripeInvoice.number ?? stripeInvoice.id ?? null) : stripeInvoice ?? null,
@@ -499,7 +490,10 @@ async function withSaleLock<T>(sessionId: string, work: () => Promise<T>): Promi
   return withTransaction(async (tx) => {
     const result = await tx.execute(sql`SELECT pg_try_advisory_xact_lock(hashtext(${'link-invoice:' + sessionId})) AS ok`)
     if (!(result.rows[0] as { ok?: boolean } | undefined)?.ok) {
-      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, { internal: `${sessionId}: an invoice is already being issued` })
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        messageKey: 'admin.invoice_in_progress',
+        internal: `${sessionId}: an invoice is already being issued`,
+      })
     }
     return work()
   })
@@ -509,15 +503,52 @@ async function markPaymentIntent(intentId: string, metadata: Record<string, stri
   await stripe().paymentIntents.update(intentId, { metadata })
 }
 
+function stripeUnavailable(what: string, cause: unknown): AppError {
+  return new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, {
+    messageKey: 'admin.stripe_unavailable',
+    internal: what,
+    cause,
+  })
+}
+
 /**
- * An earlier attempt that stopped part-way: a draft (unnumbered — discarded) or
- * a finalised invoice (numbered — finished, never duplicated).
+ * An invoice by id, or null only when Stripe says it does not exist. Anything
+ * else — a timeout, a 5xx, a rate limit — is not an answer, and treating it as
+ * "gone" is how a numbered invoice would be forgotten and another numbered.
+ */
+async function invoiceOrNull(id: string): Promise<Stripe.Invoice | null> {
+  try {
+    return await stripe().invoices.retrieve(id)
+  } catch (error) {
+    if ((error as { code?: string })?.code === 'resource_missing') return null
+    throw stripeUnavailable(`could not read invoice ${id}`, error)
+  }
+}
+
+export interface ResumedInvoice extends IssuedInvoice {
+  resumed: boolean
+  /** What the issued invoice actually states — on a resume, the earlier attempt's values. */
+  frameNumber: string
+  deliveredOn: string
+  /** A resume finished an invoice whose frame number or date differ from what was just typed. */
+  differs: boolean
+}
+
+/**
+ * An earlier attempt that stopped part-way. A draft is unnumbered and is
+ * discarded; a finalised invoice is numbered and is FINISHED — never left
+ * dangling, never doubled. Runs before every other check: once a number exists
+ * it must be settled, whatever has happened to the sale since.
+ *
+ * The pending marker is cleared only when every candidate is known to be
+ * deleted or missing. Any doubt leaves it in place and fails the request.
  */
 async function resumeEarlierAttempt(
   session: Stripe.Checkout.Session,
   intent: Stripe.PaymentIntent,
+  input: IssueInput,
   language: MessageLanguage
-): Promise<IssuedInvoice | null> {
+): Promise<ResumedInvoice | null> {
   const candidates = new Set<string>()
   if (intent.metadata?.invoice_pending) candidates.add(intent.metadata.invoice_pending)
   try {
@@ -528,14 +559,30 @@ async function resumeEarlierAttempt(
   }
 
   for (const id of candidates) {
-    const invoice = await stripe().invoices.retrieve(id).catch(() => null)
+    let invoice = await invoiceOrNull(id)
     if (!invoice || invoice.metadata?.checkout_session !== session.id) continue
+
     if (invoice.status === 'draft') {
-      await stripe().invoices.del(id).catch(() => {})
-      continue
+      try {
+        await stripe().invoices.del(id)
+        continue
+      } catch (error) {
+        // Not deleted: find out what it became before deciding anything.
+        invoice = await invoiceOrNull(id)
+        if (!invoice) continue
+        if (invoice.status === 'draft') throw stripeUnavailable(`could not delete draft ${id}`, error)
+      }
     }
+
     if (invoice.status === 'open' || invoice.status === 'paid') {
-      const paid = invoice.status === 'open' ? await stripe().invoices.pay(id, { paid_out_of_band: true }) : invoice
+      let paid = invoice
+      if (invoice.status === 'open') {
+        try {
+          paid = await stripe().invoices.pay(id, { paid_out_of_band: true })
+        } catch (error) {
+          throw stripeUnavailable(`could not settle resumed invoice ${id}`, error)
+        }
+      }
       const number = paid.number ?? id
       await markPaymentIntent(intent.id, {
         invoice_id: id,
@@ -544,8 +591,17 @@ async function resumeEarlierAttempt(
         invoice_pending: '',
         ...(invoice.metadata?.handover_file ? { handover_file: invoice.metadata.handover_file } : {}),
       })
-      return issued(id, number, paid.hosted_invoice_url ?? null, language)
+      const frameNumber = invoice.metadata?.frame_number ?? ''
+      const deliveredOn = invoice.metadata?.delivered_on ?? ''
+      return {
+        ...issued(id, number, paid.hosted_invoice_url ?? null, language),
+        resumed: true,
+        frameNumber,
+        deliveredOn,
+        differs: frameNumber !== input.frameNumber.trim() || deliveredOn !== input.deliveredOn,
+      }
     }
+    // void or uncollectible: an earlier mistake already cancelled; nothing to finish.
   }
   if (intent.metadata?.invoice_pending) await markPaymentIntent(intent.id, { invoice_pending: '' })
   return null
@@ -555,8 +611,17 @@ function todayInParis(): string {
   return parisDay(Math.floor(Date.now() / 1000))
 }
 
+/** Every line the session charged — beyond the first page when there are more. */
+async function allLineItems(session: Stripe.Checkout.Session): Promise<Stripe.LineItem[]> {
+  const first = session.line_items
+  if (first && !first.has_more) return first.data
+  const items: Stripe.LineItem[] = []
+  for await (const item of stripe().checkout.sessions.listLineItems(session.id, { limit: 100 })) items.push(item)
+  return items
+}
+
 /** Issue the invoice for one sale, finalised and marked paid. */
-export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice & { resumed: boolean }> {
+export async function issueLinkInvoice(input: IssueInput): Promise<ResumedInvoice> {
   return withSaleLock(input.sessionId, async () => {
     const session = await paidLinkSession(input.sessionId)
     const intent = session.payment_intent as Stripe.PaymentIntent
@@ -568,9 +633,16 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
         internal: `${session.id} already invoiced as ${intent.metadata.invoice_id}`,
       })
     }
+
+    const resumed = await resumeEarlierAttempt(session, intent, input, language)
+    if (resumed) return resumed
+
     const blocked = blockedReason(session, charge)
     if (blocked) {
-      throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, { internal: `${session.id} cannot be invoiced here: ${blocked}` })
+      throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+        messageKey: 'admin.invoice_blocked',
+        internal: `${session.id} cannot be invoiced here: ${blocked}`,
+      })
     }
     if ((session.total_details?.amount_tax ?? 0) > 0) {
       // Stripe Tax on the link: its tax is not the inclusive French rate this
@@ -581,17 +653,18 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
     const paidOn = parisDay(charge?.created ?? session.created)
     if (input.deliveredOn < paidOn || input.deliveredOn > todayInParis()) {
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+        messageKey: 'admin.invoice_date_invalid',
         internal: `${session.id}: handover date ${input.deliveredOn} outside ${paidOn}..today`,
       })
     }
 
-    const resumed = await resumeEarlierAttempt(session, intent, language)
-    if (resumed) return { ...resumed, resumed: true }
-
     const sale = await toSale(session, new Map())
     if (sale.fulfilment === 'delivery' && input.deliveryFeeCollected) {
       if (sale.feeUnknown) {
-        throw new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, { internal: `${session.id}: link settings unreadable` })
+        throw new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, {
+          messageKey: 'admin.fee_unknown',
+          internal: `${session.id}: link settings unreadable`,
+        })
       }
       if (sale.deliveryFee === null) {
         // The box can only be ticked for a link that states its fee; a request
@@ -602,7 +675,7 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       }
     }
 
-    const items = session.line_items?.data ?? []
+    const items = await allLineItems(session)
     const plan = planInvoice(
       {
         lineItems: items.map((item) => ({
@@ -624,8 +697,13 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       input
     )
 
-    const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
-    const key = (step: string) => `link-invoice:${session.id}:${fingerprint}:${step}`
+    // One key per ATTEMPT, never per form. The lock stops two attempts running
+    // at once and the pending marker carries what one attempt leaves for the
+    // next, so keys only have to make stripe-node's own retries safe. A key
+    // derived from the form would, after a draft was deleted, replay that
+    // deleted draft for 24 hours.
+    const attempt = randomUUID()
+    const key = (step: string) => `link-invoice:${session.id}:${attempt}:${step}`
     const currency = session.currency ?? 'eur'
 
     // The signed receipt first: it is not a numbered document, so a failure
@@ -696,6 +774,7 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
           frame_number: input.frameNumber.trim(),
           delivered_on: input.deliveredOn,
           handover_file: handoverFile,
+          attempt,
         },
       },
       { idempotencyKey: key('invoice') }
@@ -704,18 +783,28 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
     await markPaymentIntent(intent.id, { invoice_pending: draft.id! })
 
     for (const [index, line] of plan.lines.entries()) {
-      await stripe().invoiceItems.create(
-        {
-          customer: customer.id,
-          invoice: draft.id!,
-          description: line.description,
-          tax_rates: [taxRate],
-          ...(line.productId
-            ? { price_data: { currency, product: line.productId, unit_amount: line.unitAmount }, quantity: line.quantity }
-            : { amount: line.unitAmount * line.quantity, currency }),
-        },
-        { idempotencyKey: key(`line-${index}`) }
-      )
+      const base = { customer: customer.id, invoice: draft.id!, description: line.description, tax_rates: [taxRate] }
+      try {
+        await stripe().invoiceItems.create(
+          line.productId
+            ? { ...base, price_data: { currency, product: line.productId, unit_amount: line.unitAmount }, quantity: line.quantity }
+            : { ...base, amount: line.unitAmount * line.quantity, currency },
+          { idempotencyKey: key(`line-${index}`) }
+        )
+      } catch (error) {
+        if (!line.productId) throw error
+        // The catalogue product was archived or deleted since the sale. The
+        // line still states exactly what was charged, as one amount.
+        await stripe().invoiceItems.create(
+          {
+            ...base,
+            description: line.quantity > 1 ? `${line.quantity} × ${line.description}` : line.description,
+            amount: line.unitAmount * line.quantity,
+            currency,
+          },
+          { idempotencyKey: key(`line-${index}-amount`) }
+        )
+      }
     }
 
     // The invoice must say what was paid. If it does not, it is thrown away
@@ -725,6 +814,7 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       await stripe().invoices.del(draft.id!).catch(() => {})
       await markPaymentIntent(intent.id, { invoice_pending: '' })
       throw new AppError(ERROR_CODES.INTERNAL, {
+        messageKey: 'admin.invoice_total_mismatch',
         internal: `${session.id}: invoice total ${built.total} ${built.currency} ≠ paid ${plan.expectedTotal} ${currency}`,
       })
     }
@@ -744,6 +834,12 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       handover_file: handoverFile,
     })
 
-    return { ...issued(paid.id!, number, paid.hosted_invoice_url ?? null, language), resumed: false }
+    return {
+      ...issued(paid.id!, number, paid.hosted_invoice_url ?? null, language),
+      resumed: false,
+      frameNumber: input.frameNumber.trim(),
+      deliveredOn: input.deliveredOn,
+      differs: false,
+    }
   })
 }

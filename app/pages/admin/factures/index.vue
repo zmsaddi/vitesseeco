@@ -7,14 +7,17 @@
  * once the item has been handed over — from a phone or tablet, at the counter,
  * because that is where the frame number is read off.
  *
- * The customer signs on a screen of their own. The tablet passed across the
- * counter must show THEIR purchase and what they are confirming, in their
- * language — never the list, which holds every other buyer's name, email and
- * phone number.
+ * The customer signs on a screen of their own, in their own language, showing
+ * their purchase and what they confirm — never the list, which holds every other
+ * buyer's name, email and phone. While the device is in their hands the list is
+ * not rendered at all, and when they finish it shows "hand the device back"
+ * until the seller long-presses to resume; the back gesture cannot escape it.
  *
  * Name and address are pre-filled from checkout when the link collected them;
  * the first buyers paid before it did, so every field stays editable.
  */
+import { SIGNING_TEXT, acknowledgementLines, languageFor } from '~~/shared/receiptLanguage'
+
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
 const { t } = useI18n()
@@ -26,6 +29,13 @@ interface IssuedInvoice {
   number: string
   hostedUrl: string | null
   message: { subject: string; body: string }
+}
+
+interface IssueResult extends IssuedInvoice {
+  resumed: boolean
+  frameNumber: string
+  deliveredOn: string
+  differs: boolean
 }
 
 interface LinkSale {
@@ -45,7 +55,7 @@ interface LinkSale {
   /** Cents, from the link's own metadata; null when it offers no paid delivery. */
   deliveryFee: number | null
   feeUnknown: boolean
-  acknowledgement: string[]
+  pendingAttempt: boolean
   blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
   stripeInvoiceNumber: string | null
 }
@@ -53,6 +63,8 @@ interface LinkSale {
 interface Draft {
   frameNumber: string
   deliveredOn: string
+  /** Set once staff edit the date; an untouched date follows "today". */
+  dateTouched: boolean
   name: string
   line1: string
   postalCode: string
@@ -60,6 +72,8 @@ interface Draft {
   country: string
   deliveryFeeCollected: boolean
   signature: string
+  /** What the customer saw when they signed. Change any of it and the signature no longer stands. */
+  signedFor: string
 }
 
 interface ListResponse {
@@ -76,6 +90,10 @@ watch(data, (value) => {
   if (value) shown.value = value
 })
 
+/** Invoices issued from this page, by sale — shown whatever the list does next. */
+const issuedNow = reactive<Record<string, IssuedInvoice>>({})
+const invoiceOf = (sale: LinkSale): IssuedInvoice | null => issuedNow[sale.sessionId] ?? sale.invoice
+
 /** Today in the shop's zone, as the date input wants it — read when used, not once. */
 function todayInParis(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())
@@ -83,9 +101,9 @@ function todayInParis(): string {
 const today = ref(todayInParis())
 function refreshToday(): void {
   today.value = todayInParis()
+  // A tablet left on this page overnight: untouched dates follow the calendar.
+  for (const draft of Object.values(drafts)) if (!draft.dateTouched) draft.deliveredOn = today.value
 }
-onMounted(() => document.addEventListener('visibilitychange', refreshToday))
-onBeforeUnmount(() => document.removeEventListener('visibilitychange', refreshToday))
 
 const drafts = reactive<Record<string, Draft>>({})
 watchEffect(() => {
@@ -94,6 +112,7 @@ watchEffect(() => {
     drafts[sale.sessionId] = {
       frameNumber: '',
       deliveredOn: today.value,
+      dateTouched: false,
       name: sale.billing.name ?? '',
       // A delivery address typed at checkout is the best guess for billing.
       line1: sale.billing.line1 ?? sale.deliveryAddress ?? '',
@@ -103,17 +122,32 @@ watchEffect(() => {
       country: sale.billing.country ?? '',
       deliveryFeeCollected: sale.fulfilment === 'delivery' && sale.deliveryFee !== null,
       signature: '',
+      signedFor: '',
     }
   }
 })
 
 const issuing = ref<string | null>(null)
 const error = ref<{ sessionId: string; message: string } | null>(null)
-const notice = ref<{ sessionId: string; message: string } | null>(null)
+const notice = ref<{ sessionId: string; message: string; warning: boolean } | null>(null)
 
+/** What the signature vouches for. */
+function signedFields(draft: Draft): string {
+  return JSON.stringify([draft.frameNumber.trim(), draft.deliveredOn, draft.name.trim(), draft.country.trim().toUpperCase()])
+}
+function signatureStands(draft: Draft): boolean {
+  return Boolean(draft.signature) && draft.signedFor === signedFields(draft)
+}
+function readyToSign(draft: Draft): boolean {
+  return [draft.frameNumber, draft.deliveredOn, draft.name, draft.country].every((value) => value.trim().length > 0)
+}
 function isComplete(draft: Draft): boolean {
-  return [draft.signature, draft.frameNumber, draft.deliveredOn, draft.name, draft.line1, draft.postalCode, draft.city, draft.country]
-    .every((value) => value.trim().length > 0)
+  return (
+    signatureStands(draft) &&
+    [draft.frameNumber, draft.deliveredOn, draft.name, draft.line1, draft.postalCode, draft.city, draft.country].every(
+      (value) => value.trim().length > 0
+    )
+  )
 }
 
 function canIssue(sale: LinkSale): boolean {
@@ -122,35 +156,88 @@ function canIssue(sale: LinkSale): boolean {
   return !(sale.fulfilment === 'delivery' && sale.feeUnknown)
 }
 
-// ── The customer's own signing screen ─────────────────────────────────────────
+// ── The customer's own screen ─────────────────────────────────────────────────
 
-const signing = ref<LinkSale | null>(null)
+type Mode = 'idle' | 'signing' | 'handback'
+const mode = ref<Mode>('idle')
+const signingSale = ref<LinkSale | null>(null)
 const pendingSignature = ref('')
+const signingHeading = ref<HTMLElement | null>(null)
 
-function openSigning(sale: LinkSale): void {
+const signingDraft = computed(() => (signingSale.value ? drafts[signingSale.value.sessionId] : undefined))
+const customerLanguage = computed(() => languageFor(signingDraft.value?.country))
+const customerText = computed(() => SIGNING_TEXT[customerLanguage.value])
+const acknowledgement = computed(() => acknowledgementLines(customerLanguage.value))
+
+function onPopState(): void {
+  // The back gesture must not hand the customer the list.
+  if (mode.value === 'idle') return
+  history.pushState({ signing: true }, '')
+  mode.value = 'handback'
+}
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && mode.value === 'signing') mode.value = 'handback'
+}
+
+async function openSigning(sale: LinkSale): Promise<void> {
+  refreshToday()
+  const draft = drafts[sale.sessionId]
+  if (!draft || !readyToSign(draft)) return
   pendingSignature.value = ''
-  signing.value = sale
+  signingSale.value = sale
+  mode.value = 'signing'
+  history.pushState({ signing: true }, '')
+  await nextTick()
+  signingHeading.value?.focus()
 }
 
 function confirmSignature(): void {
-  if (!signing.value || !pendingSignature.value) return
-  drafts[signing.value.sessionId]!.signature = pendingSignature.value
-  signing.value = null
+  const draft = signingDraft.value
+  if (!draft || !pendingSignature.value) return
+  draft.signature = pendingSignature.value
+  draft.signedFor = signedFields(draft)
+  mode.value = 'handback'
 }
+
+// Staff resume by holding, not tapping: a customer's stray tap must not do it.
+let holdTimer: ReturnType<typeof setTimeout> | null = null
+function startHold(): void {
+  stopHold()
+  holdTimer = setTimeout(() => {
+    mode.value = 'idle'
+    signingSale.value = null
+    holdTimer = null
+  }, 1200)
+}
+function stopHold(): void {
+  if (holdTimer) clearTimeout(holdTimer)
+  holdTimer = null
+}
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', refreshToday)
+  window.addEventListener('popstate', onPopState)
+  window.addEventListener('keydown', onKeydown)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', refreshToday)
+  window.removeEventListener('popstate', onPopState)
+  window.removeEventListener('keydown', onKeydown)
+  stopHold()
+})
+onBeforeRouteLeave(() => mode.value === 'idle')
 
 // ── Issuing ───────────────────────────────────────────────────────────────────
 
 async function issue(sale: LinkSale): Promise<void> {
   const draft = drafts[sale.sessionId]
   if (!draft || !isComplete(draft) || issuing.value || !canIssue(sale)) return
-  refreshToday()
-  if (draft.deliveredOn > today.value) draft.deliveredOn = today.value
   if (!window.confirm(t('admin.confirm_issue', { frame: draft.frameNumber.trim() }))) return
   issuing.value = sale.sessionId
   error.value = null
   notice.value = null
   try {
-    const result = await $fetch<{ invoice: IssuedInvoice & { resumed: boolean } }>('/api/admin/link-sales/invoice', {
+    const result = await $fetch<{ invoice: IssueResult }>('/api/admin/link-sales/invoice', {
       method: 'POST',
       body: {
         sessionId: sale.sessionId,
@@ -167,9 +254,19 @@ async function issue(sale: LinkSale): Promise<void> {
         signature: draft.signature,
       },
     })
-    // Shown at once, whatever the refresh below does.
-    sale.invoice = result.invoice
-    if (result.invoice.resumed) notice.value = { sessionId: sale.sessionId, message: t('admin.invoice_resumed') }
+    issuedNow[sale.sessionId] = result.invoice
+    if (result.invoice.resumed) {
+      notice.value = {
+        sessionId: sale.sessionId,
+        warning: result.invoice.differs,
+        message: result.invoice.differs
+          ? t('admin.invoice_resumed_differs', {
+              frame: result.invoice.frameNumber,
+              date: result.invoice.deliveredOn.split('-').reverse().join('/'),
+            })
+          : t('admin.invoice_resumed'),
+      }
+    }
   } catch (err: unknown) {
     const payload = (err as { data?: { messageKey?: string } })?.data
     error.value = {
@@ -185,13 +282,13 @@ async function issue(sale: LinkSale): Promise<void> {
 }
 
 function mailto(sale: LinkSale): string {
-  const message = sale.invoice!.message
+  const message = invoiceOf(sale)!.message
   return `mailto:${encodeURIComponent(sale.email ?? '')}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`
 }
 
 function whatsapp(sale: LinkSale): string {
   const digits = (sale.phone ?? '').replace(/\D/g, '')
-  return `https://wa.me/${digits}?text=${encodeURIComponent(sale.invoice!.message.body)}`
+  return `https://wa.me/${digits}?text=${encodeURIComponent(invoiceOf(sale)!.message.body)}`
 }
 
 useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
@@ -199,180 +296,231 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
 
 <template>
   <div class="container-page">
-    <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('admin.invoices') }}</h1>
-    <p class="mt-2 max-w-prose text-sm text-content-muted">{{ $t('admin.invoices_intro') }}</p>
+    <!-- Not rendered at all while the device is in the customer's hands. -->
+    <template v-if="mode === 'idle'">
+      <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('admin.invoices') }}</h1>
+      <p class="mt-2 max-w-prose text-sm text-content-muted">{{ $t('admin.invoices_intro') }}</p>
 
-    <div v-if="loadError" class="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4" role="alert">
-      <p class="text-sm text-danger">{{ $t('admin.list_failed') }}</p>
-      <button type="button" class="btn-secondary h-10 px-4 text-sm" @click="refresh()">{{ $t('admin.retry') }}</button>
-    </div>
-    <p v-if="shown?.unreadable" class="mt-4 text-sm text-content-muted">
-      {{ $t('admin.some_unreadable', { count: shown.unreadable }) }}
-    </p>
+      <div v-if="loadError" class="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4" role="alert">
+        <p class="text-sm text-danger">{{ $t('admin.list_failed') }}</p>
+        <button type="button" class="btn-secondary h-10 px-4 text-sm" @click="refresh()">{{ $t('admin.retry') }}</button>
+      </div>
+      <p v-if="shown?.unreadable" class="mt-4 text-sm text-content-muted">
+        {{ $t('admin.some_unreadable', { count: shown.unreadable }) }}
+      </p>
 
-    <p v-if="loadState === 'success' && !shown?.items.length" class="card mt-6 p-6 text-content-muted">
-      {{ $t('admin.no_link_sales') }}
-    </p>
+      <p v-if="loadState === 'success' && !shown?.items.length" class="card mt-6 p-6 text-content-muted">
+        {{ $t('admin.no_link_sales') }}
+      </p>
 
-    <ul class="mt-6 grid gap-4">
-      <li v-for="sale in shown?.items ?? []" :key="sale.sessionId" class="card p-5">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="font-semibold text-content-strong">{{ sale.productName }}</p>
-            <p class="mt-1 text-sm text-content-muted">
-              {{ formatDateTime(sale.paidAt) }} · {{ sale.paymentMethod }}
-              <span v-if="sale.promotionCode"> · {{ sale.promotionCode }}</span>
+      <ul class="mt-6 grid gap-4">
+        <li v-for="sale in shown?.items ?? []" :key="sale.sessionId" class="card p-5">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="font-semibold text-content-strong">{{ sale.productName }}</p>
+              <p class="mt-1 text-sm text-content-muted">
+                {{ formatDateTime(sale.paidAt) }} · {{ sale.paymentMethod }}
+                <span v-if="sale.promotionCode"> · {{ sale.promotionCode }}</span>
+              </p>
+            </div>
+            <p class="text-lg font-extrabold text-content-strong">{{ formatCents(sale.amountTotal) }}</p>
+          </div>
+
+          <dl class="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+            <div>
+              <dt class="inline text-content-muted">{{ $t('admin.customer') }}:</dt>
+              <dd class="inline text-content">{{ sale.billing.name || '—' }} · {{ sale.email || '—' }} · {{ sale.phone || '—' }}</dd>
+            </div>
+            <div>
+              <dt class="inline text-content-muted">
+                {{ sale.fulfilment === 'delivery' ? $t('admin.home_delivery') : $t('admin.pickup') }}
+              </dt>
+              <dd v-if="sale.fulfilment === 'delivery'" class="inline text-content">: {{ sale.deliveryAddress || '—' }}</dd>
+            </div>
+          </dl>
+
+          <!-- Issued: the document and two ways to hand it over. -->
+          <div v-if="invoiceOf(sale)" class="mt-4 flex flex-wrap items-center gap-2">
+            <span class="rounded-full bg-accent-subtle px-3 py-1 text-sm font-semibold text-accent">
+              {{ $t('admin.invoiced', { number: invoiceOf(sale)!.number }) }}
+            </span>
+            <a :href="`/api/admin/link-sales/invoice-pdf?invoice=${invoiceOf(sale)!.id}`" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
+              {{ $t('admin.download_pdf') }}
+            </a>
+            <a
+              v-if="sale.handoverFileId"
+              :href="`/api/admin/link-sales/handover?file=${sale.handoverFileId}`"
+              target="_blank"
+              rel="noopener"
+              class="btn-secondary h-10 px-4 text-sm"
+            >
+              {{ $t('admin.download_handover') }}
+            </a>
+            <a v-if="sale.email" :href="mailto(sale)" class="btn-secondary h-10 px-4 text-sm">{{ $t('admin.send_email') }}</a>
+            <a v-if="sale.phone" :href="whatsapp(sale)" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
+              {{ $t('admin.send_whatsapp') }}
+            </a>
+            <p
+              v-if="notice?.sessionId === sale.sessionId"
+              class="w-full text-sm"
+              :class="notice.warning ? 'text-danger' : 'text-content-muted'"
+              role="status"
+            >
+              {{ notice.message }}
             </p>
           </div>
-          <p class="text-lg font-extrabold text-content-strong">{{ formatCents(sale.amountTotal) }}</p>
-        </div>
 
-        <dl class="mt-3 grid gap-1 text-sm sm:grid-cols-2">
-          <div>
-            <dt class="inline text-content-muted">{{ $t('admin.customer') }}:</dt>
-            <dd class="inline text-content">{{ sale.billing.name || '—' }} · {{ sale.email || '—' }} · {{ sale.phone || '—' }}</dd>
-          </div>
-          <div>
-            <dt class="inline text-content-muted">
-              {{ sale.fulfilment === 'delivery' ? $t('admin.home_delivery') : $t('admin.pickup') }}
-            </dt>
-            <dd v-if="sale.fulfilment === 'delivery'" class="inline text-content">: {{ sale.deliveryAddress || '—' }}</dd>
-          </div>
-        </dl>
-
-        <!-- Issued: the document and two ways to hand it over. -->
-        <div v-if="sale.invoice" class="mt-4 flex flex-wrap items-center gap-2">
-          <span class="rounded-full bg-accent-subtle px-3 py-1 text-sm font-semibold text-accent">
-            {{ $t('admin.invoiced', { number: sale.invoice.number }) }}
-          </span>
-          <a :href="`/api/admin/link-sales/invoice-pdf?invoice=${sale.invoice.id}`" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
-            {{ $t('admin.download_pdf') }}
-          </a>
-          <a
-            v-if="sale.handoverFileId"
-            :href="`/api/admin/link-sales/handover?file=${sale.handoverFileId}`"
-            target="_blank"
-            rel="noopener"
-            class="btn-secondary h-10 px-4 text-sm"
-          >
-            {{ $t('admin.download_handover') }}
-          </a>
-          <a v-if="sale.email" :href="mailto(sale)" class="btn-secondary h-10 px-4 text-sm">{{ $t('admin.send_email') }}</a>
-          <a v-if="sale.phone" :href="whatsapp(sale)" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
-            {{ $t('admin.send_whatsapp') }}
-          </a>
-          <p v-if="notice?.sessionId === sale.sessionId" class="w-full text-sm text-content-muted" role="status">{{ notice.message }}</p>
-        </div>
-
-        <!-- Cannot be invoiced here, and why. -->
-        <p v-else-if="sale.blocked" class="mt-4 text-sm text-danger" role="status">
-          {{
-            sale.blocked === 'stripe_invoice'
-              ? $t('admin.blocked_stripe_invoice', { number: sale.stripeInvoiceNumber ?? '—' })
-              : sale.blocked === 'disputed'
-                ? $t('admin.blocked_disputed')
-                : $t('admin.blocked_refunded')
-          }}
-        </p>
-
-        <!-- Not yet: the handover form. -->
-        <form v-else-if="drafts[sale.sessionId]" class="mt-4 grid gap-3 sm:grid-cols-2" @submit.prevent="issue(sale)">
-          <label class="text-sm">
-            <span class="text-content-muted">{{ $t('admin.frame_number') }}</span>
-            <input v-model="drafts[sale.sessionId]!.frameNumber" class="field mt-1 w-full" required autocapitalize="characters" autocomplete="off">
-          </label>
-          <label class="text-sm">
-            <span class="text-content-muted">{{ $t('admin.delivered_on') }}</span>
-            <input v-model="drafts[sale.sessionId]!.deliveredOn" type="date" class="field mt-1 w-full" required :max="today">
-          </label>
-          <label class="text-sm sm:col-span-2">
-            <span class="text-content-muted">{{ $t('admin.billing_name') }}</span>
-            <input v-model="drafts[sale.sessionId]!.name" class="field mt-1 w-full" required autocomplete="off">
-          </label>
-          <label class="text-sm sm:col-span-2">
-            <span class="text-content-muted">{{ $t('admin.billing_street') }}</span>
-            <input v-model="drafts[sale.sessionId]!.line1" class="field mt-1 w-full" required autocomplete="off">
-          </label>
-          <label class="text-sm">
-            <span class="text-content-muted">{{ $t('admin.billing_postal') }}</span>
-            <input v-model="drafts[sale.sessionId]!.postalCode" class="field mt-1 w-full" required autocomplete="off">
-          </label>
-          <label class="text-sm">
-            <span class="text-content-muted">{{ $t('admin.billing_city') }}</span>
-            <input v-model="drafts[sale.sessionId]!.city" class="field mt-1 w-full" required autocomplete="off">
-          </label>
-          <label class="text-sm">
-            <span class="text-content-muted">{{ $t('admin.billing_country') }}</span>
-            <input v-model="drafts[sale.sessionId]!.country" class="field mt-1 w-full uppercase" required maxlength="2" autocomplete="off">
-          </label>
-          <!-- Only a link that states its fee offers the box, and the amount shown
-               is the link's: the browser never names a sum. -->
-          <label
-            v-if="sale.fulfilment === 'delivery' && sale.deliveryFee !== null"
-            class="flex min-h-11 items-center gap-2 self-end text-sm"
-          >
-            <input v-model="drafts[sale.sessionId]!.deliveryFeeCollected" type="checkbox" class="size-5">
-            <span>{{ $t('admin.delivery_fee_collected', { amount: formatCents(sale.deliveryFee) }) }}</span>
-          </label>
-          <p v-if="sale.fulfilment === 'delivery' && sale.feeUnknown" class="text-sm text-danger sm:col-span-2" role="status">
-            {{ $t('admin.fee_unknown') }}
+          <!-- Cannot be invoiced here, and why. -->
+          <p v-else-if="sale.blocked && !sale.pendingAttempt" class="mt-4 text-sm text-danger" role="status">
+            {{
+              sale.blocked === 'stripe_invoice'
+                ? $t('admin.blocked_stripe_invoice', { number: sale.stripeInvoiceNumber ?? '—' })
+                : sale.blocked === 'disputed'
+                  ? $t('admin.blocked_disputed')
+                  : $t('admin.blocked_refunded')
+            }}
           </p>
 
-          <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
-            <button type="button" class="btn-secondary h-11 px-4" @click="openSigning(sale)">
-              {{ drafts[sale.sessionId]!.signature ? $t('admin.signature_again') : $t('admin.take_signature') }}
-            </button>
-            <span v-if="drafts[sale.sessionId]!.signature" class="text-sm font-semibold text-accent">
-              {{ $t('admin.signature_taken') }}
-            </span>
-          </div>
-
-          <p v-if="error?.sessionId === sale.sessionId" class="text-sm text-danger sm:col-span-2" role="alert">
-            {{ error.message }}
-          </p>
-
-          <div class="sm:col-span-2">
-            <button
-              type="submit"
-              class="btn-primary h-11 w-full px-5 sm:w-auto"
-              :disabled="!isComplete(drafts[sale.sessionId]!) || issuing !== null || !canIssue(sale)"
+          <!-- Not yet: the handover form. -->
+          <form v-else-if="drafts[sale.sessionId]" class="mt-4 grid gap-3 sm:grid-cols-2" @submit.prevent="issue(sale)">
+            <p v-if="sale.pendingAttempt" class="text-sm text-content-muted sm:col-span-2" role="status">
+              {{ $t('admin.pending_attempt') }}
+            </p>
+            <label class="text-sm">
+              <span class="text-content-muted">{{ $t('admin.frame_number') }}</span>
+              <input v-model="drafts[sale.sessionId]!.frameNumber" class="field mt-1 w-full" required autocapitalize="characters" autocomplete="off">
+            </label>
+            <label class="text-sm">
+              <span class="text-content-muted">{{ $t('admin.delivered_on') }}</span>
+              <input
+                v-model="drafts[sale.sessionId]!.deliveredOn"
+                type="date"
+                class="field mt-1 w-full"
+                required
+                :max="today"
+                @input="drafts[sale.sessionId]!.dateTouched = true"
+              >
+            </label>
+            <label class="text-sm sm:col-span-2">
+              <span class="text-content-muted">{{ $t('admin.billing_name') }}</span>
+              <input v-model="drafts[sale.sessionId]!.name" class="field mt-1 w-full" required autocomplete="off">
+            </label>
+            <label class="text-sm sm:col-span-2">
+              <span class="text-content-muted">{{ $t('admin.billing_street') }}</span>
+              <input v-model="drafts[sale.sessionId]!.line1" class="field mt-1 w-full" required autocomplete="off">
+            </label>
+            <label class="text-sm">
+              <span class="text-content-muted">{{ $t('admin.billing_postal') }}</span>
+              <input v-model="drafts[sale.sessionId]!.postalCode" class="field mt-1 w-full" required autocomplete="off">
+            </label>
+            <label class="text-sm">
+              <span class="text-content-muted">{{ $t('admin.billing_city') }}</span>
+              <input v-model="drafts[sale.sessionId]!.city" class="field mt-1 w-full" required autocomplete="off">
+            </label>
+            <label class="text-sm">
+              <span class="text-content-muted">{{ $t('admin.billing_country') }}</span>
+              <input v-model="drafts[sale.sessionId]!.country" class="field mt-1 w-full uppercase" required maxlength="2" autocomplete="off">
+            </label>
+            <!-- Only a link that states its fee offers the box, and the amount shown
+                 is the link's: the browser never names a sum. -->
+            <label
+              v-if="sale.fulfilment === 'delivery' && sale.deliveryFee !== null"
+              class="flex min-h-11 items-center gap-2 self-end text-sm"
             >
-              {{ issuing === sale.sessionId ? $t('admin.issuing') : $t('admin.issue_invoice') }}
-            </button>
-          </div>
-        </form>
-      </li>
-    </ul>
+              <input v-model="drafts[sale.sessionId]!.deliveryFeeCollected" type="checkbox" class="size-5">
+              <span>{{ $t('admin.delivery_fee_collected', { amount: formatCents(sale.deliveryFee) }) }}</span>
+            </label>
+            <div v-if="sale.fulfilment === 'delivery' && sale.feeUnknown" class="flex flex-wrap items-center gap-3 sm:col-span-2" role="status">
+              <p class="text-sm text-danger">{{ $t('admin.fee_unknown') }}</p>
+              <button type="button" class="btn-secondary h-10 px-4 text-sm" @click="refresh()">{{ $t('admin.retry') }}</button>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
+              <button
+                type="button"
+                class="btn-secondary h-11 px-4"
+                :disabled="!readyToSign(drafts[sale.sessionId]!) || issuing === sale.sessionId"
+                @click="openSigning(sale)"
+              >
+                {{ signatureStands(drafts[sale.sessionId]!) ? $t('admin.signature_again') : $t('admin.take_signature') }}
+              </button>
+              <span v-if="signatureStands(drafts[sale.sessionId]!)" class="text-sm font-semibold text-accent">
+                {{ $t('admin.signature_taken') }}
+              </span>
+              <span v-else-if="drafts[sale.sessionId]!.signature" class="text-sm text-danger">
+                {{ $t('admin.signature_stale') }}
+              </span>
+            </div>
+
+            <p v-if="error?.sessionId === sale.sessionId" class="text-sm text-danger sm:col-span-2" role="alert">
+              {{ error.message }}
+            </p>
+
+            <div class="sm:col-span-2">
+              <button
+                type="submit"
+                class="btn-primary h-11 w-full px-5 sm:w-auto"
+                :disabled="!isComplete(drafts[sale.sessionId]!) || issuing !== null || !canIssue(sale)"
+              >
+                {{ issuing === sale.sessionId ? $t('admin.issuing') : $t('admin.issue_invoice') }}
+              </button>
+            </div>
+          </form>
+        </li>
+      </ul>
+    </template>
 
     <!-- The screen the customer holds: their purchase, their words, nothing else. -->
     <div
-      v-if="signing"
+      v-if="mode !== 'idle' && signingSale && signingDraft"
       class="fixed inset-0 z-50 overflow-y-auto bg-surface-raised"
       role="dialog"
       aria-modal="true"
-      :aria-label="$t('admin.signature')"
+      aria-labelledby="signing-heading"
+      :lang="customerLanguage"
     >
-      <div class="mx-auto flex min-h-full max-w-xl flex-col gap-4 p-5">
-        <p class="font-display text-xl font-extrabold text-content-strong">{{ signing.productName }}</p>
+      <div v-if="mode === 'signing'" class="mx-auto flex min-h-full max-w-xl flex-col gap-4 p-5">
+        <h2 id="signing-heading" ref="signingHeading" tabindex="-1" class="font-display text-xl font-extrabold text-content-strong">
+          {{ signingSale.productName }}
+        </h2>
         <p class="text-sm text-content-muted">
-          {{ $t('admin.frame_number') }}: <span class="font-semibold text-content-strong">{{ drafts[signing.sessionId]?.frameNumber || '—' }}</span>
-          · {{ (drafts[signing.sessionId]?.deliveredOn ?? '').split('-').reverse().join('/') }}
+          <span class="font-semibold text-content-strong">{{ signingDraft.name }}</span>
+          · {{ signingDraft.frameNumber }}
+          · {{ signingDraft.deliveredOn.split('-').reverse().join('/') }}
         </p>
         <div class="grid gap-2 text-content">
-          <p v-for="(sentence, index) in signing.acknowledgement" :key="index">{{ sentence }}</p>
+          <p v-for="(sentence, index) in acknowledgement" :key="index">{{ sentence }}</p>
         </div>
         <SignaturePad
           v-model="pendingSignature"
-          :label="$t('admin.signature')"
-          :hint="$t('admin.signature_hint')"
-          :clear-label="$t('admin.clear_signature')"
+          :label="customerText.signature"
+          :hint="customerText.hint"
+          :clear-label="customerText.clear"
         />
         <div class="flex flex-wrap gap-3">
           <button type="button" class="btn-primary h-11 px-5" :disabled="!pendingSignature" @click="confirmSignature">
-            {{ $t('admin.signature_confirm') }}
+            {{ customerText.confirm }}
           </button>
-          <button type="button" class="btn-secondary h-11 px-5" @click="signing = null">{{ $t('admin.cancel') }}</button>
+          <button type="button" class="btn-secondary h-11 px-5" @click="mode = 'handback'">{{ customerText.cancel }}</button>
         </div>
+      </div>
+
+      <div v-else class="mx-auto flex min-h-full max-w-xl flex-col items-center justify-center gap-8 p-5 text-center">
+        <p id="signing-heading" class="font-display text-2xl font-extrabold text-content-strong">{{ customerText.handBack }}</p>
+        <button
+          type="button"
+          class="btn-secondary h-11 select-none px-5 text-sm"
+          :lang="$i18n.locale"
+          @pointerdown="startHold"
+          @pointerup="stopHold"
+          @pointerleave="stopHold"
+          @pointercancel="stopHold"
+          @keydown.enter.prevent="startHold"
+          @keyup.enter="stopHold"
+          @contextmenu.prevent
+        >
+          {{ $t('admin.hand_back_hold') }}
+        </button>
       </div>
     </div>
   </div>

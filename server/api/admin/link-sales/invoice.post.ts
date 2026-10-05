@@ -56,10 +56,12 @@ export default defineRoute({
       metadata: {
         sessionId: body.sessionId,
         invoice: invoice.number,
-        // A resumed issue finished an earlier attempt's invoice; it numbered nothing new.
+        // A resumed issue finished an earlier attempt's invoice; it numbered
+        // nothing new, and what the invoice states is the earlier attempt's.
         resumed: invoice.resumed,
-        frameNumber: body.frameNumber,
-        deliveredOn: body.deliveredOn,
+        frameNumber: invoice.frameNumber,
+        deliveredOn: invoice.deliveredOn,
+        ...(invoice.differs ? { submittedFrameNumber: body.frameNumber, submittedDeliveredOn: body.deliveredOn } : {}),
       },
     })
     return { invoice }

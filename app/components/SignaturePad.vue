@@ -30,9 +30,10 @@ function fit(): void {
   if (!element || element.clientWidth === fittedWidth) return
   fittedWidth = element.clientWidth
   // Resizing a canvas wipes its bitmap. A tablet turned sideways after the
-  // customer signed must not silently lose the signature, so the old bitmap
-  // is copied out first and painted back at its own scale, top-left — never
-  // stretched, which would change the signature's shape.
+  // customer signed must not silently lose the signature: the old bitmap is
+  // copied out and painted back scaled uniformly to fit — never stretched, which
+  // would change its shape, and never cropped. What was SAVED is not touched:
+  // the stored signature stays the one the customer drew, at full size.
   const previous = model.value ? document.createElement('canvas') : null
   if (previous) {
     previous.width = element.width
@@ -44,12 +45,14 @@ function fit(): void {
   element.height = Math.round(element.clientHeight * ratio)
   const ctx = context()
   if (!ctx) return
-  if (previous) ctx.drawImage(previous, 0, 0)
+  if (previous) {
+    const scale = Math.min(element.width / previous.width, element.height / previous.height, 1)
+    ctx.drawImage(previous, 0, 0, previous.width * scale, previous.height * scale)
+  }
   ctx.scale(ratio, ratio)
   ctx.lineWidth = 2.5
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
-  if (previous) model.value = inked(element)
 }
 
 function point(event: PointerEvent): { x: number; y: number } {
