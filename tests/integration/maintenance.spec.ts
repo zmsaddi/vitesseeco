@@ -362,3 +362,109 @@ describe.skipIf(!hasDatabase)('stock for cash and cancelled orders', () => {
     expect(await onHand()).toBe(3)
   })
 })
+
+/**
+ * The sweep asks the payment provider before it cancels.
+ *
+ * Until it did, "awaiting payment after an hour" was decided from our database
+ * alone, which is only as current as the last webhook that got through. A
+ * payment whose event was lost — the database unreachable when Stripe called —
+ * or a SEPA debit still settling looked abandoned, and the sweep cancelled an
+ * order the customer had paid and put the bike back on sale.
+ *
+ * Every case here is the realistic one: the order is past the 60-minute TTL and
+ * its 30-minute hold has already expired.
+ */
+describe.skipIf(!hasDatabase)('the sweep reconciles with the provider before cancelling', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function staleOnlineOrder(overrides: Parameters<typeof seedOrder>[0] = {}): Promise<string> {
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe', stripeSessionId: `cs_test_${Math.random().toString(36).slice(2)}`, ...overrides })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+    await ageOrder(orderId, MAINTENANCE_CONSTANTS.UNPAID_ORDER_TTL_MINUTES + 5)
+    await expireReservation(orderId)
+    return orderId
+  }
+
+  async function statusOf(orderId: string): Promise<string | undefined> {
+    const [row] = await testDb()
+      .select({ status: schema.orders.status })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${orderId}`)
+    return row?.status
+  }
+
+  it('marks a paid order paid instead of cancelling it — and takes its stock', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(report.ordersCancelled).toEqual([])
+    expect(report.ordersReconciledPaid).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('paid')
+    // The hold had expired, so the units must be taken from the order's lines;
+    // left alone, the same two bikes would still be on sale.
+    expect(await onHandOf(BIKE)).toBe(3)
+
+    // A second sweep finds nothing to do and takes nothing twice.
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+
+  it.each(['pending', 'unknown'] as const)('leaves a %s order alone for the next run', async (state) => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => state)
+
+    expect(report.ordersCancelled).toEqual([])
+    expect(report.ordersDeferred).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('awaiting_payment')
+    expect(await onHandOf(BIKE)).toBe(5)
+  })
+
+  it('still cancels when the provider confirms nothing is coming', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => 'unpaid')
+
+    expect(report.ordersCancelled).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('cancelled')
+    expect(await onHandOf(BIKE)).toBe(5)
+  })
+
+  it('treats a stored PayPal capture as paid without asking anyone', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder({ paymentMethod: 'paypal', stripeSessionId: null, paypalCaptureId: 'CAPTURE-123' })
+
+    // The default probe: a capture id on our side means the money was taken.
+    const report = await runMaintenance(inTransaction, testDb())
+
+    expect(report.ordersReconciledPaid).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+
+  it('never refuses a late payment for want of stock, and never goes below zero', async () => {
+    // Two ordered, one left: someone bought the other while this payment was
+    // in flight. The customer has paid; the order is paid, the shelf is empty,
+    // and the oversell is logged for a person rather than blocking the payment.
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+    await testDb().execute(sql`UPDATE inventory SET on_hand = 1 WHERE product_id = ${BIKE}`)
+
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(await statusOf(orderId)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(0)
+  })
+})

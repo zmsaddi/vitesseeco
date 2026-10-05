@@ -34,6 +34,7 @@ import {
   releaseReservations,
   reserveStock,
   restockOrder,
+  takeStockForLatePayment,
 } from './stock'
 import { redeemPromo, releasePromo } from './promo'
 import { priceBasket, type PriceBreakdown, type RequestedLine } from './pricing'
@@ -360,12 +361,18 @@ export async function transitionOrder(
       const consumed = await consumeReservations(tx, current.id)
       // Zero here is not a no-op. The status predicate on the UPDATE above means
       // this transition happened exactly once, so finding no live hold says the
-      // reservation expired before the money arrived — the units are about to be
-      // sold twice, and silence would be the last anyone heard of it.
+      // reservation expired before the money arrived. The units are taken now,
+      // from the order's own lines — otherwise they stay on sale and the same
+      // bike is sold twice. A shortfall cannot refuse a payment that was made;
+      // it is an oversell for a person, said as loudly as the log allows.
       if (consumed === 0) {
-        console.error(
-          `[orders] ${orderNumber} moved to paid with no live reservation — stock was NOT decremented`
-        )
+        const late = await takeStockForLatePayment(tx, current.id)
+        if (late.short.length > 0) {
+          console.error(
+            `[orders] ${orderNumber} was paid after its hold expired and stock was short for ` +
+              `${late.short.join(', ')} — OVERSOLD, a person must resolve it`
+          )
+        }
       }
     } else if (to === 'cancelled' && holdsStock(current.status)) {
       // Two separate jobs, decided separately.

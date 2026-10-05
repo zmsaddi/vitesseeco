@@ -17,8 +17,9 @@
  */
 import { defineEventHandler, readRawBody, setResponseStatus } from 'h3'
 import { sql } from 'drizzle-orm'
-import { db, queryRows } from '../../db/client'
+import { db } from '../../db/client'
 import { webhookEvents } from '../../db/schema'
+import { claimWebhookEvent } from '../../services/webhookClaims'
 import { paypalConfigured, verifyPayPalWebhook, paidOrderNumberFromWebhook } from '../../payments/paypal'
 import { transitionOrder } from '../../services/orders'
 import { applyApiHeaders } from '../../security/headers'
@@ -67,20 +68,12 @@ export default defineEventHandler(async (event) => {
     return { received: false }
   }
 
-  // Claim the event; the unique index makes a redelivery conflict into a no-op.
-  const claimed = await queryRows<{ id: string }>(
-    db(),
-    sql`
-      INSERT INTO webhook_events (provider, event_id, type, payload, status)
-      VALUES ('paypal', ${eventId}, ${eventType ?? 'unknown'}, ${rawBody}::jsonb, 'received')
-      ON CONFLICT (provider, event_id) DO NOTHING
-      RETURNING id
-    `
-  )
-  if (claimed.length === 0) {
+  // Claim the event; a processed one is a no-op, a failed one is re-run
+  // (server/services/webhookClaims.ts).
+  const recordId = await claimWebhookEvent({ provider: 'paypal', eventId, type: eventType ?? 'unknown', payload: rawBody })
+  if (!recordId) {
     return { received: true, duplicate: true }
   }
-  const recordId = claimed[0]?.id as string
 
   try {
     const orderNumber = paidOrderNumberFromWebhook(rawBody)
@@ -109,8 +102,8 @@ export default defineEventHandler(async (event) => {
       .update(webhookEvents)
       .set({ status: 'failed', error: (appError.internal ?? appError.message).slice(0, 1000) })
       .where(sql`${webhookEvents.id} = ${recordId}`)
-    // A 500 asks PayPal to retry; the retry hits the dedupe and is skipped —
-    // a failure needs a human, not a loop of half-applied side effects.
+    // A 500 asks PayPal to retry, and the retry claims the failed record again;
+    // the capture transition is idempotent, so a re-run finishes what failed.
     setResponseStatus(event, 500)
     return { received: false }
   }

@@ -58,6 +58,7 @@ regression anyway.
 | Identity, addresses, orders, stock, sessions, rate limits | **PostgreSQL** (Neon) | never mirrors catalogue text |
 | Prices as displayed | derived from Sanity by `server/services/pricing.ts` | never sent by a browser |
 | Money on a placed order | frozen onto the order row at placement | never recomputed from today's rules |
+| Whether an online order was paid | **the provider** — the sweep asks Stripe (or reads the PayPal capture) before cancelling (`server/payments/reconcile.ts`); a webhook that failed is re-claimed by the provider's retry (`server/services/webhookClaims.ts`) | never cancelled on our database's word alone; a payment that lands after its hold expired takes its stock from the order lines (`takeStockForLatePayment`) |
 
 **The Sanity dataset is public today.** An unauthenticated query returns the
 catalogue. That is why no customer data may ever be written into it, and why
@@ -99,7 +100,7 @@ server/
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        18 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+tests/        19 unit files · 8 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
 scripts/      14 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```

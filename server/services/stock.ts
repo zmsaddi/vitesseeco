@@ -305,6 +305,59 @@ export async function consumeReservations(tx: Transaction, orderId: string): Pro
 }
 
 /**
+ * Take the units for a payment that arrived after its hold had expired.
+ *
+ * An online hold lives 30 minutes; money can land later — a webhook retried
+ * after an outage, a delayed method, the sweep finding a payment whose event
+ * never arrived. Before this, such an order became paid while its units stayed
+ * on the shelf, and the same bike could be sold again.
+ *
+ * The customer HAS paid, so this never refuses: on_hand goes down by what was
+ * ordered, never below zero (the column forbids it), and any product that did
+ * not have enough is returned so the caller can say so loudly — that is an
+ * oversell a person must resolve, not something to hide or to block payment on.
+ * Rows are locked in the same stable order as everywhere else.
+ */
+export async function takeStockForLatePayment(
+  tx: Transaction,
+  orderId: string
+): Promise<{ lines: number; short: string[] }> {
+  const wanted = await tx.execute<{ product_id: string; quantity: number }>(sql`
+    SELECT product_id, SUM(quantity)::int AS quantity
+      FROM order_items
+     WHERE order_id = ${orderId}
+     GROUP BY product_id
+  `)
+  if (wanted.rows.length === 0) return { lines: 0, short: [] }
+
+  const locked = await tx.execute<{ product_id: string; on_hand: number }>(sql`
+    SELECT product_id, on_hand FROM inventory
+     WHERE product_id IN ${inList(wanted.rows.map((row) => row.product_id))}
+     ORDER BY product_id
+       FOR UPDATE
+  `)
+  const onHand = new Map(locked.rows.map((row) => [row.product_id, Number(row.on_hand)]))
+
+  const short: string[] = []
+  let lines = 0
+  for (const row of wanted.rows) {
+    const available = onHand.get(row.product_id)
+    // A product with no inventory row is not stock-tracked; nothing to take.
+    if (available === undefined) continue
+    if (available < row.quantity) short.push(row.product_id)
+    await tx.execute(sql`
+      UPDATE inventory
+         SET on_hand = GREATEST(on_hand - ${row.quantity}, 0),
+             version = version + 1,
+             updated_at = NOW()
+       WHERE product_id = ${row.product_id}
+    `)
+    lines++
+  }
+  return { lines, short }
+}
+
+/**
  * Give the units back. Used when payment fails, when the customer cancels, and
  * when an order is cancelled in the admin panel.
  *
