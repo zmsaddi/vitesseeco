@@ -126,3 +126,14 @@ describe('linkSaleMessage', () => {
     expect(built.lines).toContain('الزبون: —')
   })
 })
+
+describe('closedOrderPaymentMessage', () => {
+  it('names the order, the capture and what a person must do', async () => {
+    const { closedOrderPaymentMessage } = await import('../../server/services/notify')
+    const built = closedOrderPaymentMessage('ORD-1', 'CAP-9', 'cancelled')
+    expect(built.title).toContain('ORD-1')
+    expect(built.lines.join(' ')).toContain('CAP-9')
+    expect(built.lines.join(' ')).toContain('ملغى')
+    expect(built.link.endsWith('/admin/commandes/ORD-1')).toBe(true)
+  })
+})

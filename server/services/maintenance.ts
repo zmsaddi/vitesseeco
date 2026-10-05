@@ -25,6 +25,7 @@ import { expireStaleReservations } from './stock'
 import { transitionOrder } from './orders'
 import { providerPaymentState, type PaymentProbe } from '../payments/reconcile'
 import { audit } from './audit'
+import { notifyOrder } from './notify'
 import { pruneExpiredSessions } from '../security/session'
 
 /**
@@ -125,6 +126,9 @@ async function cancelAbandonedOrders(
             resourceId: row.order_number,
             metadata: { reason: 'provider reports paid; the payment event never landed' },
           })
+          // Money nobody announced: its webhook never landed, so this is the
+          // first the owner hears of it.
+          await notifyOrder(row.order_number, 'paid')
         }
         continue
       }

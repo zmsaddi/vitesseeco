@@ -138,7 +138,7 @@ price differs from the crawled page.
 | Sanity dataset is public | An owner decision, recorded in the cutover archive. Nothing may be written into it that a stranger must not read |
 | Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
-| Email | No mail is sent. Password reset and order email are built against an account that does not exist yet |
+| Email | No mail reaches customers. Password reset and order email are built against an account that does not exist yet. The OWNER is told of every paid order (including one the sweep reconciles, with any stock shortfall), every cash order placed, every Payment Link sale, and any PayPal capture that lands on a closed order, by `server/services/notify.ts` — Telegram and/or Resend email, each live only once its variables are set in Vercel |
 | Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, wait until no PayPal order is awaiting payment, then apply the removal recipe at the top of that file — the PAYPAL_* variables go last, because without them the sweep can no longer ask PayPal about an open order and defers it forever |
 
 ---

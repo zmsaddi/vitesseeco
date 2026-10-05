@@ -131,6 +131,7 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
       shippingMethodCode: orders.shippingMethodCode,
       shippingAddress: orders.shippingAddress,
       customerSnapshot: orders.customerSnapshot,
+      adminNotes: orders.adminNotes,
       createdAt: orders.createdAt,
     })
     .from(orders)
@@ -144,6 +145,12 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
     .where(eq(orderItems.orderId, order.id))
 
   const customer = (order.customerSnapshot ?? {}) as { name?: string; email?: string | null; phone?: string }
+  // A payment that arrived after its stock hold lapsed, short of stock, leaves
+  // its warning in the admin notes (server/services/orders.ts). That is
+  // exactly what the owner must see the moment the money is announced.
+  const oversold = (order.adminNotes ?? '')
+    .split('\n')
+    .filter((note) => note.startsWith('ATTENTION :'))
   const address = order.shippingAddress as { line1?: string; postalCode?: string; city?: string; country?: string } | null
 
   return {
@@ -162,6 +169,7 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
         : `التسليم: ${order.shippingMethodCode}`,
       `الدفع: ${PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}`,
       `الوقت: ${parisTime(order.createdAt)}`,
+      ...(oversold.length ? ['', '⚠️ نقص في المخزون عند وصول الدفعة — يحتاج تدخلك:', ...oversold] : []),
     ],
     link: `${SITE_URL}/admin/commandes/${order.orderNumber}`,
   }
