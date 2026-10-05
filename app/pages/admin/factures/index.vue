@@ -17,6 +17,7 @@
  * the first buyers paid before it did, so every field stays editable.
  */
 import { SIGNING_TEXT, acknowledgementLines, languageFor } from '~~/shared/receiptLanguage'
+import { apiError } from '~/utils/apiError'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
@@ -268,7 +269,7 @@ async function issue(sale: LinkSale): Promise<void> {
       }
     }
   } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
+    const payload = apiError(err)
     error.value = {
       sessionId: sale.sessionId,
       message: payload?.messageKey ? t(payload.messageKey) : t('errors.internal'),

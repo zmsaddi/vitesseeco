@@ -92,7 +92,7 @@ npm run test:e2e            # Playwright candidate gates: functional + axe + RTL
 npm run test:visual         # visual regression against the committed Linux baselines
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 17 project rules
+npm run check:invariants    # 18 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```
