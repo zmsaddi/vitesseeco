@@ -76,22 +76,28 @@ export default defineRoute({
       shipping: toDecimalString(order.breakdown.shipping),
     }
 
+    // A replayed request returns the order as it now stands. A cancelled one —
+    // an abandoned attempt the sweep closed, or one the shop cancelled — is never
+    // shown as placed, whatever the method: the browser is told to start a fresh
+    // purchase (the message key tells the cases apart; details stay private).
+    if (order.status === 'cancelled') {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        messageKey: 'errors.order_closed',
+        internal: `checkout replayed for ${order.orderNumber}, which is cancelled`,
+      })
+    }
+
     if (!isOnline(body.paymentMethod)) {
       // Cash: nothing to charge now. The order is agreed, the stock is held,
       // and an admin marks it paid when the money arrives.
       return { ...summary, mode: 'cash' as const }
     }
 
-    // A replayed request returns the order as it now stands. Only an order still
-    // awaiting payment may be offered a way to pay: minting a payment for one
-    // already paid or cancelled would take money for nothing.
+    // Only an online order still awaiting payment may be offered a way to pay:
+    // minting a payment for one already paid would take the money twice.
     if (order.status !== 'awaiting_payment') {
-      // Two different answers. A cancelled order (an abandoned attempt the sweep
-      // closed) tells the browser to start a fresh purchase; a paid one tells
-      // the customer it went through.
       throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
-        messageKey: order.status === 'cancelled' ? 'errors.order_closed' : 'errors.order_already_paid',
-        details: { status: order.status },
+        messageKey: 'errors.order_already_paid',
         internal: `checkout replayed for ${order.orderNumber}, which is ${order.status}`,
       })
     }
@@ -124,7 +130,6 @@ export default defineRoute({
       if (existing.status === 'complete') {
         throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
           messageKey: 'errors.order_already_paid',
-          details: { status: 'paid' },
           internal: `checkout replayed for ${order.orderNumber}, whose session is already complete`,
         })
       }

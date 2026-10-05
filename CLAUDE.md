@@ -92,7 +92,7 @@ npm run test:e2e            # Playwright candidate gates: functional + axe + RTL
 npm run test:visual         # visual regression against the committed Linux baselines
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 17 project rules
+npm run check:invariants    # 18 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```
@@ -128,7 +128,7 @@ shared/                    ← used by BOTH sides: money, locales, markets, sche
 i18n/locales/              ← 6 files × 805 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (19 files) integration/ (8 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (20 files) integration/ (8 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```

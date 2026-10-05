@@ -100,7 +100,7 @@ server/
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        19 unit files · 8 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+tests/        20 unit files · 8 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
 scripts/      14 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```

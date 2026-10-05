@@ -475,7 +475,7 @@ async function submit(): Promise<void> {
     // The earlier attempt this key belongs to was closed (abandoned, then
     // swept). Keeping the key would replay that closed order forever; the next
     // press starts a fresh purchase instead.
-    if (data?.details?.status === 'cancelled') {
+    if (data.messageKey === 'errors.order_closed') {
       purchaseKey.value = ''
       keyBelongsTo = ''
     }
