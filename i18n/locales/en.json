@@ -89,7 +89,7 @@
     "customer": "Customer",
     "delivered_on": "Handover date",
     "delivery_address": "Delivery address",
-    "delivery_fee_collected": "Delivery fee collected on delivery",
+    "delivery_fee_collected": "Delivery fee collected on delivery ({amount})",
     "download_handover": "Signed delivery receipt",
     "download_pdf": "Download PDF",
     "export_csv": "Export CSV",

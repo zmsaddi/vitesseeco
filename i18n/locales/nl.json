@@ -89,7 +89,7 @@
     "customer": "Klant",
     "delivered_on": "Datum van overdracht",
     "delivery_address": "Bezorgadres",
-    "delivery_fee_collected": "Bezorgkosten ontvangen bij levering",
+    "delivery_fee_collected": "Bezorgkosten ontvangen bij levering ({amount})",
     "download_handover": "Getekende leveringsbon",
     "download_pdf": "PDF downloaden",
     "export_csv": "CSV exporteren",

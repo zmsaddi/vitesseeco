@@ -89,7 +89,7 @@
     "customer": "Kunde",
     "delivered_on": "Übergabedatum",
     "delivery_address": "Lieferadresse",
-    "delivery_fee_collected": "Liefergebühr bei Lieferung kassiert",
+    "delivery_fee_collected": "Liefergebühr bei Lieferung kassiert ({amount})",
     "download_handover": "Unterschriebenes Übergabeprotokoll",
     "download_pdf": "PDF herunterladen",
     "export_csv": "CSV exportieren",

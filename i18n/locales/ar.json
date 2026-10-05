@@ -89,7 +89,7 @@
     "customer": "الزبون",
     "delivered_on": "تاريخ التسليم",
     "delivery_address": "عنوان التسليم",
-    "delivery_fee_collected": "تم تحصيل رسوم التوصيل عند التسليم",
+    "delivery_fee_collected": "تم تحصيل رسوم التوصيل عند التسليم ({amount})",
     "download_handover": "وصل التسليم الموقّع",
     "download_pdf": "تنزيل PDF",
     "export_csv": "تصدير CSV",

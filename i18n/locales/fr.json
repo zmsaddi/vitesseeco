@@ -89,7 +89,7 @@
     "customer": "Client",
     "delivered_on": "Date de remise",
     "delivery_address": "Adresse de livraison",
-    "delivery_fee_collected": "Frais de livraison encaissés à la livraison",
+    "delivery_fee_collected": "Frais de livraison encaissés à la livraison ({amount})",
     "download_handover": "Bon de livraison signé",
     "download_pdf": "Télécharger le PDF",
     "export_csv": "Exporter CSV",

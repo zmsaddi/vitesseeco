@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  VIENNA_DELIVERY_FEE,
   customerMessage,
+  feeFromMetadata,
   frenchDay,
+  languageFor,
   paymentMethodLabel,
   planInvoice,
   type IssueInput,
@@ -26,6 +27,7 @@ const source = (overrides: Partial<PlanSource> = {}): PlanSource => ({
   paidOn: '2026-09-29',
   paymentMethod: 'Klarna',
   paymentIntentId: 'pi_123',
+  deliveryFee: cents(3500),
   ...overrides,
 })
 
@@ -62,7 +64,8 @@ describe('planInvoice', () => {
     expect(uncollected.lines.some((line) => line.kind === 'delivery')).toBe(false)
 
     const collected = planInvoice(source({ fulfilment: 'delivery' }), input({ deliveryFeeCollected: true }))
-    expect(collected.lines.find((line) => line.kind === 'delivery')?.amount).toBe(VIENNA_DELIVERY_FEE)
+    expect(collected.lines.find((line) => line.kind === 'delivery')?.amount).toBe(3500)
+    expect(collected.lines.find((line) => line.kind === 'delivery')?.description).not.toMatch(/Vienne|Wien/)
     expect(collected.description).toContain('frais de livraison réglés le 30/09/2026')
   })
 
@@ -101,7 +104,7 @@ describe('small formatters', () => {
   })
 
   it('writes the customer message in German with the link', () => {
-    const message = customerMessage('KH1VPJZA-0002', 'https://pay.stripe.com/x')
+    const message = customerMessage('KH1VPJZA-0002', 'https://pay.stripe.com/x', 'de')
     expect(message.subject).toContain('KH1VPJZA-0002')
     expect(message.body).toContain('https://pay.stripe.com/x')
     expect(message.body).toMatch(/^Guten Tag/)
@@ -133,7 +136,74 @@ describe('signature and receipt', () => {
         frameNumber: 'TESTFRAME00001',
         deliveredOn: '30/09/2026',
         handover: 'pickup',
+        language: 'de',
         customer: { name: 'محمود', address: 'Musterstrasse 1, 1030 Wien, AT', email: null, phone: '+43' },
+      },
+      PNG_1PX
+    )
+    expect(Buffer.from(bytes.subarray(0, 5)).toString('latin1')).toBe('%PDF-')
+  })
+})
+
+describe('a link states its own settings', () => {
+  it('reads the delivery fee from the link metadata, in whole cents', () => {
+    expect(feeFromMetadata({ delivery_fee_cents: '3500' })).toBe(3500)
+    expect(feeFromMetadata({ delivery_fee_cents: ' 1290 ' })).toBe(1290)
+  })
+
+  it('refuses anything that is not a positive whole number of cents', () => {
+    for (const raw of ['', '0', '-100', '35.00', '35€', 'abc', '99999999']) {
+      expect(feeFromMetadata({ delivery_fee_cents: raw })).toBeNull()
+    }
+    expect(feeFromMetadata({})).toBeNull()
+    expect(feeFromMetadata(null)).toBeNull()
+  })
+
+  it('invoices no delivery line for a link without a fee, even when ticked', () => {
+    const plan = planInvoice(source({ fulfilment: 'delivery', deliveryFee: null }), input({ deliveryFeeCollected: true }))
+    expect(plan.lines.some((line) => line.kind === 'delivery')).toBe(false)
+  })
+
+  it('uses whatever fee another link states', () => {
+    const plan = planInvoice(source({ fulfilment: 'delivery', deliveryFee: cents(4900) }), input({ deliveryFeeCollected: true }))
+    expect(plan.lines.find((line) => line.kind === 'delivery')?.amount).toBe(4900)
+  })
+})
+
+describe('the customer is written to in their language', () => {
+  it.each([
+    ['AT', 'de'], ['DE', 'de'], ['CH', 'de'],
+    ['FR', 'fr'], ['BE', 'fr'], ['LU', 'fr'],
+    ['NL', 'nl'], ['ES', 'es'],
+    ['IT', 'en'], ['', 'en'], [null, 'en'], ['at', 'de'],
+  ] as const)('%s → %s', (country, language) => {
+    expect(languageFor(country)).toBe(language)
+  })
+
+  it.each([
+    ['fr', /^Bonjour/, 'Votre facture'],
+    ['de', /^Guten Tag/, 'Ihre Rechnung'],
+    ['nl', /^Goedendag/, 'Uw factuur'],
+    ['es', /^Hola/, 'Su factura'],
+    ['en', /^Hello/, 'Your invoice'],
+  ] as const)('%s message', (language, greeting, subject) => {
+    const message = customerMessage('INV-1', 'https://pay.stripe.com/x', language)
+    expect(message.body).toMatch(greeting)
+    expect(message.subject.startsWith(subject)).toBe(true)
+    expect(message.body).toContain('INV-1')
+    expect(message.body).toContain('https://pay.stripe.com/x')
+  })
+
+  it.each(['fr', 'de', 'nl', 'es', 'en'] as const)('builds the receipt in French + %s', async (language) => {
+    const bytes = await buildHandoverPdf(
+      {
+        reference: 'pi_1',
+        productName: 'Vélo',
+        frameNumber: 'F1',
+        deliveredOn: '01/10/2026',
+        handover: 'delivery',
+        language,
+        customer: { name: 'Client', address: 'Rue 1, 1000 Ville, XX', email: 'c@example.com', phone: null },
       },
       PNG_1PX
     )

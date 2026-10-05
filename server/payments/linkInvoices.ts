@@ -24,11 +24,38 @@ import { AppError, ERROR_CODES } from '../../shared/errors'
 import { buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
 
 /**
- * The Vienna home-delivery fee. Paid to the driver on delivery, never through
- * the link, so it appears on the invoice only when it was actually collected.
- * The link's own dropdown label states the same amount — change both together.
+ * Per-link settings live on the Payment Link itself, as metadata, so a new link
+ * for any product in any city needs no code change:
+ *
+ *   delivery_fee_cents  the home-delivery fee collected ON delivery (cash or
+ *                       card at the door), never through the link. It goes on
+ *                       the invoice only when the admin confirms it was
+ *                       collected — and the amount comes from here, never from
+ *                       the browser.
  */
-export const VIENNA_DELIVERY_FEE: Cents = cents(3500)
+export const LINK_METADATA = { deliveryFeeCents: 'delivery_fee_cents' } as const
+
+/** A positive whole number of cents, or null for anything else. */
+export function feeFromMetadata(metadata: Record<string, string> | null | undefined): Cents | null {
+  const raw = metadata?.[LINK_METADATA.deliveryFeeCents]
+  if (!raw || !/^\d{1,7}$/.test(raw.trim())) return null
+  const value = Number(raw.trim())
+  return value > 0 ? cents(value) : null
+}
+
+/** The language the customer is written to in, from their billing country. */
+export type MessageLanguage = 'fr' | 'de' | 'nl' | 'es' | 'en'
+
+const LANGUAGE_BY_COUNTRY: Record<string, MessageLanguage> = {
+  FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
+  DE: 'de', AT: 'de', CH: 'de', LI: 'de',
+  NL: 'nl',
+  ES: 'es',
+}
+
+export function languageFor(country: string | null | undefined): MessageLanguage {
+  return LANGUAGE_BY_COUNTRY[(country ?? '').toUpperCase()] ?? 'en'
+}
 
 /** French VAT, inclusive: link prices are what the customer pays. */
 const VAT_PERCENT = 20
@@ -63,6 +90,10 @@ export interface LinkSale {
   invoice: IssuedInvoice | null
   /** The signed bon de livraison, when the sale was invoiced from the panel. */
   handoverFileId: string | null
+  /** From the link's metadata; null when the link offers no paid delivery. */
+  deliveryFee: Cents | null
+  /** What the customer message and the receipt's second language default to. */
+  language: MessageLanguage
 }
 
 export interface IssuedInvoice {
@@ -70,35 +101,44 @@ export interface IssuedInvoice {
   number: string
   pdfUrl: string | null
   hostedUrl: string | null
-  /** Ready to send: the buyers are in Vienna, so it is written in German. */
+  /** Ready to send, in the customer's language. */
   message: { subject: string; body: string }
 }
 
-export function customerMessage(number: string, link: string | null): IssuedInvoice['message'] {
+const MESSAGES: Record<MessageLanguage, { subject: string; greeting: string; thanks: string; here: string; regards: string }> = {
+  fr: { subject: 'Votre facture', greeting: 'Bonjour,', thanks: 'Merci pour votre achat chez Vitesse Eco.', here: 'Votre facture {number} est disponible ici :', regards: 'Bien cordialement,' },
+  de: { subject: 'Ihre Rechnung', greeting: 'Guten Tag,', thanks: 'vielen Dank für Ihren Kauf bei Vitesse Eco.', here: 'Ihre Rechnung {number} finden Sie hier:', regards: 'Mit freundlichen Grüßen' },
+  nl: { subject: 'Uw factuur', greeting: 'Goedendag,', thanks: 'Hartelijk dank voor uw aankoop bij Vitesse Eco.', here: 'Uw factuur {number} vindt u hier:', regards: 'Met vriendelijke groet,' },
+  es: { subject: 'Su factura', greeting: 'Hola:', thanks: 'Gracias por su compra en Vitesse Eco.', here: 'Su factura {number} está disponible aquí:', regards: 'Saludos cordiales,' },
+  en: { subject: 'Your invoice', greeting: 'Hello,', thanks: 'Thank you for your purchase from Vitesse Eco.', here: 'Your invoice {number} is available here:', regards: 'Kind regards,' },
+}
+
+export function customerMessage(number: string, link: string | null, language: MessageLanguage = 'fr'): IssuedInvoice['message'] {
+  const text = MESSAGES[language]
   return {
-    subject: `Ihre Rechnung ${number} – Vitesse Eco`,
-    body:
-      `Guten Tag,
-
-vielen Dank für Ihren Kauf bei Vitesse Eco. ` +
-      `Ihre Rechnung ${number} finden Sie hier:
-${link ?? ''}
-
-` +
-      `Mit freundlichen Grüßen
-Vitesse Eco
-${ORGANISATION.phone} · ${ORGANISATION.email}`,
+    subject: `${text.subject} ${number} – Vitesse Eco`,
+    body: [
+      text.greeting,
+      '',
+      text.thanks,
+      text.here.replace('{number}', number),
+      link ?? '',
+      '',
+      text.regards,
+      'Vitesse Eco',
+      `${ORGANISATION.phone} · ${ORGANISATION.email}`,
+    ].join('\n'),
   }
 }
 
-function toIssued(invoice: Stripe.Invoice): IssuedInvoice {
+function toIssued(invoice: Stripe.Invoice, language: MessageLanguage): IssuedInvoice {
   const number = invoice.number ?? invoice.id!
   return {
     id: invoice.id!,
     number,
     pdfUrl: invoice.invoice_pdf ?? null,
     hostedUrl: invoice.hosted_invoice_url ?? null,
-    message: customerMessage(number, invoice.invoice_pdf ?? invoice.hosted_invoice_url ?? null),
+    message: customerMessage(number, invoice.invoice_pdf ?? invoice.hosted_invoice_url ?? null, language),
   }
 }
 
@@ -161,6 +201,8 @@ export interface PlanSource {
   paidOn: string
   paymentMethod: string
   paymentIntentId: string
+  /** The link's delivery fee, from its metadata. */
+  deliveryFee: Cents | null
 }
 
 /**
@@ -177,13 +219,14 @@ export function planInvoice(source: PlanSource, input: IssueInput): InvoicePlan 
     description: `${item.name} (N° de cadre ${frame})`,
   }))
 
-  const feeCollected = source.fulfilment === 'delivery' && input.deliveryFeeCollected
+  const feeCollected =
+    source.fulfilment === 'delivery' && input.deliveryFeeCollected && source.deliveryFee !== null && source.deliveryFee > 0
   if (feeCollected) {
     lines.push({
       kind: 'delivery',
       quantity: 1,
-      amount: VIENNA_DELIVERY_FEE,
-      description: 'Livraison à domicile, Vienne (réglée à la livraison)',
+      amount: source.deliveryFee!,
+      description: 'Livraison à domicile (réglée à la livraison)',
     })
   }
 
@@ -220,7 +263,7 @@ export function planInvoice(source: PlanSource, input: IssueInput): InvoicePlan 
 // ── Stripe reads ──────────────────────────────────────────────────────────────
 
 function parisDay(unixSeconds: number): string {
-  // en-CA renders YYYY-MM-DD; the zone is pinned so a sale at 00:30 in Vienna
+  // en-CA renders YYYY-MM-DD; the zone is pinned so a sale just after midnight
   // is not dated the day before by a server running in UTC.
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(unixSeconds * 1000))
 }
@@ -231,13 +274,31 @@ function customField(session: Stripe.Checkout.Session, key: string): string | nu
   return field.dropdown?.value ?? field.text?.value ?? null
 }
 
-async function issuedInvoice(invoiceId: string | undefined): Promise<IssuedInvoice | null> {
+async function issuedInvoice(invoiceId: string | undefined, language: MessageLanguage): Promise<IssuedInvoice | null> {
   if (!invoiceId) return null
   // Retrieved fresh each time: the PDF link Stripe hands out is not permanent.
-  return toIssued(await stripe().invoices.retrieve(invoiceId))
+  return toIssued(await stripe().invoices.retrieve(invoiceId), language)
 }
 
-async function toSale(session: Stripe.Checkout.Session): Promise<LinkSale> {
+/** One read per link per request, however many of its sales are listed. */
+type LinkCache = Map<string, Promise<Record<string, string>>>
+
+function linkMetadata(session: Stripe.Checkout.Session, cache: LinkCache): Promise<Record<string, string>> {
+  const id = typeof session.payment_link === 'string' ? session.payment_link : session.payment_link?.id
+  if (!id) return Promise.resolve({})
+  if (!cache.has(id)) {
+    cache.set(
+      id,
+      stripe()
+        .paymentLinks.retrieve(id)
+        .then((link) => link.metadata ?? {})
+        .catch(() => ({}))
+    )
+  }
+  return cache.get(id)!
+}
+
+async function toSale(session: Stripe.Checkout.Session, cache: LinkCache = new Map()): Promise<LinkSale> {
   const intent = session.payment_intent as Stripe.PaymentIntent
   const charge = intent.latest_charge as Stripe.Charge | null
   const details = session.customer_details
@@ -250,6 +311,8 @@ async function toSale(session: Stripe.Checkout.Session): Promise<LinkSale> {
   else if (promo) promotionCode = promo.code
 
   const fulfilment = customField(session, 'delivery')
+  const language = languageFor(address?.country)
+  const metadata = await linkMetadata(session, cache)
   return {
     sessionId: session.id,
     paymentIntentId: intent.id,
@@ -272,8 +335,10 @@ async function toSale(session: Stripe.Checkout.Session): Promise<LinkSale> {
       ...(address?.city ? { city: address.city } : {}),
       ...(address?.country ? { country: address.country } : {}),
     },
-    invoice: await issuedInvoice(intent.metadata?.invoice_id),
+    invoice: await issuedInvoice(intent.metadata?.invoice_id, language),
     handoverFileId: intent.metadata?.handover_file || null,
+    deliveryFee: feeFromMetadata(metadata),
+    language,
   }
 }
 
@@ -300,7 +365,8 @@ export async function listLinkSales(max = 200): Promise<LinkSale[]> {
     if (session.payment_link && session.payment_status === 'paid' && session.payment_intent) sessions.push(session)
     if (sessions.length >= max) break
   }
-  return Promise.all(sessions.map(toSale))
+  const cache: LinkCache = new Map()
+  return Promise.all(sessions.map((session) => toSale(session, cache)))
 }
 
 // ── Issuing ───────────────────────────────────────────────────────────────────
@@ -349,6 +415,13 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
   }
 
   const sale = await toSale(session)
+  if (input.deliveryFeeCollected && sale.fulfilment === 'delivery' && sale.deliveryFee === null) {
+    // The box can only be ticked for a link that states its fee; a request
+    // that ticks it anyway is refused rather than invoicing an invented amount.
+    throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+      internal: `${session.id}: delivery fee collected, but the link has no ${LINK_METADATA.deliveryFeeCents}`,
+    })
+  }
   const items = await stripe().checkout.sessions.listLineItems(session.id, { limit: 10 })
   const plan = planInvoice(
     {
@@ -363,9 +436,13 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       paidOn: parisDay(session.created),
       paymentMethod: sale.paymentMethod,
       paymentIntentId: intent.id,
+      deliveryFee: sale.deliveryFee,
     },
     input
   )
+
+  const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
+  const key = (step: string) => `link-invoice:${session.id}:${fingerprint}:${step}`
 
   // The signed receipt first: it is not a numbered document, so a failure
   // after it leaves a harmless orphan file rather than a gap in the invoices.
@@ -377,6 +454,7 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
       frameNumber: input.frameNumber.trim(),
       deliveredOn: frenchDay(input.deliveredOn),
       handover: sale.fulfilment === 'delivery' ? 'delivery' : 'pickup',
+      language: languageFor(input.billing.country),
       customer: {
         name: input.billing.name,
         address: `${input.billing.line1}, ${input.billing.postalCode} ${input.billing.city}, ${input.billing.country}`,
@@ -386,10 +464,9 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
     },
     signaturePng
   )
-  const handoverFile = await uploadEvidence(receipt, `handover-${intent.id}.pdf`, 'application/pdf')
-
-  const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
-  const key = (step: string) => `link-invoice:${session.id}:${fingerprint}:${step}`
+  // Keyed like every other write: a double tap must not upload a second file
+  // and then collide with the first request's invoice key.
+  const handoverFile = await uploadEvidence(receipt, `handover-${intent.id}.pdf`, 'application/pdf', key('handover'))
 
   const [taxRate, accountVatId] = await Promise.all([ensureVatRate(), ensureAccountVatId()])
   const currency = session.currency ?? 'eur'
@@ -479,5 +556,5 @@ export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice
     metadata: { invoice_id: paid.id!, invoice_number: paid.number ?? '', handover_file: handoverFile },
   })
 
-  return toIssued(paid)
+  return toIssued(paid, languageFor(input.billing.country))
 }

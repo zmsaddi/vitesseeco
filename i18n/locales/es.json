@@ -89,7 +89,7 @@
     "customer": "Cliente",
     "delivered_on": "Fecha de entrega",
     "delivery_address": "Dirección de entrega",
-    "delivery_fee_collected": "Gastos de envío cobrados en la entrega",
+    "delivery_fee_collected": "Gastos de envío cobrados en la entrega ({amount})",
     "download_handover": "Albarán firmado",
     "download_pdf": "Descargar PDF",
     "export_csv": "Exportar CSV",

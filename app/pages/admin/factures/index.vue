@@ -38,6 +38,8 @@ interface LinkSale {
   billing: { name?: string; line1?: string; postalCode?: string; city?: string; country?: string }
   invoice: IssuedInvoice | null
   handoverFileId: string | null
+  /** Cents, from the link's own metadata; null when it offers no paid delivery. */
+  deliveryFee: number | null
 }
 
 interface Draft {
@@ -70,7 +72,7 @@ watchEffect(() => {
       postalCode: sale.billing.postalCode ?? '',
       city: sale.billing.city ?? '',
       country: sale.billing.country ?? 'AT',
-      deliveryFeeCollected: sale.fulfilment === 'delivery',
+      deliveryFeeCollected: sale.fulfilment === 'delivery' && sale.deliveryFee !== null,
       signature: '',
     }
   }
@@ -104,7 +106,7 @@ async function issue(sale: LinkSale): Promise<void> {
           city: draft.city,
           country: draft.country,
         },
-        deliveryFeeCollected: sale.fulfilment === 'delivery' && draft.deliveryFeeCollected,
+        deliveryFeeCollected: sale.fulfilment === 'delivery' && sale.deliveryFee !== null && draft.deliveryFeeCollected,
         signature: draft.signature,
       },
     })
@@ -223,9 +225,14 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
             <span class="text-content-muted">{{ $t('admin.billing_country') }}</span>
             <input v-model="drafts[sale.sessionId]!.country" class="field mt-1 w-full uppercase" required maxlength="2" autocomplete="off">
           </label>
-          <label v-if="sale.fulfilment === 'delivery'" class="flex min-h-11 items-center gap-2 self-end text-sm">
+          <!-- Only a link that states its fee offers the box, and the amount shown
+               is the link's: the browser never names a sum. -->
+          <label
+            v-if="sale.fulfilment === 'delivery' && sale.deliveryFee !== null"
+            class="flex min-h-11 items-center gap-2 self-end text-sm"
+          >
             <input v-model="drafts[sale.sessionId]!.deliveryFeeCollected" type="checkbox" class="size-5">
-            <span>{{ $t('admin.delivery_fee_collected') }}</span>
+            <span>{{ $t('admin.delivery_fee_collected', { amount: formatCents(sale.deliveryFee) }) }}</span>
           </label>
 
           <SignaturePad
