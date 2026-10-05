@@ -30,8 +30,9 @@ import type { MarketDefinition } from '../../shared/markets'
 import { assertTransition, holdsStock, stockWasDecremented, timestampFor } from './orderState'
 import {
   CASH_RESERVATION_TTL_MS,
-  consumeReservations,
+  consumeLiveReservations,
   releaseReservations,
+  settleExpiredHolds,
   reserveStock,
   restockOrder,
   takeStockForLatePayment,
@@ -357,16 +358,18 @@ export async function transitionOrder(
     if (changed.length === 0) return { changed: false, from: current.status }
 
     if (to === 'paid') {
-      // The hold becomes a real decrement.
-      const consumed = await consumeReservations(tx, current.id)
-      // Zero here is not a no-op. The status predicate on the UPDATE above means
-      // this transition happened exactly once, so finding no live hold says the
-      // reservation expired before the money arrived. The units are taken now,
-      // from the order's own lines — otherwise they stay on sale and the same
-      // bike is sold twice. A shortfall cannot refuse a payment that was made;
-      // it is an oversell for a person, said as loudly as the log allows.
-      if (consumed === 0) {
-        const late = await takeStockForLatePayment(tx, current.id)
+      // Live holds become a real decrement. The status predicate on the UPDATE
+      // above means this runs exactly once per order.
+      const consumed = await consumeLiveReservations(tx, current.id)
+      // Holds that lapsed before the money arrived are closed, untouched: they
+      // no longer protect anything, and someone else may hold those units now.
+      await settleExpiredHolds(tx, current.id)
+      // Every ordered unit no live hold covered is taken now, from what is free
+      // — otherwise it stays on sale and the same bike is sold twice. A
+      // shortfall cannot refuse a payment that was made; it is an oversell for
+      // a person, said where they will see it.
+      {
+        const late = await takeStockForLatePayment(tx, current.id, consumed)
         if (late.short.length > 0) {
           const detail = late.short.map((line) => `${line.missing} × ${line.productId}`).join(', ')
           console.error(`[orders] ${orderNumber} paid after its hold expired, OVERSOLD: ${detail}`)

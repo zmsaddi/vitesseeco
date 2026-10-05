@@ -71,6 +71,8 @@ const CHECKOUT_LOCALES: Record<LocaleCode, Stripe.Checkout.SessionCreateParams.L
 }
 
 export interface CreateSessionInput {
+  /** The expired session this one replaces — gives the new one its own idempotency key. */
+  replaces?: string
   orderNumber: string
   orderId: string
   lines: PricedLine[]
@@ -180,7 +182,7 @@ export async function createCheckoutSession(input: CreateSessionInput): Promise<
     },
     // Stripe's own idempotency, keyed on our order: a retried create returns
     // the same session instead of a second one.
-    { idempotencyKey: `session:${input.orderNumber}` }
+    { idempotencyKey: input.replaces ? `session:${input.orderNumber}:after:${input.replaces}` : `session:${input.orderNumber}` }
   )
 
   if (!session.client_secret) {

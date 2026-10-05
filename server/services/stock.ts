@@ -261,23 +261,34 @@ export async function reserveStock(
 }
 
 /**
- * Payment succeeded: turn the holds into a real decrement.
+ * Payment succeeded: turn the LIVE holds into a real decrement.
  *
  * Idempotent by construction — it only touches rows that are still unsettled,
  * so a redelivered webhook decrements nothing a second time. Returns the number
  * of lines it actually settled, which the caller can use to tell a genuine
  * first delivery from a replay.
+ *
+ * Only holds that have not expired are consumed. An expired hold no longer
+ * protects its units — another customer may hold them now — so consuming it
+ * would take their units and fail their payment. Lines without a live hold go
+ * through takeStockForLatePayment, which takes only what is free.
  */
 export async function consumeReservations(tx: Transaction, orderId: string): Promise<number> {
+  return (await consumeLiveReservations(tx, orderId)).length
+}
+
+/** As consumeReservations, returning what was consumed, per product. */
+export async function consumeLiveReservations(tx: Transaction, orderId: string): Promise<StockLine[]> {
   const claimed = await tx.execute<{ product_id: string; quantity: number }>(sql`
     UPDATE stock_reservations
        SET settled_at = NOW()
      WHERE order_id = ${orderId}
        AND settled_at IS NULL
+       AND expires_at > NOW()
     RETURNING product_id, quantity
   `)
 
-  if (claimed.rows.length === 0) return 0
+  if (claimed.rows.length === 0) return []
 
   // Lock before decrementing, in the same stable order used when reserving.
   const productIds = [...new Set(claimed.rows.map((r) => r.product_id))]
@@ -310,7 +321,24 @@ export async function consumeReservations(tx: Transaction, orderId: string): Pro
     }
   }
 
-  return claimed.rows.length
+  return claimed.rows.map((row) => ({ productId: row.product_id, quantity: Number(row.quantity) }))
+}
+
+/**
+ * Close an order's expired holds without touching stock: a hold never
+ * decremented anything, so letting it go gives nothing back either. Used when
+ * the order is paid, so a lapsed hold cannot linger as "unsettled".
+ */
+export async function settleExpiredHolds(tx: Transaction, orderId: string): Promise<number> {
+  const settled = await tx.execute(sql`
+    UPDATE stock_reservations
+       SET settled_at = NOW()
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+       AND expires_at <= NOW()
+    RETURNING id
+  `)
+  return settled.rows.length
 }
 
 /**
@@ -335,14 +363,23 @@ export async function consumeReservations(tx: Transaction, orderId: string): Pro
  */
 export async function takeStockForLatePayment(
   tx: Transaction,
-  orderId: string
+  orderId: string,
+  /** What live holds already covered when this payment arrived — taken once, not twice. */
+  covered: StockLine[] = []
 ): Promise<{ lines: number; short: Array<{ productId: string; missing: number }> }> {
-  const wanted = await tx.execute<{ product_id: string; quantity: number }>(sql`
+  const ordered = await tx.execute<{ product_id: string; quantity: number }>(sql`
     SELECT product_id, SUM(quantity)::int AS quantity
       FROM order_items
      WHERE order_id = ${orderId}
      GROUP BY product_id
   `)
+  const coveredBy = new Map<string, number>()
+  for (const line of covered) coveredBy.set(line.productId, (coveredBy.get(line.productId) ?? 0) + line.quantity)
+  const wanted = {
+    rows: ordered.rows
+      .map((row) => ({ product_id: row.product_id, quantity: Number(row.quantity) - (coveredBy.get(row.product_id) ?? 0) }))
+      .filter((row) => row.quantity > 0),
+  }
   if (wanted.rows.length === 0) return { lines: 0, short: [] }
 
   const locked = await tx.execute<{ product_id: string; on_hand: number }>(sql`

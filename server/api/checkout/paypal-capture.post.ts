@@ -93,7 +93,22 @@ export default defineRoute({
     if (captured.captureId) await recordPayPalCapture(body.orderNumber, captured.captureId)
 
     // Consumes the stock hold; forward-only, idempotent against the webhook.
-    await transitionOrder(body.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+    const moved = await transitionOrder(body.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+    if (!moved.changed && !['paid', 'processing', 'shipped', 'delivered'].includes(moved.from)) {
+      // PayPal took the money, but the order closed while the payer approved —
+      // the sweep cancelled it. The customer has paid; a person must honour or
+      // refund it, and that person must hear about it.
+      console.error(
+        `[paypal] capture ${captured.captureId} landed on ${body.orderNumber}, which is ${moved.from} — refund or honour it`
+      )
+      await audit({
+        action: 'order.paypal_captured_on_closed_order',
+        actorType: 'system',
+        resourceType: 'order',
+        resourceId: body.orderNumber,
+        metadata: { paypalOrderId: order.paypalOrderId, captureId: captured.captureId, status: moved.from },
+      })
+    }
 
     await audit({
       action: 'order.paypal_captured',

@@ -393,6 +393,8 @@
     "invalid_state_transition": "Eso no es posible en este momento.",
     "not_authenticated": "Inicie sesión, por favor.",
     "not_found": "No encontrado.",
+    "order_already_paid": "Este pedido ya está pagado. Recibirá su confirmación; no es necesario pagar de nuevo.",
+    "order_closed": "Su intento de pago anterior ha caducado. Vuelva a enviar para empezar de nuevo.",
     "out_of_stock": "Stock insuficiente.",
     "page_not_found": "Esta página no existe.",
     "password_too_short": "Esta contraseña es demasiado corta.",

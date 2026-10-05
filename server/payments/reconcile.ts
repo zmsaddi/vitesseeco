@@ -14,7 +14,7 @@
  */
 import type Stripe from 'stripe'
 import { stripe } from './stripe'
-import { getPayPalOrder, paypalConfigured } from './paypal'
+import { findPayPalOrder, paypalConfigured } from './paypal'
 
 /**
  *  paid     money arrived — the order should be paid, not cancelled
@@ -73,12 +73,49 @@ export function stateOfSession(
  * written after, so a connection that dies between the two leaves money taken
  * and nothing recorded — exactly the outage this sweep must survive.
  */
-export function stateOfPayPalOrder(order: { status: string; captureId: string | null }): PaymentState {
-  if (order.status === 'COMPLETED' && order.captureId) return 'paid'
-  // Approved by the payer but never captured: no money moved, and nothing will
-  // capture it now — the capture endpoint only runs while the payer waits.
-  if (['CREATED', 'APPROVED', 'VOIDED', 'PAYER_ACTION_REQUIRED'].includes(order.status)) return 'unpaid'
+export function stateOfPayPalOrder(
+  order: { status: string; captureId: string | null; captureStatus?: string | null; updateTime?: string | null },
+  now: Date = new Date()
+): PaymentState {
+  if (order.status === 'COMPLETED' && order.captureId) {
+    // The capture decides, not the order: a COMPLETED order can carry a capture
+    // still pending, declined, or already refunded.
+    switch (order.captureStatus ?? 'COMPLETED') {
+      case 'COMPLETED':
+        return 'paid'
+      case 'PENDING':
+        return 'pending'
+      case 'DECLINED':
+      case 'FAILED':
+        return 'unpaid'
+      default:
+        // Refunded or partly refunded: money moved and moved back. A person decides.
+        return 'unknown'
+    }
+  }
+  if (order.status === 'APPROVED') {
+    // Approved but not captured. Usually abandoned — but a capture may be in
+    // flight right now, from a payer who approved late. Only an approval that
+    // has sat untouched past a grace period is read as nothing coming.
+    const changed = order.updateTime ? Date.parse(order.updateTime) : Number.NaN
+    return Number.isFinite(changed) && now.getTime() - changed > APPROVAL_GRACE_MS ? 'unpaid' : 'unknown'
+  }
+  if (['CREATED', 'VOIDED', 'PAYER_ACTION_REQUIRED'].includes(order.status)) return 'unpaid'
   return 'unknown'
+}
+
+/** How long an approved-but-uncaptured PayPal order is given before it counts as abandoned. */
+export const APPROVAL_GRACE_MS = 15 * 60_000
+
+/**
+ * Whether a Checkout Session id belongs to the mode of the key that asked.
+ * A live session looked up with a test key (or the reverse) is "not found" for
+ * a reason that says nothing about payment.
+ */
+export function sessionModeMatchesKey(sessionId: string, secretKey: string | undefined): boolean {
+  const sessionLive = sessionId.startsWith('cs_live_')
+  const keyLive = /^(sk|rk)_live_/.test(secretKey ?? '')
+  return sessionLive === keyLive
 }
 
 export const providerPaymentState: PaymentProbe = async (order) => {
@@ -89,11 +126,11 @@ export const providerPaymentState: PaymentProbe = async (order) => {
     if (!order.paypalOrderId) return 'unpaid'
     if (!paypalConfigured()) return 'unknown'
     try {
-      return stateOfPayPalOrder(await getPayPalOrder(order.paypalOrderId))
+      const found = await findPayPalOrder(order.paypalOrderId)
+      // An order PayPal no longer knows (they expire unapproved) was never paid.
+      return found ? stateOfPayPalOrder(found) : 'unpaid'
     } catch (error) {
-      // An order PayPal no longer knows (they expire unapproved) was never paid;
-      // anything else — a timeout, a 5xx — is not an answer.
-      if (/answered 404/.test(String((error as { internal?: string })?.internal ?? error))) return 'unpaid'
+      // A timeout, a 5xx, a credentials problem: not an answer.
       console.warn(`[reconcile] could not ask PayPal about ${order.orderNumber}:`, String(error).slice(0, 200))
       return 'unknown'
     }
@@ -106,8 +143,14 @@ export const providerPaymentState: PaymentProbe = async (order) => {
       await stripe().checkout.sessions.retrieve(order.stripeSessionId, { expand: ['payment_intent'] })
     )
   } catch (error) {
-    // A session this account has never heard of can never be paid here.
-    if ((error as { code?: string })?.code === 'resource_missing') return 'unpaid'
+    // A session this account has never heard of can never be paid here — but
+    // only if we asked in the right mode. A live session looked up with a test
+    // key is "missing" for a reason that says nothing about payment.
+    if ((error as { code?: string })?.code === 'resource_missing') {
+      if (sessionModeMatchesKey(order.stripeSessionId, process.env.STRIPE_SECRET_KEY)) return 'unpaid'
+      console.warn(`[reconcile] ${order.orderNumber}: session ${order.stripeSessionId} is from another Stripe mode than the key`)
+      return 'unknown'
+    }
     console.warn(`[reconcile] could not ask Stripe about ${order.orderNumber}:`, String(error).slice(0, 200))
     return 'unknown'
   }

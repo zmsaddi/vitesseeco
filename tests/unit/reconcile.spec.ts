@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { providerPaymentState, stateOfPayPalOrder, stateOfSession } from '../../server/payments/reconcile'
+import { providerPaymentState, sessionModeMatchesKey, stateOfPayPalOrder, stateOfSession } from '../../server/payments/reconcile'
 
 describe('reading a Checkout Session as a payment state', () => {
   it.each([
@@ -35,13 +35,52 @@ describe('reading a PayPal order as a payment state', () => {
     [{ status: 'COMPLETED', captureId: 'CAP-1' }, 'paid'],
     // Completed with no capture listed is not something to act on.
     [{ status: 'COMPLETED', captureId: null }, 'unknown'],
-    [{ status: 'APPROVED', captureId: null }, 'unpaid'],
     [{ status: 'CREATED', captureId: null }, 'unpaid'],
     [{ status: 'VOIDED', captureId: null }, 'unpaid'],
     [{ status: 'PAYER_ACTION_REQUIRED', captureId: null }, 'unpaid'],
     [{ status: 'UNKNOWN', captureId: null }, 'unknown'],
   ] as const)('%o → %s', (order, expected) => {
     expect(stateOfPayPalOrder(order)).toBe(expected)
+  })
+
+  it.each([
+    ['COMPLETED', 'paid'],
+    ['PENDING', 'pending'],
+    ['DECLINED', 'unpaid'],
+    ['FAILED', 'unpaid'],
+    // Money moved and moved back: a person decides.
+    ['REFUNDED', 'unknown'],
+    ['PARTIALLY_REFUNDED', 'unknown'],
+  ] as const)('a COMPLETED order whose capture is %s → %s', (captureStatus, expected) => {
+    expect(stateOfPayPalOrder({ status: 'COMPLETED', captureId: 'CAP-1', captureStatus })).toBe(expected)
+  })
+
+  describe('an approved order that was never captured', () => {
+    const now = new Date('2026-10-06T12:00:00Z')
+
+    it('is not judged while a late capture may still be running', () => {
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, updateTime: '2026-10-06T11:55:00Z' }, now)).toBe('unknown')
+    })
+
+    it('is abandoned once it has sat past the grace period', () => {
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, updateTime: '2026-10-06T11:30:00Z' }, now)).toBe('unpaid')
+    })
+
+    it('is not judged when PayPal does not say when it changed', () => {
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null }, now)).toBe('unknown')
+    })
+  })
+})
+
+describe('a session looked up in the wrong Stripe mode', () => {
+  it.each([
+    ['cs_live_abc', 'sk_live_x', true],
+    ['cs_live_abc', 'rk_live_x', true],
+    ['cs_test_abc', 'sk_test_x', true],
+    ['cs_live_abc', 'sk_test_x', false],
+    ['cs_test_abc', 'sk_live_x', false],
+  ] as const)('%s with %s → matches %s', (session, key, expected) => {
+    expect(sessionModeMatchesKey(session, key)).toBe(expected)
   })
 })
 

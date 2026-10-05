@@ -503,3 +503,61 @@ describe.skipIf(!hasDatabase)('the sweep reconciles with the provider before can
     expect(await onHandOf(BIKE)).toBe(0)
   })
 })
+
+/**
+ * A payment that lands after its hold lapsed, BEFORE the sweep closed the hold.
+ *
+ * The hold row is still unsettled but no longer protects anything — another
+ * customer may hold those units now. Consuming it would take their units, and
+ * their own on-time payment would then fail. Only live holds are consumed; the
+ * rest goes through the late path, which takes only what is free.
+ */
+describe.skipIf(!hasDatabase)('a late payment whose hold lapsed but was not swept yet', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  const numberOf = async (orderId: string): Promise<string> =>
+    (await testDb().select({ n: schema.orders.orderNumber }).from(schema.orders).where(sql`${schema.orders.id} = ${orderId}`))[0]!.n
+
+  it('does not take the units another customer holds live, and their payment still goes through', async () => {
+    await seedProduct(BIKE, 1)
+    // A held the last bike; the hold lapsed; the sweep has not run.
+    const late = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(late, BIKE, 1)
+    await inTransaction((tx) => reserveStock(tx, late, [{ productId: BIKE, quantity: 1 }]))
+    await expireReservation(late)
+    // B now holds it, live, and is paying.
+    const other = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(other, BIKE, 1)
+    await inTransaction((tx) => reserveStock(tx, other, [{ productId: BIKE, quantity: 1 }]))
+
+    // A's money lands first.
+    await transitionOrder(await numberOf(late), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(1)
+    const [row] = await testDb().select({ notes: schema.orders.adminNotes }).from(schema.orders).where(sql`${schema.orders.id} = ${late}`)
+    expect(row?.notes).toContain(`1 × ${BIKE}`)
+
+    // B pays on time and is not refused.
+    await transitionOrder(await numberOf(other), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(0)
+
+    // A's lapsed hold is closed, not left dangling as "unsettled".
+    const unsettled = await testDb().execute(sql`SELECT count(*)::int AS n FROM stock_reservations WHERE order_id = ${late} AND settled_at IS NULL`)
+    expect((unsettled.rows[0] as { n: number }).n).toBe(0)
+  })
+
+  it('takes once, never twice, when a live hold covers part of the order', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+
+    await transitionOrder(await numberOf(orderId), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+})

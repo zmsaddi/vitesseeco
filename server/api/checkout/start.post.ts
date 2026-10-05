@@ -86,7 +86,12 @@ export default defineRoute({
     // awaiting payment may be offered a way to pay: minting a payment for one
     // already paid or cancelled would take money for nothing.
     if (order.status !== 'awaiting_payment') {
+      // Two different answers. A cancelled order (an abandoned attempt the sweep
+      // closed) tells the browser to start a fresh purchase; a paid one tells
+      // the customer it went through.
       throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        messageKey: order.status === 'cancelled' ? 'errors.order_closed' : 'errors.order_already_paid',
+        details: { status: order.status },
         internal: `checkout replayed for ${order.orderNumber}, which is ${order.status}`,
       })
     }
@@ -110,6 +115,7 @@ export default defineRoute({
       .from(orders)
       .where(eq(orders.id, order.id))
       .limit(1)
+    let replacing: string | undefined
     if (attached?.sessionId) {
       const existing = await stripe().checkout.sessions.retrieve(attached.sessionId)
       if (existing.status === 'open' && existing.client_secret) {
@@ -117,13 +123,18 @@ export default defineRoute({
       }
       if (existing.status === 'complete') {
         throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+          messageKey: 'errors.order_already_paid',
+          details: { status: 'paid' },
           internal: `checkout replayed for ${order.orderNumber}, whose session is already complete`,
         })
       }
-      // Expired: a fresh session below replaces a dead one, which loses nothing.
+      // Expired: a fresh session replaces a dead one, which loses nothing. It
+      // needs its own idempotency key — the first session's would replay it.
+      replacing = existing.id
     }
 
     const session = await createCheckoutSession({
+      ...(replacing ? { replaces: replacing } : {}),
       orderNumber: order.orderNumber,
       orderId: order.id,
       lines: order.breakdown.lines,

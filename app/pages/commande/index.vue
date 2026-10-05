@@ -471,6 +471,14 @@ async function submit(): Promise<void> {
     // A line that left the catalogue since the totals were read goes by name,
     // and a stored promo code the server cannot read is dropped, and said so.
     if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
+    const data = apiError(err)
+    // The earlier attempt this key belongs to was closed (abandoned, then
+    // swept). Keeping the key would replay that closed order forever; the next
+    // press starts a fresh purchase instead.
+    if (data?.details?.status === 'cancelled') {
+      purchaseKey.value = ''
+      keyBelongsTo = ''
+    }
     // Spent, whether or not it was the reason. Asking Cloudflare to accept it
     // twice fails, and the customer would never learn why.
     captchaToken.value = ''
