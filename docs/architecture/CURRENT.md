@@ -94,7 +94,7 @@ enforcement column is the part that matters: a rule nothing checks is a wish.
 ```
 app/          32 pages · 8 components · 4 composables — everything client-facing
 server/
-  api/        40 routes, each declaring access + rate limit via defineRoute
+  api/        41 routes, each declaring access + rate limit via defineRoute
   routes/     10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/    Sanity reads: cached, token-gated — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only)
   db/         Drizzle schema + 2 migration files

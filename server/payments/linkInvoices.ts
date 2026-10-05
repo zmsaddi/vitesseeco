@@ -1,27 +1,37 @@
 /**
- * Invoices for sales made through a Stripe Payment Link.
+ * Invoices for sales made through a Stripe Payment Link — any link.
  *
  * A Payment Link sells outside the shop: no order row, no stock movement, and
  * the webhook drops its sessions as "not ours". Stripe sends the buyer a
  * receipt, but a receipt carries no sequential number, no SIREN and no VAT
  * breakdown — it is not an invoice. This module issues the real one, from the
- * admin panel, once the bike has been handed over.
+ * admin panel, once the item has been handed over.
  *
  * Issued AFTER delivery on purpose: the frame number and the handover date are
  * only known then, and an invoice that states both is also the proof of
  * delivery a Klarna "item not received" dispute is lost without.
  *
- * Stripe is the ledger here, not PostgreSQL. The invoice id is written back
- * onto the PaymentIntent, which is what makes a second issue for the same sale
- * refuse rather than number a duplicate.
+ * Stripe is the ledger here, not PostgreSQL. What protects the numbering — a
+ * French invoice number may never be issued twice for one sale, nor left
+ * dangling — is, in order:
+ *
+ *   1. an advisory lock on the sale, so two submissions cannot run at once;
+ *   2. a pending marker on the PaymentIntent, written the moment a draft exists
+ *      and BEFORE it is numbered, so any later attempt finds and resumes or
+ *      discards it instead of numbering another;
+ *   3. a total check before finalising: the invoice must equal what was paid,
+ *      or it is discarded while still an unnumbered draft;
+ *   4. the final invoice id on the PaymentIntent, which refuses re-issue.
  */
 import { createHash } from 'node:crypto'
+import { sql } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { stripe } from './stripe'
 import { cents, type Cents } from '../../shared/money'
 import { ORGANISATION } from '../../shared/organisation'
 import { AppError, ERROR_CODES } from '../../shared/errors'
-import { buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
+import { withTransaction } from '../db/client'
+import { acknowledgementLines, buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
 
 /**
  * Per-link settings live on the Payment Link itself, as metadata, so a new link
@@ -31,7 +41,9 @@ import { buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
  *                       card at the door), never through the link. It goes on
  *                       the invoice only when the admin confirms it was
  *                       collected — and the amount comes from here, never from
- *                       the browser.
+ *                       the browser. It is read when the invoice is issued, so
+ *                       changing it on a link applies to that link's sales not
+ *                       yet invoiced.
  */
 export const LINK_METADATA = { deliveryFeeCents: 'delivery_fee_cents' } as const
 
@@ -61,7 +73,14 @@ export function languageFor(country: string | null | undefined): MessageLanguage
 const VAT_PERCENT = 20
 const ACCOUNT_VAT_ID = ORGANISATION.vatNumber.replace(/\s/g, '')
 
+/** How far back the panel looks for sales to invoice. */
+const LIST_WINDOW_DAYS = 400
+const LIST_MAX = 200
+
 export type Fulfilment = 'pickup' | 'delivery' | null
+
+/** Why a paid sale cannot be invoiced here. */
+export type Blocked = 'refunded' | 'disputed' | 'stripe_invoice' | null
 
 export interface BillingAddress {
   name: string
@@ -72,9 +91,19 @@ export interface BillingAddress {
   country: string
 }
 
+export interface IssuedInvoice {
+  id: string
+  number: string
+  /** Stripe's hosted invoice page: lasting, and it offers the PDF. */
+  hostedUrl: string | null
+  /** Ready to send, in the customer's language. */
+  message: { subject: string; body: string }
+}
+
 export interface LinkSale {
   sessionId: string
   paymentIntentId: string
+  /** When the money arrived — the charge, not the opening of checkout. */
   paidAt: string
   amountTotal: number
   currency: string
@@ -85,25 +114,35 @@ export interface LinkSale {
   deliveryAddress: string | null
   promotionCode: string | null
   paymentMethod: string
-  /** Pre-fills the form; null fields must be asked from the customer. */
+  /** Pre-fills the form; missing fields must be asked from the customer. */
   billing: Partial<BillingAddress>
   invoice: IssuedInvoice | null
   /** The signed bon de livraison, when the sale was invoiced from the panel. */
   handoverFileId: string | null
   /** From the link's metadata; null when the link offers no paid delivery. */
   deliveryFee: Cents | null
-  /** What the customer message and the receipt's second language default to. */
+  /** The link's settings could not be read; a delivery sale waits until they can. */
+  feeUnknown: boolean
   language: MessageLanguage
+  /** What the customer reads before signing: French, then their language. */
+  acknowledgement: string[]
+  blocked: Blocked
+  /** The invoice Stripe itself issued for this sale, when the link asks it to. */
+  stripeInvoiceNumber: string | null
 }
 
-export interface IssuedInvoice {
-  id: string
-  number: string
-  pdfUrl: string | null
-  hostedUrl: string | null
-  /** Ready to send, in the customer's language. */
-  message: { subject: string; body: string }
+export interface IssueInput {
+  sessionId: string
+  frameNumber: string
+  /** YYYY-MM-DD, the day the item changed hands. */
+  deliveredOn: string
+  billing: BillingAddress
+  deliveryFeeCollected: boolean
+  /** The customer's finger signature, data:image/png;base64,… */
+  signature: string
 }
+
+// ── Customer message ──────────────────────────────────────────────────────────
 
 const MESSAGES: Record<MessageLanguage, { subject: string; greeting: string; thanks: string; here: string; regards: string }> = {
   fr: { subject: 'Votre facture', greeting: 'Bonjour,', thanks: 'Merci pour votre achat chez Vitesse Eco.', here: 'Votre facture {number} est disponible ici :', regards: 'Bien cordialement,' },
@@ -131,35 +170,19 @@ export function customerMessage(number: string, link: string | null, language: M
   }
 }
 
-function toIssued(invoice: Stripe.Invoice, language: MessageLanguage): IssuedInvoice {
-  const number = invoice.number ?? invoice.id!
-  return {
-    id: invoice.id!,
-    number,
-    pdfUrl: invoice.invoice_pdf ?? null,
-    hostedUrl: invoice.hosted_invoice_url ?? null,
-    message: customerMessage(number, invoice.invoice_pdf ?? invoice.hosted_invoice_url ?? null, language),
-  }
-}
-
-export interface IssueInput {
-  sessionId: string
-  frameNumber: string
-  /** YYYY-MM-DD, the day the bike changed hands. */
-  deliveredOn: string
-  billing: BillingAddress
-  deliveryFeeCollected: boolean
-  /** The customer's finger signature, data:image/png;base64,… */
-  signature: string
+function issued(id: string, number: string, hostedUrl: string | null, language: MessageLanguage): IssuedInvoice {
+  return { id, number, hostedUrl, message: customerMessage(number, hostedUrl, language) }
 }
 
 // ── Pure planning ─────────────────────────────────────────────────────────────
 
 export interface PlannedLine {
-  kind: 'product' | 'delivery'
-  priceId?: string
+  kind: 'product' | 'delivery' | 'shipping'
+  /** Product lines: built from what the session charged, not from a price that may since be archived. */
+  productId?: string | null
   quantity: number
-  amount?: Cents
+  /** Per unit, in cents. */
+  unitAmount: Cents
   description: string
 }
 
@@ -168,6 +191,8 @@ export interface InvoicePlan {
   discount: { amount: Cents; label: string } | null
   customFields: Array<{ name: string; value: string }>
   description: string
+  /** What the finalised invoice must total — what was paid, plus a fee collected at the door. */
+  expectedTotal: Cents
 }
 
 /** "2026-09-29" → "29/09/2026", without a Date and therefore without a time zone. */
@@ -194,10 +219,13 @@ export function paymentMethodLabel(type: string | null | undefined): string {
 }
 
 export interface PlanSource {
-  lineItems: Array<{ priceId: string; quantity: number; name: string }>
+  lineItems: Array<{ productId: string | null; quantity: number; subtotal: Cents; name: string }>
   discountAmount: Cents
+  shippingAmount: Cents
+  amountTotal: Cents
   promotionCode: string | null
   fulfilment: Fulfilment
+  /** YYYY-MM-DD in Paris time, from the charge. */
   paidOn: string
   paymentMethod: string
   paymentIntentId: string
@@ -208,16 +236,28 @@ export interface PlanSource {
 /**
  * Everything the invoice will say, decided without touching Stripe — so the
  * rules (delivery fee only when collected, frame number on the line, the paid
- * statement) are unit-tested rather than discovered on a live invoice.
+ * statement, the total it must reach) are unit-tested rather than discovered on
+ * a live invoice.
  */
 export function planInvoice(source: PlanSource, input: IssueInput): InvoicePlan {
   const frame = input.frameNumber.trim()
-  const lines: PlannedLine[] = source.lineItems.map((item) => ({
-    kind: 'product',
-    priceId: item.priceId,
-    quantity: item.quantity,
-    description: `${item.name} (N° de cadre ${frame})`,
-  }))
+  const lines: PlannedLine[] = source.lineItems.map((item) => {
+    const quantity = Math.max(1, item.quantity)
+    // A price that does not divide evenly is invoiced as one line for the lot,
+    // so the line still equals exactly what was charged.
+    const even = item.subtotal % quantity === 0
+    return {
+      kind: 'product',
+      productId: item.productId,
+      quantity: even ? quantity : 1,
+      unitAmount: cents(even ? item.subtotal / quantity : item.subtotal),
+      description: `${even || quantity === 1 ? '' : `${quantity} × `}${item.name} (N° de cadre ${frame})`,
+    }
+  })
+
+  if (source.shippingAmount > 0) {
+    lines.push({ kind: 'shipping', quantity: 1, unitAmount: source.shippingAmount, description: 'Frais de port' })
+  }
 
   const feeCollected =
     source.fulfilment === 'delivery' && input.deliveryFeeCollected && source.deliveryFee !== null && source.deliveryFee > 0
@@ -225,7 +265,7 @@ export function planInvoice(source: PlanSource, input: IssueInput): InvoicePlan 
     lines.push({
       kind: 'delivery',
       quantity: 1,
-      amount: source.deliveryFee!,
+      unitAmount: source.deliveryFee!,
       description: 'Livraison à domicile (réglée à la livraison)',
     })
   }
@@ -250,14 +290,27 @@ export function planInvoice(source: PlanSource, input: IssueInput): InvoicePlan 
         name: 'Paiement',
         value: `${source.paymentMethod}, ${paidOn}${feeCollected ? ' + livraison réglée à la livraison' : ''}`,
       },
-      // SIREN and VAT number are in the footer; this slot proves the handover.
+      // SIREN, RCS and VAT number are in the footer; this slot proves the handover.
       { name: 'Bon de livraison', value: `signé par le client le ${deliveredOn}` },
     ],
     description:
       `FACTURE ACQUITTÉE – réglée le ${paidOn} (${source.paymentMethod}` +
       `${feeCollected ? ', frais de livraison réglés le ' + deliveredOn : ''}). ` +
       `Aucun montant restant dû. Réf. paiement ${source.paymentIntentId}.`,
+    expectedTotal: cents(source.amountTotal + (feeCollected ? source.deliveryFee! : 0)),
   }
+}
+
+/** The legal footer every invoice carries. */
+export function invoiceFooter(): string {
+  const capital = (ORGANISATION as { shareCapital?: string | null }).shareCapital
+  return [
+    `${ORGANISATION.legalName}${capital ? `, SAS au capital de ${capital}` : ''}`,
+    `${ORGANISATION.address.street}, ${ORGANISATION.address.postalCode} ${ORGANISATION.address.city}, France`,
+    `SIREN ${ORGANISATION.siren} · RCS ${ORGANISATION.address.city} ${ORGANISATION.siren}`,
+    `TVA intracommunautaire ${ORGANISATION.vatNumber}`,
+    `${ORGANISATION.email} · ${ORGANISATION.phone}`,
+  ].join(' · ')
 }
 
 // ── Stripe reads ──────────────────────────────────────────────────────────────
@@ -274,16 +327,11 @@ function customField(session: Stripe.Checkout.Session, key: string): string | nu
   return field.dropdown?.value ?? field.text?.value ?? null
 }
 
-async function issuedInvoice(invoiceId: string | undefined, language: MessageLanguage): Promise<IssuedInvoice | null> {
-  if (!invoiceId) return null
-  // Retrieved fresh each time: the PDF link Stripe hands out is not permanent.
-  return toIssued(await stripe().invoices.retrieve(invoiceId), language)
-}
-
 /** One read per link per request, however many of its sales are listed. */
-type LinkCache = Map<string, Promise<Record<string, string>>>
+type LinkCache = Map<string, Promise<Record<string, string> | null>>
 
-function linkMetadata(session: Stripe.Checkout.Session, cache: LinkCache): Promise<Record<string, string>> {
+/** The link's metadata, or null when it could not be read — never "no settings". */
+function linkMetadata(session: Stripe.Checkout.Session, cache: LinkCache): Promise<Record<string, string> | null> {
   const id = typeof session.payment_link === 'string' ? session.payment_link : session.payment_link?.id
   if (!id) return Promise.resolve({})
   if (!cache.has(id)) {
@@ -292,60 +340,73 @@ function linkMetadata(session: Stripe.Checkout.Session, cache: LinkCache): Promi
       stripe()
         .paymentLinks.retrieve(id)
         .then((link) => link.metadata ?? {})
-        .catch(() => ({}))
+        .catch((error) => {
+          console.warn(`[link-invoices] could not read link ${id}:`, String(error).slice(0, 200))
+          return null
+        })
     )
   }
   return cache.get(id)!
 }
 
-async function toSale(session: Stripe.Checkout.Session, cache: LinkCache = new Map()): Promise<LinkSale> {
+function blockedReason(session: Stripe.Checkout.Session, charge: Stripe.Charge | null): Blocked {
+  if (session.invoice) return 'stripe_invoice'
+  if (charge?.disputed) return 'disputed'
+  if (charge && (charge.refunded || charge.amount_refunded > 0)) return 'refunded'
+  return null
+}
+
+const SESSION_EXPAND = ['line_items', 'payment_intent.latest_charge', 'discounts.promotion_code'] as const
+
+async function toSale(session: Stripe.Checkout.Session, cache: LinkCache): Promise<LinkSale> {
   const intent = session.payment_intent as Stripe.PaymentIntent
   const charge = intent.latest_charge as Stripe.Charge | null
   const details = session.customer_details
   const address = details?.address
-  const items = await stripe().checkout.sessions.listLineItems(session.id, { limit: 10 })
-
-  let promotionCode: string | null = null
   const promo = session.discounts?.[0]?.promotion_code
-  if (typeof promo === 'string') promotionCode = (await stripe().promotionCodes.retrieve(promo)).code
-  else if (promo) promotionCode = promo.code
-
+  const metadata = await linkMetadata(session, cache)
   const fulfilment = customField(session, 'delivery')
   const language = languageFor(address?.country)
-  const metadata = await linkMetadata(session, cache)
+  const invoiceId = intent.metadata?.invoice_id
+  const stripeInvoice = session.invoice
+
   return {
     sessionId: session.id,
     paymentIntentId: intent.id,
-    paidAt: new Date(session.created * 1000).toISOString(),
+    paidAt: new Date((charge?.created ?? session.created) * 1000).toISOString(),
     amountTotal: session.amount_total ?? 0,
     currency: session.currency ?? 'eur',
-    productName: items.data.map((item) => item.description).join(', '),
+    productName: (session.line_items?.data ?? []).map((item) => item.description).join(', '),
     email: details?.email ?? null,
     phone: details?.phone ?? null,
     fulfilment: fulfilment === 'pickup' || fulfilment === 'delivery' ? fulfilment : null,
     deliveryAddress: customField(session, 'address'),
-    promotionCode,
+    promotionCode: typeof promo === 'object' && promo ? promo.code : null,
     paymentMethod: paymentMethodLabel(charge?.payment_method_details?.type ?? intent.payment_method_types[0]),
     billing: {
-      ...(details?.individual_name || details?.name
-        ? { name: (details.individual_name ?? details.name)! }
-        : {}),
+      ...(details?.individual_name || details?.name ? { name: (details.individual_name ?? details.name)! } : {}),
       ...(address?.line1 ? { line1: [address.line1, address.line2].filter(Boolean).join(', ') } : {}),
       ...(address?.postal_code ? { postalCode: address.postal_code } : {}),
       ...(address?.city ? { city: address.city } : {}),
       ...(address?.country ? { country: address.country } : {}),
     },
-    invoice: await issuedInvoice(intent.metadata?.invoice_id, language),
+    // Read from what issuing wrote on the PaymentIntent: no extra call per row.
+    invoice: invoiceId
+      ? issued(invoiceId, intent.metadata.invoice_number || invoiceId, intent.metadata.invoice_url || null, language)
+      : null,
     handoverFileId: intent.metadata?.handover_file || null,
     deliveryFee: feeFromMetadata(metadata),
+    feeUnknown: metadata === null,
     language,
+    acknowledgement: acknowledgementLines(language),
+    blocked: invoiceId ? null : blockedReason(session, charge),
+    stripeInvoiceNumber:
+      typeof stripeInvoice === 'object' && stripeInvoice ? (stripeInvoice.number ?? stripeInvoice.id ?? null) : stripeInvoice ?? null,
   }
 }
 
 async function paidLinkSession(sessionId: string): Promise<Stripe.Checkout.Session> {
-  const session = await stripe().checkout.sessions.retrieve(sessionId, {
-    expand: ['payment_intent.latest_charge'],
-  })
+  const session = await stripe().checkout.sessions.retrieve(sessionId, { expand: [...SESSION_EXPAND] })
   // Only a paid Payment Link sale. A shop checkout already has an order, and
   // invoicing it here would number the same sale twice.
   if (!session.payment_link || session.payment_status !== 'paid' || !session.payment_intent) {
@@ -354,37 +415,70 @@ async function paidLinkSession(sessionId: string): Promise<Stripe.Checkout.Sessi
   return session
 }
 
-/** Paid Payment Link sales, newest first. Capped: this is a handful a week. */
-export async function listLinkSales(max = 200): Promise<LinkSale[]> {
+/** Run at most `limit` at once; a failure is that item's, not the whole list's. */
+async function settleBounded<T, R>(items: T[], limit: number, work: (item: T) => Promise<R>): Promise<Array<R | null>> {
+  const results: Array<R | null> = new Array(items.length).fill(null)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      try {
+        results[index] = await work(items[index]!)
+      } catch (error) {
+        console.warn('[link-invoices] a sale could not be read:', String(error).slice(0, 200))
+      }
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
+/**
+ * Paid Payment Link sales, newest first.
+ *
+ * One list call carries the line items, the charge and the promotion code; the
+ * only other reads are one per distinct link, bounded. A sale that cannot be
+ * read is left out of the answer rather than failing every other row.
+ */
+export async function listLinkSales(): Promise<{ items: LinkSale[]; unreadable: number }> {
+  const since = Math.floor(Date.now() / 1000) - LIST_WINDOW_DAYS * 86_400
   const sessions: Stripe.Checkout.Session[] = []
   for await (const session of stripe().checkout.sessions.list({
     status: 'complete',
     limit: 100,
-    expand: ['data.payment_intent.latest_charge'],
+    created: { gte: since },
+    expand: SESSION_EXPAND.map((path) => `data.${path}`),
   })) {
     if (session.payment_link && session.payment_status === 'paid' && session.payment_intent) sessions.push(session)
-    if (sessions.length >= max) break
+    if (sessions.length >= LIST_MAX) break
   }
   const cache: LinkCache = new Map()
-  return Promise.all(sessions.map((session) => toSale(session, cache)))
+  const sales = await settleBounded(sessions, 5, (session) => toSale(session, cache))
+  const items = sales.filter((sale): sale is LinkSale => sale !== null)
+  return { items, unreadable: sales.length - items.length }
+}
+
+/** A fresh link to the invoice PDF — Stripe's PDF links are not permanent. */
+export async function invoicePdfUrl(invoiceId: string): Promise<string> {
+  const invoice = await stripe().invoices.retrieve(invoiceId)
+  // Only invoices this module issued: the panel must not become a reader for
+  // every invoice in the account.
+  if (!invoice.metadata?.checkout_session || !invoice.invoice_pdf) {
+    throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `${invoiceId} is not a link-sale invoice` })
+  }
+  return invoice.invoice_pdf
 }
 
 // ── Issuing ───────────────────────────────────────────────────────────────────
 
 async function ensureVatRate(): Promise<string> {
   const rates = await stripe().taxRates.list({ active: true, limit: 100 })
-  const existing = rates.data.find(
-    (rate) => rate.percentage === VAT_PERCENT && rate.inclusive && rate.country === 'FR'
-  )
+  const existing = rates.data.find((rate) => rate.percentage === VAT_PERCENT && rate.inclusive && rate.country === 'FR')
   if (existing) return existing.id
-  const created = await stripe().taxRates.create({
-    display_name: 'TVA',
-    percentage: VAT_PERCENT,
-    inclusive: true,
-    country: 'FR',
-    jurisdiction: 'FR',
-    description: 'TVA France 20 %',
-  })
+  const created = await stripe().taxRates.create(
+    { display_name: 'TVA', percentage: VAT_PERCENT, inclusive: true, country: 'FR', jurisdiction: 'FR', description: 'TVA France 20 %' },
+    { idempotencyKey: 'link-invoice:tax-rate:fr-20-inclusive' }
+  )
   return created.id
 }
 
@@ -396,165 +490,260 @@ async function ensureAccountVatId(): Promise<string> {
 }
 
 /**
- * Issue the invoice for one sale, finalised and marked paid.
- *
- * Every Stripe write carries an idempotency key derived from the sale AND the
- * submitted form, so a double tap on a phone replays the same objects instead
- * of numbering a second invoice. A corrected resubmission (a different frame
- * number, say) gets fresh keys — and is refused by the PaymentIntent check once
- * the first attempt has completed.
+ * Hold the sale for the length of one issue. Two submissions for the same sale
+ * — two devices, a double tap that escaped the button — cannot both reach the
+ * numbering step. Advisory, transaction-scoped: released when the work ends,
+ * whether it succeeded, failed or the function died.
  */
-export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice> {
-  const session = await paidLinkSession(input.sessionId)
-  const intent = session.payment_intent as Stripe.PaymentIntent
+async function withSaleLock<T>(sessionId: string, work: () => Promise<T>): Promise<T> {
+  return withTransaction(async (tx) => {
+    const result = await tx.execute(sql`SELECT pg_try_advisory_xact_lock(hashtext(${'link-invoice:' + sessionId})) AS ok`)
+    if (!(result.rows[0] as { ok?: boolean } | undefined)?.ok) {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, { internal: `${sessionId}: an invoice is already being issued` })
+    }
+    return work()
+  })
+}
 
-  if (intent.metadata?.invoice_id) {
-    throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
-      internal: `${session.id} already invoiced as ${intent.metadata.invoice_id}`,
-    })
+async function markPaymentIntent(intentId: string, metadata: Record<string, string>): Promise<void> {
+  await stripe().paymentIntents.update(intentId, { metadata })
+}
+
+/**
+ * An earlier attempt that stopped part-way: a draft (unnumbered — discarded) or
+ * a finalised invoice (numbered — finished, never duplicated).
+ */
+async function resumeEarlierAttempt(
+  session: Stripe.Checkout.Session,
+  intent: Stripe.PaymentIntent,
+  language: MessageLanguage
+): Promise<IssuedInvoice | null> {
+  const candidates = new Set<string>()
+  if (intent.metadata?.invoice_pending) candidates.add(intent.metadata.invoice_pending)
+  try {
+    const found = await stripe().invoices.search({ query: `metadata['checkout_session']:'${session.id}'`, limit: 10 })
+    for (const invoice of found.data) if (invoice.id) candidates.add(invoice.id)
+  } catch {
+    // Search is a second net under the pending marker; its absence is not fatal.
   }
 
-  const sale = await toSale(session)
-  if (input.deliveryFeeCollected && sale.fulfilment === 'delivery' && sale.deliveryFee === null) {
-    // The box can only be ticked for a link that states its fee; a request
-    // that ticks it anyway is refused rather than invoicing an invented amount.
-    throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
-      internal: `${session.id}: delivery fee collected, but the link has no ${LINK_METADATA.deliveryFeeCents}`,
-    })
+  for (const id of candidates) {
+    const invoice = await stripe().invoices.retrieve(id).catch(() => null)
+    if (!invoice || invoice.metadata?.checkout_session !== session.id) continue
+    if (invoice.status === 'draft') {
+      await stripe().invoices.del(id).catch(() => {})
+      continue
+    }
+    if (invoice.status === 'open' || invoice.status === 'paid') {
+      const paid = invoice.status === 'open' ? await stripe().invoices.pay(id, { paid_out_of_band: true }) : invoice
+      const number = paid.number ?? id
+      await markPaymentIntent(intent.id, {
+        invoice_id: id,
+        invoice_number: number,
+        invoice_url: paid.hosted_invoice_url ?? '',
+        invoice_pending: '',
+        ...(invoice.metadata?.handover_file ? { handover_file: invoice.metadata.handover_file } : {}),
+      })
+      return issued(id, number, paid.hosted_invoice_url ?? null, language)
+    }
   }
-  const items = await stripe().checkout.sessions.listLineItems(session.id, { limit: 10 })
-  const plan = planInvoice(
-    {
-      lineItems: items.data.map((item) => ({
-        priceId: item.price!.id,
-        quantity: item.quantity ?? 1,
-        name: item.description ?? 'Article',
-      })),
-      discountAmount: cents(session.total_details?.amount_discount ?? 0),
-      promotionCode: sale.promotionCode,
-      fulfilment: sale.fulfilment,
-      paidOn: parisDay(session.created),
-      paymentMethod: sale.paymentMethod,
-      paymentIntentId: intent.id,
-      deliveryFee: sale.deliveryFee,
-    },
-    input
-  )
+  if (intent.metadata?.invoice_pending) await markPaymentIntent(intent.id, { invoice_pending: '' })
+  return null
+}
 
-  const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
-  const key = (step: string) => `link-invoice:${session.id}:${fingerprint}:${step}`
+function todayInParis(): string {
+  return parisDay(Math.floor(Date.now() / 1000))
+}
 
-  // The signed receipt first: it is not a numbered document, so a failure
-  // after it leaves a harmless orphan file rather than a gap in the invoices.
-  const signaturePng = decodeSignature(input.signature)
-  const receipt = await buildHandoverPdf(
-    {
-      reference: intent.id,
-      productName: items.data.map((item) => item.description).join(', '),
-      frameNumber: input.frameNumber.trim(),
-      deliveredOn: frenchDay(input.deliveredOn),
-      handover: sale.fulfilment === 'delivery' ? 'delivery' : 'pickup',
-      language: languageFor(input.billing.country),
-      customer: {
-        name: input.billing.name,
-        address: `${input.billing.line1}, ${input.billing.postalCode} ${input.billing.city}, ${input.billing.country}`,
-        email: sale.email,
-        phone: sale.phone,
+/** Issue the invoice for one sale, finalised and marked paid. */
+export async function issueLinkInvoice(input: IssueInput): Promise<IssuedInvoice & { resumed: boolean }> {
+  return withSaleLock(input.sessionId, async () => {
+    const session = await paidLinkSession(input.sessionId)
+    const intent = session.payment_intent as Stripe.PaymentIntent
+    const charge = intent.latest_charge as Stripe.Charge | null
+    const language = languageFor(input.billing.country)
+
+    if (intent.metadata?.invoice_id) {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        internal: `${session.id} already invoiced as ${intent.metadata.invoice_id}`,
+      })
+    }
+    const blocked = blockedReason(session, charge)
+    if (blocked) {
+      throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, { internal: `${session.id} cannot be invoiced here: ${blocked}` })
+    }
+    if ((session.total_details?.amount_tax ?? 0) > 0) {
+      // Stripe Tax on the link: its tax is not the inclusive French rate this
+      // module applies, and an invoice that restates it differently is wrong.
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, { internal: `${session.id}: links with Stripe Tax are not supported` })
+    }
+
+    const paidOn = parisDay(charge?.created ?? session.created)
+    if (input.deliveredOn < paidOn || input.deliveredOn > todayInParis()) {
+      throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+        internal: `${session.id}: handover date ${input.deliveredOn} outside ${paidOn}..today`,
+      })
+    }
+
+    const resumed = await resumeEarlierAttempt(session, intent, language)
+    if (resumed) return { ...resumed, resumed: true }
+
+    const sale = await toSale(session, new Map())
+    if (sale.fulfilment === 'delivery' && input.deliveryFeeCollected) {
+      if (sale.feeUnknown) {
+        throw new AppError(ERROR_CODES.SERVICE_UNAVAILABLE, { internal: `${session.id}: link settings unreadable` })
+      }
+      if (sale.deliveryFee === null) {
+        // The box can only be ticked for a link that states its fee; a request
+        // that ticks it anyway is refused rather than invoicing an invented amount.
+        throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
+          internal: `${session.id}: delivery fee collected, but the link has no ${LINK_METADATA.deliveryFeeCents}`,
+        })
+      }
+    }
+
+    const items = session.line_items?.data ?? []
+    const plan = planInvoice(
+      {
+        lineItems: items.map((item) => ({
+          productId: typeof item.price?.product === 'string' ? item.price.product : (item.price?.product as Stripe.Product | undefined)?.id ?? null,
+          quantity: item.quantity ?? 1,
+          subtotal: cents(item.amount_subtotal),
+          name: item.description ?? 'Article',
+        })),
+        discountAmount: cents(session.total_details?.amount_discount ?? 0),
+        shippingAmount: cents(session.total_details?.amount_shipping ?? 0),
+        amountTotal: cents(session.amount_total ?? 0),
+        promotionCode: sale.promotionCode,
+        fulfilment: sale.fulfilment,
+        paidOn,
+        paymentMethod: sale.paymentMethod,
+        paymentIntentId: intent.id,
+        deliveryFee: sale.deliveryFee,
       },
-    },
-    signaturePng
-  )
-  // Keyed like every other write: a double tap must not upload a second file
-  // and then collide with the first request's invoice key.
-  const handoverFile = await uploadEvidence(receipt, `handover-${intent.id}.pdf`, 'application/pdf', key('handover'))
+      input
+    )
 
-  const [taxRate, accountVatId] = await Promise.all([ensureVatRate(), ensureAccountVatId()])
-  const currency = session.currency ?? 'eur'
+    const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex').slice(0, 16)
+    const key = (step: string) => `link-invoice:${session.id}:${fingerprint}:${step}`
+    const currency = session.currency ?? 'eur'
 
-  const customer = await stripe().customers.create(
-    {
-      name: input.billing.name,
-      ...(sale.email ? { email: sale.email } : {}),
-      ...(sale.phone ? { phone: sale.phone } : {}),
-      address: {
-        line1: input.billing.line1,
-        postal_code: input.billing.postalCode,
-        city: input.billing.city,
-        country: input.billing.country,
-      },
-      preferred_locales: ['fr'],
-      metadata: { checkout_session: session.id, payment_intent: intent.id },
-    },
-    { idempotencyKey: key('customer') }
-  )
-
-  const coupon = plan.discount
-    ? await stripe().coupons.create(
-        {
-          name: plan.discount.label,
-          amount_off: plan.discount.amount,
-          currency,
-          duration: 'once',
-          max_redemptions: 1,
+    // The signed receipt first: it is not a numbered document, so a failure
+    // after it leaves a harmless orphan file rather than a gap in the invoices.
+    const receipt = await buildHandoverPdf(
+      {
+        reference: intent.id,
+        productName: items.map((item) => item.description).join(', '),
+        frameNumber: input.frameNumber.trim(),
+        deliveredOn: frenchDay(input.deliveredOn),
+        deliveredOnIso: input.deliveredOn,
+        handover: sale.fulfilment === 'delivery' ? 'delivery' : 'pickup',
+        language,
+        customer: {
+          name: input.billing.name,
+          address: `${input.billing.line1}, ${input.billing.postalCode} ${input.billing.city}, ${input.billing.country}`,
+          email: sale.email,
+          phone: sale.phone,
         },
-        { idempotencyKey: key('coupon') }
-      )
-    : null
-
-  const draft = await stripe().invoices.create(
-    {
-      customer: customer.id,
-      currency,
-      collection_method: 'send_invoice',
-      days_until_due: 0,
-      auto_advance: false,
-      account_tax_ids: [accountVatId],
-      ...(coupon ? { discounts: [{ coupon: coupon.id }] } : {}),
-      custom_fields: plan.customFields,
-      description: plan.description,
-      footer:
-        `${ORGANISATION.legalName} · ${ORGANISATION.address.street}, ${ORGANISATION.address.postalCode} ` +
-        `${ORGANISATION.address.city}, France · SIREN ${ORGANISATION.siren} · ` +
-        `TVA intracommunautaire ${ORGANISATION.vatNumber} · ${ORGANISATION.email} · ${ORGANISATION.phone}`,
-      metadata: {
-        checkout_session: session.id,
-        payment_intent: intent.id,
-        frame_number: input.frameNumber.trim(),
-        delivered_on: input.deliveredOn,
-        handover_file: handoverFile,
       },
-    },
-    { idempotencyKey: key('invoice') }
-  )
+      decodeSignature(input.signature)
+    )
+    const handoverFile = await uploadEvidence(receipt, `handover-${intent.id}.pdf`, 'application/pdf', key('handover'))
 
-  for (const [index, line] of plan.lines.entries()) {
-    await stripe().invoiceItems.create(
+    const [taxRate, accountVatId] = await Promise.all([ensureVatRate(), ensureAccountVatId()])
+
+    const customer = await stripe().customers.create(
+      {
+        name: input.billing.name,
+        ...(sale.email ? { email: sale.email } : {}),
+        ...(sale.phone ? { phone: sale.phone } : {}),
+        address: {
+          line1: input.billing.line1,
+          postal_code: input.billing.postalCode,
+          city: input.billing.city,
+          country: input.billing.country,
+        },
+        preferred_locales: ['fr'],
+        metadata: { checkout_session: session.id, payment_intent: intent.id },
+      },
+      { idempotencyKey: key('customer') }
+    )
+
+    const coupon = plan.discount
+      ? await stripe().coupons.create(
+          { name: plan.discount.label, amount_off: plan.discount.amount, currency, duration: 'once', max_redemptions: 1 },
+          { idempotencyKey: key('coupon') }
+        )
+      : null
+
+    const draft = await stripe().invoices.create(
       {
         customer: customer.id,
-        invoice: draft.id!,
-        description: line.description,
-        tax_rates: [taxRate],
-        ...(line.priceId
-          ? { pricing: { price: line.priceId }, quantity: line.quantity }
-          : { amount: line.amount!, currency }),
+        currency,
+        collection_method: 'send_invoice',
+        days_until_due: 0,
+        auto_advance: false,
+        account_tax_ids: [accountVatId],
+        // Lines read before VAT, the VAT stated once: the French layout.
+        rendering: { amount_tax_display: 'exclude_tax' },
+        ...(coupon ? { discounts: [{ coupon: coupon.id }] } : {}),
+        custom_fields: plan.customFields,
+        description: plan.description,
+        footer: invoiceFooter(),
+        metadata: {
+          checkout_session: session.id,
+          payment_intent: intent.id,
+          frame_number: input.frameNumber.trim(),
+          delivered_on: input.deliveredOn,
+          handover_file: handoverFile,
+        },
       },
-      { idempotencyKey: key(`line-${index}`) }
+      { idempotencyKey: key('invoice') }
     )
-  }
+    // Before anything is numbered: any later attempt finds this draft first.
+    await markPaymentIntent(intent.id, { invoice_pending: draft.id! })
 
-  const finalised = await stripe().invoices.finalizeInvoice(
-    draft.id!,
-    { auto_advance: false },
-    { idempotencyKey: key('finalize') }
-  )
-  // Paid out of band: the money already arrived through the link. Attaching
-  // the PaymentIntent itself is refused — a link session has no customer, and
-  // Stripe requires the two to match.
-  const paid = await stripe().invoices.pay(finalised.id!, { paid_out_of_band: true }, { idempotencyKey: key('pay') })
+    for (const [index, line] of plan.lines.entries()) {
+      await stripe().invoiceItems.create(
+        {
+          customer: customer.id,
+          invoice: draft.id!,
+          description: line.description,
+          tax_rates: [taxRate],
+          ...(line.productId
+            ? { price_data: { currency, product: line.productId, unit_amount: line.unitAmount }, quantity: line.quantity }
+            : { amount: line.unitAmount * line.quantity, currency }),
+        },
+        { idempotencyKey: key(`line-${index}`) }
+      )
+    }
 
-  await stripe().paymentIntents.update(intent.id, {
-    metadata: { invoice_id: paid.id!, invoice_number: paid.number ?? '', handover_file: handoverFile },
+    // The invoice must say what was paid. If it does not, it is thrown away
+    // while still an unnumbered draft — never finalised and then explained.
+    const built = await stripe().invoices.retrieve(draft.id!)
+    if (built.total !== plan.expectedTotal || built.currency !== currency) {
+      await stripe().invoices.del(draft.id!).catch(() => {})
+      await markPaymentIntent(intent.id, { invoice_pending: '' })
+      throw new AppError(ERROR_CODES.INTERNAL, {
+        internal: `${session.id}: invoice total ${built.total} ${built.currency} ≠ paid ${plan.expectedTotal} ${currency}`,
+      })
+    }
+
+    const finalised = await stripe().invoices.finalizeInvoice(draft.id!, { auto_advance: false }, { idempotencyKey: key('finalize') })
+    // Paid out of band: the money already arrived through the link. Attaching
+    // the PaymentIntent itself is refused — a link session has no customer, and
+    // Stripe requires the two to match.
+    const paid = await stripe().invoices.pay(finalised.id!, { paid_out_of_band: true }, { idempotencyKey: key('pay') })
+    const number = paid.number ?? paid.id!
+
+    await markPaymentIntent(intent.id, {
+      invoice_id: paid.id!,
+      invoice_number: number,
+      invoice_url: paid.hosted_invoice_url ?? '',
+      invoice_pending: '',
+      handover_file: handoverFile,
+    })
+
+    return { ...issued(paid.id!, number, paid.hosted_invoice_url ?? null, language), resumed: false }
   })
-
-  return toIssued(paid, languageFor(input.billing.country))
 }

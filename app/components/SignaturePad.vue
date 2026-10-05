@@ -14,7 +14,8 @@ const model = defineModel<string>({ default: '' })
 defineProps<{ label: string; hint: string; clearLabel: string }>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-let drawing = false
+/** The one pointer drawing — a resting palm or a second finger is ignored. */
+let activePointer: number | null = null
 let fittedWidth = 0
 
 function context(): CanvasRenderingContext2D | null {
@@ -30,7 +31,8 @@ function fit(): void {
   fittedWidth = element.clientWidth
   // Resizing a canvas wipes its bitmap. A tablet turned sideways after the
   // customer signed must not silently lose the signature, so the old bitmap
-  // is copied out first and painted back, stretched to the new size.
+  // is copied out first and painted back at its own scale, top-left — never
+  // stretched, which would change the signature's shape.
   const previous = model.value ? document.createElement('canvas') : null
   if (previous) {
     previous.width = element.width
@@ -42,7 +44,7 @@ function fit(): void {
   element.height = Math.round(element.clientHeight * ratio)
   const ctx = context()
   if (!ctx) return
-  if (previous) ctx.drawImage(previous, 0, 0, element.width, element.height)
+  if (previous) ctx.drawImage(previous, 0, 0)
   ctx.scale(ratio, ratio)
   ctx.lineWidth = 2.5
   ctx.lineCap = 'round'
@@ -57,8 +59,8 @@ function point(event: PointerEvent): { x: number; y: number } {
 
 function start(event: PointerEvent): void {
   const ctx = context()
-  if (!ctx) return
-  drawing = true
+  if (!ctx || activePointer !== null) return
+  activePointer = event.pointerId
   canvas.value!.setPointerCapture(event.pointerId)
   ctx.strokeStyle = getComputedStyle(canvas.value!).color
   const { x, y } = point(event)
@@ -70,7 +72,7 @@ function start(event: PointerEvent): void {
 }
 
 function move(event: PointerEvent): void {
-  if (!drawing) return
+  if (event.pointerId !== activePointer) return
   const ctx = context()
   if (!ctx) return
   const { x, y } = point(event)
@@ -78,9 +80,9 @@ function move(event: PointerEvent): void {
   ctx.stroke()
 }
 
-function end(): void {
-  if (!drawing) return
-  drawing = false
+function end(event: PointerEvent): void {
+  if (event.pointerId !== activePointer) return
+  activePointer = null
   model.value = inked(canvas.value!)
 }
 

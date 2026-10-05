@@ -1,11 +1,16 @@
 <script setup lang="ts">
 /**
- * Invoices for Payment Link sales.
+ * Invoices for Payment Link sales — any link.
  *
  * These sales never became orders, so the order screens cannot see them. The
  * page lists what Stripe says was paid through a link and issues the invoice
- * once the bike has been handed over — from a phone, at the counter, because
- * that is where the frame number is read off.
+ * once the item has been handed over — from a phone or tablet, at the counter,
+ * because that is where the frame number is read off.
+ *
+ * The customer signs on a screen of their own. The tablet passed across the
+ * counter must show THEIR purchase and what they are confirming, in their
+ * language — never the list, which holds every other buyer's name, email and
+ * phone number.
  *
  * Name and address are pre-filled from checkout when the link collected them;
  * the first buyers paid before it did, so every field stays editable.
@@ -19,7 +24,6 @@ const { formatDateTime } = useFormatDate()
 interface IssuedInvoice {
   id: string
   number: string
-  pdfUrl: string | null
   hostedUrl: string | null
   message: { subject: string; body: string }
 }
@@ -40,6 +44,10 @@ interface LinkSale {
   handoverFileId: string | null
   /** Cents, from the link's own metadata; null when it offers no paid delivery. */
   deliveryFee: number | null
+  feeUnknown: boolean
+  acknowledgement: string[]
+  blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
+  stripeInvoiceNumber: string | null
 }
 
 interface Draft {
@@ -54,24 +62,45 @@ interface Draft {
   signature: string
 }
 
-const { data, refresh, status: loadState } = await useFetch<{ items: LinkSale[] }>('/api/admin/link-sales')
+interface ListResponse {
+  items: LinkSale[]
+  unreadable: number
+}
 
-// Today in the shop's zone, as the date input wants it (YYYY-MM-DD).
-const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())
+const { data, refresh, status: loadState, error: loadError } = await useFetch<ListResponse>('/api/admin/link-sales')
+
+// The last list that loaded. A refresh that fails must not wipe the page — the
+// sale just invoiced, and the error that explains a failed issue, live here.
+const shown = ref<ListResponse | null>(data.value ?? null)
+watch(data, (value) => {
+  if (value) shown.value = value
+})
+
+/** Today in the shop's zone, as the date input wants it — read when used, not once. */
+function todayInParis(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date())
+}
+const today = ref(todayInParis())
+function refreshToday(): void {
+  today.value = todayInParis()
+}
+onMounted(() => document.addEventListener('visibilitychange', refreshToday))
+onBeforeUnmount(() => document.removeEventListener('visibilitychange', refreshToday))
 
 const drafts = reactive<Record<string, Draft>>({})
 watchEffect(() => {
-  for (const sale of data.value?.items ?? []) {
+  for (const sale of shown.value?.items ?? []) {
     if (drafts[sale.sessionId]) continue
     drafts[sale.sessionId] = {
       frameNumber: '',
-      deliveredOn: today,
+      deliveredOn: today.value,
       name: sale.billing.name ?? '',
       // A delivery address typed at checkout is the best guess for billing.
       line1: sale.billing.line1 ?? sale.deliveryAddress ?? '',
       postalCode: sale.billing.postalCode ?? '',
       city: sale.billing.city ?? '',
-      country: sale.billing.country ?? 'AT',
+      // Unknown stays empty: a guessed country is a wrong invoice.
+      country: sale.billing.country ?? '',
       deliveryFeeCollected: sale.fulfilment === 'delivery' && sale.deliveryFee !== null,
       signature: '',
     }
@@ -80,20 +109,48 @@ watchEffect(() => {
 
 const issuing = ref<string | null>(null)
 const error = ref<{ sessionId: string; message: string } | null>(null)
+const notice = ref<{ sessionId: string; message: string } | null>(null)
 
 function isComplete(draft: Draft): boolean {
   return [draft.signature, draft.frameNumber, draft.deliveredOn, draft.name, draft.line1, draft.postalCode, draft.city, draft.country]
     .every((value) => value.trim().length > 0)
 }
 
+function canIssue(sale: LinkSale): boolean {
+  // A delivery sale whose link settings could not be read waits: issuing it
+  // without the fee would be guessing.
+  return !(sale.fulfilment === 'delivery' && sale.feeUnknown)
+}
+
+// ── The customer's own signing screen ─────────────────────────────────────────
+
+const signing = ref<LinkSale | null>(null)
+const pendingSignature = ref('')
+
+function openSigning(sale: LinkSale): void {
+  pendingSignature.value = ''
+  signing.value = sale
+}
+
+function confirmSignature(): void {
+  if (!signing.value || !pendingSignature.value) return
+  drafts[signing.value.sessionId]!.signature = pendingSignature.value
+  signing.value = null
+}
+
+// ── Issuing ───────────────────────────────────────────────────────────────────
+
 async function issue(sale: LinkSale): Promise<void> {
   const draft = drafts[sale.sessionId]
-  if (!draft || !isComplete(draft) || issuing.value) return
+  if (!draft || !isComplete(draft) || issuing.value || !canIssue(sale)) return
+  refreshToday()
+  if (draft.deliveredOn > today.value) draft.deliveredOn = today.value
   if (!window.confirm(t('admin.confirm_issue', { frame: draft.frameNumber.trim() }))) return
   issuing.value = sale.sessionId
   error.value = null
+  notice.value = null
   try {
-    await $fetch('/api/admin/link-sales/invoice', {
+    const result = await $fetch<{ invoice: IssuedInvoice & { resumed: boolean } }>('/api/admin/link-sales/invoice', {
       method: 'POST',
       body: {
         sessionId: sale.sessionId,
@@ -110,6 +167,9 @@ async function issue(sale: LinkSale): Promise<void> {
         signature: draft.signature,
       },
     })
+    // Shown at once, whatever the refresh below does.
+    sale.invoice = result.invoice
+    if (result.invoice.resumed) notice.value = { sessionId: sale.sessionId, message: t('admin.invoice_resumed') }
   } catch (err: unknown) {
     const payload = (err as { data?: { messageKey?: string } })?.data
     error.value = {
@@ -117,16 +177,16 @@ async function issue(sale: LinkSale): Promise<void> {
       message: payload?.messageKey ? t(payload.messageKey) : t('errors.internal'),
     }
   } finally {
-    issuing.value = null
     // Refreshed even after a failure: the invoice may exist although the
     // response was lost, and the list shows what Stripe actually holds.
     await refresh()
+    issuing.value = null
   }
 }
 
 function mailto(sale: LinkSale): string {
   const message = sale.invoice!.message
-  return `mailto:${sale.email ?? ''}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`
+  return `mailto:${encodeURIComponent(sale.email ?? '')}?subject=${encodeURIComponent(message.subject)}&body=${encodeURIComponent(message.body)}`
 }
 
 function whatsapp(sale: LinkSale): string {
@@ -142,12 +202,20 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
     <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('admin.invoices') }}</h1>
     <p class="mt-2 max-w-prose text-sm text-content-muted">{{ $t('admin.invoices_intro') }}</p>
 
-    <p v-if="loadState === 'success' && !data?.items.length" class="card mt-6 p-6 text-content-muted">
+    <div v-if="loadError" class="card mt-6 flex flex-wrap items-center justify-between gap-3 p-4" role="alert">
+      <p class="text-sm text-danger">{{ $t('admin.list_failed') }}</p>
+      <button type="button" class="btn-secondary h-10 px-4 text-sm" @click="refresh()">{{ $t('admin.retry') }}</button>
+    </div>
+    <p v-if="shown?.unreadable" class="mt-4 text-sm text-content-muted">
+      {{ $t('admin.some_unreadable', { count: shown.unreadable }) }}
+    </p>
+
+    <p v-if="loadState === 'success' && !shown?.items.length" class="card mt-6 p-6 text-content-muted">
       {{ $t('admin.no_link_sales') }}
     </p>
 
     <ul class="mt-6 grid gap-4">
-      <li v-for="sale in data?.items ?? []" :key="sale.sessionId" class="card p-5">
+      <li v-for="sale in shown?.items ?? []" :key="sale.sessionId" class="card p-5">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="font-semibold text-content-strong">{{ sale.productName }}</p>
@@ -177,7 +245,7 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
           <span class="rounded-full bg-accent-subtle px-3 py-1 text-sm font-semibold text-accent">
             {{ $t('admin.invoiced', { number: sale.invoice.number }) }}
           </span>
-          <a v-if="sale.invoice.pdfUrl" :href="sale.invoice.pdfUrl" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
+          <a :href="`/api/admin/link-sales/invoice-pdf?invoice=${sale.invoice.id}`" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
             {{ $t('admin.download_pdf') }}
           </a>
           <a
@@ -193,7 +261,19 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
           <a v-if="sale.phone" :href="whatsapp(sale)" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
             {{ $t('admin.send_whatsapp') }}
           </a>
+          <p v-if="notice?.sessionId === sale.sessionId" class="w-full text-sm text-content-muted" role="status">{{ notice.message }}</p>
         </div>
+
+        <!-- Cannot be invoiced here, and why. -->
+        <p v-else-if="sale.blocked" class="mt-4 text-sm text-danger" role="status">
+          {{
+            sale.blocked === 'stripe_invoice'
+              ? $t('admin.blocked_stripe_invoice', { number: sale.stripeInvoiceNumber ?? '—' })
+              : sale.blocked === 'disputed'
+                ? $t('admin.blocked_disputed')
+                : $t('admin.blocked_refunded')
+          }}
+        </p>
 
         <!-- Not yet: the handover form. -->
         <form v-else-if="drafts[sale.sessionId]" class="mt-4 grid gap-3 sm:grid-cols-2" @submit.prevent="issue(sale)">
@@ -215,7 +295,7 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
           </label>
           <label class="text-sm">
             <span class="text-content-muted">{{ $t('admin.billing_postal') }}</span>
-            <input v-model="drafts[sale.sessionId]!.postalCode" class="field mt-1 w-full" required inputmode="numeric" autocomplete="off">
+            <input v-model="drafts[sale.sessionId]!.postalCode" class="field mt-1 w-full" required autocomplete="off">
           </label>
           <label class="text-sm">
             <span class="text-content-muted">{{ $t('admin.billing_city') }}</span>
@@ -234,14 +314,18 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
             <input v-model="drafts[sale.sessionId]!.deliveryFeeCollected" type="checkbox" class="size-5">
             <span>{{ $t('admin.delivery_fee_collected', { amount: formatCents(sale.deliveryFee) }) }}</span>
           </label>
+          <p v-if="sale.fulfilment === 'delivery' && sale.feeUnknown" class="text-sm text-danger sm:col-span-2" role="status">
+            {{ $t('admin.fee_unknown') }}
+          </p>
 
-          <SignaturePad
-            v-model="drafts[sale.sessionId]!.signature"
-            class="sm:col-span-2"
-            :label="$t('admin.signature')"
-            :hint="$t('admin.signature_hint')"
-            :clear-label="$t('admin.clear_signature')"
-          />
+          <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
+            <button type="button" class="btn-secondary h-11 px-4" @click="openSigning(sale)">
+              {{ drafts[sale.sessionId]!.signature ? $t('admin.signature_again') : $t('admin.take_signature') }}
+            </button>
+            <span v-if="drafts[sale.sessionId]!.signature" class="text-sm font-semibold text-accent">
+              {{ $t('admin.signature_taken') }}
+            </span>
+          </div>
 
           <p v-if="error?.sessionId === sale.sessionId" class="text-sm text-danger sm:col-span-2" role="alert">
             {{ error.message }}
@@ -251,7 +335,7 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
             <button
               type="submit"
               class="btn-primary h-11 w-full px-5 sm:w-auto"
-              :disabled="!isComplete(drafts[sale.sessionId]!) || issuing !== null"
+              :disabled="!isComplete(drafts[sale.sessionId]!) || issuing !== null || !canIssue(sale)"
             >
               {{ issuing === sale.sessionId ? $t('admin.issuing') : $t('admin.issue_invoice') }}
             </button>
@@ -259,5 +343,37 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
         </form>
       </li>
     </ul>
+
+    <!-- The screen the customer holds: their purchase, their words, nothing else. -->
+    <div
+      v-if="signing"
+      class="fixed inset-0 z-50 overflow-y-auto bg-surface-raised"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="$t('admin.signature')"
+    >
+      <div class="mx-auto flex min-h-full max-w-xl flex-col gap-4 p-5">
+        <p class="font-display text-xl font-extrabold text-content-strong">{{ signing.productName }}</p>
+        <p class="text-sm text-content-muted">
+          {{ $t('admin.frame_number') }}: <span class="font-semibold text-content-strong">{{ drafts[signing.sessionId]?.frameNumber || '—' }}</span>
+          · {{ (drafts[signing.sessionId]?.deliveredOn ?? '').split('-').reverse().join('/') }}
+        </p>
+        <div class="grid gap-2 text-content">
+          <p v-for="(sentence, index) in signing.acknowledgement" :key="index">{{ sentence }}</p>
+        </div>
+        <SignaturePad
+          v-model="pendingSignature"
+          :label="$t('admin.signature')"
+          :hint="$t('admin.signature_hint')"
+          :clear-label="$t('admin.clear_signature')"
+        />
+        <div class="flex flex-wrap gap-3">
+          <button type="button" class="btn-primary h-11 px-5" :disabled="!pendingSignature" @click="confirmSignature">
+            {{ $t('admin.signature_confirm') }}
+          </button>
+          <button type="button" class="btn-secondary h-11 px-5" @click="signing = null">{{ $t('admin.cancel') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

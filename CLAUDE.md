@@ -115,7 +115,7 @@ app/                       ← Nuxt 4 layout: everything client-facing
   composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useFormatPrice, useWishlist
   layouts/ middleware/ plugins/
 server/
-  api/                     ← 40 routes. Every one declares access + rate limit via defineRoute
+  api/                     ← 41 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (runtime contract: CANDIDATE_TEST_RIG=1 + loopback site/db, never on Vercel)

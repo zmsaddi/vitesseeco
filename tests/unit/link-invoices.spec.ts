@@ -3,13 +3,14 @@ import {
   customerMessage,
   feeFromMetadata,
   frenchDay,
+  invoiceFooter,
   languageFor,
   paymentMethodLabel,
   planInvoice,
   type IssueInput,
   type PlanSource,
 } from '../../server/payments/linkInvoices'
-import { decodeSignature, drawable, buildHandoverPdf } from '../../server/payments/handover'
+import { acknowledgementLines, buildHandoverPdf, decodeSignature, drawable } from '../../server/payments/handover'
 import { cents } from '../../shared/money'
 
 // A 1×1 transparent PNG — the smallest thing decodeSignature must accept once
@@ -20,8 +21,10 @@ const PNG_1PX = Buffer.from(
 )
 
 const source = (overrides: Partial<PlanSource> = {}): PlanSource => ({
-  lineItems: [{ priceId: 'price_1', quantity: 1, name: 'V8 ULTRA MAX T' }],
+  lineItems: [{ productId: 'prod_1', quantity: 1, subtotal: cents(135000), name: 'V8 ULTRA MAX T' }],
   discountAmount: cents(10000),
+  shippingAmount: cents(0),
+  amountTotal: cents(125000),
   promotionCode: 'WELCOMEVIENNA',
   fulfilment: 'pickup',
   paidOn: '2026-09-29',
@@ -41,13 +44,35 @@ const input = (overrides: Partial<IssueInput> = {}): IssueInput => ({
   ...overrides,
 })
 
+const handover = (language: 'fr' | 'de' | 'nl' | 'es' | 'en', name = 'Client') => ({
+  reference: 'pi_1',
+  productName: 'Vélo',
+  frameNumber: 'F1',
+  deliveredOn: '01/10/2026',
+  deliveredOnIso: '2026-10-01',
+  handover: 'delivery' as const,
+  language,
+  customer: { name, address: 'Rue 1, 1000 Ville, XX', email: 'c@example.com', phone: null },
+})
+
 describe('planInvoice', () => {
   it('puts the trimmed frame number on the product line and in a field', () => {
     const plan = planInvoice(source(), input())
     expect(plan.lines).toHaveLength(1)
-    expect(plan.lines[0]).toMatchObject({ kind: 'product', priceId: 'price_1', quantity: 1 })
+    expect(plan.lines[0]).toMatchObject({ kind: 'product', productId: 'prod_1', quantity: 1, unitAmount: 135000 })
     expect(plan.lines[0]!.description).toContain('N° de cadre TESTFRAME00001)')
     expect(plan.customFields.find((field) => field.name === 'N° de cadre')?.value).toBe('TESTFRAME00001')
+  })
+
+  it('builds the line from what was charged, per unit when it divides evenly', () => {
+    const plan = planInvoice(source({ lineItems: [{ productId: 'prod_1', quantity: 2, subtotal: cents(270000), name: 'X' }] }), input())
+    expect(plan.lines[0]).toMatchObject({ quantity: 2, unitAmount: 135000 })
+  })
+
+  it('invoices an uneven lot as one line that still equals what was charged', () => {
+    const plan = planInvoice(source({ lineItems: [{ productId: 'prod_1', quantity: 3, subtotal: cents(1000), name: 'X' }] }), input())
+    expect(plan.lines[0]).toMatchObject({ quantity: 1, unitAmount: 1000 })
+    expect(plan.lines[0]!.description.startsWith('3 × X')).toBe(true)
   })
 
   it('names the promotion code on the discount', () => {
@@ -64,21 +89,28 @@ describe('planInvoice', () => {
     expect(uncollected.lines.some((line) => line.kind === 'delivery')).toBe(false)
 
     const collected = planInvoice(source({ fulfilment: 'delivery' }), input({ deliveryFeeCollected: true }))
-    expect(collected.lines.find((line) => line.kind === 'delivery')?.amount).toBe(3500)
+    expect(collected.lines.find((line) => line.kind === 'delivery')?.unitAmount).toBe(3500)
     expect(collected.lines.find((line) => line.kind === 'delivery')?.description).not.toMatch(/Vienne|Wien/)
     expect(collected.description).toContain('frais de livraison réglés le 30/09/2026')
   })
 
-  it('states that the invoice is settled and records the signed handover', () => {
+  it('states the total the invoice must reach: what was paid, plus a fee collected at the door', () => {
+    expect(planInvoice(source(), input()).expectedTotal).toBe(125000)
+    expect(planInvoice(source({ fulfilment: 'delivery' }), input({ deliveryFeeCollected: true })).expectedTotal).toBe(128500)
+    expect(planInvoice(source({ fulfilment: 'delivery' }), input({ deliveryFeeCollected: false })).expectedTotal).toBe(125000)
+  })
+
+  it('carries Stripe shipping as its own line', () => {
+    const plan = planInvoice(source({ shippingAmount: cents(1290), amountTotal: cents(126290) }), input())
+    expect(plan.lines.find((line) => line.kind === 'shipping')?.unitAmount).toBe(1290)
+    expect(plan.expectedTotal).toBe(126290)
+  })
+
+  it('states that the invoice is settled, dated by the payment, and records the signed handover', () => {
     const plan = planInvoice(source(), input())
     expect(plan.description).toMatch(/^FACTURE ACQUITTÉE – réglée le 29\/09\/2026 \(Klarna\)/)
     expect(plan.description).toContain('pi_123')
-    expect(plan.customFields.map((field) => field.name)).toEqual([
-      'N° de cadre',
-      'Date de livraison',
-      'Paiement',
-      'Bon de livraison',
-    ])
+    expect(plan.customFields.map((field) => field.name)).toEqual(['N° de cadre', 'Date de livraison', 'Paiement', 'Bon de livraison'])
   })
 
   it('keeps every custom field inside Stripe’s limits', () => {
@@ -88,6 +120,17 @@ describe('planInvoice', () => {
       expect(field.name.length).toBeLessThanOrEqual(40)
       expect(field.value.length).toBeLessThanOrEqual(140)
     }
+  })
+})
+
+describe('the legal footer', () => {
+  it('carries the legal name, address, SIREN, RCS and VAT number', () => {
+    const footer = invoiceFooter()
+    expect(footer).toContain('VITESSE ECO SAS')
+    expect(footer).toContain('SIREN 100 732 247')
+    expect(footer).toContain('RCS Poitiers 100 732 247')
+    expect(footer).toContain('FR43 100 732 247')
+    expect(footer.length).toBeLessThanOrEqual(5000)
   })
 })
 
@@ -101,47 +144,6 @@ describe('small formatters', () => {
     expect(paymentMethodLabel('card')).toBe('Carte bancaire')
     expect(paymentMethodLabel('twint')).toBe('twint')
     expect(paymentMethodLabel(null)).toBe('Paiement en ligne')
-  })
-
-  it('writes the customer message in German with the link', () => {
-    const message = customerMessage('KH1VPJZA-0002', 'https://pay.stripe.com/x', 'de')
-    expect(message.subject).toContain('KH1VPJZA-0002')
-    expect(message.body).toContain('https://pay.stripe.com/x')
-    expect(message.body).toMatch(/^Guten Tag/)
-  })
-})
-
-describe('signature and receipt', () => {
-  it('refuses anything that is not a PNG of plausible size', () => {
-    expect(() => decodeSignature('data:image/jpeg;base64,AAAA')).toThrow()
-    expect(() => decodeSignature('data:image/png;base64,' + Buffer.from('not a png at all'.repeat(10)).toString('base64'))).toThrow()
-    expect(() => decodeSignature('data:image/png;base64,' + Buffer.alloc(400_000, 1).toString('base64'))).toThrow()
-  })
-
-  it('accepts a real PNG', () => {
-    const padded = Buffer.concat([PNG_1PX, Buffer.alloc(200)])
-    expect(decodeSignature('data:image/png;base64,' + padded.toString('base64')).subarray(0, 4).toString('latin1')).toBe('\x89PNG')
-  })
-
-  it('replaces characters the standard PDF fonts cannot draw', () => {
-    expect(drawable('Müller – 35 €')).toBe('Müller – 35 €')
-    expect(drawable('محمود Ali')).toBe('????? Ali')
-  })
-
-  it('builds a one-page PDF even for a name in another script', async () => {
-    const bytes = await buildHandoverPdf(
-      {
-        reference: 'pi_123',
-        productName: 'V8 ULTRA MAX T',
-        frameNumber: 'TESTFRAME00001',
-        deliveredOn: '30/09/2026',
-        handover: 'pickup',
-        language: 'de',
-        customer: { name: 'محمود', address: 'Musterstrasse 1, 1030 Wien, AT', email: null, phone: '+43' },
-      },
-      PNG_1PX
-    )
-    expect(Buffer.from(bytes.subarray(0, 5)).toString('latin1')).toBe('%PDF-')
   })
 })
 
@@ -166,7 +168,7 @@ describe('a link states its own settings', () => {
 
   it('uses whatever fee another link states', () => {
     const plan = planInvoice(source({ fulfilment: 'delivery', deliveryFee: cents(4900) }), input({ deliveryFeeCollected: true }))
-    expect(plan.lines.find((line) => line.kind === 'delivery')?.amount).toBe(4900)
+    expect(plan.lines.find((line) => line.kind === 'delivery')?.unitAmount).toBe(4900)
   })
 })
 
@@ -187,26 +189,54 @@ describe('the customer is written to in their language', () => {
     ['es', /^Hola/, 'Su factura'],
     ['en', /^Hello/, 'Your invoice'],
   ] as const)('%s message', (language, greeting, subject) => {
-    const message = customerMessage('INV-1', 'https://pay.stripe.com/x', language)
+    const message = customerMessage('INV-1', 'https://invoice.stripe.com/i/x', language)
     expect(message.body).toMatch(greeting)
     expect(message.subject.startsWith(subject)).toBe(true)
     expect(message.body).toContain('INV-1')
-    expect(message.body).toContain('https://pay.stripe.com/x')
+    expect(message.body).toContain('https://invoice.stripe.com/i/x')
+  })
+
+  it('shows the customer what they sign: French, then their own language', () => {
+    expect(acknowledgementLines('fr')).toHaveLength(1)
+    const german = acknowledgementLines('de')
+    expect(german).toHaveLength(2)
+    expect(german[0]).toMatch(/^Le client confirme/)
+    expect(german[1]).toMatch(/^Der Kunde bestätigt/)
+  })
+})
+
+describe('signature and receipt', () => {
+  it('refuses anything that is not a PNG of plausible size', () => {
+    expect(() => decodeSignature('data:image/jpeg;base64,AAAA')).toThrow()
+    expect(() => decodeSignature('data:image/png;base64,' + Buffer.from('not a png at all'.repeat(10)).toString('base64'))).toThrow()
+    expect(() => decodeSignature('data:image/png;base64,' + Buffer.alloc(400_000, 1).toString('base64'))).toThrow()
+  })
+
+  it('accepts a real PNG', () => {
+    const padded = Buffer.concat([PNG_1PX, Buffer.alloc(200)])
+    expect(decodeSignature('data:image/png;base64,' + padded.toString('base64')).subarray(0, 4).toString('latin1')).toBe('\x89PNG')
+  })
+
+  it('draws what the standard font can, drops control characters, marks the rest', () => {
+    expect(drawable('Müller – 35 €')).toBe('Müller – 35 €')
+    expect(drawable('محمود Ali')).toBe('????? Ali')
+    expect(drawable('Ann\u0007a\u0000\u009b Smith​')).toBe('Anna Smith?')
   })
 
   it.each(['fr', 'de', 'nl', 'es', 'en'] as const)('builds the receipt in French + %s', async (language) => {
-    const bytes = await buildHandoverPdf(
-      {
-        reference: 'pi_1',
-        productName: 'Vélo',
-        frameNumber: 'F1',
-        deliveredOn: '01/10/2026',
-        handover: 'delivery',
-        language,
-        customer: { name: 'Client', address: 'Rue 1, 1000 Ville, XX', email: 'c@example.com', phone: null },
-      },
-      PNG_1PX
-    )
+    const bytes = await buildHandoverPdf(handover(language), PNG_1PX)
+    expect(Buffer.from(bytes.subarray(0, 5)).toString('latin1')).toBe('%PDF-')
+  })
+
+  it('builds the same bytes for the same handover — a retried upload is the same request', async () => {
+    const first = Buffer.from(await buildHandoverPdf(handover('de'), PNG_1PX))
+    await new Promise((resolve) => setTimeout(resolve, 1100))
+    const second = Buffer.from(await buildHandoverPdf(handover('de'), PNG_1PX))
+    expect(first.equals(second)).toBe(true)
+  })
+
+  it('survives a name in another script and with control characters', async () => {
+    const bytes = await buildHandoverPdf(handover('en', 'محمود\u0007'), PNG_1PX)
     expect(Buffer.from(bytes.subarray(0, 5)).toString('latin1')).toBe('%PDF-')
   })
 })

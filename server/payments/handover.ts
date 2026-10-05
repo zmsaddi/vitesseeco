@@ -32,8 +32,18 @@ export function decodeSignature(dataUrl: string): Buffer {
  * cannot draw are replaced rather than allowed to fail the handover.
  */
 export function drawable(text: string): string {
-  const extras = new Set('€–—‘’“”•…·'.split(''))
-  return [...text.normalize('NFC')].map((char) => (char.charCodeAt(0) <= 0xff || extras.has(char) ? char : '?')).join('')
+  // The standard fonts draw WinAnsi: printable ASCII, Latin-1, and a handful of
+  // typographic marks Unicode places elsewhere. Control characters — which a
+  // customer's own checkout fields can carry — are dropped outright; anything
+  // else is a visible '?', never an exception that loses the receipt.
+  const extras = new Set('€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ·'.split(''))
+  return [...text.normalize('NFC')]
+    .filter((char) => !/[\u0000-\u001f\u007f-\u009f]/.test(char))
+    .map((char) => {
+      const code = char.charCodeAt(0)
+      return (code >= 0x20 && code <= 0x7e) || (code >= 0xa0 && code <= 0xff) || extras.has(char) ? char : '?'
+    })
+    .join('')
 }
 
 export type ReceiptLanguage = 'fr' | 'de' | 'nl' | 'es' | 'en'
@@ -88,12 +98,19 @@ const RECEIPT: Record<ReceiptLanguage, ReceiptText> = {
   },
 }
 
+/** What the customer reads before signing: French, then their own language. */
+export function acknowledgementLines(language: ReceiptLanguage): string[] {
+  return language === 'fr' ? [RECEIPT.fr.statement] : [RECEIPT.fr.statement, RECEIPT[language].statement]
+}
+
 export interface HandoverDetails {
   reference: string
   productName: string
   frameNumber: string
   /** DD/MM/YYYY */
   deliveredOn: string
+  /** YYYY-MM-DD — dates the PDF itself, so the same input gives the same bytes. */
+  deliveredOnIso: string
   handover: 'pickup' | 'delivery'
   /** The customer's language, shown beside the French. */
   language: ReceiptLanguage
@@ -106,7 +123,13 @@ export async function buildHandoverPdf(details: HandoverDetails, signaturePng: B
   /** "Bon de livraison / Übergabeprotokoll", or the French alone. */
   const both = (pick: (text: ReceiptText) => string) => (other ? `${pick(fr)} / ${pick(other)}` : pick(fr))
 
-  const pdf = await PDFDocument.create()
+  // No "now" inside the file: the same handover must produce the same bytes, or
+  // a retried upload under the same idempotency key is a different request.
+  const pdf = await PDFDocument.create({ updateMetadata: false })
+  const stamp = new Date(`${details.deliveredOnIso}T12:00:00Z`)
+  pdf.setCreationDate(stamp)
+  pdf.setModificationDate(stamp)
+  pdf.setProducer('Vitesse Eco')
   pdf.setTitle(`${fr.title} ${details.reference}`)
   pdf.setAuthor(ORGANISATION.legalName)
   const page = pdf.addPage([595.28, 841.89])

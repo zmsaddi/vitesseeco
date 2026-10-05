@@ -10,7 +10,14 @@ import { issueLinkInvoice } from '../../../payments/linkInvoices'
 import { MAX_SIGNATURE_BYTES } from '../../../payments/handover'
 import { audit } from '../../../services/audit'
 
-const text = (max: number) => z.string().trim().min(1).max(max)
+// No control characters: these strings end up on a legal document and a PDF.
+const text = (max: number) =>
+  z
+    .string()
+    .trim()
+    .min(1)
+    .max(max)
+    .regex(/^[^\u0000-\u001f\u007f-\u009f]*$/)
 
 const bodySchema = z
   .object({
@@ -49,6 +56,8 @@ export default defineRoute({
       metadata: {
         sessionId: body.sessionId,
         invoice: invoice.number,
+        // A resumed issue finished an earlier attempt's invoice; it numbered nothing new.
+        resumed: invoice.resumed,
         frameNumber: body.frameNumber,
         deliveredOn: body.deliveredOn,
       },

@@ -10,5 +10,5 @@ import { listLinkSales } from '../../payments/linkInvoices'
 export default defineRoute({
   access: 'admin',
   rateLimit: 'standard',
-  handler: async () => ({ items: await listLinkSales() }),
+  handler: async () => listLinkSales(),
 })
