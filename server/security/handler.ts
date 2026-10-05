@@ -276,6 +276,8 @@ const DATABASE_UNAVAILABLE = [
   'Connection terminated',
   'too many connections',
   'Client has encountered a connection error',
+  // server/db/client.ts names the socket failure that arrives with no message.
+  'DatabaseConnectionError',
 ]
 
 /**

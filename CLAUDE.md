@@ -1,10 +1,12 @@
 # Vitesse Eco
 
-> **Branch:** the cutover has happened. `origin/master` and `origin/rebuild`
-> point at the same commit, and **production builds from `master`** — so this
-> codebase is what vitesse-eco.fr serves. A local `master` checked out before
-> the cutover is the old root-level structure and is not what ships; check
-> `git ls-remote origin master rebuild` before believing otherwise.
+> **Branch:** the cutover has happened and **production builds from `master`**
+> — so this codebase is what vitesse-eco.fr serves. `origin/rebuild` is the
+> pre-cutover branch, frozen at `d548f17` and behind `master`; its Vercel preview
+> alias is gone (410), so nothing should point at it — the Stripe test-mode
+> webhook that did was disabled on 2026-10-05. A local `master` checked out
+> before the cutover is the old root-level structure and is not what ships;
+> check `git ls-remote origin master rebuild` before believing otherwise.
 > **Last verified against the code:** 2026-08-08.
 > Every path, command and variable below was checked to exist. If something here
 > is wrong, the document is the bug — fix it in the same commit.
@@ -90,7 +92,7 @@ npm run test:e2e            # Playwright candidate gates: functional + axe + RTL
 npm run test:visual         # visual regression against the committed Linux baselines
 npm run check:langs         # locale sync, no linked-message @, placeholder parity
 npm run check:hex           # no raw hex in .vue — fails if it scans nothing
-npm run check:invariants    # 18 project rules
+npm run check:invariants    # 17 project rules
 npm run check:feeds         # feeds parse and refuse to publish an empty catalogue
 npx nuxi typecheck
 ```

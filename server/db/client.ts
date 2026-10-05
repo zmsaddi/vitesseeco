@@ -12,7 +12,7 @@
  * redeeming a promotion — goes through `withTransaction`. Everything else uses
  * `db()` and stays cheap.
  */
-import { neon, neonConfig, Pool } from '@neondatabase/serverless'
+import { neon, neonConfig, Pool, type PoolClient as NeonPoolClient } from '@neondatabase/serverless'
 import { drizzle as drizzleHttp } from 'drizzle-orm/neon-http'
 import { drizzle as drizzlePool } from 'drizzle-orm/neon-serverless'
 import { drizzle as drizzleNodePg } from 'drizzle-orm/node-postgres'
@@ -96,6 +96,39 @@ function isNeonUrl(url: string): boolean {
   }
 }
 
+/**
+ * A connection the database could not even describe.
+ *
+ * When the WebSocket under the Neon pool dies before a session exists, the
+ * rejection is a bare socket event whose message is the empty string. Logged,
+ * it says nothing; classified, it reads as a bug (500) rather than an outage
+ * (503). It is wrapped here so it carries a name the request handler knows.
+ */
+export class DatabaseConnectionError extends Error {
+  override name = 'DatabaseConnectionError'
+}
+
+/**
+ * Give a pool, and every client it hands out, somewhere to put an error.
+ *
+ * Without this, a connection that drops while a client holds it — Neon's
+ * compute suspending, or its quota wall — emits 'error' with no listener, and
+ * in Node that is an uncaught exception: the function dies before it answers,
+ * Vercel reports a 504 timeout, and the real cause never reaches a log. That is
+ * how the 2026-08-29 quota outage hid for hours. The query that was running
+ * still rejects on its own, so the request fails properly; this only stops the
+ * same failure from also killing the process.
+ */
+function listenForErrors<P extends pg.Pool | Pool>(pool: P): P {
+  // Both drivers' pools and clients are EventEmitters; their typings disagree
+  // on the overloads, not on that.
+  const report = (error: Error) => console.error('[db] connection error:', error?.message || String(error))
+  const emitter = pool as unknown as NodeJS.EventEmitter
+  emitter.on('error', report)
+  emitter.on('connect', (client: NodeJS.EventEmitter) => client.on('error', report))
+  return pool
+}
+
 let httpClient: ReturnType<typeof drizzleHttp<Schema>> | null = null
 let nodeClient: ReturnType<typeof drizzleNodePg<Schema>> | null = null
 
@@ -104,7 +137,7 @@ export function db() {
   const url = connectionString()
   if (!isNeonUrl(url)) {
     if (!nodeClient) {
-      nodeClient = drizzleNodePg(new pg.Pool({ connectionString: url, max: 5 }), { schema })
+      nodeClient = drizzleNodePg(listenForErrors(new pg.Pool({ connectionString: url, max: 5 })), { schema })
     }
     // The two drivers expose the same drizzle surface for everything this
     // codebase does; the union collapses at the call sites.
@@ -122,25 +155,44 @@ export function db() {
  * A fresh pool per call, closed in `finally`: a module-scoped pool survives the
  * freeze between serverless invocations and hands out sockets the platform has
  * already torn down.
+ *
+ * The client is checked out HERE and handed to drizzle, rather than letting
+ * drizzle check it out of the pool. When BEGIN itself fails — the connection
+ * dropping as the transaction opens — drizzle rejects without ever releasing
+ * the client it took, and `pool.end()` then waits for it forever: the request
+ * never answers, and Vercel reports a 504 that says nothing about the
+ * database. Owning the client means it is always released, as broken, whatever
+ * happened, so the pool can always end.
  */
 export async function withTransaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
   const url = connectionString()
 
   if (!isNeonUrl(url)) {
-    const pool = new pg.Pool({ connectionString: url })
+    const pool = listenForErrors(new pg.Pool({ connectionString: url }))
+    let session: pg.PoolClient | undefined
     try {
-      const client = drizzleNodePg(pool, { schema })
+      session = await pool.connect()
+      const client = drizzleNodePg(session, { schema })
       return await client.transaction(async (tx) => work(tx as unknown as Transaction))
     } finally {
+      session?.release(true)
       await pool.end().catch(() => {})
     }
   }
 
-  const pool = new Pool({ connectionString: url })
+  const pool = listenForErrors(new Pool({ connectionString: url }))
+  let session: NeonPoolClient | undefined
   try {
-    const client = drizzlePool(pool, { schema })
+    session = await pool.connect()
+    const client = drizzlePool(session, { schema })
     return await client.transaction(async (tx) => work(tx as Transaction))
+  } catch (error) {
+    if (error instanceof Error && error.message) throw error
+    throw new DatabaseConnectionError('the database connection failed before a session opened', { cause: error })
   } finally {
+    // Released as broken: the pool is discarded below either way, and a socket
+    // returned "healthy" after an error would only be closed a moment later.
+    session?.release(true)
     await pool.end().catch(() => {
       // The request is already answered; a failure to return the socket is the
       // platform's problem, not the customer's.

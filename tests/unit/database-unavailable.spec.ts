@@ -13,6 +13,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { isDatabaseUnavailable } from '../../server/security/handler'
+import { DatabaseConnectionError } from '../../server/db/client'
 
 /** The shape drizzle produces: the useful text is on the inner cause. */
 function wrapped(inner: Error, depth = 1): Error {
@@ -51,6 +52,14 @@ describe('recognising an unavailable database', () => {
 
   it('recognises a missing connection string', () => {
     expect(isDatabaseUnavailable(new Error('DATABASE_URL is not set'))).toBe(true)
+  })
+
+  it('recognises a socket that died before a session opened, which arrives with no message', () => {
+    // The WebSocket under the Neon pool rejects with a bare event whose message
+    // is ''. withTransaction names it; the name is what is matched here.
+    const bare = Object.assign(new Error(''), { name: 'ErrorEvent' })
+    expect(isDatabaseUnavailable(bare)).toBe(false)
+    expect(isDatabaseUnavailable(new DatabaseConnectionError('the database connection failed before a session opened', { cause: bare }))).toBe(true)
   })
 
   it.each([
