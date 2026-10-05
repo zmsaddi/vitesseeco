@@ -466,5 +466,40 @@ describe.skipIf(!hasDatabase)('the sweep reconciles with the provider before can
 
     expect(await statusOf(orderId)).toBe('paid')
     expect(await onHandOf(BIKE)).toBe(0)
+    // Said where the owner looks, not only in a log nobody reads.
+    const [row] = await testDb()
+      .select({ notes: schema.orders.adminNotes })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${orderId}`)
+    expect(row?.notes).toContain(`1 × ${BIKE}`)
+  })
+
+  it('never takes a unit another customer is holding — the shortfall stays with the late order', async () => {
+    // Two on the shelf. Customer B holds both, live, and is paying right now.
+    // Customer A's late payment for two lands first. Taking B's units would
+    // make B's own payment fail; A is the one who is short.
+    await seedProduct(BIKE, 2)
+    const late = await staleOnlineOrder()
+    const other = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(other, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, other, [{ productId: BIKE, quantity: 2 }]))
+
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(await statusOf(late)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(2)
+    const [row] = await testDb()
+      .select({ notes: schema.orders.adminNotes })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${late}`)
+    expect(row?.notes).toContain(`2 × ${BIKE}`)
+
+    // B pays on time and gets exactly what it held.
+    await transitionOrder((await testDb().select({ n: schema.orders.orderNumber }).from(schema.orders).where(sql`${schema.orders.id} = ${other}`))[0]!.n, 'paid', {
+      expectFrom: 'awaiting_payment',
+      runTransaction: inTransaction,
+    })
+    expect(await statusOf(other)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(0)
   })
 })

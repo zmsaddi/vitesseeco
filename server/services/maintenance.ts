@@ -78,11 +78,12 @@ async function cancelAbandonedOrders(
     order_number: string
     payment_method: string
     stripe_session_id: string | null
+    paypal_order_id: string | null
     paypal_capture_id: string | null
   }>(
     executor,
     sql`
-      SELECT order_number, payment_method, stripe_session_id, paypal_capture_id
+      SELECT order_number, payment_method, stripe_session_id, paypal_order_id, paypal_capture_id
         FROM orders
        WHERE status = 'awaiting_payment'
          AND payment_method IN ('stripe', 'paypal')
@@ -101,6 +102,7 @@ async function cancelAbandonedOrders(
       orderNumber: row.order_number,
       paymentMethod: row.payment_method,
       stripeSessionId: row.stripe_session_id,
+      paypalOrderId: row.paypal_order_id,
       paypalCaptureId: row.paypal_capture_id,
     })
 

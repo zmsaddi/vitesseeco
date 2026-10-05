@@ -49,18 +49,24 @@ export default defineEventHandler(async (event) => {
   // Claim the event. A redelivery of a processed event conflicts and is
   // skipped; a redelivery of a FAILED one is claimed again and re-run
   // (server/services/webhookClaims.ts says why that is safe).
-  const recordId = await claimWebhookEvent({
+  const claim = await claimWebhookEvent({
     provider: 'stripe',
     eventId: stripeEvent.id,
     type: stripeEvent.type,
     payload: JSON.stringify(stripeEvent.data.object),
   })
 
-  if (!recordId) {
-    // Already processed, or being processed right now. Acknowledge so Stripe
-    // stops retrying.
+  if (claim.state === 'processed') {
+    // Done before. Acknowledge so Stripe stops retrying.
     return { received: true, duplicate: true }
   }
+  if (claim.state === 'in_flight') {
+    // Another attempt is processing it right now. Not acknowledged: if that
+    // attempt dies, Stripe's next retry finds a stale claim and takes it over.
+    setResponseStatus(event, 409)
+    return { received: false, inFlight: true }
+  }
+  const recordId = claim.id
 
   try {
     await handle(stripeEvent)

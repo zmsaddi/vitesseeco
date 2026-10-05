@@ -22,13 +22,21 @@ import { db, queryRows } from '../db/client'
 /** A claim younger than this belongs to a handler that may still be running. */
 const STALE_CLAIM_MINUTES = 5
 
-/** The row id to process under, or null when someone already has. */
+/**
+ *  claimed    process it, under this row
+ *  processed  done before — acknowledge, the provider can stop
+ *  in_flight  another attempt holds a fresh claim. NOT acknowledged: if that
+ *             attempt dies, a 200 here would have been the provider's last
+ *             delivery, and the event would be lost exactly as before.
+ */
+export type ClaimResult = { state: 'claimed'; id: string } | { state: 'processed' } | { state: 'in_flight' }
+
 export async function claimWebhookEvent(input: {
   provider: 'stripe' | 'paypal'
   eventId: string
   type: string
   payload: string
-}): Promise<string | null> {
+}): Promise<ClaimResult> {
   const rows = await queryRows<{ id: string }>(
     db(),
     sql`
@@ -42,5 +50,11 @@ export async function claimWebhookEvent(input: {
       RETURNING id
     `
   )
-  return rows[0]?.id ?? null
+  if (rows[0]?.id) return { state: 'claimed', id: rows[0].id }
+
+  const [existing] = await queryRows<{ status: string }>(
+    db(),
+    sql`SELECT status FROM webhook_events WHERE provider = ${input.provider} AND event_id = ${input.eventId}`
+  )
+  return existing?.status === 'processed' ? { state: 'processed' } : { state: 'in_flight' }
 }

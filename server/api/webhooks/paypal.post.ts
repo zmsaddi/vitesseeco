@@ -70,10 +70,16 @@ export default defineEventHandler(async (event) => {
 
   // Claim the event; a processed one is a no-op, a failed one is re-run
   // (server/services/webhookClaims.ts).
-  const recordId = await claimWebhookEvent({ provider: 'paypal', eventId, type: eventType ?? 'unknown', payload: rawBody })
-  if (!recordId) {
+  const claim = await claimWebhookEvent({ provider: 'paypal', eventId, type: eventType ?? 'unknown', payload: rawBody })
+  if (claim.state === 'processed') {
     return { received: true, duplicate: true }
   }
+  if (claim.state === 'in_flight') {
+    // Not acknowledged, so PayPal retries after the claim has gone stale.
+    setResponseStatus(event, 409)
+    return { received: false, inFlight: true }
+  }
+  const recordId = claim.id
 
   try {
     const orderNumber = paidOrderNumberFromWebhook(rawBody)

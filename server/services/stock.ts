@@ -51,6 +51,15 @@ const BRIEF_HOLD_SECONDS = RESERVATION_TTL_MS / 1000 + 60
  * rows are gone by then.
  */
 export async function restockOrder(tx: Transaction, orderId: string): Promise<number> {
+  // Locked first, in product order, like every other writer of these rows: an
+  // UPDATE … FROM locks in join order, and two transactions taking the same
+  // rows in different orders deadlock.
+  await tx.execute(sql`
+    SELECT product_id FROM inventory
+     WHERE product_id IN (SELECT product_id FROM order_items WHERE order_id = ${orderId})
+     ORDER BY product_id
+       FOR UPDATE
+  `)
   const restocked = await tx.execute<{ product_id: string; quantity: number }>(sql`
     UPDATE inventory AS i
        SET on_hand = i.on_hand + oi.quantity,
@@ -312,16 +321,22 @@ export async function consumeReservations(tx: Transaction, orderId: string): Pro
  * never arrived. Before this, such an order became paid while its units stayed
  * on the shelf, and the same bike could be sold again.
  *
- * The customer HAS paid, so this never refuses: on_hand goes down by what was
- * ordered, never below zero (the column forbids it), and any product that did
- * not have enough is returned so the caller can say so loudly — that is an
- * oversell a person must resolve, not something to hide or to block payment on.
+ * The customer HAS paid, so this never refuses. It takes what is free — on_hand
+ * minus what OTHER orders still hold live — and never a unit someone else is
+ * holding: taking that would move the oversell onto a customer who did nothing
+ * wrong, whose own payment would then fail. Whatever is missing is the late
+ * order's shortfall, returned so the caller can put it in front of a person.
  * Rows are locked in the same stable order as everywhere else.
+ *
+ * Known limit, unchanged from before: restockOrder gives back the ordered
+ * quantity, so cancelling an order that was SHORT re-credits units that were
+ * never taken. Fixing that needs a per-line record of what was taken (a schema
+ * change); until then the shortfall is written on the order for the admin.
  */
 export async function takeStockForLatePayment(
   tx: Transaction,
   orderId: string
-): Promise<{ lines: number; short: string[] }> {
+): Promise<{ lines: number; short: Array<{ productId: string; missing: number }> }> {
   const wanted = await tx.execute<{ product_id: string; quantity: number }>(sql`
     SELECT product_id, SUM(quantity)::int AS quantity
       FROM order_items
@@ -338,20 +353,36 @@ export async function takeStockForLatePayment(
   `)
   const onHand = new Map(locked.rows.map((row) => [row.product_id, Number(row.on_hand)]))
 
-  const short: string[] = []
+  // Read under the inventory locks, so no hold can be taken in between.
+  const others = await tx.execute<{ product_id: string; held: number }>(sql`
+    SELECT product_id, SUM(quantity)::int AS held
+      FROM stock_reservations
+     WHERE product_id IN ${inList(wanted.rows.map((row) => row.product_id))}
+       AND order_id <> ${orderId}
+       AND settled_at IS NULL
+       AND expires_at > NOW()
+     GROUP BY product_id
+  `)
+  const heldByOthers = new Map(others.rows.map((row) => [row.product_id, Number(row.held)]))
+
+  const short: Array<{ productId: string; missing: number }> = []
   let lines = 0
   for (const row of wanted.rows) {
-    const available = onHand.get(row.product_id)
+    const shelf = onHand.get(row.product_id)
     // A product with no inventory row is not stock-tracked; nothing to take.
-    if (available === undefined) continue
-    if (available < row.quantity) short.push(row.product_id)
-    await tx.execute(sql`
-      UPDATE inventory
-         SET on_hand = GREATEST(on_hand - ${row.quantity}, 0),
-             version = version + 1,
-             updated_at = NOW()
-       WHERE product_id = ${row.product_id}
-    `)
+    if (shelf === undefined) continue
+    const free = Math.max(shelf - (heldByOthers.get(row.product_id) ?? 0), 0)
+    const take = Math.min(row.quantity, free)
+    if (take < row.quantity) short.push({ productId: row.product_id, missing: row.quantity - take })
+    if (take > 0) {
+      await tx.execute(sql`
+        UPDATE inventory
+           SET on_hand = on_hand - ${take},
+               version = version + 1,
+               updated_at = NOW()
+         WHERE product_id = ${row.product_id}
+      `)
+    }
     lines++
   }
   return { lines, short }

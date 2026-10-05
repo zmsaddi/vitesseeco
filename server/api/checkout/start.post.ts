@@ -12,7 +12,10 @@ import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
 import { placeOrder, attachPaymentSession, attachPayPalOrder } from '../../services/orders'
 import { isOnline } from '../../payments'
-import { createCheckoutSession } from '../../payments/stripe'
+import { createCheckoutSession, stripe } from '../../payments/stripe'
+import { eq } from 'drizzle-orm'
+import { db } from '../../db/client'
+import { orders } from '../../db/schema'
 import { createPayPalOrder } from '../../payments/paypal'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
@@ -79,6 +82,15 @@ export default defineRoute({
       return { ...summary, mode: 'cash' as const }
     }
 
+    // A replayed request returns the order as it now stands. Only an order still
+    // awaiting payment may be offered a way to pay: minting a payment for one
+    // already paid or cancelled would take money for nothing.
+    if (order.status !== 'awaiting_payment') {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        internal: `checkout replayed for ${order.orderNumber}, which is ${order.status}`,
+      })
+    }
+
     if (body.paymentMethod === 'paypal') {
       // Temporary bridge (server/payments/paypal.ts). The amount handed to
       // PayPal is the placed order's own total; the browser stated nothing.
@@ -88,6 +100,27 @@ export default defineRoute({
       })
       await attachPayPalOrder(order.id, paypalOrderId)
       return { ...summary, mode: 'paypal' as const, paypalOrderId }
+    }
+
+    // A replay of an order that already has a session reuses it while it can
+    // still be paid. Overwriting it orphaned the first one: paid later, its
+    // webhook found no order, and the money matched nothing.
+    const [attached] = await db()
+      .select({ sessionId: orders.stripeSessionId })
+      .from(orders)
+      .where(eq(orders.id, order.id))
+      .limit(1)
+    if (attached?.sessionId) {
+      const existing = await stripe().checkout.sessions.retrieve(attached.sessionId)
+      if (existing.status === 'open' && existing.client_secret) {
+        return { ...summary, mode: 'stripe' as const, clientSecret: existing.client_secret }
+      }
+      if (existing.status === 'complete') {
+        throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+          internal: `checkout replayed for ${order.orderNumber}, whose session is already complete`,
+        })
+      }
+      // Expired: a fresh session below replaces a dead one, which loses nothing.
     }
 
     const session = await createCheckoutSession({

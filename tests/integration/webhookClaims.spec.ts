@@ -35,37 +35,37 @@ describe.skipIf(!hasDatabase)('claiming a webhook event', () => {
     await resetDatabase()
   })
 
-  it('claims a new event once', async () => {
-    expect(await claimWebhookEvent(event('evt_1'))).toBeTruthy()
-    expect(await claimWebhookEvent(event('evt_1'))).toBeNull()
+  it('claims a new event once; a concurrent second attempt is told it is in flight, not acknowledged', async () => {
+    expect((await claimWebhookEvent(event('evt_1'))).state).toBe('claimed')
+    expect(await claimWebhookEvent(event('evt_1'))).toEqual({ state: 'in_flight' })
   })
 
   it('never re-runs a processed event', async () => {
     await claimWebhookEvent(event('evt_2'))
     await setStatus('evt_2', 'processed', 60)
-    expect(await claimWebhookEvent(event('evt_2'))).toBeNull()
+    expect(await claimWebhookEvent(event('evt_2'))).toEqual({ state: 'processed' })
   })
 
   it('re-claims a failed event, under the same row, for one retry only', async () => {
     const first = await claimWebhookEvent(event('evt_3'))
     await setStatus('evt_3', 'failed')
     const again = await claimWebhookEvent(event('evt_3'))
-    expect(again).toBe(first)
+    expect(again).toEqual(first)
     const result = await testDb().execute(sql`SELECT status, error FROM webhook_events WHERE event_id = 'evt_3'`)
     expect(result.rows).toEqual([{ status: 'received', error: null }])
-    expect(await claimWebhookEvent(event('evt_3'))).toBeNull()
+    expect(await claimWebhookEvent(event('evt_3'))).toEqual({ state: 'in_flight' })
   })
 
   it('leaves a fresh in-flight claim to its handler, but takes over an abandoned one', async () => {
     await claimWebhookEvent(event('evt_4'))
-    expect(await claimWebhookEvent(event('evt_4'))).toBeNull()
+    expect(await claimWebhookEvent(event('evt_4'))).toEqual({ state: 'in_flight' })
     // The function that claimed it died mid-handle; the row stayed 'received'.
     await setStatus('evt_4', 'received', 10)
-    expect(await claimWebhookEvent(event('evt_4'))).toBeTruthy()
+    expect((await claimWebhookEvent(event('evt_4'))).state).toBe('claimed')
   })
 
   it('keeps providers apart', async () => {
-    expect(await claimWebhookEvent(event('evt_5'))).toBeTruthy()
-    expect(await claimWebhookEvent({ ...event('evt_5'), provider: 'paypal' })).toBeTruthy()
+    expect((await claimWebhookEvent(event('evt_5'))).state).toBe('claimed')
+    expect((await claimWebhookEvent({ ...event('evt_5'), provider: 'paypal' })).state).toBe('claimed')
   })
 })

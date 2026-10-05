@@ -368,10 +368,26 @@ export async function transitionOrder(
       if (consumed === 0) {
         const late = await takeStockForLatePayment(tx, current.id)
         if (late.short.length > 0) {
-          console.error(
-            `[orders] ${orderNumber} was paid after its hold expired and stock was short for ` +
-              `${late.short.join(', ')} — OVERSOLD, a person must resolve it`
-          )
+          const detail = late.short.map((line) => `${line.missing} × ${line.productId}`).join(', ')
+          console.error(`[orders] ${orderNumber} paid after its hold expired, OVERSOLD: ${detail}`)
+          // Where the owner will actually see it: on the order, in the panel.
+          // Also the reminder that cancelling would re-credit units never taken.
+          const note =
+            `ATTENTION : payé après expiration de la réservation, stock insuffisant : ${detail}. ` +
+            `Vendu sans stock — à régler à la main ; une annulation remettrait ces unités en stock à tort.`
+          // In a savepoint: the note is for a person, the payment is the fact. A
+          // failed note must roll back alone — one failed statement aborts the
+          // whole transaction, and that would leave a paid order unpaid.
+          try {
+            await tx.transaction(async (savepoint) => {
+              await savepoint
+                .update(orders)
+                .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+                .where(eq(orders.id, current.id))
+            })
+          } catch (error) {
+            console.error(`[orders] ${orderNumber}: could not record the oversell note`, error)
+          }
         }
       }
     } else if (to === 'cancelled' && holdsStock(current.status)) {
