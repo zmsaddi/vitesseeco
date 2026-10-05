@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 /**
  * Contact.
  *
@@ -53,7 +54,7 @@ async function submit(): Promise<void> {
     form.message = ''
     sent.value = true
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string; details?: { issues?: Array<{ path: string; message: string }> } } })?.data
+    const data = apiError(err)
     for (const issue of data?.details?.issues ?? []) {
       fieldErrors.value[issue.path] = issue.message.startsWith('errors.') ? t(issue.message) : issue.message
     }

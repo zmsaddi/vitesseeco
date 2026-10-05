@@ -581,6 +581,28 @@ if (suppressed.length > 0) {
   if (bad === 0) pass(rule)
 }
 
+// ── 18. API error payloads are read through apiError() ─────────────────────
+// h3 nests AppError.toPublic() under the error body's `data`, so the payload is
+// at err.data.data. Eleven pages read err.data.messageKey, found nothing, and
+// told every customer "an error on our side" — for a wrong password, a sold-out
+// bike, an empty basket. app/utils/apiError.ts is the one reader.
+{
+  const rule = 'API error payloads are read through apiError()'
+  let bad = 0
+  for (const file of walk(join(ROOT, 'app'), ['.vue', '.ts'])) {
+    const rel = relative(ROOT, file).split('\\').join('/')
+    if (rel === 'app/utils/apiError.ts') continue
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .forEach((line, i) => {
+        if (!/\(err(or)? as \{\s*(data\?|$)|\.data\??\.messageKey/.test(line)) return
+        bad++
+        fail(rule, rel, i + 1, `reads an API error by hand: ${line.trim().slice(0, 100)}`)
+      })
+  }
+  if (bad === 0) pass(rule)
+}
+
 console.log('')
 if (failures > 0) {
   console.error(`❌ ${failures} invariant violation(s) across ${checks + 1} rules`)

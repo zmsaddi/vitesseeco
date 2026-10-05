@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 import type { AddressInput } from '~~/shared/schemas'
 
 /**
@@ -122,9 +123,7 @@ function countryName(code: string): string {
 }
 
 function readError(err: unknown): void {
-  const data = (err as {
-    data?: { messageKey?: string; details?: { issues?: Array<{ path: string; message: string }> } }
-  })?.data
+  const data = apiError(err)
   // A field error only helps if the field is on screen. The server can reject
   // on a path this form does not render — the address limit arrives as
   // `address`, an unknown key as `(root)` — and attaching those to invisible

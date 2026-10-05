@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 /**
  * Sign in.
  *
@@ -54,7 +55,7 @@ async function submit(): Promise<void> {
     const safe = next.startsWith('/') && !next.startsWith('//') ? next : localePath('/compte')
     await navigateTo(safe)
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string } })?.data
+    const data = apiError(err)
     error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
     // Burned at Cloudflare whether or not the password was right.
     captchaToken.value = ''

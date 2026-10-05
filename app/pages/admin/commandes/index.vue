@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 /**
  * The order queue.
  *
@@ -52,7 +53,7 @@ async function patch(orderNumber: string, body: Record<string, unknown>): Promis
     await $fetch<unknown>(`/api/admin/orders/${orderNumber}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string } })?.data
+    const data = apiError(err)
     error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
   } finally {
     busy.value = null

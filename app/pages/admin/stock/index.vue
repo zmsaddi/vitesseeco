@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 /**
  * Catalogue: price and stock in one place.
  *
@@ -82,7 +83,7 @@ async function save(key: string, request: () => Promise<unknown>): Promise<void>
     await request()
     flashSaved(key)
   } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
+    const payload = apiError(err)
     error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
   } finally {
     saving.value = null

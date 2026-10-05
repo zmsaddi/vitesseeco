@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError } from '~/utils/apiError'
 /**
  * One order, as the person packing it needs to see it.
  *
@@ -81,7 +82,7 @@ async function patch(body: Record<string, unknown>): Promise<void> {
     await $fetch<unknown>(`/api/admin/orders/${orderNumber.value}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
+    const payload = apiError(err)
     error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
   } finally {
     busy.value = false

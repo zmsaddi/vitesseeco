@@ -36,7 +36,7 @@ It runs on `master` and `rebuild`, on push and on pull request.
 
 | Job | Proves |
 |---|---|
-| `static` | locale parity · no raw hex · 17 invariants · documentation · Merchant feed guard · types |
+| `static` | locale parity · no raw hex · 18 invariants · documentation · Merchant feed guard · types |
 | `unit` | 306 tests, pure logic, no I/O |
 | `integration` | 101 tests against **real PostgreSQL 17**, then `scripts/assert-suite-ran.mjs` proves they were not skipped |
 | `build` | production build and the bundle budget |
@@ -99,7 +99,7 @@ server/
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        17 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+tests/        18 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
 scripts/      14 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```
