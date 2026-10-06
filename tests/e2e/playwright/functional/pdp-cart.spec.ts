@@ -1,6 +1,7 @@
 /**
  * Product-page and basket states that the journey does not cross:
- * sold out, sibling colours, remove-with-undo, promo feedback, empty basket.
+ * sold out, sibling colours, remove-with-undo, promo feedback, empty basket,
+ * and a basket that outlived one of its products.
  *
  * Everything here is read-only against the shop — no order is ever placed, so
  * these tests can run in parallel with anything without moving stock.
@@ -13,6 +14,7 @@ import {
   onHand,
   outOfStockProduct,
 } from '../helpers/catalogue'
+import { message } from '../helpers/messages'
 
 test('a sold-out product says so and refuses the basket', async ({ page }) => {
   await page.goto(`/produits/${outOfStockProduct.slug}`)
@@ -91,4 +93,107 @@ test('an empty basket says so and routes back to the shop', async ({ page }) => 
   await page.getByRole('link', { name: 'Voir les produits' }).click()
   await expect(page).toHaveURL(/\/produits$/)
   await expect(page.getByText(displayPrice(displayProduct.price)).first()).toBeVisible()
+})
+
+test('a product that left the catalogue leaves the basket by name, and the rest can still be bought', async ({
+  page,
+  seedCart,
+}) => {
+  // An id the catalogue no longer has — deleted in the Studio — beside one it
+  // sells. This basket used to render "Introuvable." and nothing else, on
+  // every visit, because it lives in localStorage.
+  await seedCart([
+    { productId: 'fixture-bike-retired', quantity: 1 },
+    { productId: displayProduct._id, quantity: 1 },
+  ])
+  await page.goto('/panier')
+
+  await expect(page.getByRole('status')).toHaveText(
+    message('cart.withdrawn', { names: message('cart.an_item') })
+  )
+  await expect(page.locator('li').filter({ hasText: displayProduct.name.fr }).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: message('cart.checkout') })).toBeVisible()
+  const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(stored.lines).toEqual([{ productId: displayProduct._id, quantity: 1 }])
+})
+
+test('a promo code the server cannot read no longer takes the basket down with it', async ({
+  page,
+  seedCart,
+}) => {
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }])
+  await page.goto('/panier')
+  await expect(page.getByText(displayProduct.name.fr).first()).toBeVisible()
+
+  // A space is enough: the code was saved as typed and then refused on every
+  // pricing request, hiding the lines and the very field that could clear it.
+  await page.locator('#promo').fill('promo 10')
+  await page.getByRole('button', { name: message('cart.apply') }).click()
+
+  await expect(page.getByText(message('cart.promo_rejected'))).toBeVisible()
+  await expect(page.locator('li').filter({ hasText: displayProduct.name.fr }).first()).toBeVisible()
+  await expect(page.locator('#promo')).toBeVisible()
+  const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(stored.promoCode).toBeNull()
+})
+
+test('checkout takes out a product that left the catalogue and prices the rest', async ({ page, seedCart }) => {
+  await seedCart([
+    { productId: 'fixture-bike-retired', quantity: 1 },
+    { productId: displayProduct._id, quantity: 1 },
+  ])
+  await page.goto('/commande')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+
+  await expect(page.getByRole('status')).toHaveText(
+    message('cart.withdrawn', { names: message('cart.an_item') })
+  )
+  await expect(page.getByText(displayPrice(displayProduct.price)).first()).toBeVisible()
+})
+
+test('checkout drops a stored promo code the server cannot read, and prices the rest', async ({
+  page,
+  seedCart,
+}) => {
+  // Saved as typed before the basket page learned to drop it, and never shown
+  // to that page again: checkout has no promo field, so the code failed every
+  // total and every submit with nothing the customer could do about it here.
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }], 'PROMO 10')
+  await page.goto('/commande')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+
+  await expect(page.getByRole('status')).toHaveText(message('errors.invalid_promo_code'))
+  await expect(page.locator('aside dl')).toContainText(displayPrice(displayProduct.price))
+  const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(stored.promoCode).toBeNull()
+})
+
+test('a well-formed code the shop does not honour is let go, in the basket and at checkout', async ({
+  page,
+  seedCart,
+}) => {
+  // Unknown, expired or used up, it prices without error — the basket only
+  // says it is not valid — but placing the order refused it every time, and
+  // checkout has no field to clear it. It stayed in storage and blocked every
+  // "Confirmer".
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }])
+  await page.goto('/panier')
+  await expect(page.getByText(displayProduct.name.fr).first()).toBeVisible()
+  await page.locator('#promo').fill('WELCOMEVIENA')
+  await page.getByRole('button', { name: message('cart.apply') }).click()
+  await expect(page.getByText(message('cart.promo_rejected'))).toBeVisible()
+  const basket = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(basket.promoCode).toBeNull()
+
+  // Stored before this change: checkout lets it go too, and says so.
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }], 'WELCOMEVIENA')
+  await page.goto('/commande')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+  await expect(page.getByRole('status')).toHaveText(message('errors.invalid_promo_code'))
+  await expect(page.locator('aside dl')).toContainText(displayPrice(displayProduct.price))
+  const checkout = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(checkout.promoCode).toBeNull()
 })

@@ -154,6 +154,7 @@
     "title": "Guides and advice"
   },
   "cart": {
+    "an_item": "an item",
     "apply": "Apply",
     "browse": "Browse products",
     "checkout": "Checkout",
@@ -173,7 +174,8 @@
     "total": "Total",
     "undo_removed": "{name} removed from your basket.",
     "undo": "Undo",
-    "undo_failed": "That item could not be restored."
+    "undo_failed": "That item could not be restored.",
+    "withdrawn": "We have taken what is no longer for sale out of your basket: {names}."
   },
   "cgv": {
     "data_link": "Privacy policy",
@@ -291,7 +293,8 @@
     "close": "Close",
     "loading": "Loading…",
     "next": "Next",
-    "previous": "Previous"
+    "previous": "Previous",
+    "retry": "Try again"
   },
   "compare": {
     "best": "Best of the selection",
@@ -376,21 +379,33 @@
     "cart_empty": "Your basket is empty.",
     "compare_price_not_higher": "The struck-through price must be higher than the current price.",
     "csrf_rejected": "Request refused for security reasons.",
+    "email_unavailable": "An account cannot be created with this address. Try signing in, or continue with Google.",
+    "field_invalid": "This value is not valid.",
+    "field_required": "This field is required.",
+    "field_too_long": "This text is too long.",
     "forbidden": "You do not have access to this page.",
     "internal": "Something went wrong on our side.",
     "invalid_credentials": "Incorrect email or password.",
+    "invalid_email": "This email address is not valid.",
+    "invalid_phone": "This phone number is not valid.",
+    "invalid_postal_code": "This postcode is not valid.",
+    "invalid_promo_code": "This promo code is not valid.",
     "invalid_state_transition": "That is not possible right now.",
     "not_authenticated": "Please sign in.",
     "not_found": "Not found.",
     "out_of_stock": "Not enough stock.",
     "page_not_found": "This page does not exist.",
+    "password_too_short": "This password is too short.",
     "payment_provider": "The payment could not be processed.",
     "price_changed": "Prices have changed, please review your basket.",
+    "product_unavailable": "An item in your basket is no longer available.",
     "promo_exhausted": "This promo code is no longer valid.",
-    "rate_limited": "Too many attempts. Please try again shortly.",
+    "rate_limited": "Too many attempts. Please wait before trying again.",
+    "rate_limited_for": "Too many attempts. Please try again in {wait}.",
     "service_unavailable": "Service temporarily unavailable.",
     "session_expired": "Your session has expired.",
-    "stock_reserved": "The last units are briefly reserved by other shoppers — try again in a few minutes.",
+    "stock_reserved": "The last units are briefly reserved for a payment in progress — try again in a few minutes.",
+    "too_many_addresses": "You have reached the maximum number of saved addresses. Delete one to add another.",
     "unknown_payment_method": "That payment method is not available.",
     "unknown_shipping_method": "That delivery option is not available.",
     "unsupported_country": "We do not deliver to this country yet.",

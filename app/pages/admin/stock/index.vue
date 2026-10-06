@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Catalogue: price and stock in one place.
  *
@@ -19,7 +20,7 @@ import { parseAmountInput } from '~~/shared/money'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 // The two bare "€" glyphs beside the price inputs stay: an input holds the raw
 // editable number, and formatting a value someone is about to type over would
 // fight them. Only rendered text goes through the formatter.
@@ -51,17 +52,39 @@ const search = ref('')
 const lowStockOnly = ref(false)
 const market = ref('')
 
-const { data, refresh, status: loadState } = await useFetch<{
+/**
+ * What the table is filtered by: the search box's text once typing pauses.
+ *
+ * Every keystroke used to be a request of its own, against a budget of sixty a
+ * minute that each save's refresh also draws on — a few product names typed in
+ * a row, and the panel was refused for the rest of the minute.
+ */
+const searchTerm = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(search, (value) => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    searchTerm.value = value
+  }, 300)
+})
+onBeforeUnmount(() => clearTimeout(searchTimer))
+
+const { data, refresh, status: loadState, error: loadError } = await useFetch<{
   items: CatalogueRow[]
   total: number
   markets: string[]
 }>('/api/admin/products', {
   query: computed(() => ({
-    ...(search.value ? { search: search.value } : {}),
+    ...(searchTerm.value ? { search: searchTerm.value } : {}),
     ...(lowStockOnly.value ? { lowStockOnly: true } : {}),
     ...(market.value ? { market: market.value } : {}),
   })),
 })
+
+// A failed load is said, not drawn as "Aucun produit." (see admin/commandes/index.vue).
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 const saving = ref<string | null>(null)
 const saved = ref<string | null>(null)
@@ -82,8 +105,7 @@ async function save(key: string, request: () => Promise<unknown>): Promise<void>
     await request()
     flashSaved(key)
   } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   } finally {
     saving.value = null
     // Refreshed even after a failure, so the table shows what is actually
@@ -172,6 +194,7 @@ useSeoMeta({ title: () => t('admin.catalogue'), robots: 'noindex' })
     <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
 
+    <p v-else-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
     <div v-else-if="data?.items?.length" class="mt-6 overflow-x-auto">
       <table class="w-full min-w-[52rem] border-separate border-spacing-y-2">
         <thead>

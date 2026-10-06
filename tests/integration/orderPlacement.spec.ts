@@ -17,27 +17,43 @@
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { sql } from 'drizzle-orm'
+import { AppError } from '../../shared/errors'
 import { closePool, hasDatabase, inTransaction, resetDatabase, seedProduct, testDb } from './setup'
 
 const BIKE = 'product-v20-noir'
+/** Unpublished in the panel: the catalogue still knows its name, and no longer sells it. */
+const HIDDEN = 'product-cargo-vert'
+/** Deleted from the Studio: nothing is left to name it with. */
+const DELETED = 'product-retired-2025'
 
 vi.mock('../../server/catalog', () => ({
-  getProductsByIds: async () =>
-    new Map([
+  getProductsByIds: async (ids: string[]) =>
+    new Map(
+      ids.includes(BIKE)
+        ? [
+            [
+              BIKE,
+              {
+                id: BIKE,
+                slug: 'v20-pro-noir',
+                name: 'V20 Pro — Noir',
+                color: 'Noir',
+                image: null,
+                price: 95000,
+                compareAtPrice: null,
+                sku: BIKE,
+              },
+            ],
+          ]
+        : []
+    ),
+  getProductNames: async (ids: string[]) =>
+    new Map(
       [
-        BIKE,
-        {
-          id: BIKE,
-          slug: 'v20-pro-noir',
-          name: 'V20 Pro — Noir',
-          color: 'Noir',
-          image: null,
-          price: 95000,
-          compareAtPrice: null,
-          sku: BIKE,
-        },
-      ],
-    ]),
+        [BIKE, 'V20 Pro — Noir'],
+        [HIDDEN, 'Cargo — Vert'],
+      ].filter(([id]) => ids.includes(id as string)) as Array<[string, string]>
+    ),
   getPromo: async () => null,
   shippingMethodsFor: async () => [
     { code: 'own-fleet-fr', name: 'Livraison', price: 0, freeAbove: null, estimatedDays: null },
@@ -111,6 +127,36 @@ describe.skipIf(!hasDatabase)('placing an order', () => {
       sql`SELECT on_hand FROM inventory WHERE product_id = ${BIKE}`
     )
     expect(rows.rows[0]?.on_hand).toBe(5)
+  })
+
+  it('refuses a basket holding products that left the catalogue, and says which', async () => {
+    // One unpublished bike used to turn the whole basket into "Introuvable.":
+    // the refusal was a NOT_FOUND whose details never reached the browser, so
+    // the page could neither show the basket nor say which line was at fault.
+    const error = await placeOrder(
+      order({
+        lines: [
+          { productId: BIKE, quantity: 1 },
+          { productId: HIDDEN, quantity: 1 },
+          { productId: DELETED, quantity: 1 },
+        ],
+      }) as never
+    ).catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(AppError)
+    // Exactly what the browser receives.
+    expect((error as AppError).toPublic()).toEqual({
+      code: 'PRODUCT_UNAVAILABLE',
+      messageKey: 'errors.product_unavailable',
+      details: {
+        unavailable: [
+          { productId: HIDDEN, name: 'Cargo — Vert' },
+          { productId: DELETED, name: null },
+        ],
+      },
+    })
+    expect(await countOf('orders')).toBe(0)
+    expect(await countOf('stock_reservations')).toBe(0)
   })
 
   it('resolves a repeated key to the one order, rather than a second', async () => {

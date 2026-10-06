@@ -67,9 +67,18 @@ export default defineRoute({
       }
     } catch (error) {
       if (isDuplicateEmail(error)) {
-        // Deliberately the same shape as a validation failure, and deliberately
-        // not "this email is taken" — an unauthenticated caller must not be
-        // able to enumerate who has an account here.
+        // Deliberately the same shape as a validation failure, and the wording
+        // (errors.email_unavailable) never says "this email is taken": it tells
+        // the person what to do — sign in, or continue with Google — without
+        // confirming that an account exists.
+        //
+        // That is all the wording can do. The response itself still tells the
+        // two cases apart — a new address gets 200 and a session, a known one
+        // gets this 400 — and only a sign-up finished through an emailed link
+        // would close that, which the shop cannot send yet. Until then the
+        // captcha and the register budget (five an hour per address) are what
+        // make probing slow, and every probe of an unknown address creates an
+        // account under it.
         const existing = await emailExists(body.email)
         throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
           details: { issues: [{ path: 'email', message: 'errors.email_unavailable' }] },

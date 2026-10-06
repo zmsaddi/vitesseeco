@@ -85,7 +85,10 @@ export function displayDecimal(decimal: string, locale: 'fr' | 'ar' = 'fr'): str
   return displayPrice(Number(decimal), locale)
 }
 
-/** The localStorage payload useCart persists — ids and quantities, nothing else. */
-export function cartStorage(lines: Array<{ productId: string; quantity: number }>): string {
-  return JSON.stringify({ lines, promoCode: null })
+/** The localStorage payload useCart persists — ids, quantities and a promo code, nothing else. */
+export function cartStorage(
+  lines: Array<{ productId: string; quantity: number }>,
+  promoCode: string | null = null
+): string {
+  return JSON.stringify({ lines, promoCode })
 }

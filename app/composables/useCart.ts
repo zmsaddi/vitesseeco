@@ -8,6 +8,8 @@
  *
  * Persisted to localStorage so a customer can close the tab and come back.
  */
+import { unavailableProducts, type ApiErrorPayload } from '~/utils/apiError'
+
 const STORAGE_KEY = 'vitesse.cart.v1'
 const MAX_LINES = 20
 const MAX_PER_LINE = 10
@@ -150,6 +152,58 @@ export function useCart() {
     persist()
   }
 
+  /**
+   * Take out of the basket what the server refused to price, and answer what
+   * went.
+   *
+   * Two things used to fail every pricing request for the whole basket: a
+   * product that left the catalogue (the refusal names it, PRODUCT_UNAVAILABLE),
+   * and a stored promo code the server's rule cannot read — "PROMO 10" is saved
+   * as typed. The basket lives in localStorage, so both stayed dead on every
+   * visit, for everything in them. The basket and checkout both correct
+   * themselves here, so the two cannot disagree about what a refusal means.
+   *
+   * Answers nothing when the refusal was about something else, and a caller
+   * prices again only when something changed: a refusal this cannot correct
+   * cannot loop.
+   */
+  function correct(refusal: ApiErrorPayload): {
+    withdrawn: Array<{ productId: string; name: string | null }>
+    promoDropped: boolean
+  } {
+    const withdrawn = unavailableProducts(refusal).filter((product) =>
+      lines.value.some((line) => line.productId === product.productId)
+    )
+    for (const product of withdrawn) remove(product.productId)
+
+    // A code the server cannot read, or one it read and will not apply at
+    // placement (expired, used up, mistyped into another code's shape): the
+    // order is always refused while it is stored, and checkout has no field to
+    // clear it from.
+    const promoDropped =
+      promoCode.value !== null &&
+      (refusal.code === 'PROMO_EXHAUSTED' ||
+        (refusal.details?.issues ?? []).some((issue) => issue.path === 'cart.promoCode'))
+    if (promoDropped) applyPromo(null)
+
+    return { withdrawn, promoDropped }
+  }
+
+  /**
+   * Let go of a stored code the server priced and did not apply.
+   *
+   * A well-formed code that is unknown, expired or used up prices without
+   * error — the basket just says it is not valid — but placing the order
+   * refuses it every time, and checkout has no promo field. Kept in storage, it
+   * blocked every "Confirmer" with nothing on the page to clear it. Answers
+   * whether it dropped one, so the caller can say so and price again.
+   */
+  function settlePromo(priced: { promo: { applied: boolean } | null } | null): boolean {
+    if (promoCode.value === null || !priced?.promo || priced.promo.applied) return false
+    applyPromo(null)
+    return true
+  }
+
   const count = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
   const isEmpty = computed(() => lines.value.length === 0)
 
@@ -166,5 +220,7 @@ export function useCart() {
     remove,
     clear,
     applyPromo,
+    correct,
+    settlePromo,
   }
 }

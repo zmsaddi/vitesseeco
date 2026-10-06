@@ -89,7 +89,7 @@ npm run verify:frontend -- http://127.0.0.1:3000
 
 | Suite | Project | Owns |
 |---|---|---|
-| [`functional/`](../../tests/e2e/playwright/functional) | `functional` | the journey home → listing → PDP → basket → repricing → checkout (COD) → confirmation; sold-out, colour siblings, undo, promo; the server-price-authority contract |
+| [`functional/`](../../tests/e2e/playwright/functional) | `functional` | the journey home → listing → PDP → basket → repricing → checkout (COD) → confirmation; sold-out, colour siblings, undo, promo; the server-price-authority contract; what the customer is told when a request is refused or fails — the field at fault, how long a rate limit lasts, and never an empty page in place of a failed load |
 | [`a11y/`](../../tests/e2e/playwright/a11y) | `a11y` | axe WCAG 2.0/2.1 A+AA on home, listing, PDP, cart, checkout, login — zero violations, blocking |
 | [`rtl/`](../../tests/e2e/playwright/rtl) | `rtl` | `lang`/`dir`, geometric mirroring (header, popover alignment, inline icon order), what must NOT mirror (brand artwork, digits, phone numbers), Arabic funnel content, and reflow at 320/390/1366 in fr and ar |
 | [`visual/`](../../tests/e2e/playwright/visual) | `visual` | eight screenshots: home/listing/PDP/cart/checkout mobile, home/PDP desktop, Arabic PDP mobile |
@@ -107,15 +107,20 @@ Every spec imports `test` from
 which gives it:
 
 - **catalogue-image interception** (committed PNG, byte-identical every run);
-- **hydration-aware navigation** — `page.goto` waits for Vue's mount mark, so a
-  click can never land on a server-rendered button with no handler (the false
-  negative the old simulator produced under load);
+- **hydration-aware navigation** — `page.goto` waits until Nuxt has finished
+  hydrating (not merely Vue's mount mark: a page's async setup hydrates after
+  it), so a click can never land on a server-rendered button with no handler
+  (the false negative the old simulator produced under load);
 - **an error monitor** — `pageerror`, unexpected `console.error`, first-party
   5xx: any of them fails the test that caused them, visible assertions
   notwithstanding. The tolerated console patterns are enumerated in the file,
   each with its reason; the list is the entire policy.
 - **fresh state** — Playwright gives each test its own context; `seedCart`
-  writes a basket rather than inheriting one.
+  writes a basket rather than inheriting one. Each test is also its own
+  visitor to the rate limiter: `clientAddress` is a fresh documentation-range
+  address sent as `x-real-ip` on every first-party request, so rerunning one
+  spec (`--repeat-each`, UI mode) cannot spend the login or sign-up budget
+  another run needs. `page.request` calls pass it themselves.
 
 Fixture identities live in
 [`tests/e2e/playwright/helpers/catalogue.ts`](../../tests/e2e/playwright/helpers/catalogue.ts)

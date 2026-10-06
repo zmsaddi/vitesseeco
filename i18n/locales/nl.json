@@ -154,6 +154,7 @@
     "title": "Gidsen en advies"
   },
   "cart": {
+    "an_item": "een artikel",
     "apply": "Toepassen",
     "browse": "Bekijk producten",
     "checkout": "Afrekenen",
@@ -173,7 +174,8 @@
     "total": "Totaal",
     "undo_removed": "{name} uit je winkelwagen verwijderd.",
     "undo": "Ongedaan maken",
-    "undo_failed": "Dit artikel kon niet worden hersteld."
+    "undo_failed": "Dit artikel kon niet worden hersteld.",
+    "withdrawn": "We hebben wat niet meer te koop is uit uw winkelmand gehaald: {names}."
   },
   "cgv": {
     "data_link": "Privacybeleid",
@@ -291,7 +293,8 @@
     "close": "Sluiten",
     "loading": "Laden…",
     "next": "Volgende",
-    "previous": "Vorige"
+    "previous": "Vorige",
+    "retry": "Opnieuw proberen"
   },
   "compare": {
     "best": "Beste van de selectie",
@@ -376,21 +379,33 @@
     "cart_empty": "Uw winkelmand is leeg.",
     "compare_price_not_higher": "De doorgestreepte prijs moet hoger zijn dan de huidige prijs.",
     "csrf_rejected": "Verzoek geweigerd om veiligheidsredenen.",
+    "email_unavailable": "Met dit adres kan geen account worden aangemaakt. Probeer in te loggen, of ga verder met Google.",
+    "field_invalid": "Deze waarde is niet geldig.",
+    "field_required": "Dit veld is verplicht.",
+    "field_too_long": "Deze tekst is te lang.",
     "forbidden": "U heeft geen toegang tot deze pagina.",
     "internal": "Er is bij ons iets misgegaan.",
     "invalid_credentials": "Onjuist e-mailadres of wachtwoord.",
+    "invalid_email": "Dit e-mailadres is niet geldig.",
+    "invalid_phone": "Dit telefoonnummer is niet geldig.",
+    "invalid_postal_code": "Deze postcode is niet geldig.",
+    "invalid_promo_code": "Deze kortingscode is niet geldig.",
     "invalid_state_transition": "Dat is op dit moment niet mogelijk.",
     "not_authenticated": "Log in om verder te gaan.",
     "not_found": "Niet gevonden.",
     "out_of_stock": "Onvoldoende voorraad.",
     "page_not_found": "Deze pagina bestaat niet.",
+    "password_too_short": "Dit wachtwoord is te kort.",
     "payment_provider": "De betaling kon niet worden verwerkt.",
     "price_changed": "De prijzen zijn gewijzigd, controleer uw winkelmand.",
+    "product_unavailable": "Een artikel in uw winkelmand is niet meer beschikbaar.",
     "promo_exhausted": "Deze kortingscode is niet meer geldig.",
-    "rate_limited": "Te veel pogingen. Probeer het zo opnieuw.",
+    "rate_limited": "Te veel pogingen. Wacht een tijdje voordat u het opnieuw probeert.",
+    "rate_limited_for": "Te veel pogingen. Probeer het over {wait} opnieuw.",
     "service_unavailable": "Dienst tijdelijk niet beschikbaar.",
     "session_expired": "Uw sessie is verlopen.",
-    "stock_reserved": "De laatste stuks zijn even gereserveerd door andere klanten — probeer het over enkele minuten opnieuw.",
+    "stock_reserved": "De laatste stuks zijn even gereserveerd voor een lopende betaling — probeer het over enkele minuten opnieuw.",
+    "too_many_addresses": "U hebt het maximale aantal opgeslagen adressen bereikt. Verwijder er een om een nieuw adres toe te voegen.",
     "unknown_payment_method": "Die betaalmethode is niet beschikbaar.",
     "unknown_shipping_method": "Die bezorgoptie is niet beschikbaar.",
     "unsupported_country": "Wij bezorgen nog niet in dit land.",

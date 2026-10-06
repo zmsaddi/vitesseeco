@@ -18,9 +18,11 @@ import { cents, toDecimalString } from '../../../shared/money'
 const querySchema = paginationSchema
   .extend({
     status: orderStatusSchema.optional(),
-    // Every method the shop can actually take. An unknown value is refused,
-    // not ignored.
-    payment: z.enum(['stripe', 'cod', 'in_store']).optional(),
+    // Every method an order can be stored with: the column's own list. One
+    // written out here left the PayPal bridge off, so the panel's PayPal filter
+    // answered 400 over every PayPal order — and an order keeps its method
+    // after the shop stops taking it. An unknown value is refused, not ignored.
+    payment: z.enum(orders.paymentMethod.enumValues).optional(),
     search: z.string().trim().max(120).optional(),
     since: z.coerce.date().optional(),
   })

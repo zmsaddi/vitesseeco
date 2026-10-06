@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError, apiErrorMessage } from '~/utils/apiError'
 /**
  * The basket.
  *
@@ -58,13 +59,47 @@ async function refresh(): Promise<void> {
         locale: locale.value,
       },
     })
+    if (cart.settlePromo(pricing.value)) {
+      // Said once, then priced without it — the stored code would otherwise
+      // follow the customer to checkout and refuse the order there.
+      promoRefused.value = true
+      await refresh()
+      return
+    }
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string } })?.data
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    if (correctBasket(err)) {
+      await refresh()
+      return
+    }
+    error.value = apiErrorMessage(err, t, locale.value)
     pricing.value = null
   } finally {
     pending.value = false
   }
+}
+
+/**
+ * Lines the server says can no longer be bought, by name, kept on screen once
+ * they are gone from the list.
+ */
+const withdrawn = ref<string[]>([])
+/** A stored promo code the server refused to even read. */
+const promoRefused = ref(false)
+
+/**
+ * Take out of the basket what the server will not price, and say so.
+ *
+ * Both of these used to fail every pricing request, and the page drew nothing
+ * but the error — no lines, no "Retirer", no promo field — so a basket that
+ * held one unpublished bike or one mistyped code ("PROMO 10") was dead, on
+ * every reload, for everything in it. The rest of the basket now goes on.
+ * Answers whether anything changed (see useCart's `correct`).
+ */
+function correctBasket(err: unknown): boolean {
+  const { withdrawn: gone, promoDropped } = cart.correct(apiError(err))
+  withdrawn.value.push(...gone.map((product) => product.name ?? t('cart.an_item')))
+  if (promoDropped) promoRefused.value = true
+  return gone.length > 0 || promoDropped
 }
 
 async function setQuantity(line: { productId: string; quantity: number }, input: HTMLInputElement): Promise<void> {
@@ -141,6 +176,7 @@ const shortfall = computed(() =>
   (pricing.value?.lines ?? []).filter((line) => line.available < line.quantity)
 )
 async function applyPromo(): Promise<void> {
+  promoRefused.value = false
   cart.applyPromo(promoInput.value)
   await refresh()
 }
@@ -195,6 +231,12 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
         <button type="button" class="btn-secondary h-9 px-3 text-xs" @click="restore">
           {{ $t('cart.undo') }}
         </button>
+      </p>
+
+      <!-- Kept for the visit: the lines it names are no longer there to
+           explain their own absence. -->
+      <p v-if="withdrawn.length" class="card mt-6 p-3 text-sm text-content" role="status" aria-live="polite">
+        {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
       </p>
 
       <p v-if="pending && !pricing" class="mt-8 text-content-muted">{{ $t('common.loading') }}</p>
@@ -290,6 +332,9 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
             <p v-else-if="pricing.promo?.applied" class="mt-2 text-sm text-success">
               {{ $t('cart.promo_applied', { code: pricing.promo.code }) }}
             </p>
+            <p v-else-if="promoRefused" class="mt-2 text-sm text-danger">
+              {{ $t('cart.promo_rejected') }}
+            </p>
           </div>
 
           <p v-if="shortfall.length" role="alert" class="mt-6 text-sm text-danger">
@@ -308,7 +353,12 @@ useSeoMeta({ title: () => t('cart.title'), robots: 'noindex' })
         </aside>
       </div>
 
-      <p v-else-if="error" class="mt-8 text-danger">{{ error }}</p>
+      <!-- What is left is a failure of the request, not of the basket — a
+           moment offline, the stock store asleep — so it is asked again. -->
+      <div v-else-if="error" class="mt-8">
+        <p role="alert" class="text-danger">{{ error }}</p>
+        <button type="button" class="btn-secondary mt-4" @click="refresh">{{ $t('common.retry') }}</button>
+      </div>
     </ClientOnly>
   </div>
 </template>

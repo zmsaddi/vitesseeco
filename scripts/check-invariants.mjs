@@ -321,7 +321,29 @@ if (FILES.length === 0) {
         fail(rule, 'i18n/locales/fr.json', null, `${key} is rendered but not defined`)
       }
     }
-    if (bad === 0) pass(rule, `${used.size} literal keys resolved`)
+
+    // A key the SERVER sends is rendered just the same — a page hands a
+    // messageKey or a field issue straight to t() — but no t('…') names it, so
+    // the scan above never sees one. Two such keys existed in no locale, and
+    // signing up with an address that already had an account put the words
+    // "errors.email_unavailable" under the email field in all six languages.
+    // So every errors.* literal under server/ and shared/ must be defined too:
+    // the code defaults, the messageKey overrides, the issue messages.
+    const sent = new Map()
+    for (const file of FILES) {
+      const rel = relative(ROOT, file).split('\\').join('/')
+      if (!rel.startsWith('server/') && !rel.startsWith('shared/')) continue
+      for (const m of readFileSync(file, 'utf8').matchAll(/['"`](errors\.[a-z0-9_]+)['"`]/g)) {
+        if (!sent.has(m[1])) sent.set(m[1], rel)
+      }
+    }
+    for (const [key, rel] of sent) {
+      if (!known.has(key)) {
+        bad++
+        fail(rule, rel, null, `${key} is sent to the browser but not defined in i18n/locales/fr.json`)
+      }
+    }
+    if (bad === 0) pass(rule, `${used.size} literal keys resolved, ${sent.size} sent by the server`)
   }
 }
 
@@ -577,6 +599,28 @@ if (suppressed.length > 0) {
     if (/access:\s*'public'/.test(text)) continue
     bad++
     fail(rule, rel, null, 'asks a shared cache to hold a response that is not public')
+  }
+  if (bad === 0) pass(rule)
+}
+
+// ── 18. API error payloads are read through apiError() ─────────────────────
+// h3 nests AppError.toPublic() under the error body's `data`, so the payload is
+// at err.data.data. Eleven pages read err.data.messageKey, found nothing, and
+// told every customer "an error on our side" — for a wrong password, a sold-out
+// bike, an empty basket. app/utils/apiError.ts is the one reader.
+{
+  const rule = 'API error payloads are read through apiError()'
+  let bad = 0
+  for (const file of walk(join(ROOT, 'app'), ['.vue', '.ts'])) {
+    const rel = relative(ROOT, file).split('\\').join('/')
+    if (rel === 'app/utils/apiError.ts') continue
+    readFileSync(file, 'utf8')
+      .split('\n')
+      .forEach((line, i) => {
+        if (!/\(err(or)? as \{\s*(data\?|$)|\.data\??\.messageKey/.test(line)) return
+        bad++
+        fail(rule, rel, i + 1, `reads an API error by hand: ${line.trim().slice(0, 100)}`)
+      })
   }
   if (bad === 0) pass(rule)
 }

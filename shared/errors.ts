@@ -33,6 +33,7 @@ export const ERROR_CODES = {
 
   // 409 — the world moved while the customer was deciding
   OUT_OF_STOCK: 'OUT_OF_STOCK',
+  PRODUCT_UNAVAILABLE: 'PRODUCT_UNAVAILABLE',
   PRICE_CHANGED: 'PRICE_CHANGED',
   PROMO_EXHAUSTED: 'PROMO_EXHAUSTED',
   INVALID_STATE_TRANSITION: 'INVALID_STATE_TRANSITION',
@@ -64,6 +65,7 @@ const STATUS: Record<ErrorCode, number> = {
   CAPTCHA_FAILED: 403,
   NOT_FOUND: 404,
   OUT_OF_STOCK: 409,
+  PRODUCT_UNAVAILABLE: 409,
   PRICE_CHANGED: 409,
   PROMO_EXHAUSTED: 409,
   INVALID_STATE_TRANSITION: 409,
@@ -92,6 +94,7 @@ const MESSAGE_KEY: Record<ErrorCode, string> = {
   CAPTCHA_FAILED: 'errors.captcha_failed',
   NOT_FOUND: 'errors.not_found',
   OUT_OF_STOCK: 'errors.out_of_stock',
+  PRODUCT_UNAVAILABLE: 'errors.product_unavailable',
   PRICE_CHANGED: 'errors.price_changed',
   PROMO_EXHAUSTED: 'errors.promo_exhausted',
   INVALID_STATE_TRANSITION: 'errors.invalid_state_transition',
@@ -110,6 +113,10 @@ const MESSAGE_KEY: Record<ErrorCode, string> = {
 const DETAILS_ARE_PUBLIC = new Set<ErrorCode>([
   ERROR_CODES.VALIDATION_FAILED,
   ERROR_CODES.OUT_OF_STOCK,
+  // Which lines of the basket can no longer be bought, so the basket can drop
+  // them and say so — under NOT_FOUND these details never left the server, and
+  // the page could only print "Introuvable." over a basket it could not show.
+  ERROR_CODES.PRODUCT_UNAVAILABLE,
   ERROR_CODES.PRICE_CHANGED,
   ERROR_CODES.UNSUPPORTED_COUNTRY,
   ERROR_CODES.RATE_LIMITED,

@@ -154,6 +154,7 @@
     "title": "Guides et conseils"
   },
   "cart": {
+    "an_item": "un article",
     "apply": "Appliquer",
     "browse": "Voir les produits",
     "checkout": "Commander",
@@ -173,7 +174,8 @@
     "total": "Total",
     "undo_removed": "{name} retiré du panier.",
     "undo": "Annuler",
-    "undo_failed": "Impossible de restaurer cet article."
+    "undo_failed": "Impossible de restaurer cet article.",
+    "withdrawn": "Nous avons retiré de votre panier ce qui n'est plus en vente : {names}."
   },
   "cgv": {
     "data_link": "Politique de confidentialité",
@@ -291,7 +293,8 @@
     "close": "Fermer",
     "loading": "Chargement…",
     "next": "Suivant",
-    "previous": "Précédent"
+    "previous": "Précédent",
+    "retry": "Réessayer"
   },
   "compare": {
     "best": "Meilleure valeur de la sélection",
@@ -376,21 +379,33 @@
     "cart_empty": "Votre panier est vide.",
     "compare_price_not_higher": "Le prix barré doit être supérieur au prix actuel.",
     "csrf_rejected": "Requête refusée pour des raisons de sécurité.",
+    "email_unavailable": "Impossible de créer un compte avec cette adresse. Essayez de vous connecter, ou de continuer avec Google.",
+    "field_invalid": "Cette valeur n'est pas valide.",
+    "field_required": "Ce champ est obligatoire.",
+    "field_too_long": "Ce texte est trop long.",
     "forbidden": "Vous n'avez pas accès à cette page.",
     "internal": "Une erreur est survenue de notre côté.",
     "invalid_credentials": "Email ou mot de passe incorrect.",
+    "invalid_email": "Cette adresse email n'est pas valide.",
+    "invalid_phone": "Ce numéro de téléphone n'est pas valide.",
+    "invalid_postal_code": "Ce code postal n'est pas valide.",
+    "invalid_promo_code": "Ce code promo n'est pas valide.",
     "invalid_state_transition": "Cette action n'est pas possible actuellement.",
     "not_authenticated": "Veuillez vous connecter.",
     "not_found": "Introuvable.",
     "out_of_stock": "Stock insuffisant.",
     "page_not_found": "Cette page n'existe pas.",
+    "password_too_short": "Ce mot de passe est trop court.",
     "payment_provider": "Le paiement n'a pas pu être traité.",
     "price_changed": "Les prix ont changé, veuillez vérifier votre panier.",
+    "product_unavailable": "Un article de votre panier n'est plus disponible.",
     "promo_exhausted": "Ce code promo n'est plus valable.",
-    "rate_limited": "Trop de tentatives. Réessayez dans un instant.",
+    "rate_limited": "Trop de tentatives. Veuillez patienter avant de réessayer.",
+    "rate_limited_for": "Trop de tentatives. Réessayez dans {wait}.",
     "service_unavailable": "Service temporairement indisponible.",
     "session_expired": "Votre session a expiré.",
-    "stock_reserved": "Dernières unités momentanément réservées par d'autres clients — réessayez dans quelques minutes.",
+    "stock_reserved": "Dernières unités momentanément réservées pour un paiement en cours — réessayez dans quelques minutes.",
+    "too_many_addresses": "Vous avez atteint le nombre maximal d'adresses enregistrées. Supprimez-en une pour en ajouter une autre.",
     "unknown_payment_method": "Ce moyen de paiement est indisponible.",
     "unknown_shipping_method": "Ce mode de livraison est indisponible.",
     "unsupported_country": "Nous ne livrons pas encore dans ce pays.",

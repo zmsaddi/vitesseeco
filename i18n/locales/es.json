@@ -154,6 +154,7 @@
     "title": "Guías y consejos"
   },
   "cart": {
+    "an_item": "un artículo",
     "apply": "Aplicar",
     "browse": "Ver productos",
     "checkout": "Finalizar compra",
@@ -173,7 +174,8 @@
     "total": "Total",
     "undo_removed": "{name} eliminado de la cesta.",
     "undo": "Deshacer",
-    "undo_failed": "No se ha podido restaurar este artículo."
+    "undo_failed": "No se ha podido restaurar este artículo.",
+    "withdrawn": "Hemos retirado de su cesta lo que ya no está a la venta: {names}."
   },
   "cgv": {
     "data_link": "Política de privacidad",
@@ -291,7 +293,8 @@
     "close": "Cerrar",
     "loading": "Cargando…",
     "next": "Siguiente",
-    "previous": "Anterior"
+    "previous": "Anterior",
+    "retry": "Reintentar"
   },
   "compare": {
     "best": "Mejor valor de la selección",
@@ -376,21 +379,33 @@
     "cart_empty": "Su cesta está vacía.",
     "compare_price_not_higher": "El precio tachado debe ser superior al precio actual.",
     "csrf_rejected": "Solicitud rechazada por motivos de seguridad.",
+    "email_unavailable": "No se puede crear una cuenta con esta dirección. Pruebe a iniciar sesión o continúe con Google.",
+    "field_invalid": "Este valor no es válido.",
+    "field_required": "Este campo es obligatorio.",
+    "field_too_long": "Este texto es demasiado largo.",
     "forbidden": "No tiene acceso a esta página.",
     "internal": "Se ha producido un error por nuestra parte.",
     "invalid_credentials": "Correo o contraseña incorrectos.",
+    "invalid_email": "Esta dirección de correo electrónico no es válida.",
+    "invalid_phone": "Este número de teléfono no es válido.",
+    "invalid_postal_code": "Este código postal no es válido.",
+    "invalid_promo_code": "Este código promocional no es válido.",
     "invalid_state_transition": "Eso no es posible en este momento.",
     "not_authenticated": "Inicie sesión, por favor.",
     "not_found": "No encontrado.",
     "out_of_stock": "Stock insuficiente.",
     "page_not_found": "Esta página no existe.",
+    "password_too_short": "Esta contraseña es demasiado corta.",
     "payment_provider": "No se ha podido procesar el pago.",
     "price_changed": "Los precios han cambiado, revise su cesta.",
+    "product_unavailable": "Un artículo de su cesta ya no está disponible.",
     "promo_exhausted": "Este código promocional ya no es válido.",
-    "rate_limited": "Demasiados intentos. Inténtelo de nuevo en un momento.",
+    "rate_limited": "Demasiados intentos. Espere antes de volver a intentarlo.",
+    "rate_limited_for": "Demasiados intentos. Inténtelo de nuevo dentro de {wait}.",
     "service_unavailable": "Servicio no disponible temporalmente.",
     "session_expired": "Su sesión ha caducado.",
-    "stock_reserved": "Las últimas unidades están reservadas brevemente por otros clientes — inténtelo de nuevo en unos minutos.",
+    "stock_reserved": "Las últimas unidades están reservadas brevemente para un pago en curso — inténtelo de nuevo en unos minutos.",
+    "too_many_addresses": "Ha alcanzado el número máximo de direcciones guardadas. Elimine una para poder añadir otra.",
     "unknown_payment_method": "Ese método de pago no está disponible.",
     "unknown_shipping_method": "Esa opción de entrega no está disponible.",
     "unsupported_country": "Todavía no entregamos en este país.",

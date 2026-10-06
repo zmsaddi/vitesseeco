@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Customer messages.
  *
@@ -30,7 +31,7 @@ interface ContactMessage {
 const unreadOnly = ref(false)
 const page = ref(1)
 
-const { data, refresh, status: loadState } = await useFetch<{
+const { data, refresh, status: loadState, error: loadError } = await useFetch<{
   messages: ContactMessage[]
   unread: number
 }>('/api/admin/messages', {
@@ -40,6 +41,11 @@ const { data, refresh, status: loadState } = await useFetch<{
     ...(unreadOnly.value ? { unreadOnly: true } : {}),
   })),
 })
+
+// A failed load is said, not drawn as "Aucun message." (see admin/commandes/index.vue).
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 const open = ref<string | null>(null)
 const busy = ref<string | null>(null)
@@ -52,8 +58,7 @@ async function patch(id: string, body: Record<string, unknown>): Promise<void> {
     await $fetch<unknown>(`/api/admin/messages/${id}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
-    const payload = (err as { data?: { messageKey?: string } })?.data
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   } finally {
     busy.value = null
   }
@@ -104,6 +109,7 @@ useSeoMeta({ title: () => t('admin.messages'), robots: 'noindex' })
     <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
 
+    <p v-else-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
     <p v-else-if="!data?.messages?.length" class="mt-6 text-content-muted">
       {{ $t('admin.no_messages') }}
     </p>

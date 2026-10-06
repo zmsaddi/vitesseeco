@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError, apiErrorMessage } from '~/utils/apiError'
 import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js'
 
 /**
@@ -57,6 +58,7 @@ interface Totals {
   discount: string
   shipping: string
   total: string
+  promo: { code: string; applied: boolean } | null
 }
 
 const shippingOptions = ref<ShippingOption[]>([])
@@ -76,17 +78,53 @@ const destinationReady = computed(
   () => destination.country.length === 2 && destination.postalCode.trim().length >= 3
 )
 
+/**
+ * Why the delivery options could not be had, when they could not.
+ *
+ * An empty list is an answer — "no home delivery here" — and a failed lookup
+ * is not one, but both drew the same sentence, with not even collection
+ * offered: a customer in Poitiers was told the shop does not deliver to them
+ * during an outage, or after typing "86000 Poitiers" into the postcode field.
+ * `shippingAttempt` is the retry: bumping it asks again for the same address.
+ * A postcode the server cannot read is offered no retry — asking again would
+ * only repeat it; correcting the field asks again by itself.
+ */
+const shippingError = ref<{ message: string; retry: boolean } | null>(null)
+const shippingPending = ref(false)
+const shippingAttempt = ref(0)
+
 // Delivery options follow the address, and are re-asked whenever it changes —
 // a method that served the old postcode may not serve the new one.
 watch(
-  () => [destination.country, destination.postalCode] as const,
-  async () => {
+  () => [destination.country, destination.postalCode, shippingAttempt.value] as const,
+  async (_current, _previous, onCleanup) => {
+    // Typing a postcode asks once per keystroke past the third, and the
+    // answers can come back in any order. Only the latest address may write:
+    // an earlier lookup landing late, or failing late, would otherwise put its
+    // options or its error over the address on screen.
+    let superseded = false
+    onCleanup(() => {
+      superseded = true
+    })
     selectedShipping.value = null
     shippingOptions.value = []
+    shippingError.value = null
+    shippingPending.value = destinationReady.value
     if (!destinationReady.value) return
     const result = await $fetch<{ methods: ShippingOption[] }>('/api/catalog/shipping', {
       query: { country: destination.country, postalCode: destination.postalCode, locale: locale.value },
+    }).catch((err: unknown) => {
+      if (!superseded) {
+        shippingError.value = {
+          message: apiErrorMessage(err, t, locale.value),
+          retry: apiError(err).code !== 'VALIDATION_FAILED',
+        }
+      }
+      return null
     })
+    if (superseded) return
+    shippingPending.value = false
+    if (!result) return
     shippingOptions.value = result.methods
     if (pendingRestore.shipping && result.methods.some((option) => option.code === pendingRestore.shipping)) {
       // The choice the customer had already made, back without a click.
@@ -133,27 +171,64 @@ watch(paymentOptions, (options) => {
   }
 })
 
-watch([selectedShipping, () => cart.lines.value], refreshTotals, { deep: true })
+watch([selectedShipping, () => cart.lines.value, () => cart.promoCode.value], refreshTotals, { deep: true })
+
+const totalsError = ref<string | null>(null)
+/** Which request is the latest; an earlier one answering late must not land over it. */
+let totalsAsked = 0
 
 async function refreshTotals(): Promise<void> {
+  const asked = ++totalsAsked
+  totalsError.value = null
   if (cart.isEmpty.value || !selectedShipping.value) {
     pricing.value = null
     return
   }
-  // Typed explicitly: leaving Nuxt to infer the response from its route table
-  // sends the checker into a recursion it cannot finish.
-  pricing.value = await $fetch<Totals>('/api/cart/price', {
-    method: 'POST',
-    body: {
-      cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
-      locale: locale.value,
-      shipping: {
-        methodCode: selectedShipping.value,
-        country: destination.country,
-        postalCode: destination.postalCode,
+  try {
+    // Typed explicitly: leaving Nuxt to infer the response from its route table
+    // sends the checker into a recursion it cannot finish.
+    const totals = await $fetch<Totals>('/api/cart/price', {
+      method: 'POST',
+      body: {
+        cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
+        locale: locale.value,
+        shipping: {
+          methodCode: selectedShipping.value,
+          country: destination.country,
+          postalCode: destination.postalCode,
+        },
       },
-    },
-  })
+    })
+    if (asked !== totalsAsked) return
+    // A code that prices without applying would refuse the order: dropped and
+    // said here, and the watcher prices again without it.
+    if (cart.settlePromo(totals)) promoRefused.value = true
+    pricing.value = totals
+  } catch (err: unknown) {
+    if (asked !== totalsAsked) return
+    // Totals that could not be had are not totals. The rejection went nowhere
+    // and the previous ones stayed on screen — collection's free delivery
+    // after the customer had chosen a paid one.
+    pricing.value = null
+    if (!correctBasket(err)) totalsError.value = apiErrorMessage(err, t, locale.value)
+  }
+}
+
+/** Lines the server said could no longer be bought, by name, once they are gone. */
+const withdrawn = ref<string[]>([])
+/** A stored promo code the server refused to even read, dropped. */
+const promoRefused = ref(false)
+
+/**
+ * Correct the basket from a refusal, as the basket page does (useCart's
+ * `correct`), and keep on screen what went. The watcher above prices what
+ * remains — the basket lines and the promo code are both among what it watches.
+ */
+function correctBasket(err: unknown): boolean {
+  const { withdrawn: gone, promoDropped } = cart.correct(apiError(err))
+  withdrawn.value.push(...gone.map((product) => product.name ?? t('cart.an_item')))
+  if (promoDropped) promoRefused.value = true
+  return gone.length > 0 || promoDropped
 }
 
 /**
@@ -393,8 +468,9 @@ async function submit(): Promise<void> {
     await nextTick()
     if (stripeContainer.value) instance.mount(stripeContainer.value)
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string } })?.data
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    // A line that left the catalogue since the totals were read goes by name,
+    // and a stored promo code the server cannot read is dropped, and said so.
+    if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
     // Spent, whether or not it was the reason. Asking Cloudflare to accept it
     // twice fails, and the customer would never learn why.
     captchaToken.value = ''
@@ -478,8 +554,7 @@ async function mountPayPalButtons(): Promise<void> {
 function abandonPayPal(err: unknown): void {
   paypalFlow.value = null
   if (err) {
-    const data = (err as { data?: { messageKey?: string } })?.data
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   }
   captchaToken.value = ''
   captcha.value?.reset()
@@ -520,6 +595,9 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
 
     <ClientOnly v-else>
       <div v-if="cart.isEmpty.value" class="mt-8">
+        <p v-if="withdrawn.length" role="status" class="mb-4 text-sm text-content">
+          {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
+        </p>
         <p class="text-content-muted">{{ $t('cart.empty') }}</p>
         <NuxtLink :to="localePath('/produits')" class="btn-primary mt-6">{{ $t('cart.browse') }}</NuxtLink>
       </div>
@@ -659,6 +737,18 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
             <p v-if="!destinationReady" class="mt-3 text-sm text-content-muted">
               {{ $t('checkout.enter_address_first') }}
             </p>
+            <p v-else-if="shippingPending" class="mt-3 text-sm text-content-muted">{{ $t('common.loading') }}</p>
+            <div v-else-if="shippingError" class="mt-3">
+              <p role="alert" class="text-sm text-danger">{{ shippingError.message }}</p>
+              <button
+                v-if="shippingError.retry"
+                type="button"
+                class="btn-secondary mt-2 h-9 px-3 text-xs"
+                @click="shippingAttempt++"
+              >
+                {{ $t('common.retry') }}
+              </button>
+            </div>
             <p v-else-if="shippingOptions.length === 0" class="mt-3 text-sm text-warning">
               {{ $t('checkout.no_delivery_here') }}
             </p>
@@ -727,7 +817,27 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
               <dd class="text-content-strong">{{ formatDecimal(pricing.total) }}</dd>
             </div>
           </dl>
+          <div v-else-if="totalsError" class="mt-4">
+            <p role="alert" class="text-sm text-danger">{{ totalsError }}</p>
+            <button type="button" class="btn-secondary mt-2 h-9 px-3 text-xs" @click="refreshTotals">
+              {{ $t('common.retry') }}
+            </button>
+          </div>
           <p v-else class="mt-4 text-sm text-content-muted">{{ $t('checkout.totals_pending') }}</p>
+
+          <!-- One live region, always in the page: a screen reader announces
+               what is inserted into a region it already knows, while a region
+               inserted together with its text is often read by nobody. -->
+          <div role="status">
+            <p v-if="withdrawn.length" class="mt-4 text-sm text-content">
+              {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
+            </p>
+            <!-- This page has no promo field, so the code that was dropped is
+                 named here; the totals above are already without it. -->
+            <p v-if="promoRefused" class="mt-4 text-sm text-danger">
+              {{ $t('errors.invalid_promo_code') }}
+            </p>
+          </div>
 
           <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
 

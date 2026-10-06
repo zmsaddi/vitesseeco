@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Admin overview.
  *
@@ -9,7 +10,7 @@
  */
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { formatDecimal, formatPercent } = useFormatPrice()
 const period = ref<'24h' | '7d' | '30d' | '90d'>('7d')
 
@@ -25,9 +26,14 @@ interface Dashboard {
   queue: { toProcess: number; toShip: number; cashAwaitingCollection: number }
 }
 
-const { data, refresh } = await useFetch<Dashboard>('/api/admin/dashboard', {
+const { data, refresh, error: loadError } = await useFetch<Dashboard>('/api/admin/dashboard', {
   query: computed(() => ({ period: period.value })),
 })
+
+// A failed load is said, not drawn as a page without figures (see admin/commandes/index.vue).
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 watch(period, () => refresh())
 
@@ -37,6 +43,8 @@ useSeoMeta({ title: () => t('admin.overview'), robots: 'noindex' })
 <template>
   <div class="container-page">
     <h1 class="font-display text-2xl font-extrabold text-content-strong">{{ $t('admin.overview') }}</h1>
+
+    <p v-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
 
     <section v-if="data" class="mt-6">
       <h2 class="text-sm font-semibold uppercase tracking-wide text-content-muted">

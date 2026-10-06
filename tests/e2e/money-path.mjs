@@ -109,7 +109,7 @@ console.log('\n1. A product with real stock')
 // `AND EXISTS (…)` is not possible here — the catalogue lives in Sanity, not in
 // this database — so the tie is broken by id to make the choice repeatable. A
 // row whose product the catalogue does not serve makes /api/cart/price answer
-// 404 and the whole walk fail three steps later, which is a confusing way to
+// 409 PRODUCT_UNAVAILABLE and the whole walk fail three steps later, which is a confusing way to
 // learn that the inventory table holds a stale fixture.
 const { rows: [product] } = await db.query(
   `SELECT product_id, on_hand FROM inventory

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 import type { AddressInput } from '~~/shared/schemas'
 
 /**
@@ -12,7 +13,7 @@ import type { AddressInput } from '~~/shared/schemas'
 definePageMeta({ middleware: 'auth' })
 
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { formatShortDate } = useFormatDate()
 
 type Country = AddressInput['country']
@@ -58,7 +59,7 @@ interface SavedAddress {
 
 // Stated explicitly: the route is wrapped by defineRoute, so its shape cannot be
 // inferred through the wrapper.
-const { data: saved, refresh } = await useFetch<SavedAddress[]>('/api/account/addresses')
+const { data: saved, refresh, error: loadError } = await useFetch<SavedAddress[]>('/api/account/addresses')
 const { data: me } = await useFetch<{ firstName: string; lastName: string } | null>('/api/auth/me')
 
 const list = computed(() => saved.value ?? [])
@@ -98,7 +99,13 @@ const form = reactive<AddressForm>(emptyForm())
 
 // An empty address book has exactly one useful action on it. Both renders read
 // the same fetched list, so opening the form here cannot disagree with the HTML.
-const showForm = ref(list.value.length === 0)
+// A list that could not be read is not empty: it said "no address yet" and
+// opened the form, inviting the customer to type in again one already saved.
+const showForm = ref(!loadError.value && list.value.length === 0)
+
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 const submitting = ref(false)
 const error = ref<string | null>(null)
@@ -122,9 +129,7 @@ function countryName(code: string): string {
 }
 
 function readError(err: unknown): void {
-  const data = (err as {
-    data?: { messageKey?: string; details?: { issues?: Array<{ path: string; message: string }> } }
-  })?.data
+  const data = apiError(err)
   // A field error only helps if the field is on screen. The server can reject
   // on a path this form does not render — the address limit arrives as
   // `address`, an unknown key as `(root)` — and attaching those to invisible
@@ -136,7 +141,7 @@ function readError(err: unknown): void {
   const unshowable: string[] = []
 
   for (const issue of data?.details?.issues ?? []) {
-    const message = issue.message.startsWith('errors.') ? t(issue.message) : issue.message
+    const message = issueText(issue.message, t)
     if (RENDERED_FIELDS.has(issue.path)) fieldErrors.value[issue.path] = message
     else unshowable.push(message)
   }
@@ -144,7 +149,7 @@ function readError(err: unknown): void {
   if (unshowable.length > 0) {
     error.value = unshowable.join(' · ')
   } else if (Object.keys(fieldErrors.value).length === 0) {
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   }
 }
 
@@ -214,7 +219,12 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
     <p v-if="error" role="alert" class="mt-6 text-sm text-danger">{{ error }}</p>
     <p v-else-if="justSaved" class="mt-6 text-sm text-success">{{ $t('addresses.saved') }}</p>
 
-    <p v-if="!list.length" class="mt-8 text-content-muted">{{ $t('addresses.empty') }}</p>
+    <div v-if="loadMessage" class="mt-8">
+      <p role="alert" class="text-sm text-danger">{{ loadMessage }}</p>
+      <button type="button" class="btn-secondary mt-3" @click="refresh()">{{ $t('common.retry') }}</button>
+    </div>
+
+    <p v-else-if="!list.length" class="mt-8 text-content-muted">{{ $t('addresses.empty') }}</p>
 
     <ul v-else class="mt-8 grid gap-4 sm:grid-cols-2">
       <li v-for="address in list" :key="address.id" class="card flex flex-col p-5">
@@ -313,7 +323,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.firstName" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.firstName" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.firstName }}
             </span>
           </label>
@@ -327,7 +337,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.lastName" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.lastName" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.lastName }}
             </span>
           </label>
@@ -343,7 +353,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
             required
             class="field mt-1"
           />
-          <span v-if="fieldErrors.line1" class="mt-1 block text-sm text-danger">{{ fieldErrors.line1 }}</span>
+          <span v-if="fieldErrors.line1" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.line1 }}</span>
         </label>
 
         <label class="block">
@@ -361,7 +371,11 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('checkout.postal_code') }}</span>
             <!-- Dutch postcodes contain letters, so a numeric keypad would make
-                 them impossible to type on a phone. -->
+                 them impossible to type on a phone.
+                 Browsers compile `pattern` with the `v` flag, which refuses a
+                 bare "-" or "(" inside brackets — and a pattern that does not
+                 compile is silently ignored, so both of these were checking
+                 nothing. Every such character is escaped. -->
             <input
               v-model="form.postalCode"
               type="text"
@@ -369,11 +383,11 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               autocomplete="postal-code"
               minlength="3"
               maxlength="12"
-              pattern="[A-Za-z0-9][A-Za-z0-9 -]*"
+              pattern="[A-Za-z0-9][A-Za-z0-9 \-]*"
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.postalCode" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.postalCode" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.postalCode }}
             </span>
           </label>
@@ -388,7 +402,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.city" class="mt-1 block text-sm text-danger">{{ fieldErrors.city }}</span>
+            <span v-if="fieldErrors.city" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.city }}</span>
           </label>
 
           <label class="block">
@@ -403,14 +417,15 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
 
         <label class="block">
           <span class="text-sm text-content-muted">{{ $t('auth.phone_optional') }}</span>
+          <!-- Escaped for the `v` flag, like the postcode above. -->
           <input
             v-model="form.phone"
             type="tel"
             autocomplete="tel"
-            pattern="\+?[0-9 ().-]{6,20}"
+            pattern="\+?[0-9 \(\)\.\/\-]{6,20}"
             class="field mt-1"
           />
-          <span v-if="fieldErrors.phone" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
+          <span v-if="fieldErrors.phone" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
         </label>
 
         <label class="flex items-center gap-3">

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 /**
  * Contact.
  *
@@ -53,14 +54,16 @@ async function submit(): Promise<void> {
     form.message = ''
     sent.value = true
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string; details?: { issues?: Array<{ path: string; message: string }> } } })?.data
+    const data = apiError(err)
     for (const issue of data?.details?.issues ?? []) {
-      fieldErrors.value[issue.path] = issue.message.startsWith('errors.') ? t(issue.message) : issue.message
+      fieldErrors.value[issue.path] = issueText(issue.message, t)
     }
     // A field-level message is more useful than the generic one, so the banner
-    // only appears when nothing was attributable to a field.
+    // only appears when nothing was attributable to a field — which is why each
+    // field message is a role="alert" of its own: without the banner, a screen
+    // reader would otherwise announce nothing at all.
     if (Object.keys(fieldErrors.value).length === 0) {
-      error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+      error.value = apiErrorMessage(err, t, locale.value)
     }
   } finally {
     // Burned at Cloudflare either way. What the customer typed is untouched, so
@@ -107,7 +110,7 @@ useSeoMeta({
               :maxlength="MAX.name"
               class="field mt-1"
             />
-            <span v-if="fieldErrors.name" class="mt-1 block text-sm text-danger">{{ fieldErrors.name }}</span>
+            <span v-if="fieldErrors.name" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.name }}</span>
           </label>
 
           <label class="block">
@@ -120,7 +123,7 @@ useSeoMeta({
               :maxlength="MAX.email"
               class="field mt-1"
             />
-            <span v-if="fieldErrors.email" class="mt-1 block text-sm text-danger">{{ fieldErrors.email }}</span>
+            <span v-if="fieldErrors.email" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.email }}</span>
           </label>
 
           <label class="block">
@@ -132,7 +135,7 @@ useSeoMeta({
               :maxlength="MAX.subject"
               class="field mt-1"
             />
-            <span v-if="fieldErrors.subject" class="mt-1 block text-sm text-danger">{{ fieldErrors.subject }}</span>
+            <span v-if="fieldErrors.subject" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.subject }}</span>
           </label>
 
           <label class="block">
@@ -149,7 +152,7 @@ useSeoMeta({
             <span v-if="form.message.length > MAX.message - 500" class="mt-1 block text-xs text-content-muted">
               {{ $t('contact.characters_left', { count: MAX.message - form.message.length }) }}
             </span>
-            <span v-if="fieldErrors.message" class="mt-1 block text-sm text-danger">{{ fieldErrors.message }}</span>
+            <span v-if="fieldErrors.message" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.message }}</span>
           </label>
 
           <CaptchaWidget ref="captcha" v-model="captchaToken" />

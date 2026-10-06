@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 /**
  * Create an account.
  *
@@ -42,12 +43,14 @@ async function submit(): Promise<void> {
     })
     await navigateTo(localePath('/compte'))
   } catch (err: unknown) {
-    const data = (err as { data?: { messageKey?: string; details?: { issues?: Array<{ path: string; message: string }> } } })?.data
+    const data = apiError(err)
     for (const issue of data?.details?.issues ?? []) {
-      fieldErrors.value[issue.path] = issue.message.startsWith('errors.') ? t(issue.message) : issue.message
+      fieldErrors.value[issue.path] = issueText(issue.message, t)
     }
+    // The banner is for what no field can carry. A field message is announced
+    // on its own (role="alert"), since the banner is not there to be.
     if (Object.keys(fieldErrors.value).length === 0) {
-      error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+      error.value = apiErrorMessage(err, t, locale.value)
     }
     captchaToken.value = ''
     captcha.value?.reset()
@@ -82,19 +85,19 @@ useSeoMeta({ title: () => t('auth.create_account'), robots: 'noindex' })
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('auth.first_name') }}</span>
             <input v-model="form.firstName" type="text" autocomplete="given-name" required class="field mt-1" />
-            <span v-if="fieldErrors.firstName" class="mt-1 block text-sm text-danger">{{ fieldErrors.firstName }}</span>
+            <span v-if="fieldErrors.firstName" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.firstName }}</span>
           </label>
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('auth.last_name') }}</span>
             <input v-model="form.lastName" type="text" autocomplete="family-name" required class="field mt-1" />
-            <span v-if="fieldErrors.lastName" class="mt-1 block text-sm text-danger">{{ fieldErrors.lastName }}</span>
+            <span v-if="fieldErrors.lastName" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.lastName }}</span>
           </label>
         </div>
 
         <label class="block">
           <span class="text-sm text-content-muted">{{ $t('auth.email') }}</span>
           <input v-model="form.email" type="email" autocomplete="email" required class="field mt-1" />
-          <span v-if="fieldErrors.email" class="mt-1 block text-sm text-danger">{{ fieldErrors.email }}</span>
+          <span v-if="fieldErrors.email" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.email }}</span>
         </label>
 
         <label class="block">
@@ -110,13 +113,21 @@ useSeoMeta({ title: () => t('auth.create_account'), robots: 'noindex' })
           <span class="mt-1 block text-xs" :class="passwordTooShort ? 'text-danger' : 'text-content-muted'">
             {{ $t('auth.password_hint', { min: MIN_PASSWORD }) }}
           </span>
-          <span v-if="fieldErrors.password" class="mt-1 block text-sm text-danger">{{ fieldErrors.password }}</span>
+          <span v-if="fieldErrors.password" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.password }}</span>
         </label>
 
         <label class="block">
           <span class="text-sm text-content-muted">{{ $t('auth.phone_optional') }}</span>
-          <input v-model="form.phone" type="tel" autocomplete="tel" class="field mt-1" />
-          <span v-if="fieldErrors.phone" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
+          <!-- The same rule as the server's phone check, escaped for the `v`
+               flag browsers compile patterns with (see compte/adresses.vue). -->
+          <input
+            v-model="form.phone"
+            type="tel"
+            autocomplete="tel"
+            pattern="\+?[0-9 \(\)\.\/\-]{6,20}"
+            class="field mt-1"
+          />
+          <span v-if="fieldErrors.phone" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
         </label>
 
         <CaptchaWidget ref="captcha" v-model="captchaToken" />

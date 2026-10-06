@@ -25,7 +25,7 @@ import {
 import { AppError, ERROR_CODES } from '../../shared/errors'
 import type { LocaleCode } from '../../shared/locales'
 import { marketForLocale, type MarketDefinition } from '../../shared/markets'
-import { getProductsByIds, getPromo, shippingMethodsFor } from '../catalog'
+import { getProductNames, getProductsByIds, getPromo, shippingMethodsFor } from '../catalog'
 import type { ProductSummary, ShippingMethod } from '../catalog/types'
 import { db } from '../db/client'
 import { readAvailability } from './stock'
@@ -99,7 +99,8 @@ export interface PriceRequest {
  *
  * Throws when a line refers to something unbuyable, because a basket the
  * customer cannot actually order should be corrected before they reach a
- * payment form, not after.
+ * payment form, not after. The refusal names those lines (PRODUCT_UNAVAILABLE),
+ * so the basket can take them out and say which they were.
  */
 export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown> {
   if (request.lines.length === 0) {
@@ -117,8 +118,8 @@ export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown
   const products = await getProductsByIds(productIds, request.locale, market)
   const missing = productIds.filter((id) => !products.has(id))
   if (missing.length > 0) {
-    throw new AppError(ERROR_CODES.NOT_FOUND, {
-      details: { unavailable: missing },
+    throw new AppError(ERROR_CODES.PRODUCT_UNAVAILABLE, {
+      details: { unavailable: await nameUnavailable(missing, request.locale) },
       internal: `priceBasket: ${missing.join(', ')} are not purchasable`,
     })
   }
@@ -195,6 +196,30 @@ export async function priceBasket(request: PriceRequest): Promise<PriceBreakdown
       vatCents: vatIncludedIn(total, market.vatRateBp),
     },
   }
+}
+
+/**
+ * The lines that can no longer be bought, named where the catalogue still
+ * knows them.
+ *
+ * This used to be a NOT_FOUND whose details never left the server, so a single
+ * unpublished bike turned the whole basket into "Introuvable." — no lines, no
+ * way to remove the one at fault, and the same after every reload. An
+ * unpublished product still has a name; a deleted one does not, and is
+ * reported without one rather than not at all. Naming is a courtesy: a
+ * catalogue that cannot be asked must not turn "unavailable" into a 500.
+ */
+async function nameUnavailable(
+  productIds: string[],
+  locale: LocaleCode
+): Promise<Array<{ productId: string; name: string | null }>> {
+  let names = new Map<string, string>()
+  try {
+    names = await getProductNames(productIds, locale)
+  } catch (error) {
+    console.warn('[pricing] could not name unavailable products', error)
+  }
+  return productIds.map((productId) => ({ productId, name: names.get(productId) ?? null }))
 }
 
 interface ResolvedPromo {

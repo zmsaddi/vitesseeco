@@ -18,9 +18,11 @@
  *    context; `seedCart` exists so a spec that needs a basket writes its own,
  *    instead of inheriting one from a previous test — the context-reuse
  *    mistake that once produced a false purchase-path failure in the
- *    simulator.
+ *    simulator. Each test is also its own visitor to the rate limiter: see
+ *    `clientAddress` below.
  */
 import { test as base, expect } from '@playwright/test'
+import { randomBytes } from 'node:crypto'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cartStorage } from './catalogue'
@@ -64,27 +66,39 @@ const IGNORABLE_CONSOLE: Array<{ pattern: RegExp; reason: string }> = [
 ]
 
 interface Harness {
-  /** Write a basket into localStorage before the first navigation. */
-  seedCart: (lines: Array<{ productId: string; quantity: number }>) => Promise<void>
+  /** Write a basket — and, if given, a stored promo code — into localStorage before the first navigation. */
+  seedCart: (lines: Array<{ productId: string; quantity: number }>, promoCode?: string) => Promise<void>
   /** Findings collected by the monitor; asserted empty at teardown. */
   browserErrors: string[]
+  /**
+   * The address this test's requests come from, as far as the candidate can
+   * tell. Already applied to every first-party request the browser makes; a
+   * spec that calls the API through `page.request` passes it as `x-real-ip`.
+   */
+  clientAddress: string
 }
 
 /**
- * Block until Vue has mounted onto the Nuxt root.
+ * Block until the page has hydrated — all of it.
  *
  * A click that lands on server-rendered HTML before hydration hits a button
  * with no handler and silently does nothing — under parallel load that window
  * widens to whole seconds, and it produced exactly the false negative the old
  * simulator was retired for. Vue marks its container with `__vue_app__` the
- * moment the app mounts, in production builds too; waiting for that mark makes
- * every subsequent interaction land on live code.
+ * moment the app mounts, in production builds too — but a page's async setup
+ * hydrates after that, and the mark alone let a search typed into the listing
+ * go unheard, and a navigation pushed during it make Vue report a hydration
+ * mismatch. Nuxt clears `isHydrating` once the last of it has resolved, so
+ * that is the signal waited for.
  */
 export async function waitForHydration(page: import('@playwright/test').Page): Promise<void> {
   await page.waitForFunction(
     () =>
-      (document.querySelector('#__nuxt') as { __vue_app__?: unknown } | null)?.__vue_app__ !==
-      undefined,
+      (
+        document.querySelector('#__nuxt') as {
+          __vue_app__?: { $nuxt?: { isHydrating?: boolean } }
+        } | null
+      )?.__vue_app__?.$nuxt?.isHydrating === false,
     undefined,
     { timeout: 30_000 }
   )
@@ -95,9 +109,31 @@ export const test = base.extend<Harness>({
     await use([])
   },
 
-  context: async ({ context }, use) => {
+  /**
+   * A fresh documentation-range IPv6 address per test (RFC 3849).
+   *
+   * The rate limiter keys its budgets on the caller's address, and the durable
+   * ones outlive a run: login allows eight attempts in fifteen minutes, sign-up
+   * five an hour. Every test came from the same loopback address, so rerunning
+   * one spec a few times — `--repeat-each`, a UI-mode loop — spent the budget
+   * and failed on "Trop de tentatives" instead of on what it was testing. The
+   * rig's server reads `x-real-ip` exactly as it does behind Vercel's edge
+   * (server/security/request.ts), so each test gets a budget of its own.
+   */
+  clientAddress: async ({}, use) => {
+    const groups = randomBytes(12).toString('hex').match(/.{4}/g) ?? []
+    await use(`2001:db8:${groups.join(':')}`)
+  },
+
+  context: async ({ context, baseURL, clientAddress }, use) => {
     await context.route('**/cdn.sanity.io/**', (route) =>
       route.fulfill({ path: FIXTURE_IMAGE, contentType: 'image/png' })
+    )
+    // First-party only: a custom header on a third-party request (Turnstile's
+    // iframe) would turn its fetches into CORS preflights it never asked for.
+    const firstParty = new URL(baseURL ?? 'http://127.0.0.1:3000').origin
+    await context.route(`${firstParty}/**`, (route) =>
+      route.continue({ headers: { ...route.request().headers(), 'x-real-ip': clientAddress } })
     )
     await use(context)
   },
@@ -137,8 +173,8 @@ export const test = base.extend<Harness>({
   },
 
   seedCart: async ({ context }, use) => {
-    await use(async (lines) => {
-      const payload = cartStorage(lines)
+    await use(async (lines, promoCode) => {
+      const payload = cartStorage(lines, promoCode ?? null)
       await context.addInitScript(
         ([key, value]) => {
           window.localStorage.setItem(key as string, value as string)
