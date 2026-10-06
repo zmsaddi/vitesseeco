@@ -389,9 +389,11 @@ describe.skipIf(!hasDatabase)('accounts', () => {
       expect(verified.isAdmin).toBe(true)
     })
 
-    it('filters the order queue by every payment method the shop takes, PayPal included', async () => {
+    it('filters the order queue by every method an order can carry, PayPal included', async () => {
       // The filter's own list left the PayPal bridge off, so choosing it in the
-      // panel answered 400 and the queue read "Aucune commande.".
+      // panel answered 400 and the queue read "Aucune commande.". The list is
+      // now the column's, which also keeps these orders findable once the
+      // bridge is removed and the shop no longer takes PayPal itself.
       const { default: orders } = await import('../../server/api/admin/orders.get')
       await testDb().insert(schema.orders).values({
         orderNumber: 'ORD-PAYPAL01',
