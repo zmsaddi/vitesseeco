@@ -29,7 +29,7 @@ import type Stripe from 'stripe'
 import { db } from '../db/client'
 import { orderItems, orders } from '../db/schema'
 import { audit } from './audit'
-import { OVERSOLD_NOTE } from './orders'
+import { noteOnOrder, OVERSOLD_NOTE } from './orders'
 import { firstTime } from './webhookClaims'
 import { cents, format } from '../../shared/money'
 import { ORGANISATION, SITE_URL } from '../../shared/organisation'
@@ -305,6 +305,16 @@ export async function reportPaymentOnClosedOrder(payment: ClosedOrderPayment): P
     resourceType: 'order',
     resourceId: payment.orderNumber,
     metadata: { provider: payment.provider, reference: payment.reference, status: payment.status },
+  })
+  // On the order itself, where the panel shows it to whoever opens it — the
+  // alert may go unread, and a log is read by nobody.
+  const provider = payment.provider === 'stripe' ? 'Stripe' : 'PayPal'
+  await noteOnOrder(
+    payment.orderNumber,
+    `ATTENTION : paiement ${provider} encaissé après l'annulation de la commande (référence ${payment.reference ?? 'non communiquée'}). ` +
+      `Stock non décompté — à honorer ou à rembourser à la main.`
+  ).catch((error: unknown) => {
+    console.error(`[payments] ${payment.orderNumber}: could not write the closed-order note`, String(error).slice(0, 200))
   })
   await notifyOwner(closedOrderPaymentMessage(payment))
 }

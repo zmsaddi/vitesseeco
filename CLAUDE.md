@@ -128,7 +128,7 @@ shared/                    ← used by BOTH sides: money, locales, markets, sche
 i18n/locales/              ← 6 files × 807 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (20 files) integration/ (9 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (21 files) integration/ (10 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```

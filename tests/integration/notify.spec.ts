@@ -110,10 +110,19 @@ describe.skipIf(!hasDatabase)('money on a cancelled order', () => {
     return Number(rows.rows[0]?.count)
   }
 
-  it('is reported when it reaches an order that was never paid', async () => {
+  async function notesOf(orderNumber: string): Promise<string | null> {
+    const rows = await testDb().execute<{ admin_notes: string | null }>(
+      sql`SELECT admin_notes FROM orders WHERE order_number = ${orderNumber}`
+    )
+    return rows.rows[0]?.admin_notes ?? null
+  }
+
+  it('is reported, and noted on the order, when it reaches an order that was never paid', async () => {
     const orderNumber = await orderNumberOf(await seedOrder({ status: 'cancelled', stripeSessionId: 'cs_test_never_paid' }))
     await reportPaymentOnClosedOrder({ orderNumber, provider: 'stripe', reference: 'cs_test_never_paid', status: 'cancelled' })
     expect(await reported(orderNumber)).toBe(1)
+    // Where whoever opens the order sees it, whatever became of the alert.
+    expect(await notesOf(orderNumber)).toMatch(/^ATTENTION : paiement Stripe encaissé.*cs_test_never_paid/)
   })
 
   it('is not news when it is the payment that paid the order before someone cancelled it', async () => {
@@ -124,6 +133,7 @@ describe.skipIf(!hasDatabase)('money on a cancelled order', () => {
     )
     await reportPaymentOnClosedOrder({ orderNumber, provider: 'stripe', reference: 'cs_test_paid', status: 'cancelled' })
     expect(await reported(orderNumber)).toBe(0)
+    expect(await notesOf(orderNumber)).toBeNull()
   })
 
   it('is still reported when a second, different payment reaches a paid-then-cancelled order', async () => {
@@ -140,5 +150,6 @@ describe.skipIf(!hasDatabase)('money on a cancelled order', () => {
     await Promise.all([reportPaymentOnClosedOrder(payment), reportPaymentOnClosedOrder(payment)])
     await reportPaymentOnClosedOrder(payment)
     expect(await reported(orderNumber)).toBe(1)
+    expect((await notesOf(orderNumber))?.split('\n')).toHaveLength(1)
   })
 })

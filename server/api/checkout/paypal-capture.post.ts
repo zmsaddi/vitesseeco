@@ -21,7 +21,7 @@ import { db } from '../../db/client'
 import { orders } from '../../db/schema'
 import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
 import { stateOfPayPalOrder } from '../../payments/reconcile'
-import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
+import { transitionOrder, recordPayPalCapture } from '../../services/orders'
 import { notifyOrder, reportPaymentOnClosedOrder } from '../../services/notify'
 import { audit } from '../../services/audit'
 import { holdStockForPayPalCapture, holdStockForPayPalReview } from '../../services/orders'
@@ -189,15 +189,8 @@ export default defineRoute({
       // other changed nothing and stays quiet.
       await notifyOrder(body.orderNumber, 'paid')
     } else if (moved.from === 'cancelled') {
-      await noteOnOrder(
-        body.orderNumber,
-        `ATTENTION : paiement PayPal encaissé après l'annulation de la commande (capture ${captured.captureId ?? 'non communiquée'}). ` +
-          `Stock non décompté — à honorer ou à rembourser à la main.`
-      ).catch((error: unknown) => {
-        // The payment is the fact and the answer must still reach the payer.
-        console.error(`[paypal] ${body.orderNumber}: could not record the closed-order note`, error)
-      })
-      // Logged, audited and announced once, whichever path saw it first.
+      // Noted on the order, logged, audited and announced — once, whichever
+      // path saw it first.
       await reportPaymentOnClosedOrder({
         orderNumber: body.orderNumber,
         provider: 'paypal',
