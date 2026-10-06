@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 import type { Paginated, ProductDetail, ProductImage, ProductSummary } from '~~/server/catalog/types'
 
 /**
@@ -43,7 +44,7 @@ function one(value: unknown): string {
  * Grouping by model only works over the whole set: stopping at page one would
  * drop models out of the picker with nothing on screen to say they exist.
  */
-const { data: bikes, status: bikesStatus } = await useAsyncData(
+const { data: bikes, status: bikesStatus, error: bikesError } = await useAsyncData(
   'compare-bikes',
   async () => {
     const collected: ProductSummary[] = []
@@ -198,7 +199,7 @@ function toggle(group: ModelGroup): void {
  */
 const comparisonKey = computed(() => selectedSlugs.value.join(','))
 
-const { data: details, status: detailStatus } = await useAsyncData(
+const { data: details, status: detailStatus, error: detailError } = await useAsyncData(
   'compare-details',
   async () => {
     const slugs = selectedSlugs.value
@@ -207,12 +208,36 @@ const { data: details, status: detailStatus } = await useAsyncData(
       slugs.map((slug) =>
         $fetch<ProductDetail>(`/api/catalog/products/${slug}`, {
           query: { locale: locale.value },
-        }).catch(() => null)
+        }).catch((err: unknown) => {
+          // A model gone from the catalogue is an answer — a shared link can
+          // name one — and the rest is still compared. A detail that could not
+          // be read is not: it used to drop out the same way, and an outage
+          // read as "Ces modèles ne sont plus disponibles."
+          if ((err as { statusCode?: number })?.statusCode === 404) return null
+          throw err
+        })
       )
     )
     return fetched.filter((detail): detail is ProductDetail => detail !== null)
   },
   { default: (): ProductDetail[] => [], watch: [comparisonKey, locale] }
+)
+
+/**
+ * A catalogue that could not be read is not one without bikes: the picker said
+ * "Aucun produit ne correspond à votre recherche." over an outage, with a 200.
+ * Said as what it is, and the first render answers 503 so a crawler does not
+ * take the empty picker for the page — the rule the product listing follows.
+ */
+if (bikesError.value || detailError.value) {
+  const event = useRequestEvent()
+  if (event) setResponseStatus(event, 503)
+}
+const bikesMessage = computed(() =>
+  bikesError.value ? apiErrorMessage(bikesError.value, t, locale.value) : null
+)
+const detailMessage = computed(() =>
+  detailError.value ? apiErrorMessage(detailError.value, t, locale.value) : null
 )
 
 interface Column {
@@ -405,6 +430,7 @@ useSeoMeta({
       <p v-if="isFull" class="mt-3 text-sm text-content-muted">{{ $t('compare.max_reached') }}</p>
 
       <p v-if="bikesStatus === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
+      <p v-else-if="bikesMessage" role="alert" class="mt-6 text-danger">{{ bikesMessage }}</p>
       <p v-else-if="!visibleGroups.length" class="mt-6 text-content-muted">
         {{ $t('products.no_results') }}
       </p>
@@ -467,6 +493,8 @@ useSeoMeta({
     <p v-else-if="detailStatus === 'pending'" class="mt-10 text-content-muted">
       {{ $t('common.loading') }}
     </p>
+
+    <p v-else-if="detailMessage" role="alert" class="mt-10 text-danger">{{ detailMessage }}</p>
 
     <section v-else-if="columns.length >= MIN_MODELS" class="mt-10">
       <!-- The table is wider than a phone and must scroll inside itself: a page

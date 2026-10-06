@@ -21,10 +21,18 @@ const { formatLongDate } = useFormatDate()
 
 const slug = computed(() => String(route.params.slug))
 
-const { data: article } = await useFetch<ArticleDetail>(
+const { data: article, error: articleError } = await useFetch<ArticleDetail>(
   () => `/api/content/articles/${slug.value}`,
   { query: computed(() => ({ locale: locale.value })) }
 )
+
+// A missing article and a broken request are not the same answer — the same
+// split the product page makes, for the same reason: a 404 tells a search
+// engine the article is gone, so an afternoon with the catalogue unreachable
+// would deindex the blog. Only the API's own 404 is a 404.
+if (articleError.value && articleError.value.statusCode !== 404) {
+  throw createError({ statusCode: 503, statusMessage: 'Content temporarily unavailable', fatal: true })
+}
 
 if (!article.value) {
   throw createError({ statusCode: 404, statusMessage: 'Article not found', fatal: true })

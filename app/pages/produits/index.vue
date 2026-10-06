@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 import type { Paginated, ProductSummary } from '~~/server/catalog/types'
 
 /**
@@ -54,11 +55,27 @@ const requestQuery = computed(() => ({
 // Stated explicitly: the route is wrapped by defineRoute, so its shape cannot
 // be inferred through the wrapper, and an un-inferred response silently becomes
 // `{}` — which type-checks against nothing and fails only at runtime.
-const { data, status } = await useFetch<Paginated<ProductSummary>>('/api/catalog/products', {
+const { data, status, error: listError } = await useFetch<Paginated<ProductSummary>>('/api/catalog/products', {
   query: requestQuery,
   // The URL is the state; refetching on change is the point.
   watch: [requestQuery],
 })
+
+// A catalogue that could not be read is not one with nothing in it: it said
+// "Aucun produit ne correspond à votre recherche." with a 200 during an outage.
+// It now says what happened, and the first render answers 503 so a crawler
+// does not take an empty listing for the shop. A filter the API refuses — a
+// hand-edited ?tri= or ?type= — is the one failure still read as no results:
+// it asks for something nothing can match, and is no outage.
+const listMessage = computed(() => {
+  const failure = listError.value
+  if (!failure || failure.statusCode === 400) return null
+  return apiErrorMessage(failure, t, locale.value)
+})
+if (listMessage.value) {
+  const event = useRequestEvent()
+  if (event) setResponseStatus(event, 503)
+}
 
 function updateUrl(): void {
   router.push({
@@ -132,6 +149,8 @@ useSeoMeta({
     </p>
 
     <p v-if="status === 'pending'" class="mt-10 text-content-muted">{{ $t('common.loading') }}</p>
+
+    <p v-else-if="listMessage" role="alert" class="mt-10 text-danger">{{ listMessage }}</p>
 
     <p v-else-if="!data?.items?.length" class="mt-10 text-content-muted">
       {{ $t('products.no_results') }}

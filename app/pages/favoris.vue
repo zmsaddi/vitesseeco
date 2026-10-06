@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 import type { Paginated, ProductSummary } from '~~/server/catalog/types'
 
 /**
@@ -91,8 +92,10 @@ async function load(): Promise<void> {
         if (!found.has(id)) wishlist.remove(id)
       }
     }
-  } catch {
-    error.value = t('errors.internal')
+  } catch (err: unknown) {
+    // Said as the server said it: an outage is "temporarily unavailable", not a
+    // fault in the shop.
+    error.value = apiErrorMessage(err, t, locale.value)
     products.value = []
   } finally {
     pending.value = false
@@ -165,7 +168,7 @@ useSeoMeta({ title: () => t('wishlist.title'), robots: 'noindex' })
     <ClientOnly v-else>
       <p v-if="pending" class="mt-10 text-content-muted">{{ $t('common.loading') }}</p>
 
-      <p v-else-if="error" class="mt-10 text-danger">{{ error }}</p>
+      <p v-else-if="error" role="alert" class="mt-10 text-danger">{{ error }}</p>
 
       <div v-else-if="!products.length" class="mt-10">
         <p class="text-content-muted">{{ $t('wishlist.empty') }}</p>

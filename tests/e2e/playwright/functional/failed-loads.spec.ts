@@ -222,3 +222,69 @@ test('the account area says when it could not ask, instead of "signed out" or "n
     await expect(page).not.toHaveURL(/\/connexion/)
   })
 })
+
+test('a catalogue that could not be read is not "no results"', async ({ page }) => {
+  await test.step('the product listing', async () => {
+    await page.goto('/')
+    const allow = await refuse(page, (path) => path === '/api/catalog/products')
+    await navigateInApp(page, '/produits?q=velo')
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('products.no_results'))).toHaveCount(0)
+    await allow()
+  })
+
+  await test.step('the comparison picker', async () => {
+    await page.goto('/')
+    const allow = await refuse(page, (path) => path === '/api/catalog/products')
+    await navigateInApp(page, '/comparatif')
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('products.no_results'))).toHaveCount(0)
+    await allow()
+  })
+
+  await test.step('the blog', async () => {
+    await page.goto('/produits')
+    const allow = await refuse(page, (path) => path === '/api/content/articles')
+    await navigateInApp(page, '/blog')
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('blog.empty'))).toHaveCount(0)
+    await allow()
+  })
+})
+
+test('a comparison whose details could not be read is not "no longer available"', async ({ page }) => {
+  await page.goto('/comparatif')
+  // One of the two models answers; the other is refused.
+  await refuse(page, (path) => path === '/api/catalog/products/fixture-velo-cargo-vert')
+  const models = page.locator('button[aria-pressed]')
+  await expect(models).toHaveCount(2)
+  await models.nth(0).click()
+  await models.nth(1).click()
+
+  await expect(page.getByRole('alert')).toHaveText(REFUSED)
+  await expect(page.getByText(message('compare.unavailable'))).toHaveCount(0)
+})
+
+test('an article that could not be read is not "page not found"', async ({ page }) => {
+  // A 404 tells a search engine the article is gone; an afternoon with the
+  // catalogue unreachable would have deindexed the blog. The product page
+  // already answered 503 for this; the article page now does too.
+  await page.goto('/blog')
+  await refuse(page, (path) => path.startsWith('/api/content/articles/'))
+  await page.locator('a[href$="/blog/fixture-entretenir-sa-batterie"]').first().click()
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(message('errors.service_unavailable'))
+  await expect(page.getByText('503')).toBeVisible()
+})
+
+test('saved products that could not be read say why', async ({ page, context }) => {
+  await context.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key as string, value as string),
+    ['vitesse.wishlist.v1', JSON.stringify({ ids: [displayProduct._id] })]
+  )
+  await refuse(page, (path) => path === '/api/catalog/products')
+  await page.goto('/favoris')
+
+  // It said "Une erreur est survenue de notre côté." whatever the server said.
+  await expect(page.getByRole('alert')).toHaveText(REFUSED)
+  await expect(page.getByText(message('errors.internal'))).toHaveCount(0)
+})

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 import type { Article } from '~~/server/catalog/types'
 
 /**
@@ -14,9 +15,19 @@ const { locale, t } = useI18n()
 const localePath = useLocalePath()
 const { formatLongDate } = useFormatDate()
 
-const { data } = await useFetch<{ articles: Article[] }>('/api/content/articles', {
+const { data, error: listError } = await useFetch<{ articles: Article[] }>('/api/content/articles', {
   query: computed(() => ({ locale: locale.value })),
 })
+
+// Not "no articles yet" when the articles could not be read — the same rule
+// as the product listing, 503 included.
+if (listError.value) {
+  const event = useRequestEvent()
+  if (event) setResponseStatus(event, 503)
+}
+const listMessage = computed(() =>
+  listError.value ? apiErrorMessage(listError.value, t, locale.value) : null
+)
 
 const articles = computed(() => data.value?.articles ?? [])
 
@@ -31,7 +42,9 @@ useSeoMeta({
     <h1 class="font-display text-3xl font-extrabold text-content-strong">{{ $t('blog.title') }}</h1>
     <p class="mt-2 max-w-2xl text-content-muted">{{ $t('blog.description') }}</p>
 
-    <p v-if="articles.length === 0" class="mt-10 text-content-muted">{{ $t('blog.empty') }}</p>
+    <p v-if="listMessage" role="alert" class="mt-10 text-danger">{{ listMessage }}</p>
+
+    <p v-else-if="articles.length === 0" class="mt-10 text-content-muted">{{ $t('blog.empty') }}</p>
 
     <ul v-else class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       <li v-for="article in articles" :key="article.id" class="card overflow-hidden">
