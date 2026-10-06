@@ -59,7 +59,7 @@ interface SavedAddress {
 
 // Stated explicitly: the route is wrapped by defineRoute, so its shape cannot be
 // inferred through the wrapper.
-const { data: saved, refresh } = await useFetch<SavedAddress[]>('/api/account/addresses')
+const { data: saved, refresh, error: loadError } = await useFetch<SavedAddress[]>('/api/account/addresses')
 const { data: me } = await useFetch<{ firstName: string; lastName: string } | null>('/api/auth/me')
 
 const list = computed(() => saved.value ?? [])
@@ -99,7 +99,13 @@ const form = reactive<AddressForm>(emptyForm())
 
 // An empty address book has exactly one useful action on it. Both renders read
 // the same fetched list, so opening the form here cannot disagree with the HTML.
-const showForm = ref(list.value.length === 0)
+// A list that could not be read is not empty: it said "no address yet" and
+// opened the form, inviting the customer to type in again one already saved.
+const showForm = ref(!loadError.value && list.value.length === 0)
+
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 const submitting = ref(false)
 const error = ref<string | null>(null)
@@ -213,7 +219,12 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
     <p v-if="error" role="alert" class="mt-6 text-sm text-danger">{{ error }}</p>
     <p v-else-if="justSaved" class="mt-6 text-sm text-success">{{ $t('addresses.saved') }}</p>
 
-    <p v-if="!list.length" class="mt-8 text-content-muted">{{ $t('addresses.empty') }}</p>
+    <div v-if="loadMessage" class="mt-8">
+      <p role="alert" class="text-sm text-danger">{{ loadMessage }}</p>
+      <button type="button" class="btn-secondary mt-3" @click="refresh()">{{ $t('common.retry') }}</button>
+    </div>
+
+    <p v-else-if="!list.length" class="mt-8 text-content-muted">{{ $t('addresses.empty') }}</p>
 
     <ul v-else class="mt-8 grid gap-4 sm:grid-cols-2">
       <li v-for="address in list" :key="address.id" class="card flex flex-col p-5">

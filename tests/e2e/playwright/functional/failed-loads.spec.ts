@@ -16,7 +16,7 @@ import type { Page } from '@playwright/test'
 import { test, expect } from '../helpers/test'
 import { displayPrice, displayProduct } from '../helpers/catalogue'
 import { message, messagePattern } from '../helpers/messages'
-import { rateLimited, signUp } from '../helpers/requests'
+import { navigateInApp, rateLimited, signUp } from '../helpers/requests'
 
 /** What every refusal below reads as: the server's own rate-limit sentence, with its wait. */
 const REFUSED = messagePattern('errors.rate_limited_for', 'wait', '1 minute')
@@ -161,4 +161,64 @@ test('totals for an earlier delivery choice do not land over the current one', a
   await page.waitForTimeout(2_500)
   await expect(summary).toContainText(message('checkout.free'))
   await expect(summary).not.toContainText(displayPrice(19.9))
+})
+
+test('the account area says when it could not ask, instead of "signed out" or "nothing yet"', async ({
+  page,
+}) => {
+  test.setTimeout(150_000)
+  await signUp(page)
+
+  // Each step starts from a page loaded afresh, with no alert on it: the page
+  // being left stays on screen until the next one is ready, and an alert it
+  // still showed would answer an assertion meant for the next.
+  await test.step('a failed address book is not an empty one', async () => {
+    await page.goto('/compte')
+    const allow = await refuse(page, (path) => path === '/api/account/addresses')
+    await page.getByRole('link', { name: message('account.manage_addresses') }).click()
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('addresses.empty'))).toHaveCount(0)
+    // Nor is the form opened to type in again an address that may be saved.
+    await expect(page.getByRole('button', { name: message('addresses.save') })).toHaveCount(0)
+    await allow()
+  })
+
+  await test.step('a failed order history is not an empty one', async () => {
+    await page.goto('/compte/adresses')
+    const allow = await refuse(page, (path) => path === '/api/account/orders')
+    await navigateInApp(page, '/compte')
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('account.no_orders'))).toHaveCount(0)
+    await allow()
+  })
+
+  await test.step('an order that could not be read is not "Introuvable."', async () => {
+    await page.goto('/compte')
+    const allow = await refuse(page, (path) => path.startsWith('/api/account/orders/'))
+    await navigateInApp(page, '/compte/orders/ORD-PW000001')
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page.getByText(message('errors.not_found'))).toHaveCount(0)
+    await allow()
+
+    // While one that is not there still says so.
+    await navigateInApp(page, '/compte/orders/ORD-PW000002')
+    await expect(page.getByText(message('errors.not_found'))).toBeVisible()
+  })
+
+  await test.step('a failed sign-out says so, and the customer stays where they are', async () => {
+    await page.goto('/compte')
+    const allow = await refuse(page, (path) => path === '/api/auth/logout')
+    await page.getByRole('button', { name: message('account.sign_out') }).click()
+    await expect(page.getByRole('alert')).toHaveText(REFUSED)
+    await expect(page).toHaveURL(/\/compte$/)
+    await allow()
+  })
+
+  await test.step('a session check that fails is not read as being signed out', async () => {
+    // The guard sent every such failure to the login form, as a guest.
+    await refuse(page, (path) => path === '/api/auth/me')
+    await page.getByRole('link', { name: message('account.manage_addresses') }).click()
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(message('errors.rate_limited'))
+    await expect(page).not.toHaveURL(/\/connexion/)
+  })
 })

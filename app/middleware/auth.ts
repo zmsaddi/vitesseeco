@@ -17,7 +17,21 @@ export default defineNuxtRouteMiddleware(async (to) => {
   const localePath = useLocalePath()
   const request = useRequestFetch()
 
-  const me = await request<{ id: string } | null>('/api/auth/me').catch(() => null)
+  let me: { id: string } | null
+  try {
+    me = await request<{ id: string } | null>('/api/auth/me')
+  } catch (error: unknown) {
+    // Failing to ask who this is is not being told they are a guest. Every
+    // failure used to read as "signed out": a database blip answered 503, and
+    // each signed-in customer was sent to the login form — session intact — to
+    // sign in again into the same outage. The error page says what happened
+    // instead, with the status the server gave; no answer at all (the network)
+    // is an outage too. Fatal, because a navigation inside the browser would
+    // otherwise only be cancelled, leaving the customer on the page they were
+    // leaving with nothing said.
+    const statusCode = (error as { statusCode?: number })?.statusCode ?? 503
+    return abortNavigation(createError({ statusCode, statusMessage: 'Session check failed', fatal: true }))
+  }
   if (me) return
 
   // Remember where they were going, so signing in continues the journey

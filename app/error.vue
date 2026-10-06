@@ -13,8 +13,19 @@ const props = defineProps<{ error: NuxtError }>()
 
 const localePath = useLocalePath()
 
-const isMissing = computed(() => props.error?.statusCode === 404)
-const messageKey = computed(() => (isMissing.value ? 'errors.page_not_found' : 'errors.internal'))
+/**
+ * The sentence for each status that has one of its own. Everything else is
+ * "an error on our side" — which a 503 is not: it is an outage that will pass,
+ * the catalogue or the database asleep, and the visitor is told to come back
+ * rather than that the shop is broken. A 429 reaches here when the session
+ * check behind the account area was refused (middleware/auth.ts).
+ */
+const MESSAGE_BY_STATUS: Record<number, string> = {
+  404: 'errors.page_not_found',
+  429: 'errors.rate_limited',
+  503: 'errors.service_unavailable',
+}
+const messageKey = computed(() => MESSAGE_BY_STATUS[props.error?.statusCode ?? 500] ?? 'errors.internal')
 </script>
 
 <template>

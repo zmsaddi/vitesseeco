@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Account home.
  *
@@ -8,7 +9,7 @@
 definePageMeta({ middleware: 'auth' })
 
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const { formatShortDate } = useFormatDate()
 // Prices arrive as dot-decimal wire strings; rendering them raw shows a French
@@ -38,9 +39,19 @@ interface Order {
   items: OrderLine[]
 }
 
-const { data: orders } = await useFetch<{ orders: Order[]; total: number }>('/api/account/orders', {
-  query: { perPage: 10 },
-})
+const { data: orders, error: ordersError } = await useFetch<{ orders: Order[]; total: number }>(
+  '/api/account/orders',
+  { query: { perPage: 10 } }
+)
+
+/**
+ * A history that could not be read is not an empty one. "Vous n'avez pas
+ * encore de commande." was shown to a customer with orders whenever the
+ * request failed — in an outage, exactly when they come looking for one.
+ */
+const ordersMessage = computed(() =>
+  ordersError.value ? apiErrorMessage(ordersError.value, t, locale.value) : null
+)
 
 /** Colour by meaning, so a cancelled order never reads as a successful one. */
 function statusTone(status: string): string {
@@ -50,8 +61,18 @@ function statusTone(status: string): string {
   return 'bg-accent-subtle text-accent'
 }
 
+const signOutError = ref<string | null>(null)
+
 async function signOut(): Promise<void> {
-  await $fetch('/api/auth/logout', { method: 'POST' })
+  signOutError.value = null
+  try {
+    await $fetch('/api/auth/logout', { method: 'POST' })
+  } catch (err: unknown) {
+    // The session is still there. The click used to do nothing visible at all,
+    // leaving a customer on a shared computer believing they had signed out.
+    signOutError.value = apiErrorMessage(err, t, locale.value)
+    return
+  }
   await navigateTo(localePath('/'))
 }
 
@@ -75,13 +96,16 @@ useSeoMeta({ title: () => t('account.title'), robots: 'noindex' })
           {{ $t('admin.title') }}
         </NuxtLink>
         <button type="button" class="btn-secondary" @click="signOut">{{ $t('account.sign_out') }}</button>
+        <p v-if="signOutError" role="alert" class="w-full text-sm text-danger">{{ signOutError }}</p>
       </div>
     </div>
 
     <section class="mt-10">
       <h2 class="font-display text-xl font-bold text-content-strong">{{ $t('account.orders') }}</h2>
 
-      <p v-if="!orders?.orders?.length" class="mt-4 text-content-muted">
+      <p v-if="ordersMessage" role="alert" class="mt-4 text-sm text-danger">{{ ordersMessage }}</p>
+
+      <p v-else-if="!orders?.orders?.length" class="mt-4 text-content-muted">
         {{ $t('account.no_orders') }}
       </p>
 

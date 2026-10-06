@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * One order, as the customer who placed it.
  *
@@ -15,7 +16,7 @@ definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const cart = useCart()
 const { formatLongDate, formatDateTime } = useFormatDate()
 const { formatDecimal, formatPercent } = useFormatPrice()
@@ -72,8 +73,19 @@ interface CustomerOrder {
 
 // Stated explicitly: the route is wrapped by defineRoute, so its shape cannot be
 // inferred through the wrapper.
-const { data: order, status: loadState } = await useFetch<CustomerOrder>(
+const { data: order, status: loadState, error: loadError } = await useFetch<CustomerOrder>(
   () => `/api/account/orders/${orderNumber.value}`
+)
+
+/**
+ * "Introuvable." only when the server said so. A 503 or a dropped connection
+ * also read as not found — telling a customer looking at their own order that
+ * it does not exist.
+ */
+const loadMessage = computed(() =>
+  loadError.value && loadError.value.statusCode !== 404
+    ? apiErrorMessage(loadError.value, t, locale.value)
+    : null
 )
 
 /** Colour by meaning, so a cancelled order never reads as a successful one. */
@@ -199,6 +211,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('account.orders')}`, rob
     </NuxtLink>
 
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
+    <p v-else-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
     <p v-else-if="!order" class="mt-6 text-content-muted">{{ $t('errors.not_found') }}</p>
 
     <template v-else>
