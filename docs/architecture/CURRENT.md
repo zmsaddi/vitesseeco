@@ -58,6 +58,8 @@ regression anyway.
 | Identity, addresses, orders, stock, sessions, rate limits | **PostgreSQL** (Neon) | never mirrors catalogue text |
 | Prices as displayed | derived from Sanity by `server/services/pricing.ts` | never sent by a browser |
 | Money on a placed order | frozen onto the order row at placement | never recomputed from today's rules |
+| Whether an online order was paid | **the provider** — the sweep asks Stripe (or reads the PayPal capture) before cancelling (`server/payments/reconcile.ts`); a webhook that failed is re-claimed by the provider's retry (`server/services/webhookClaims.ts`) | never cancelled on our database's word alone; a payment that lands after its hold expired takes its stock from the order lines (`takeStockForLatePayment`) |
+| How long an online order holds its stock | `server/services/stock.ts` — 30 minutes from placement (`shared/holds.ts`), stretched to the expiry of the Stripe session opened over it (`stretchLiveHold`, called when the session is attached). The PayPal bridge holds by its own rule (`holdForPayment`): a capture stretches a live hold by 10 minutes or takes a lapsed one again if its units are still free, and a capture under PayPal review keeps its units 72 hours (`holdStockForPayPalCapture`, `holdStockForPayPalReview` in `server/services/orders.ts`) | never offered for payment again once lapsed: a replayed checkout, card or PayPal, whose hold has lapsed closes that attempt (`errors.order_closed`) and the customer starts a fresh order; a PayPal capture whose units are gone is refused before any money moves. Not a promise that no money arrives after a hold: a Stripe delayed method (SEPA) settling days after its session, a webhook reconciled late, a PayPal capture taken earlier or cleared after its review hold all land late, and each takes its units through `takeStockForLatePayment`, which writes OVERSOLD on the order when they are gone |
 
 **The Sanity dataset is public today.** An unauthenticated query returns the
 catalogue. That is why no customer data may ever be written into it, and why
@@ -99,7 +101,7 @@ server/
   security/   handler, session, crypto, rateLimit, request, headers, captcha
   services/   orders · pricing · stock · promo · orderState · audit · maintenance
 shared/       used by BOTH sides: money, locales, markets, schemas, errors, organisation
-tests/        18 unit files · 7 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
+tests/        20 unit files · 9 integration files · 5 browser gates · Playwright candidate specs (e2e/playwright/)
 scripts/      14 gate and tooling scripts
 cms/          Sanity Studio — its own app, excluded from the Vercel build
 ```
@@ -137,7 +139,7 @@ price differs from the crawled page.
 | Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail is sent. Password reset and order email are built against an account that does not exist yet |
-| Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, delete the PAYPAL_* variables, and apply the removal recipe at the top of that file |
+| Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, wait until no PayPal order is awaiting payment, then apply the removal recipe at the top of that file — the PAYPAL_* variables go last, because without them the sweep can no longer ask PayPal about an open order and defers it forever |
 
 ---
 

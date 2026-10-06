@@ -92,6 +92,8 @@ export interface CreateSessionInput {
 export async function createCheckoutSession(input: CreateSessionInput): Promise<{
   clientSecret: string
   sessionId: string
+  /** When Stripe stops accepting payment on it — the moment its order's hold must last to. */
+  expiresAt: Date
 }> {
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = input.lines.map((line) => ({
     quantity: line.quantity,
@@ -174,22 +176,26 @@ export async function createCheckoutSession(input: CreateSessionInput): Promise<
         metadata: { orderNumber: input.orderNumber },
         description: `Vitesse Eco ${input.orderNumber}`,
       },
-      // A session that outlives its stock hold would let a customer pay for
-      // units we have already given back.
+      // The shortest window Stripe allows. A session that outlives its stock
+      // hold would let a customer pay for units we have already given back, so
+      // the order's hold is stretched to this moment when the session is
+      // attached (services/orders.ts), and an order has one session only.
       expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
     },
-    // Stripe's own idempotency, keyed on our order: a retried create returns
-    // the same session instead of a second one.
+    // Stripe's own idempotency, keyed on our order: the SDK's network retries
+    // of this create return the same session instead of a second one. A later
+    // request under the same key is not a retry — its expires_at has moved on —
+    // and Stripe refuses it rather than open a second session for one order.
     { idempotencyKey: `session:${input.orderNumber}` }
   )
 
-  if (!session.client_secret) {
+  if (!session.client_secret || !session.expires_at) {
     throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
-      internal: `Stripe returned no client_secret for ${input.orderNumber}`,
+      internal: `Stripe returned no client_secret or expires_at for ${input.orderNumber}`,
     })
   }
 
-  return { clientSecret: session.client_secret, sessionId: session.id }
+  return { clientSecret: session.client_secret, sessionId: session.id, expiresAt: new Date(session.expires_at * 1000) }
 }
 
 /**

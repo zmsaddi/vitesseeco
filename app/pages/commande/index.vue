@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { apiError, apiErrorMessage } from '~/utils/apiError'
 import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js'
+import { ONLINE_HOLD_MS } from '~~/shared/holds'
 
 /**
  * Checkout.
@@ -280,9 +281,11 @@ onMounted(() => {
     if (saved.firstName) firstName.value = saved.firstName
     if (saved.lastName) lastName.value = saved.lastName
     // Restored so a customer returning from a failed payment retries INTO the
-    // order they already have, instead of creating a second one.
+    // order they already have, instead of creating a second one — as long as
+    // that order can still be paid (refreshPurchaseKey judges, on the press).
     if (typeof saved.purchaseKey === 'string') purchaseKey.value = saved.purchaseKey
-    if (typeof saved.keyBelongsTo === 'string') keyBelongsTo = saved.keyBelongsTo
+    if (typeof saved.keyBelongsTo === 'string') keyBelongsTo.value = saved.keyBelongsTo
+    if (typeof saved.keyMintedAt === 'number') keyMintedAt.value = saved.keyMintedAt
     Object.assign(address, saved.address ?? {})
     // Shipping and payment can only be re-applied once the options for the
     // restored address have been fetched — the destination watcher does it.
@@ -292,6 +295,31 @@ onMounted(() => {
     // A torn value must not break checkout.
   }
 })
+
+function saveCheckout(): void {
+  try {
+    sessionStorage.setItem(
+      CHECKOUT_STORE,
+      JSON.stringify({
+        country: destination.country,
+        postalCode: destination.postalCode,
+        city: city.value,
+        email: email.value,
+        phone: phone.value,
+        firstName: firstName.value,
+        lastName: lastName.value,
+        purchaseKey: purchaseKey.value,
+        keyBelongsTo: keyBelongsTo.value,
+        keyMintedAt: keyMintedAt.value,
+        address: { ...address },
+        shipping: selectedShipping.value,
+        payment: selectedPayment.value,
+      })
+    )
+  } catch {
+    // A full storage is the browser's business, not the checkout's.
+  }
+}
 
 watch(
   () => [
@@ -306,29 +334,7 @@ watch(
     selectedShipping.value,
     selectedPayment.value,
   ],
-  () => {
-    try {
-      sessionStorage.setItem(
-        CHECKOUT_STORE,
-        JSON.stringify({
-          country: destination.country,
-          postalCode: destination.postalCode,
-          city: city.value,
-          email: email.value,
-          phone: phone.value,
-          firstName: firstName.value,
-          lastName: lastName.value,
-          purchaseKey: purchaseKey.value,
-          keyBelongsTo,
-          address: { ...address },
-          shipping: selectedShipping.value,
-          payment: selectedPayment.value,
-        })
-      )
-    } catch {
-      // A full storage is the browser's business, not the checkout's.
-    }
-  }
+  saveCheckout
 )
 
 /** The street part only — the name is asked of every order, above. */
@@ -349,30 +355,77 @@ const needsAddress = computed(
  * for the same basket — the shelf lost units to a customer who bought nothing.
  * The key now survives a failed attempt and a return to this page.
  *
- * It must still change when the purchase itself changes: reusing it after the
- * basket is edited would resolve to the earlier order and charge for contents
- * the customer no longer wants. So it is tied to a fingerprint of everything
- * that decides what is being bought and what it costs, and checked at the only
- * moment it matters — just before sending.
+ * It must still change when the purchase itself changes: a replayed key returns
+ * the earlier order exactly as it was placed. So it is tied to a fingerprint of
+ * the whole request, and checked at the only moment it matters — just before
+ * sending. And it is only worth keeping while that order can still be paid: an
+ * online hold lasts ONLINE_HOLD_MS, and a key older than that names an attempt
+ * whose units may be someone else's by now.
  */
 const purchaseKey = ref('')
-let keyBelongsTo = ''
+const keyBelongsTo = ref('')
+/** When the key was minted (ms since the epoch); 0 for one whose age is unknown. */
+const keyMintedAt = ref(0)
 
-const purchaseFingerprint = computed(() =>
-  JSON.stringify({
-    lines: cart.lines.value,
-    promo: cart.promoCode.value,
-    shipping: selectedShipping.value,
-    payment: selectedPayment.value,
-    country: destination.country,
-    postalCode: destination.postalCode,
-  })
-)
+// Mirrored the moment it changes, not only when a field does. A key dropped
+// with a closed order lived on in the mirror and came back with the next visit,
+// replaying that closed order once more; a freshly minted one was never saved,
+// so a return after a failed payment started a second order instead of
+// retrying the first.
+watch([purchaseKey, keyBelongsTo, keyMintedAt], saveCheckout)
+
+/**
+ * The purchase exactly as it is sent — everything the order freezes: what is
+ * bought and for how much, how it arrives and is paid, and who it is for. Only
+ * the key and the captcha token are added when it leaves.
+ */
+const purchaseRequest = computed(() => ({
+  cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
+  shipping: {
+    methodCode: selectedShipping.value,
+    destination: { country: destination.country, postalCode: destination.postalCode },
+  },
+  paymentMethod: selectedPayment.value,
+  locale: locale.value,
+  email: email.value,
+  firstName: firstName.value.trim(),
+  lastName: lastName.value.trim(),
+  phone: phone.value.trim(),
+  // Sent only when it is required and complete. The country and postcode
+  // come from the same fields that produced the shipping quote, so the
+  // address delivered to and the address priced for are one address.
+  ...(needsAddress.value
+    ? {
+        shippingAddress: {
+          // The same three the order carries, so the label and the
+          // invoice cannot disagree about who this is.
+          firstName: firstName.value.trim(),
+          lastName: lastName.value.trim(),
+          phone: phone.value.trim(),
+          line1: address.line1.trim(),
+          ...(address.line2.trim() ? { line2: address.line2.trim() } : {}),
+          postalCode: destination.postalCode.trim(),
+          city: city.value.trim(),
+          country: destination.country,
+        },
+      }
+    : {}),
+}))
+
+// The request itself, not a chosen few of its fields. A fingerprint of the
+// basket, delivery and payment alone kept the key when a street, a name, a
+// phone or an email was corrected after a reload: the replay returned the
+// order as first placed, and the customer paid for a bike sent to the old
+// address, its receipt to the mistyped email. A field the request gains later
+// is covered the day it is added.
+const purchaseFingerprint = computed(() => JSON.stringify(purchaseRequest.value))
 
 function refreshPurchaseKey(): void {
-  if (purchaseKey.value && purchaseFingerprint.value === keyBelongsTo) return
+  const live = Date.now() - keyMintedAt.value < ONLINE_HOLD_MS
+  if (purchaseKey.value && live && purchaseFingerprint.value === keyBelongsTo.value) return
   purchaseKey.value = crypto.randomUUID()
-  keyBelongsTo = purchaseFingerprint.value
+  keyBelongsTo.value = purchaseFingerprint.value
+  keyMintedAt.value = Date.now()
 }
 
 const captchaToken = ref('')
@@ -408,40 +461,9 @@ async function submit(): Promise<void> {
       paypalOrderId?: string
     }>('/api/checkout/start', {
       method: 'POST',
-      body: {
-        cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
-        shipping: {
-          methodCode: selectedShipping.value,
-          destination: { country: destination.country, postalCode: destination.postalCode },
-        },
-        paymentMethod: selectedPayment.value,
-        locale: locale.value,
-        email: email.value,
-        firstName: firstName.value.trim(),
-        lastName: lastName.value.trim(),
-        phone: phone.value.trim(),
-        // Sent only when it is required and complete. The country and postcode
-        // come from the same fields that produced the shipping quote, so the
-        // address delivered to and the address priced for are one address.
-        ...(needsAddress.value
-          ? {
-              shippingAddress: {
-                // The same three the order carries, so the label and the
-                // invoice cannot disagree about who this is.
-                firstName: firstName.value.trim(),
-                lastName: lastName.value.trim(),
-                phone: phone.value.trim(),
-                line1: address.line1.trim(),
-                ...(address.line2.trim() ? { line2: address.line2.trim() } : {}),
-                postalCode: destination.postalCode.trim(),
-                city: city.value.trim(),
-                country: destination.country,
-              },
-            }
-          : {}),
-        idempotencyKey: purchaseKey.value,
-        captchaToken: captchaToken.value,
-      },
+      // The very object the key was fingerprinted from, so the two cannot
+      // describe different purchases.
+      body: { ...purchaseRequest.value, idempotencyKey: purchaseKey.value, captchaToken: captchaToken.value },
     })
 
     if (result.mode === 'cash') {
@@ -468,16 +490,35 @@ async function submit(): Promise<void> {
     await nextTick()
     if (stripeContainer.value) instance.mount(stripeContainer.value)
   } catch (err: unknown) {
-    // A line that left the catalogue since the totals were read goes by name,
-    // and a stored promo code the server cannot read is dropped, and said so.
-    if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
-    // Spent, whether or not it was the reason. Asking Cloudflare to accept it
-    // twice fails, and the customer would never learn why.
-    captchaToken.value = ''
-    captcha.value?.reset()
+    failed(err)
   } finally {
     submitting.value = false
   }
+}
+
+/**
+ * Say what went wrong, and leave the next press able to succeed. The confirm
+ * button and a refused PayPal capture both end here, so the two cannot drift
+ * apart — the capture once kept a key the button had learned to drop.
+ */
+function failed(err: unknown): void {
+  const data = apiError(err)
+  // A line that left the catalogue since the totals were read goes by name,
+  // and a stored promo code the server cannot read is dropped, and said so.
+  if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
+  // The earlier attempt this key belongs to was closed (abandoned, then swept,
+  // or cancelled by the shop). Keeping the key would replay that closed order
+  // on every press; the next press starts a fresh purchase instead — and the
+  // mirror forgets it too, or the next visit would bring it back.
+  if (data.messageKey === 'errors.order_closed') {
+    purchaseKey.value = ''
+    keyBelongsTo.value = ''
+    keyMintedAt.value = 0
+  }
+  // Spent, whether or not it was the reason. Asking Cloudflare to accept it
+  // twice fails, and the customer would never learn why.
+  captchaToken.value = ''
+  captcha.value?.reset()
 }
 
 /**
@@ -548,13 +589,15 @@ async function mountPayPalButtons(): Promise<void> {
 /**
  * Back to the form — after a cancel, an SDK failure, or a refused capture.
  * The order and its purchase key survive, so a retry resolves to the same
- * order; the captcha token was spent starting it, so it is reset like any
- * other failed attempt.
+ * order — unless the order has closed, when the key goes with it (`failed`).
+ * The captcha token was spent starting it, so it is reset like any other
+ * failed attempt.
  */
 function abandonPayPal(err: unknown): void {
   paypalFlow.value = null
   if (err) {
-    error.value = apiErrorMessage(err, t, locale.value)
+    failed(err)
+    return
   }
   captchaToken.value = ''
   captcha.value?.reset()

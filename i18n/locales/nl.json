@@ -393,6 +393,8 @@
     "invalid_state_transition": "Dat is op dit moment niet mogelijk.",
     "not_authenticated": "Log in om verder te gaan.",
     "not_found": "Niet gevonden.",
+    "order_already_paid": "Deze bestelling is al betaald. U ontvangt de bevestiging; opnieuw betalen is niet nodig.",
+    "order_closed": "Uw eerdere betaalpoging is verlopen. Bevestig opnieuw om opnieuw te beginnen.",
     "out_of_stock": "Onvoldoende voorraad.",
     "page_not_found": "Deze pagina bestaat niet.",
     "password_too_short": "Dit wachtwoord is te kort.",

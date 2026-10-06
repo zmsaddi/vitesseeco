@@ -19,8 +19,9 @@
  */
 import { defineEventHandler, getHeader, readRawBody, setResponseStatus } from 'h3'
 import { sql } from 'drizzle-orm'
-import { db, queryRows } from '../../db/client'
+import { db } from '../../db/client'
 import { webhookEvents } from '../../db/schema'
+import { claimWebhookEvent } from '../../services/webhookClaims'
 import { outcomeFor, verifyWebhook } from '../../payments/stripe'
 import { findOrderByStripeSession, transitionOrder } from '../../services/orders'
 import { AppError, toAppError } from '../../../shared/errors'
@@ -45,25 +46,27 @@ export default defineEventHandler(async (event) => {
     return { received: false }
   }
 
-  // Claim the event. The unique index on (provider, event_id) is what makes a
-  // redelivery harmless: the insert conflicts, nothing is claimed, and the
-  // handler below never runs a second time.
-  const claimed = await queryRows<{ id: string }>(
-    db(),
-    sql`
-      INSERT INTO webhook_events (provider, event_id, type, payload, status)
-      VALUES ('stripe', ${stripeEvent.id}, ${stripeEvent.type}, ${JSON.stringify(stripeEvent.data.object)}::jsonb, 'received')
-      ON CONFLICT (provider, event_id) DO NOTHING
-      RETURNING id
-    `
-  )
+  // Claim the event. A redelivery of a processed event conflicts and is
+  // skipped; a redelivery of a FAILED one is claimed again and re-run
+  // (server/services/webhookClaims.ts says why that is safe).
+  const claim = await claimWebhookEvent({
+    provider: 'stripe',
+    eventId: stripeEvent.id,
+    type: stripeEvent.type,
+    payload: JSON.stringify(stripeEvent.data.object),
+  })
 
-  if (claimed.length === 0) {
-    // Already seen. Acknowledge so Stripe stops retrying.
+  if (claim.state === 'processed') {
+    // Done before. Acknowledge so Stripe stops retrying.
     return { received: true, duplicate: true }
   }
-
-  const recordId = claimed[0]?.id as string
+  if (claim.state === 'in_flight') {
+    // Another attempt is processing it right now. Not acknowledged: if that
+    // attempt dies, Stripe's next retry finds a stale claim and takes it over.
+    setResponseStatus(event, 409)
+    return { received: false, inFlight: true }
+  }
+  const recordId = claim.id
 
   try {
     await handle(stripeEvent)
@@ -81,9 +84,10 @@ export default defineEventHandler(async (event) => {
       .set({ status: 'failed', error: (appError.internal ?? appError.message).slice(0, 1000) })
       .where(sql`${webhookEvents.id} = ${recordId}`)
 
-    // A 500 asks Stripe to retry. The record is marked failed but keeps its
-    // unique id, so a retry re-enters here and is skipped — deliberate: a
-    // failure needs a human, not an infinite loop of half-applied side effects.
+    // A 500 asks Stripe to retry, and the retry claims the failed record again
+    // — so an event that failed because the database was briefly unreachable
+    // is processed once it is back, instead of being lost as a "duplicate".
+    // The handler is idempotent; Stripe's backing-off schedule bounds a bug.
     setResponseStatus(event, 500)
     return { received: false }
   }
@@ -116,7 +120,10 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
 
     case 'pending':
       // Delayed settlement — iDEAL, Bancontact, SEPA. The order stays
-      // awaiting_payment and the stock stays held until the async event lands.
+      // awaiting_payment, but its stock hold does not wait with it: it lapses
+      // at the session's own expiry, and a debit that settles days later takes
+      // its units then, from what is free (takeStockForLatePayment, via the
+      // async event's paid flip).
       break
   }
 }

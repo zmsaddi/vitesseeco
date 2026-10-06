@@ -362,3 +362,202 @@ describe.skipIf(!hasDatabase)('stock for cash and cancelled orders', () => {
     expect(await onHand()).toBe(3)
   })
 })
+
+/**
+ * The sweep asks the payment provider before it cancels.
+ *
+ * Until it did, "awaiting payment after an hour" was decided from our database
+ * alone, which is only as current as the last webhook that got through. A
+ * payment whose event was lost — the database unreachable when Stripe called —
+ * or a SEPA debit still settling looked abandoned, and the sweep cancelled an
+ * order the customer had paid and put the bike back on sale.
+ *
+ * Every case here is the realistic one: the order is past the 60-minute TTL and
+ * its 30-minute hold has already expired.
+ */
+describe.skipIf(!hasDatabase)('the sweep reconciles with the provider before cancelling', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  async function staleOnlineOrder(overrides: Parameters<typeof seedOrder>[0] = {}): Promise<string> {
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe', stripeSessionId: `cs_test_${Math.random().toString(36).slice(2)}`, ...overrides })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+    await ageOrder(orderId, MAINTENANCE_CONSTANTS.UNPAID_ORDER_TTL_MINUTES + 5)
+    await expireReservation(orderId)
+    return orderId
+  }
+
+  async function statusOf(orderId: string): Promise<string | undefined> {
+    const [row] = await testDb()
+      .select({ status: schema.orders.status })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${orderId}`)
+    return row?.status
+  }
+
+  it('marks a paid order paid instead of cancelling it — and takes its stock', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(report.ordersCancelled).toEqual([])
+    expect(report.ordersReconciledPaid).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('paid')
+    // The hold had expired, so the units must be taken from the order's lines;
+    // left alone, the same two bikes would still be on sale.
+    expect(await onHandOf(BIKE)).toBe(3)
+
+    // A second sweep finds nothing to do and takes nothing twice.
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+
+  it.each(['pending', 'unknown'] as const)('leaves a %s order alone for the next run', async (state) => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => state)
+
+    expect(report.ordersCancelled).toEqual([])
+    expect(report.ordersDeferred).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('awaiting_payment')
+    expect(await onHandOf(BIKE)).toBe(5)
+  })
+
+  it('still cancels when the provider confirms nothing is coming', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+
+    const report = await runMaintenance(inTransaction, testDb(), async () => 'unpaid')
+
+    expect(report.ordersCancelled).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('cancelled')
+    expect(await onHandOf(BIKE)).toBe(5)
+  })
+
+  it('treats a stored PayPal capture as paid without asking anyone', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder({ paymentMethod: 'paypal', stripeSessionId: null, paypalCaptureId: 'CAPTURE-123' })
+
+    // The default probe: a capture id on our side means the money was taken.
+    const report = await runMaintenance(inTransaction, testDb())
+
+    expect(report.ordersReconciledPaid).toHaveLength(1)
+    expect(await statusOf(orderId)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+
+  it('never refuses a late payment for want of stock, and never goes below zero', async () => {
+    // Two ordered, one left: someone bought the other while this payment was
+    // in flight. The customer has paid; the order is paid, the shelf is empty,
+    // and the oversell is logged for a person rather than blocking the payment.
+    await seedProduct(BIKE, 5)
+    const orderId = await staleOnlineOrder()
+    await testDb().execute(sql`UPDATE inventory SET on_hand = 1 WHERE product_id = ${BIKE}`)
+
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(await statusOf(orderId)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(0)
+    // Said where the owner looks, not only in a log nobody reads.
+    const [row] = await testDb()
+      .select({ notes: schema.orders.adminNotes })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${orderId}`)
+    expect(row?.notes).toContain(`1 × ${BIKE}`)
+  })
+
+  it('never takes a unit another customer is holding — the shortfall stays with the late order', async () => {
+    // Two on the shelf. Customer B holds both, live, and is paying right now.
+    // Customer A's late payment for two lands first. Taking B's units would
+    // make B's own payment fail; A is the one who is short.
+    await seedProduct(BIKE, 2)
+    const late = await staleOnlineOrder()
+    const other = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(other, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, other, [{ productId: BIKE, quantity: 2 }]))
+
+    await runMaintenance(inTransaction, testDb(), async () => 'paid')
+
+    expect(await statusOf(late)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(2)
+    const [row] = await testDb()
+      .select({ notes: schema.orders.adminNotes })
+      .from(schema.orders)
+      .where(sql`${schema.orders.id} = ${late}`)
+    expect(row?.notes).toContain(`2 × ${BIKE}`)
+
+    // B pays on time and gets exactly what it held.
+    await transitionOrder((await testDb().select({ n: schema.orders.orderNumber }).from(schema.orders).where(sql`${schema.orders.id} = ${other}`))[0]!.n, 'paid', {
+      expectFrom: 'awaiting_payment',
+      runTransaction: inTransaction,
+    })
+    expect(await statusOf(other)).toBe('paid')
+    expect(await onHandOf(BIKE)).toBe(0)
+  })
+})
+
+/**
+ * A payment that lands after its hold lapsed, BEFORE the sweep closed the hold.
+ *
+ * The hold row is still unsettled but no longer protects anything — another
+ * customer may hold those units now. Consuming it would take their units, and
+ * their own on-time payment would then fail. Only live holds are consumed; the
+ * rest goes through the late path, which takes only what is free.
+ */
+describe.skipIf(!hasDatabase)('a late payment whose hold lapsed but was not swept yet', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  const numberOf = async (orderId: string): Promise<string> =>
+    (await testDb().select({ n: schema.orders.orderNumber }).from(schema.orders).where(sql`${schema.orders.id} = ${orderId}`))[0]!.n
+
+  it('does not take the units another customer holds live, and their payment still goes through', async () => {
+    await seedProduct(BIKE, 1)
+    // A held the last bike; the hold lapsed; the sweep has not run.
+    const late = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(late, BIKE, 1)
+    await inTransaction((tx) => reserveStock(tx, late, [{ productId: BIKE, quantity: 1 }]))
+    await expireReservation(late)
+    // B now holds it, live, and is paying.
+    const other = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(other, BIKE, 1)
+    await inTransaction((tx) => reserveStock(tx, other, [{ productId: BIKE, quantity: 1 }]))
+
+    // A's money lands first.
+    await transitionOrder(await numberOf(late), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(1)
+    const [row] = await testDb().select({ notes: schema.orders.adminNotes }).from(schema.orders).where(sql`${schema.orders.id} = ${late}`)
+    expect(row?.notes).toContain(`1 × ${BIKE}`)
+
+    // B pays on time and is not refused.
+    await transitionOrder(await numberOf(other), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(0)
+
+    // A's lapsed hold is closed, not left dangling as "unsettled".
+    const unsettled = await testDb().execute(sql`SELECT count(*)::int AS n FROM stock_reservations WHERE order_id = ${late} AND settled_at IS NULL`)
+    expect((unsettled.rows[0] as { n: number }).n).toBe(0)
+  })
+
+  it('takes once, never twice, when a live hold covers part of the order', async () => {
+    await seedProduct(BIKE, 5)
+    const orderId = await seedOrder({ status: 'awaiting_payment', paymentMethod: 'stripe' })
+    await addItem(orderId, BIKE, 2)
+    await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 2 }]))
+
+    await transitionOrder(await numberOf(orderId), 'paid', { expectFrom: 'awaiting_payment', runTransaction: inTransaction })
+    expect(await onHandOf(BIKE)).toBe(3)
+  })
+})

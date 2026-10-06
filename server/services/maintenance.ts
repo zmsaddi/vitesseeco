@@ -23,6 +23,7 @@ import { sql } from 'drizzle-orm'
 import { db, queryRows, withTransaction, type SqlExecutor, type TransactionRunner } from '../db/client'
 import { expireStaleReservations } from './stock'
 import { transitionOrder } from './orders'
+import { providerPaymentState, type PaymentProbe } from '../payments/reconcile'
 import { audit } from './audit'
 import { pruneExpiredSessions } from '../security/session'
 
@@ -45,6 +46,10 @@ const PRUNE_LIMIT = 5000
 export interface MaintenanceReport {
   reservationsExpired: number
   ordersCancelled: string[]
+  /** Looked abandoned here, but the provider says the customer paid. */
+  ordersReconciledPaid: string[]
+  /** Left for a later run: money still travelling, or the provider unreachable. */
+  ordersDeferred: string[]
   rateLimitsPruned: number
   sessionsPruned: number
   eventsPruned: number
@@ -57,15 +62,28 @@ export interface MaintenanceReport {
  * Cash orders are deliberately untouched: they are agreed sales awaiting a
  * driver, not abandoned baskets, and cancelling one because nobody clicked
  * anything would delete real work.
+ *
+ * "Never paid" is the provider's answer, not ours. Each stale order is checked
+ * with Stripe (or against its PayPal capture) first: one that was paid is moved
+ * to paid — its webhook was lost — and one whose money is still travelling, or
+ * whose provider could not be reached, is left for the next run. Only a
+ * confirmed "nothing is coming" cancels.
  */
 async function cancelAbandonedOrders(
   executor: SqlExecutor,
-  runTransaction: TransactionRunner
-): Promise<string[]> {
-  const stale = await queryRows<{ order_number: string }>(
+  runTransaction: TransactionRunner,
+  probe: PaymentProbe
+): Promise<{ cancelled: string[]; reconciled: string[]; deferred: string[] }> {
+  const stale = await queryRows<{
+    order_number: string
+    payment_method: string
+    stripe_session_id: string | null
+    paypal_order_id: string | null
+    paypal_capture_id: string | null
+  }>(
     executor,
     sql`
-      SELECT order_number
+      SELECT order_number, payment_method, stripe_session_id, paypal_order_id, paypal_capture_id
         FROM orders
        WHERE status = 'awaiting_payment'
          AND payment_method IN ('stripe', 'paypal')
@@ -77,10 +95,40 @@ async function cancelAbandonedOrders(
   )
 
   const cancelled: string[] = []
+  const reconciled: string[] = []
+  const deferred: string[] = []
   for (const row of stale) {
+    const state = await probe({
+      orderNumber: row.order_number,
+      paymentMethod: row.payment_method,
+      stripeSessionId: row.stripe_session_id,
+      paypalOrderId: row.paypal_order_id,
+      paypalCaptureId: row.paypal_capture_id,
+    })
+
+    if (state === 'pending' || state === 'unknown') {
+      deferred.push(row.order_number)
+      continue
+    }
+
     // One transaction each. A single bad row must not roll the sweep back and
     // leave every other order still holding stock.
     try {
+      if (state === 'paid') {
+        const moved = await transitionOrder(row.order_number, 'paid', { expectFrom: 'awaiting_payment', runTransaction })
+        if (moved.changed) {
+          reconciled.push(row.order_number)
+          await audit({
+            action: 'order.reconciled_paid',
+            actorType: 'system',
+            resourceType: 'order',
+            resourceId: row.order_number,
+            metadata: { reason: 'provider reports paid; the payment event never landed' },
+          })
+        }
+        continue
+      }
+
       const result = await transitionOrder(row.order_number, 'cancelled', {
         expectFrom: 'awaiting_payment',
         runTransaction,
@@ -99,20 +147,21 @@ async function cancelAbandonedOrders(
       // A payment landing at this exact moment makes the transition a no-op
       // rather than a conflict, which is the behaviour we want. Anything else
       // is worth seeing, without stopping the sweep.
-      console.warn(`[maintenance] could not cancel ${row.order_number}`, error)
+      console.warn(`[maintenance] could not settle ${row.order_number}`, error)
     }
   }
-  return cancelled
+  return { cancelled, reconciled, deferred }
 }
 
 export async function runMaintenance(
   runTransaction: TransactionRunner = withTransaction,
-  executor?: SqlExecutor
+  executor?: SqlExecutor,
+  probe: PaymentProbe = providerPaymentState
 ): Promise<MaintenanceReport> {
   const reader = executor ?? db()
 
   const reservationsExpired = await runTransaction((tx) => expireStaleReservations(tx))
-  const ordersCancelled = await cancelAbandonedOrders(reader, runTransaction)
+  const settled = await cancelAbandonedOrders(reader, runTransaction, probe)
 
   // Expired sessions were never pruned by anything: the function existed, was
   // exported, was named in the cron route's own description, and had no caller.
@@ -155,7 +204,9 @@ export async function runMaintenance(
 
   return {
     reservationsExpired,
-    ordersCancelled,
+    ordersCancelled: settled.cancelled,
+    ordersReconciledPaid: settled.reconciled,
+    ordersDeferred: settled.deferred,
     rateLimitsPruned: prunedLimits.length,
     sessionsPruned,
     eventsPruned: prunedEvents.length,

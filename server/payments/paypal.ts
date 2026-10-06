@@ -6,8 +6,11 @@
  * is sitting in a review queue and the shop sold through its own PayPal account
  * for a year before the rebuild. The moment the Stripe Dashboard shows PayPal
  * active, this bridge is removed: delete this file, the two routes that import
- * it, the `paypal` entries in `index.ts`, the checkout branch, and the
- * PAYPAL_* environment variables. Nothing else references it.
+ * it, the `paypal` entries in `index.ts`, the checkout branch, the PayPal branch
+ * of `payments/reconcile.ts` (the sweep asks PayPal before cancelling), and the
+ * PAYPAL_* environment variables — but only once no PayPal order is still
+ * awaiting payment, or the sweep can no longer ask about them and defers them
+ * forever.
  *
  * It is REST against api-m.paypal.com with no SDK: three endpoints (create,
  * read, capture an order) and the webhook verification call. A dependency for
@@ -177,6 +180,8 @@ interface RawPayPalOrder {
     amount?: { currency_code?: string; value?: string }
     payments?: { captures?: Array<{ id?: string; status?: string }> }
   }>
+  create_time?: string
+  update_time?: string
 }
 
 export interface PayPalOrderState {
@@ -185,9 +190,16 @@ export interface PayPalOrderState {
   amountValue: string | null
   currency: string | null
   captureId: string | null
+  /** The capture's own status — COMPLETED, PENDING, DECLINED, REFUNDED… */
+  captureStatus: string | null
+  /** When PayPal created the order (ISO 8601). */
+  createTime: string | null
+  /** When PayPal last changed the order, if it says — an approved, uncaptured order usually does not. */
+  updateTime: string | null
 }
 
-function toState(data: RawPayPalOrder): PayPalOrderState {
+/** PayPal's order resource, read into the fields this bridge acts on. Exported for its tests. */
+export function toState(data: RawPayPalOrder): PayPalOrderState {
   const unit = data.purchase_units?.[0]
   return {
     status: data.status ?? 'UNKNOWN',
@@ -195,7 +207,25 @@ function toState(data: RawPayPalOrder): PayPalOrderState {
     amountValue: unit?.amount?.value ?? null,
     currency: unit?.amount?.currency_code ?? null,
     captureId: unit?.payments?.captures?.[0]?.id ?? null,
+    captureStatus: unit?.payments?.captures?.[0]?.status ?? null,
+    createTime: data.create_time ?? null,
+    updateTime: data.update_time ?? null,
   }
+}
+
+/** As getPayPalOrder, but an order PayPal does not know is null rather than an error. */
+export async function findPayPalOrder(paypalOrderId: string): Promise<PayPalOrderState | null> {
+  const { status, data } = await api<RawPayPalOrder>(
+    `/v2/checkout/orders/${encodeURIComponent(paypalOrderId)}`,
+    { method: 'GET' }
+  )
+  if (status === 404) return null
+  if (status >= 400) {
+    throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
+      internal: `PayPal getOrder ${paypalOrderId} answered ${status}`,
+    })
+  }
+  return toState(data)
 }
 
 export async function getPayPalOrder(paypalOrderId: string): Promise<PayPalOrderState> {
@@ -298,7 +328,10 @@ export async function verifyPayPalWebhook(
 export function paidOrderNumberFromWebhook(rawBody: string): string | null {
   let parsed: {
     event_type?: string
-    resource?: { invoice_id?: string; purchase_units?: Array<{ invoice_id?: string }> }
+    resource?: {
+      invoice_id?: string
+      purchase_units?: Array<{ invoice_id?: string; payments?: { captures?: Array<{ status?: string }> } }>
+    }
   }
   try {
     parsed = JSON.parse(rawBody)
@@ -307,6 +340,13 @@ export function paidOrderNumberFromWebhook(rawBody: string): string | null {
   }
   if (parsed.event_type !== 'PAYMENT.CAPTURE.COMPLETED' && parsed.event_type !== 'CHECKOUT.ORDER.COMPLETED') {
     return null
+  }
+  // An order completes with its capture, and that capture can still be PENDING
+  // (a PayPal review) or DECLINED — not money to ship against. A held capture
+  // that clears sends its own PAYMENT.CAPTURE.COMPLETED, which is.
+  if (parsed.event_type === 'CHECKOUT.ORDER.COMPLETED') {
+    const capture = parsed.resource?.purchase_units?.[0]?.payments?.captures?.[0]
+    if (capture && capture.status !== 'COMPLETED') return null
   }
   // The two event shapes put the invoice id in different places.
   return parsed.resource?.invoice_id ?? parsed.resource?.purchase_units?.[0]?.invoice_id ?? null

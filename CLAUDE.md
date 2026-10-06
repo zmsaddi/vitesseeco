@@ -1,10 +1,12 @@
 # Vitesse Eco
 
-> **Branch:** the cutover has happened. `origin/master` and `origin/rebuild`
-> point at the same commit, and **production builds from `master`** — so this
-> codebase is what vitesse-eco.fr serves. A local `master` checked out before
-> the cutover is the old root-level structure and is not what ships; check
-> `git ls-remote origin master rebuild` before believing otherwise.
+> **Branch:** the cutover has happened and **production builds from `master`**
+> — so this codebase is what vitesse-eco.fr serves. `origin/rebuild` is the
+> pre-cutover branch, frozen at `d548f17` and behind `master`; its Vercel preview
+> alias is gone (410), so nothing should point at it — the Stripe test-mode
+> webhook that did was disabled on 2026-10-05. A local `master` checked out
+> before the cutover is the old root-level structure and is not what ships;
+> check `git ls-remote origin master rebuild` before believing otherwise.
 > **Last verified against the code:** 2026-08-08.
 > Every path, command and variable below was checked to exist. If something here
 > is wrong, the document is the bug — fix it in the same commit.
@@ -18,7 +20,7 @@ Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 | **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers |
 | **Company** | VITESSE ECO SAS · SIREN 100 732 247 · TVA FR43 100 732 247 |
 | **Markets** | FR (primary) · BE · NL · DE · ES |
-| **Languages** | fr (default) · en · nl · de · es · ar — 805 keys × 6, kept in sync by a gate |
+| **Languages** | fr (default) · en · nl · de · es · ar — 807 keys × 6, kept in sync by a gate |
 | **Catalogue** | Sanity `2jvnjf0c` / `production` — 146 products, one per colour |
 | **Node** | v24 |
 
@@ -123,10 +125,10 @@ server/
   payments/                ← adapter registry (index.ts): stripe | cod | in_store — plus paypal, a TEMPORARY direct bridge until Stripe's own PayPal activates (removal recipe in server/payments/paypal.ts)
   feeds/ middleware/ plugins/
 shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
-i18n/locales/              ← 6 files × 805 keys
+i18n/locales/              ← 6 files × 807 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (18 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (20 files) integration/ (9 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
@@ -181,7 +183,18 @@ export default defineRoute({
   recomputed later from today's rules.
 - **Stock moves under a row lock.** A reservation is taken at checkout and
   *consumed* on payment; cash-on-delivery holds get a 14-day TTL, online 30
-  minutes. Cancelling a paid order restocks.
+  minutes, stretched to the expiry of the Stripe session opened over it. A
+  replayed checkout, card or PayPal, never offers payment again over a lapsed
+  hold: it closes the attempt and the customer starts a fresh order. That is
+  not a promise that money never arrives after a hold. The PayPal bridge, at
+  capture, stretches a live hold or takes a lapsed one again if its units are
+  still free, and refuses the capture uncharged otherwise; a capture under
+  PayPal review keeps its units 72 hours. Payments that do land after their
+  hold — a Stripe delayed method (SEPA) settling days later, a webhook
+  reconciled late, a PayPal capture taken earlier or cleared after its review
+  hold — are never refused: they take their units through
+  `takeStockForLatePayment`, which writes OVERSOLD on the order when the units
+  are gone. Cancelling a paid order restocks.
 - Payment methods: `cod` and `in_store` need no keys; `stripe` hides itself until
   its keys exist.
 

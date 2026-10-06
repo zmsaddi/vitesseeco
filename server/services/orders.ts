@@ -30,10 +30,14 @@ import type { MarketDefinition } from '../../shared/markets'
 import { assertTransition, holdsStock, stockWasDecremented, timestampFor } from './orderState'
 import {
   CASH_RESERVATION_TTL_MS,
-  consumeReservations,
+  consumeLiveReservations,
+  holdForPayment,
   releaseReservations,
+  settleExpiredHolds,
   reserveStock,
   restockOrder,
+  stretchLiveHold,
+  takeStockForLatePayment,
 } from './stock'
 import { redeemPromo, releasePromo } from './promo'
 import { priceBasket, type PriceBreakdown, type RequestedLine } from './pricing'
@@ -323,11 +327,14 @@ export async function transitionOrder(
 ): Promise<{ changed: boolean; from: OrderStatus }> {
   const run = options.runTransaction ?? withTransaction
   return run(async (tx) => {
+    // Taken before any stock row, like the UPDATE below always did: the lock
+    // order — order, then inventory — is unchanged, only earlier.
     const [current] = await tx
       .select({ id: orders.id, status: orders.status })
       .from(orders)
       .where(eq(orders.orderNumber, orderNumber))
       .limit(1)
+      .for('update')
 
     if (!current) {
       throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
@@ -356,16 +363,40 @@ export async function transitionOrder(
     if (changed.length === 0) return { changed: false, from: current.status }
 
     if (to === 'paid') {
-      // The hold becomes a real decrement.
-      const consumed = await consumeReservations(tx, current.id)
-      // Zero here is not a no-op. The status predicate on the UPDATE above means
-      // this transition happened exactly once, so finding no live hold says the
-      // reservation expired before the money arrived — the units are about to be
-      // sold twice, and silence would be the last anyone heard of it.
-      if (consumed === 0) {
-        console.error(
-          `[orders] ${orderNumber} moved to paid with no live reservation — stock was NOT decremented`
-        )
+      // Live holds become a real decrement. The status predicate on the UPDATE
+      // above means this runs exactly once per order.
+      const consumed = await consumeLiveReservations(tx, current.id)
+      // Holds that lapsed before the money arrived are closed, untouched: they
+      // no longer protect anything, and someone else may hold those units now.
+      await settleExpiredHolds(tx, current.id)
+      // Every ordered unit no live hold covered is taken now, from what is free
+      // — otherwise it stays on sale and the same bike is sold twice. A
+      // shortfall cannot refuse a payment that was made; it is an oversell for
+      // a person, said where they will see it.
+      {
+        const late = await takeStockForLatePayment(tx, current.id, consumed)
+        if (late.short.length > 0) {
+          const detail = late.short.map((line) => `${line.missing} × ${line.productId}`).join(', ')
+          console.error(`[orders] ${orderNumber} paid after its hold expired, OVERSOLD: ${detail}`)
+          // Where the owner will actually see it: on the order, in the panel.
+          // Also the reminder that cancelling would re-credit units never taken.
+          const note =
+            `ATTENTION : payé après expiration de la réservation, stock insuffisant : ${detail}. ` +
+            `Vendu sans stock — à régler à la main ; une annulation remettrait ces unités en stock à tort.`
+          // In a savepoint: the note is for a person, the payment is the fact. A
+          // failed note must roll back alone — one failed statement aborts the
+          // whole transaction, and that would leave a paid order unpaid.
+          try {
+            await tx.transaction(async (savepoint) => {
+              await savepoint
+                .update(orders)
+                .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+                .where(eq(orders.id, current.id))
+            })
+          } catch (error) {
+            console.error(`[orders] ${orderNumber}: could not record the oversell note`, error)
+          }
+        }
       }
     } else if (to === 'cancelled' && holdsStock(current.status)) {
       // Two separate jobs, decided separately.
@@ -390,14 +421,49 @@ export async function transitionOrder(
   })
 }
 
-/** Attach the provider's session id, so a webhook can find the order it belongs to. */
+/**
+ * Attach a Stripe session to its order, so a webhook can find the order it
+ * belongs to — and only while the session can honestly be paid.
+ *
+ * Both conditions are checked under the order's row lock, so a cancellation
+ * (the sweep, the shop) either lands first and nothing is attached, or waits
+ * and then finds the session:
+ *
+ *  - the order still awaits payment. The session is created over the network
+ *    after the order was read; attached to an order cancelled in between, its
+ *    payment met a closed order and was dropped without a word.
+ *  - its stock is still held, stretched to the session's own expiry, so the
+ *    session can never be paid for units that are back on sale.
+ *
+ * Nothing is attached otherwise, and the caller learns which condition failed.
+ */
 export async function attachPaymentSession(
   orderId: string,
-  sessionId: string,
-  tx?: Transaction
-): Promise<void> {
-  const handle = tx ?? db()
-  await handle.update(orders).set({ stripeSessionId: sessionId }).where(eq(orders.id, orderId))
+  session: { id: string; payableUntil: Date },
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<{ attached: true } | { attached: false; status: OrderStatus; holdLapsed: boolean }> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx) => {
+    const [current] = await tx
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+      .for('update')
+
+    if (!current) {
+      throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderId}` })
+    }
+    if (current.status !== 'awaiting_payment') {
+      return { attached: false, status: current.status, holdLapsed: false }
+    }
+    if (!(await stretchLiveHold(tx, orderId, session.payableUntil))) {
+      return { attached: false, status: current.status, holdLapsed: true }
+    }
+
+    await tx.update(orders).set({ stripeSessionId: session.id }).where(eq(orders.id, orderId))
+    return { attached: true }
+  })
 }
 
 export async function findOrderByStripeSession(sessionId: string): Promise<{ orderNumber: string; status: OrderStatus } | null> {
@@ -409,8 +475,156 @@ export async function findOrderByStripeSession(sessionId: string): Promise<{ ord
   return row ?? null
 }
 
+/**
+ * Write a line on the order for the shop.
+ *
+ * The order's page in the panel shows its admin notes, so that is where the
+ * owner actually reads about money that needs a decision — a log line is read by
+ * nobody. Appended below whatever a person already wrote, never in its place.
+ */
+export async function noteOnOrder(orderNumber: string, note: string): Promise<void> {
+  await db()
+    .update(orders)
+    .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+    .where(eq(orders.orderNumber, orderNumber))
+}
+
+/**
+ * noteOnOrder, inside a transaction that already holds the order's row — which
+ * noteOnOrder's own connection would wait on for ever. In a savepoint: the note
+ * is for a person and the decision it records is the fact, so a failed note
+ * rolls back alone instead of aborting the transaction around it.
+ */
+async function noteWithin(tx: Transaction, orderId: string, note: string): Promise<void> {
+  try {
+    await tx.transaction(async (savepoint) => {
+      await savepoint
+        .update(orders)
+        .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+        .where(eq(orders.id, orderId))
+    })
+  } catch (error) {
+    console.error(`[orders] could not write a note on order ${orderId}`, error)
+  }
+}
+
 // ── Temporary PayPal bridge (server/payments/paypal.ts) ──────────────────────
-// These two leave with the bridge; the columns they write stay readable.
+// These leave with the bridge; the columns they write stay readable.
+
+/** How long a PayPal capture is given to take the money before its hold could lapse again. */
+const PAYPAL_CAPTURE_HOLD_MS = 10 * 60 * 1000
+
+/**
+ * How long the units wait for a capture PayPal is reviewing. PayPal's own review
+ * usually ends within a day; one that clears later still settles its order, as
+ * any late payment does (takeStockForLatePayment).
+ */
+export const PAYPAL_REVIEW_HOLD_MS = 72 * 60 * 60 * 1000
+
+type CaptureHold = { held: true } | { held: false; status: OrderStatus }
+
+/**
+ * Before PayPal is asked to take the money, the order must hold its units.
+ *
+ * The payer approves in PayPal's own window, for as long as they like, and the
+ * buttons do not close when the thirty-minute hold lapses: a capture over a
+ * lapsed hold sold a bike another customer had bought in the meantime. So, under
+ * the order's row lock and then the inventory locks (stock.holdForPayment), a
+ * live hold is stretched to cover the capture and a lapsed one takes its units
+ * again only if they are still free. Otherwise the attempt is closed here, in
+ * the same transaction, as the sweep would close it — its hold and any
+ * promotion use go back. Nothing has been charged yet, so closing costs nobody
+ * any money.
+ *
+ * When nothing is held, `status` is where the order stands: cancelled (closed
+ * now, or earlier), or paid by a capture that got there first.
+ */
+export async function holdStockForPayPalCapture(
+  orderNumber: string,
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<CaptureHold> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx): Promise<CaptureHold> => {
+    const [current] = await tx
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(eq(orders.orderNumber, orderNumber))
+      .limit(1)
+      .for('update')
+    if (!current) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+    if (current.status !== 'awaiting_payment') return { held: false, status: current.status }
+
+    if ((await holdForPayment(tx, current.id, new Date(Date.now() + PAYPAL_CAPTURE_HOLD_MS))) !== 'short') {
+      return { held: true }
+    }
+
+    const closed = await transitionOrder(orderNumber, 'cancelled', {
+      expectFrom: 'awaiting_payment',
+      runTransaction: (work) => work(tx),
+    })
+    await noteWithin(
+      tx,
+      current.id,
+      `Paiement PayPal refusé avant encaissement : la réservation avait expiré et le stock n'était plus libre. ` +
+        `Rien n'a été encaissé ; la commande est annulée.`
+    )
+    return { held: false, status: closed.changed ? 'cancelled' : closed.from }
+  })
+}
+
+/**
+ * A capture PayPal has neither paid nor refused — PENDING while its risk review
+ * runs, which can take a day.
+ *
+ * Not money yet, so the order stays awaiting payment. But the payer has paid as
+ * far as they can tell, and the bike must not go back on sale while PayPal
+ * decides: a thirty-minute hold did exactly that. The hold is stretched to the
+ * review horizon — taken again if it had lapsed and the units are still free —
+ * and the order says so where the shop reads it, with the capture id a dispute
+ * or a refund is answered with.
+ *
+ * That id stays out of paypal_capture_id, which reads as money taken — to the
+ * sweep (payments/reconcile.ts) and to the shop. The capture's own
+ * PAYMENT.CAPTURE.COMPLETED, or the sweep asking PayPal, settles the order once
+ * PayPal has; a declined review is cancelled by the sweep, which gives the hold
+ * back. Nothing is held or noted for an order no longer awaiting payment.
+ */
+export async function holdStockForPayPalReview(
+  orderNumber: string,
+  capture: { id: string; status: string | null },
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<{ held: boolean; status: OrderStatus }> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx): Promise<{ held: boolean; status: OrderStatus }> => {
+    const [current] = await tx
+      .select({ id: orders.id, status: orders.status, notes: orders.adminNotes })
+      .from(orders)
+      .where(eq(orders.orderNumber, orderNumber))
+      .limit(1)
+      .for('update')
+    if (!current) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+    if (current.status !== 'awaiting_payment') return { held: false, status: current.status }
+
+    const held = (await holdForPayment(tx, current.id, new Date(Date.now() + PAYPAL_REVIEW_HOLD_MS))) !== 'short'
+    // Once per capture, however often PayPal's answer is read again.
+    if (!(current.notes ?? '').includes(capture.id)) {
+      const what =
+        capture.status === 'PENDING'
+          ? `paiement PayPal en cours de vérification chez PayPal (capture ${capture.id})`
+          : `paiement PayPal ni encaissé ni refusé par PayPal (capture ${capture.id}, statut ${capture.status ?? 'non communiqué'})`
+      await noteWithin(
+        tx,
+        current.id,
+        held
+          ? `En attente : ${what}. Ne pas annuler ni expédier : la commande passera à « payée » si PayPal confirme le paiement. ` +
+              `Stock réservé ${PAYPAL_REVIEW_HOLD_MS / 3_600_000} h.`
+          : `ATTENTION : ${what}, mais le stock n'est plus libre. Ne pas annuler : si PayPal confirme le paiement, ` +
+              `la commande sera payée sans stock — à régler à la main.`
+      )
+    }
+    return { held, status: current.status }
+  })
+}
 
 /** Attach the PayPal order id, so capture can verify the binding server-side. */
 export async function attachPayPalOrder(orderId: string, paypalOrderId: string): Promise<void> {
