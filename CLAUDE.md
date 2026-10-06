@@ -183,9 +183,18 @@ export default defineRoute({
   recomputed later from today's rules.
 - **Stock moves under a row lock.** A reservation is taken at checkout and
   *consumed* on payment; cash-on-delivery holds get a 14-day TTL, online 30
-  minutes, stretched to the expiry of the Stripe session opened over it. No
-  payment window may outlive its hold, and a lapsed hold is never revived — the
-  customer starts a fresh order. Cancelling a paid order restocks.
+  minutes, stretched to the expiry of the Stripe session opened over it. A
+  replayed checkout, card or PayPal, never offers payment again over a lapsed
+  hold: it closes the attempt and the customer starts a fresh order. That is
+  not a promise that money never arrives after a hold. The PayPal bridge, at
+  capture, stretches a live hold or takes a lapsed one again if its units are
+  still free, and refuses the capture uncharged otherwise; a capture under
+  PayPal review keeps its units 72 hours. Payments that do land after their
+  hold — a Stripe delayed method (SEPA) settling days later, a webhook
+  reconciled late, a PayPal capture taken earlier or cleared after its review
+  hold — are never refused: they take their units through
+  `takeStockForLatePayment`, which writes OVERSOLD on the order when the units
+  are gone. Cancelling a paid order restocks.
 - Payment methods: `cod` and `in_store` need no keys; `stripe` hides itself until
   its keys exist.
 

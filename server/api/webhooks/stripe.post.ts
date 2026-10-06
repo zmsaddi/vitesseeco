@@ -120,7 +120,10 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
 
     case 'pending':
       // Delayed settlement — iDEAL, Bancontact, SEPA. The order stays
-      // awaiting_payment and the stock stays held until the async event lands.
+      // awaiting_payment, but its stock hold does not wait with it: it lapses
+      // at the session's own expiry, and a debit that settles days later takes
+      // its units then, from what is free (takeStockForLatePayment, via the
+      // async event's paid flip).
       break
   }
 }
