@@ -23,7 +23,10 @@ const querySchema = paginationSchema
     // answered 400 over every PayPal order — and an order keeps its method
     // after the shop stops taking it. An unknown value is refused, not ignored.
     payment: z.enum(orders.paymentMethod.enumValues).optional(),
-    search: z.string().trim().max(120).optional(),
+    // Invisible format characters (a direction mark, a zero-width space) come
+    // along when an order number is copied out of a chat or a mail: without
+    // this the pasted search finds nothing.
+    search: z.string().transform((value) => value.replace(/\p{Cf}/gu, '')).pipe(z.string().trim().max(120)).optional(),
     since: z.coerce.date().optional(),
   })
   .strict()

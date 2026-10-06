@@ -8,7 +8,7 @@
  */
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
-import { claimWebhookEvent } from '../../server/services/webhookClaims'
+import { claimWebhookEvent, firstTime } from '../../server/services/webhookClaims'
 import { closePool, hasDatabase, resetDatabase, testDb } from './setup'
 
 const event = (eventId: string) => ({
@@ -67,5 +67,27 @@ describe.skipIf(!hasDatabase)('claiming a webhook event', () => {
   it('keeps providers apart', async () => {
     expect((await claimWebhookEvent(event('evt_5'))).state).toBe('claimed')
     expect((await claimWebhookEvent({ ...event('evt_5'), provider: 'paypal' })).state).toBe('claimed')
+  })
+})
+
+describe.skipIf(!hasDatabase)('saying something once', () => {
+  afterAll(async () => {
+    await closePool()
+  })
+
+  beforeEach(async () => {
+    await resetDatabase()
+  })
+
+  it('answers true the first time only, even to callers racing each other', async () => {
+    const answers = await Promise.all(Array.from({ length: 5 }, () => firstTime('link-sale:cs_test_1')))
+    expect(answers.filter(Boolean)).toHaveLength(1)
+    expect(await firstTime('link-sale:cs_test_1')).toBe(false)
+    expect(await firstTime('link-sale:cs_test_2')).toBe(true)
+  })
+
+  it('never collides with a provider event of the same id', async () => {
+    expect(await firstTime('evt_6')).toBe(true)
+    expect((await claimWebhookEvent(event('evt_6'))).state).toBe('claimed')
   })
 })

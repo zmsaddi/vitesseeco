@@ -173,3 +173,30 @@ export const providerPaymentState: PaymentProbe = async (order) => {
     return 'unknown'
   }
 }
+
+/**
+ * Before an unpaid online order is cancelled by hand: shut the door the money
+ * would come through, then say whether any already did.
+ *
+ * Cancelling used to leave the Checkout Session open. A customer still on the
+ * payment form could pay a minute later — for an order already cancelled, its
+ * bike already back on sale — and be told the payment had failed. An open
+ * session is expired first, after which Stripe refuses to take the money, and
+ * then read again: it may have completed in between. A PayPal order cannot be
+ * shut from here; its approval grace period (stateOfPayPalOrder) covers a
+ * payer who is capturing right now.
+ *
+ * Only 'unpaid' means the order can be cancelled.
+ */
+export async function closeCheckout(order: ProbeTarget): Promise<PaymentState> {
+  if (order.paymentMethod === 'stripe' && order.stripeSessionId) {
+    try {
+      const session = await stripe().checkout.sessions.retrieve(order.stripeSessionId)
+      if (session.status === 'open') await stripe().checkout.sessions.expire(order.stripeSessionId)
+    } catch (error) {
+      // Completed a moment ago, or Stripe unreachable: the read below decides.
+      console.warn(`[reconcile] could not expire ${order.stripeSessionId}:`, String(error).slice(0, 200))
+    }
+  }
+  return providerPaymentState(order)
+}

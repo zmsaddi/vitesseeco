@@ -13,16 +13,23 @@ import { getRouterParam } from 'h3'
 import { defineRoute } from '../../../security/handler'
 import { db } from '../../../db/client'
 import { orders } from '../../../db/schema'
-import { orderNumberSchema, LIMITS } from '../../../../shared/schemas'
+import { orderNumberSchema, orderStatusSchema, LIMITS } from '../../../../shared/schemas'
 import { ADMIN_SETTABLE } from '../../../services/orderState'
 import { transitionOrder } from '../../../services/orders'
 import { isOnline } from '../../../payments'
+import { closeCheckout } from '../../../payments/reconcile'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { audit } from '../../../services/audit'
 
 const bodySchema = z
   .object({
     status: z.enum(ADMIN_SETTABLE as unknown as [string, ...string[]]).optional(),
+    /**
+     * The status the admin was looking at when they chose. A page left open
+     * while the customer paid still offers "cancel" on what is now a paid
+     * order; without this the click cancelled it and put the bike back on sale.
+     */
+    expectedStatus: orderStatusSchema.optional(),
     /** Records that cash was collected. Deliberately not a status choice. */
     markCashReceived: z.literal(true).optional(),
     trackingNumber: z.string().trim().max(120).optional(),
@@ -44,12 +51,46 @@ export default defineRoute({
     const orderNumber = parsed.data
 
     const [before] = await db()
-      .select({ status: orders.status, paymentMethod: orders.paymentMethod })
+      .select({
+        status: orders.status,
+        paymentMethod: orders.paymentMethod,
+        stripeSessionId: orders.stripeSessionId,
+        paypalOrderId: orders.paypalOrderId,
+        paypalCaptureId: orders.paypalCaptureId,
+      })
       .from(orders)
       .where(eq(orders.orderNumber, orderNumber))
       .limit(1)
 
     if (!before) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+
+    if (body.status && body.expectedStatus && before.status !== body.expectedStatus && before.status !== body.status) {
+      throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+        messageKey: 'admin.order_changed',
+        internal: `${orderNumber} is ${before.status}, the admin saw ${body.expectedStatus}`,
+      })
+    }
+
+    const closingPayment =
+      body.status === 'cancelled' && before.status === 'awaiting_payment' && isOnline(before.paymentMethod)
+    if (closingPayment) {
+      // The customer may still be paying. Close the payment first and cancel
+      // only on a positive "nothing is coming" — the same answer the sweep
+      // waits for — or the money lands on a cancelled order.
+      const state = await closeCheckout({
+        orderNumber,
+        paymentMethod: before.paymentMethod,
+        stripeSessionId: before.stripeSessionId,
+        paypalOrderId: before.paypalOrderId,
+        paypalCaptureId: before.paypalCaptureId,
+      })
+      if (state !== 'unpaid') {
+        throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+          messageKey: `admin.cancel_refused_${state}`,
+          internal: `${orderNumber} not cancelled: the payment provider reports ${state}`,
+        })
+      }
+    }
 
     if (body.markCashReceived) {
       if (isOnline(before.paymentMethod)) {
@@ -74,7 +115,18 @@ export default defineRoute({
     }
 
     if (body.status) {
-      const result = await transitionOrder(orderNumber, body.status as never)
+      // Bound to what was checked: the status the admin saw, or — when the
+      // payment was just closed — the awaiting_payment the provider was asked
+      // about. Anything that moved the order in between wins, and is said.
+      const expectFrom = body.expectedStatus ?? (closingPayment ? 'awaiting_payment' : undefined)
+      const result = await transitionOrder(orderNumber, body.status as never, expectFrom ? { expectFrom } : {})
+      if (!result.changed && result.from !== body.status) {
+        throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+          messageKey: 'admin.order_changed',
+          internal: `${orderNumber} moved to ${result.from} before it could become ${body.status}`,
+        })
+      }
+      if (closingPayment && result.changed) await closeReplacementSession(orderNumber, before.stripeSessionId)
       await audit({
         action: 'order.status_change',
         actorType: 'admin',
@@ -114,3 +166,25 @@ export default defineRoute({
     return after
   },
 })
+
+/**
+ * A checkout replay running at the same moment can attach a fresh Checkout
+ * Session after the old one was expired and before the cancel landed. The
+ * order is cancelled now, so that session is shut as well; money that reached
+ * it in between is reported by the webhook as a payment on a closed order.
+ */
+async function closeReplacementSession(orderNumber: string, closed: string | null): Promise<void> {
+  const [now] = await db()
+    .select({ stripeSessionId: orders.stripeSessionId, paymentMethod: orders.paymentMethod })
+    .from(orders)
+    .where(eq(orders.orderNumber, orderNumber))
+    .limit(1)
+  if (!now?.stripeSessionId || now.stripeSessionId === closed) return
+  await closeCheckout({
+    orderNumber,
+    paymentMethod: now.paymentMethod,
+    stripeSessionId: now.stripeSessionId,
+    paypalOrderId: null,
+    paypalCaptureId: null,
+  })
+}

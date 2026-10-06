@@ -82,6 +82,8 @@ export interface PlacedOrder {
   orderNumber: string
   status: OrderStatus
   breakdown: PriceBreakdown
+  /** True when an earlier request with the same idempotency key placed it. */
+  replayed?: boolean
 }
 
 /**
@@ -95,7 +97,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
   const run = input.runTransaction ?? withTransaction
 
   const existing = await findByIdempotencyKey(input.idempotencyKey, input.read)
-  if (existing) return existing
+  if (existing) return { ...existing, replayed: true }
 
   // Priced before the transaction opens: it reads the catalogue over the
   // network, and holding database locks across an external call is how a busy
@@ -235,10 +237,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
     })
   } catch (error) {
     // A racing request with the same key committed first. Its order is the
-    // answer, not an error.
+    // answer, not an error — and a replay, exactly as if the first lookup had
+    // found it: the request that placed it is the one that announces it.
     if (isUniqueViolation(error, 'orders_idempotency_key')) {
       const raced = await findByIdempotencyKey(input.idempotencyKey, input.read)
-      if (raced) return raced
+      if (raced) return { ...raced, replayed: true }
     }
     throw error
   }
@@ -314,11 +317,25 @@ async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<Pl
 }
 
 /**
+ * How the admin note of a payment that arrived short of stock begins. The
+ * owner's alert recognises the note by it (server/services/notify.ts).
+ */
+export const OVERSOLD_NOTE = 'ATTENTION : payé après expiration de la réservation'
+
+/**
  * Move an order to a new status, settling stock as the transition requires.
  *
- * The status predicate on the UPDATE is what makes this safe to run
- * concurrently: whoever moves the row first wins, and a second attempt updates
- * nothing and therefore settles nothing. Stock can never be credited twice.
+ * The row is locked before its status is read, so two transitions of one order
+ * queue rather than race: the second reads what the first committed. Without
+ * the lock both read awaiting_payment, the loser's UPDATE matched nothing, and
+ * it reported a status that was already history — the PayPal capture then told
+ * the owner to refund an order the webhook had just paid. The status predicate
+ * on the UPDATE stays as a second guard: whoever moves the row first wins, and
+ * a second attempt updates nothing and therefore settles nothing. Stock can
+ * never be credited twice.
+ *
+ * `from` is the status the order was in when this ran: the one it left when
+ * `changed`, the one it stays in otherwise.
  */
 export async function transitionOrder(
   orderNumber: string,
@@ -381,7 +398,7 @@ export async function transitionOrder(
           // Where the owner will actually see it: on the order, in the panel.
           // Also the reminder that cancelling would re-credit units never taken.
           const note =
-            `ATTENTION : payé après expiration de la réservation, stock insuffisant : ${detail}. ` +
+            `${OVERSOLD_NOTE}, stock insuffisant : ${detail}. ` +
             `Vendu sans stock — à régler à la main ; une annulation remettrait ces unités en stock à tort.`
           // In a savepoint: the note is for a person, the payment is the fact. A
           // failed note must roll back alone — one failed statement aborts the

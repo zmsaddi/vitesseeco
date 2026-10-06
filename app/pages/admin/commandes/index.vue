@@ -79,6 +79,9 @@ async function patch(orderNumber: string, body: Record<string, unknown>): Promis
     await refresh()
   } catch (err: unknown) {
     error.value = apiErrorMessage(err, t, locale.value)
+    // A refusal usually means the order moved under the list (a payment, a
+    // sweep): show what it is now, so the next click is not made on a ghost.
+    await refresh().catch(() => {})
   } finally {
     busy.value = null
   }
@@ -206,7 +209,7 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
             type="button"
             class="btn-secondary h-9 px-3 text-xs"
             :disabled="busy === order.orderNumber"
-            @click="patch(order.orderNumber, { status: next })"
+            @click="patch(order.orderNumber, { status: next, expectedStatus: order.status })"
           >
             {{ $t(`order_status.${next}`) }}
           </button>

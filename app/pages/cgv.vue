@@ -145,7 +145,7 @@ const ARTICLES: Article[] = [
  * tells the reader nothing about whether the terms actually changed, and the
  * date is the only way a customer can tell which version they agreed to.
  */
-const UPDATED_AT = '2026-07-29'
+const UPDATED_AT = '2026-10-06'
 
 // Parsed at midday: a bare date string is UTC midnight, which formats as the
 // previous day for anyone west of Greenwich.

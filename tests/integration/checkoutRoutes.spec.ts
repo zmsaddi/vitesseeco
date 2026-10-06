@@ -713,7 +713,7 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
       expect(after.status).toBe('cancelled')
       // Where the owner looks: on the order, in the panel — not only in a log.
       expect(after.notes).toContain('CAP-LATE')
-      expect(await audited('order.paypal_captured_on_closed_order', orderNumber)).toBe(1)
+      expect(await audited('order.paid_while_closed', orderNumber)).toBe(1)
     })
 
     it('raises no alarm when its own webhook is marking the order paid as the capture moves it', async () => {
@@ -748,7 +748,7 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
       const after = await stateOf(orderId)
       expect(after).toMatchObject({ status: 'paid', captureId: 'CAP-RACE' })
       expect(after.notes).toBeNull()
-      expect(await audited('order.paypal_captured_on_closed_order', orderNumber)).toBe(0)
+      expect(await audited('order.paid_while_closed', orderNumber)).toBe(0)
       expect(await onHand()).toBe(0)
     })
   })
