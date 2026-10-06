@@ -13,7 +13,13 @@
  * production while looking perfect locally, because dev renders as an SPA and
  * the probe only ever runs in a browser there.
  */
-export default defineNuxtRouteMiddleware(async (to) => {
+export default defineNuxtRouteMiddleware(async (to, from) => {
+  // A new query or hash on the page already shown is not a new page to guard.
+  // Probing the session then cost a round trip on every such step — and the
+  // invoice page adds one the moment it hands the device to a customer, when
+  // the delay is a window in which the back gesture can still leave the page.
+  if (import.meta.client && to.path === from.path) return
+
   const localePath = useLocalePath()
   const request = useRequestFetch()
 
