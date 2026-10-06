@@ -14,12 +14,21 @@
  * every failure is logged and swallowed. A customer whose payment succeeded is
  * never told otherwise because Telegram was slow.
  *
+ * What it carries is a pointer, not a record: the order number, the amount,
+ * the items, how it is paid and handed over, the town — and the link to the
+ * order, where the rest is. No name, no email, no phone, no street. Both
+ * channels are third parties outside the European Union, named as such in the
+ * privacy policy, and a chat history is not where a customer's address should
+ * end up living.
+ *
  * Written in Arabic: it is read by the owner, not by customers.
  */
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { db } from '../db/client'
 import { orderItems, orders } from '../db/schema'
+import { audit } from './audit'
+import { firstTime } from './webhookClaims'
 import { cents, format } from '../../shared/money'
 import { ORGANISATION, SITE_URL } from '../../shared/organisation'
 
@@ -39,13 +48,60 @@ const PAYMENT_LABELS: Record<string, string> = {
   in_store: 'الدفع في المحل',
 }
 
+/**
+ * A left-to-right value placed in an Arabic line.
+ *
+ * Every line here starts with an Arabic label, so it is laid out right to left,
+ * and the bidi algorithm then detaches the edges of a Latin or numeric value:
+ * the € of "1 250,00 €" lands on the order number, the "+" of a phone number at
+ * its far end. A left-to-right mark on each side ties them back on. LRM rather
+ * than the newer isolates because every Telegram and mail client honours it.
+ */
+const LRM = '‎'
+export function ltr(value: string): string {
+  return `${LRM}${value}${LRM}`
+}
+
+/**
+ * Text a customer typed, made safe to put in front of the owner.
+ *
+ * Only letters, digits, spaces, apostrophes and hyphens survive. That is enough
+ * to recognise a town, and everything else is how a lure is built: Telegram and
+ * mail clients turn "://", a bare "domain.com", "@name" or "/command" into
+ * something tappable whatever the formatting mode, a line break lets a typed
+ * address pose as a line of the shop's own message, and a bidi control can
+ * reorder what is shown. The admin link holds the exact text.
+ */
+export function plainText(value: string | null | undefined, max = 40): string {
+  const kept = (value ?? '')
+    .normalize('NFC')
+    .replace(/[^\p{L}\p{M}\p{N}'’ -]+/gu, ' ')
+    // A mark belongs to the letter before it; one whose letter was removed
+    // (the emoji selector of "⚠️") goes with it.
+    .replace(/(^|[^\p{L}\p{M}\p{N}])\p{M}+/gu, '$1')
+    .replace(/ {2,}/g, ' ')
+    .trim()
+  // By code point, so a cut never splits a character in two.
+  const characters = Array.from(kept)
+  return characters.length > max ? `${characters.slice(0, max - 1).join('').trimEnd()}…` : kept
+}
+
 function money(amount: number): string {
-  return format(cents(amount), 'fr-FR')
+  return ltr(format(cents(amount), 'fr-FR'))
 }
 
 function parisTime(date: Date): string {
   // Pinned: the function runs in UTC, the owner reads Paris time.
-  return new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }).format(date)
+  return ltr(
+    new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'short' }).format(date)
+  )
+}
+
+/** "86000 Poitiers FR" from whatever parts the customer gave — or null. */
+function town(parts: { postalCode?: string | null; city?: string | null; country?: string | null } | null | undefined): string | null {
+  if (!parts?.city) return null
+  const text = [plainText(parts.postalCode, 12), plainText(parts.city), plainText(parts.country, 2)].filter(Boolean).join(' ')
+  return text ? ltr(text) : null
 }
 
 /** Telegram's HTML mode: only these three characters need escaping. */
@@ -130,7 +186,6 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
       paymentMethod: orders.paymentMethod,
       shippingMethodCode: orders.shippingMethodCode,
       shippingAddress: orders.shippingAddress,
-      customerSnapshot: orders.customerSnapshot,
       adminNotes: orders.adminNotes,
       createdAt: orders.createdAt,
     })
@@ -144,30 +199,24 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
     .from(orderItems)
     .where(eq(orderItems.orderId, order.id))
 
-  const customer = (order.customerSnapshot ?? {}) as { name?: string; email?: string | null; phone?: string }
   // A payment that arrived after its stock hold lapsed, short of stock, leaves
   // its warning in the admin notes (server/services/orders.ts). That is
   // exactly what the owner must see the moment the money is announced.
   const oversold = (order.adminNotes ?? '')
     .split('\n')
     .filter((note) => note.startsWith('ATTENTION :'))
-  const address = order.shippingAddress as { line1?: string; postalCode?: string; city?: string; country?: string } | null
+  const destination = town(order.shippingAddress as { postalCode?: string; city?: string; country?: string } | null)
 
   return {
     title:
       event === 'paid'
-        ? `💶 طلب مدفوع ${order.orderNumber} — ${money(order.totalCents)}`
-        : `🛒 طلب جديد ${order.orderNumber} — ${money(order.totalCents)} (لم يُدفع بعد)`,
+        ? `💶 طلب مدفوع ${ltr(order.orderNumber)} — ${money(order.totalCents)}`
+        : `🛒 طلب جديد ${ltr(order.orderNumber)} — ${money(order.totalCents)} (لم يُدفع بعد)`,
     lines: [
       ...items.map((item) => `• ${item.quantity} × ${item.name}${item.color ? ` (${item.color})` : ''}`),
       '',
-      `الزبون: ${customer.name ?? '—'}`,
-      `الهاتف: ${customer.phone ?? '—'}`,
-      `البريد: ${customer.email ?? '—'}`,
-      address?.city
-        ? `العنوان: ${[address.line1, `${address.postalCode ?? ''} ${address.city}`.trim(), address.country].filter(Boolean).join('، ')}`
-        : `التسليم: ${order.shippingMethodCode}`,
-      `الدفع: ${PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}`,
+      destination ? `التسليم: ${destination}` : `التسليم: ${ltr(order.shippingMethodCode)}`,
+      `الدفع: ${PAYMENT_LABELS[order.paymentMethod] ?? ltr(order.paymentMethod)}`,
       `الوقت: ${parisTime(order.createdAt)}`,
       ...(oversold.length ? ['', '⚠️ نقص في المخزون عند وصول الدفعة — يحتاج تدخلك:', ...oversold] : []),
     ],
@@ -175,21 +224,53 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
   }
 }
 
-/**
- * PayPal captured money on an order that had already closed — the sweep
- * cancelled it while the payer was approving. Not an order to fulfil and not a
- * failure to ignore: a person must refund it or honour it, today.
- */
-export function closedOrderPaymentMessage(orderNumber: string, captureId: string | null, status: string): OwnerMessage {
+/** Money that reached an order after it closed. */
+export interface ClosedOrderPayment {
+  orderNumber: string
+  provider: 'stripe' | 'paypal'
+  /** The provider's own reference for the money: a Checkout Session, a PayPal capture. */
+  reference: string | null
+  /** What the order was when the money arrived. */
+  status: string
+}
+
+export function closedOrderPaymentMessage(payment: ClosedOrderPayment): OwnerMessage {
+  const provider = payment.provider === 'stripe' ? 'Stripe' : 'PayPal'
   return {
-    title: `⚠️ دفعة PayPal على طلب مغلق ${orderNumber}`,
+    title: `⚠️ دفعة ${provider} على طلب مغلق ${ltr(payment.orderNumber)}`,
     lines: [
-      `استلم PayPal المال لكن الطلب كان ${status === 'cancelled' ? 'ملغى' : status} عند وصول الدفعة.`,
-      'المطلوب: إما استرداد المبلغ من PayPal، أو تنفيذ الطلب يدويًا.',
-      `رقم عملية PayPal: ${captureId ?? '—'}`,
+      `استلم ${provider} المال لكن الطلب كان ${payment.status === 'cancelled' ? 'ملغى' : ltr(payment.status)} عند وصول الدفعة.`,
+      `المطلوب: إما استرداد المبلغ من ${provider}، أو تنفيذ الطلب يدويًا.`,
+      `مرجع الدفعة: ${ltr(payment.reference ?? '—')}`,
     ],
-    link: `${SITE_URL}/admin/commandes/${orderNumber}`,
+    link: `${SITE_URL}/admin/commandes/${payment.orderNumber}`,
   }
+}
+
+/**
+ * The customer paid for an order that had already closed — cancelled by the
+ * sweep or by hand while they were still paying. Not an order to fulfil and not
+ * a failure to ignore: a person must refund it or honour it, today.
+ *
+ * Every path that can see it reports it (the PayPal capture, both webhooks),
+ * and a re-claimed event runs its handler again, so it is said once per
+ * payment: logged every time, audited and announced the first.
+ */
+export async function reportPaymentOnClosedOrder(payment: ClosedOrderPayment): Promise<void> {
+  console.error(
+    `[payments] ${payment.provider} payment ${payment.reference ?? '(no reference)'} landed on ${payment.orderNumber}, ` +
+      `which is ${payment.status} — refund or honour it`
+  )
+  const key = `paid-while-closed:${payment.provider}:${payment.orderNumber}:${payment.reference ?? 'unknown'}`
+  if (!(await firstTime(key))) return
+  await audit({
+    action: 'order.paid_while_closed',
+    actorType: 'system',
+    resourceType: 'order',
+    resourceId: payment.orderNumber,
+    metadata: { provider: payment.provider, reference: payment.reference, status: payment.status },
+  })
+  await notifyOwner(closedOrderPaymentMessage(payment))
 }
 
 function customField(session: Stripe.Checkout.Session, key: string): string | null {
@@ -200,28 +281,27 @@ function customField(session: Stripe.Checkout.Session, key: string): string | nu
 /**
  * A Payment Link sale. It has no order row, so the session is the whole story;
  * the line items are passed in because a webhook event does not carry them.
+ * The buyer and the delivery address stay in Stripe, one tap away.
  */
 export function linkSaleMessage(session: Stripe.Checkout.Session, productNames: string[]): OwnerMessage {
-  const details = session.customer_details
-  const address = details?.address
+  const address = session.customer_details?.address
+  const destination = town({ postalCode: address?.postal_code, city: address?.city, country: address?.country })
   const fulfilment = customField(session, 'delivery')
-  const deliveryAddress = customField(session, 'address')
+  const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
+  const dashboard = `https://dashboard.stripe.com${session.livemode === false ? '/test' : ''}/payments`
   return {
     title: `💶 بيع عبر رابط الدفع — ${money(session.amount_total ?? 0)}`,
     lines: [
       ...productNames.map((name) => `• ${name}`),
       '',
-      `الزبون: ${details?.individual_name ?? details?.name ?? '—'}`,
-      `الهاتف: ${details?.phone ?? '—'}`,
-      `البريد: ${details?.email ?? '—'}`,
-      ...(address?.city ? [`عنوان الفوترة: ${[address.line1, `${address.postal_code ?? ''} ${address.city}`.trim(), address.country].filter(Boolean).join('، ')}`] : []),
+      ...(destination ? [`المدينة: ${destination}`] : []),
       ...(fulfilment === 'delivery'
-        ? [`التسليم: توصيل${deliveryAddress ? ` إلى ${deliveryAddress}` : ''}`]
+        ? ['التسليم: توصيل — العنوان في Stripe']
         : fulfilment === 'pickup'
           ? ['التسليم: استلام من المحل']
           : []),
       `الوقت: ${parisTime(new Date(session.created * 1000))}`,
     ],
-    link: 'https://dashboard.stripe.com/payments',
+    link: intent ? `${dashboard}/${intent}` : dashboard,
   }
 }

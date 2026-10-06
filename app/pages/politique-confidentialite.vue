@@ -13,7 +13,7 @@
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
 
-const LAST_UPDATED = '2026-07-29'
+const LAST_UPDATED = '2026-10-06'
 const { formatLongDate } = useFormatDate()
 const updatedOn = computed(() => formatLongDate(`${LAST_UPDATED}T12:00:00Z`))
 
@@ -189,8 +189,10 @@ useSeoMeta({
           <li>{{ $t('privacy.recipient_neon') }}</li>
           <li>{{ $t('privacy.recipient_vercel') }}</li>
           <li>{{ $t('privacy.recipient_stripe') }}</li>
+          <li>{{ $t('privacy.recipient_paypal') }}</li>
           <li>{{ $t('privacy.recipient_cloudflare') }}</li>
           <li>{{ $t('privacy.recipient_sanity') }}</li>
+          <li>{{ $t('privacy.recipient_alerts') }}</li>
         </ul>
         <p class="mt-4 font-medium text-content-strong">{{ $t('privacy.recipients_no_sale') }}</p>
       </section>

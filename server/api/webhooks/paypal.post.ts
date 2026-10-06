@@ -20,9 +20,9 @@ import { sql } from 'drizzle-orm'
 import { db } from '../../db/client'
 import { webhookEvents } from '../../db/schema'
 import { claimWebhookEvent } from '../../services/webhookClaims'
-import { paypalConfigured, verifyPayPalWebhook, paidOrderNumberFromWebhook } from '../../payments/paypal'
+import { captureIdFromWebhook, paypalConfigured, verifyPayPalWebhook, paidOrderNumberFromWebhook } from '../../payments/paypal'
 import { transitionOrder } from '../../services/orders'
-import { notifyOrder } from '../../services/notify'
+import { notifyOrder, reportPaymentOnClosedOrder } from '../../services/notify'
 import { applyApiHeaders } from '../../security/headers'
 import { toAppError } from '../../../shared/errors'
 
@@ -89,7 +89,19 @@ export default defineEventHandler(async (event) => {
         // Idempotent against the capture endpoint: whoever flips first wins,
         // the other updates nothing and settles nothing.
         const moved = await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
-        if (moved.changed) await notifyOrder(orderNumber, 'paid')
+        if (moved.changed) {
+          await notifyOrder(orderNumber, 'paid')
+        } else if (moved.from === 'cancelled') {
+          // Captured, but the order closed first. The capture endpoint reports
+          // the same payment under the same capture id, so the owner hears of
+          // it once whichever path sees it first.
+          await reportPaymentOnClosedOrder({
+            orderNumber,
+            provider: 'paypal',
+            reference: captureIdFromWebhook(rawBody),
+            status: moved.from,
+          })
+        }
       } catch (error) {
         const appError = toAppError(error)
         if (appError.code !== 'NOT_FOUND') throw error

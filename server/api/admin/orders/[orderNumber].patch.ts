@@ -17,6 +17,7 @@ import { orderNumberSchema, LIMITS } from '../../../../shared/schemas'
 import { ADMIN_SETTABLE } from '../../../services/orderState'
 import { transitionOrder } from '../../../services/orders'
 import { isOnline } from '../../../payments'
+import { closeCheckout } from '../../../payments/reconcile'
 import { AppError, ERROR_CODES } from '../../../../shared/errors'
 import { audit } from '../../../services/audit'
 
@@ -44,12 +45,37 @@ export default defineRoute({
     const orderNumber = parsed.data
 
     const [before] = await db()
-      .select({ status: orders.status, paymentMethod: orders.paymentMethod })
+      .select({
+        status: orders.status,
+        paymentMethod: orders.paymentMethod,
+        stripeSessionId: orders.stripeSessionId,
+        paypalOrderId: orders.paypalOrderId,
+        paypalCaptureId: orders.paypalCaptureId,
+      })
       .from(orders)
       .where(eq(orders.orderNumber, orderNumber))
       .limit(1)
 
     if (!before) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+
+    if (body.status === 'cancelled' && before.status === 'awaiting_payment' && isOnline(before.paymentMethod)) {
+      // The customer may still be paying. Close the payment first and cancel
+      // only on a positive "nothing is coming" — the same answer the sweep
+      // waits for — or the money lands on a cancelled order.
+      const state = await closeCheckout({
+        orderNumber,
+        paymentMethod: before.paymentMethod,
+        stripeSessionId: before.stripeSessionId,
+        paypalOrderId: before.paypalOrderId,
+        paypalCaptureId: before.paypalCaptureId,
+      })
+      if (state !== 'unpaid') {
+        throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+          messageKey: `admin.cancel_refused_${state}`,
+          internal: `${orderNumber} not cancelled: the payment provider reports ${state}`,
+        })
+      }
+    }
 
     if (body.markCashReceived) {
       if (isOnline(before.paymentMethod)) {

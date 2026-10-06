@@ -118,7 +118,6 @@ export default defineNuxtConfig({
     stripeWebhookSecret: '',
     adminEmails: '',
     turnstileSecretKey: '',
-    resendApiKey: '',
     googleClientId: '',
     googleClientSecret: '',
 

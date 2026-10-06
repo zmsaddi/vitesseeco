@@ -351,3 +351,21 @@ export function paidOrderNumberFromWebhook(rawBody: string): string | null {
   // The two event shapes put the invoice id in different places.
   return parsed.resource?.invoice_id ?? parsed.resource?.purchase_units?.[0]?.invoice_id ?? null
 }
+
+/**
+ * The capture a paid event reports — the same id the capture endpoint records,
+ * so the two paths name one payment the same way. A capture event IS the
+ * capture; an order event carries it inside its purchase unit.
+ */
+export function captureIdFromWebhook(rawBody: string): string | null {
+  try {
+    const parsed = JSON.parse(rawBody) as {
+      event_type?: string
+      resource?: { id?: string; purchase_units?: Array<{ payments?: { captures?: Array<{ id?: string }> } }> }
+    }
+    if (parsed.event_type === 'PAYMENT.CAPTURE.COMPLETED') return parsed.resource?.id ?? null
+    return parsed.resource?.purchase_units?.[0]?.payments?.captures?.[0]?.id ?? null
+  } catch {
+    return null
+  }
+}

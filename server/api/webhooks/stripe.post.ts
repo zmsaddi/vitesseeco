@@ -21,10 +21,10 @@ import { defineEventHandler, getHeader, readRawBody, setResponseStatus } from 'h
 import { sql } from 'drizzle-orm'
 import { db } from '../../db/client'
 import { webhookEvents } from '../../db/schema'
-import { claimWebhookEvent } from '../../services/webhookClaims'
+import { claimWebhookEvent, firstTime } from '../../services/webhookClaims'
 import { outcomeFor, verifyWebhook } from '../../payments/stripe'
 import { findOrderByStripeSession, transitionOrder } from '../../services/orders'
-import { linkSaleMessage, notifyOrder, notifyOwner } from '../../services/notify'
+import { linkSaleMessage, notifyOrder, notifyOwner, reportPaymentOnClosedOrder } from '../../services/notify'
 import { stripe } from '../../payments/stripe'
 import { AppError, toAppError } from '../../../shared/errors'
 import { applyApiHeaders } from '../../security/headers'
@@ -104,8 +104,11 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
     const session = stripeEvent.data.object as import('stripe').Stripe.Checkout.Session
     if (session.payment_link && resolved.outcome === 'paid') {
       // A Payment Link sale: no order row by design, but still money the
-      // owner must hear about. The event carries no line items, so they are
-      // read — and a failure there still sends the message, just unnamed.
+      // owner must hear about. With no order to move, nothing else makes a
+      // re-run of this event quiet, so the session itself is the once-key.
+      if (!(await firstTime(`link-sale:${session.id}`))) return
+      // The event carries no line items, so they are read — and a failure
+      // there still sends the message, just unnamed.
       const items = await stripe()
         .checkout.sessions.listLineItems(session.id, { limit: 10 })
         .then((page) => page.data.map((item) => `${item.quantity ?? 1} × ${item.description}`))
@@ -120,15 +123,28 @@ async function handle(stripeEvent: import('stripe').Stripe.Event): Promise<void>
   }
 
   switch (resolved.outcome) {
-    case 'paid':
+    case 'paid': {
       // Consumes the stock hold. Forward-only: an order already shipped stays
       // shipped, because the transition table forbids going back.
-      if ((await transitionOrder(order.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })).changed) {
+      const moved = await transitionOrder(order.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+      if (moved.changed) {
         // Only the delivery that actually moved the order speaks: a redelivered
         // event changes nothing and must not announce the same money twice.
         await notifyOrder(order.orderNumber, 'paid')
+      } else if (moved.from === 'cancelled') {
+        // The customer paid an order that had already closed — cancelled while
+        // a delayed debit was still travelling, or while the payment form was
+        // still open. Until now this branch simply ended: the event was marked
+        // processed and the only trace was in the Stripe Dashboard.
+        await reportPaymentOnClosedOrder({
+          orderNumber: order.orderNumber,
+          provider: 'stripe',
+          reference: resolved.sessionId,
+          status: moved.from,
+        })
       }
       break
+    }
 
     case 'failed':
     case 'expired':

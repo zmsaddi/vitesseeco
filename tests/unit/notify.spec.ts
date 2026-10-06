@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type Stripe from 'stripe'
-import { linkSaleMessage, notifyOwner, renderEmail, renderTelegram, type OwnerMessage } from '../../server/services/notify'
+import {
+  closedOrderPaymentMessage,
+  linkSaleMessage,
+  ltr,
+  notifyOwner,
+  plainText,
+  renderEmail,
+  renderTelegram,
+  type OwnerMessage,
+} from '../../server/services/notify'
 
 const message: OwnerMessage = {
   title: '💶 طلب مدفوع VE-1 — 1 250,00 €',
@@ -90,11 +99,44 @@ describe('notifyOwner', () => {
   })
 })
 
+describe('plainText', () => {
+  it('keeps what names a town, in any script', () => {
+    expect(plainText('Saint-Benoît')).toBe('Saint-Benoît')
+    expect(plainText("L'Isle-d’Abeau")).toBe("L'Isle-d’Abeau")
+    expect(plainText('الدار البيضاء')).toBe('الدار البيضاء')
+  })
+
+  it('leaves nothing a chat or mail client could turn into a link, a mention or a command', () => {
+    const lure = plainText('https://vitesse-eco-admin.com/login @admin /start www.x.fr', 200)
+    expect(lure).not.toMatch(/[.:/@]/)
+  })
+
+  it('cannot add a line or reorder the text around it', () => {
+    expect(plainText('Poitiers\n\n⚠️ Alerte\u2028sécurité\u202e')).toBe('Poitiers Alerte sécurité')
+  })
+
+  it('is capped', () => {
+    expect(plainText('a'.repeat(100))).toHaveLength(40)
+    expect(plainText('a'.repeat(100)).endsWith('…')).toBe(true)
+    expect(plainText(null)).toBe('')
+  })
+})
+
+describe('right-to-left lines', () => {
+  const LRM = '\u200E'
+
+  it('ties a Latin value to its place inside an Arabic line', () => {
+    expect(ltr('+33745830049')).toBe(`${LRM}+33745830049${LRM}`)
+  })
+})
+
 describe('linkSaleMessage', () => {
   const session = {
     id: 'cs_live_1',
     amount_total: 125000,
     created: 1790000000,
+    livemode: true,
+    payment_intent: 'pi_live_1',
     customer_details: {
       individual_name: 'MAX MUSTERMANN',
       name: null,
@@ -108,32 +150,55 @@ describe('linkSaleMessage', () => {
     ],
   } as unknown as Stripe.Checkout.Session
 
-  it('says who bought what, how it is handed over, and how much', () => {
+  it('says what sold, for how much, where and how it is handed over', () => {
     const built = linkSaleMessage(session, ['1 × V8 ULTRA MAX T'])
     // fr-FR groups thousands with a narrow no-break space (or a no-break space,
     // depending on the ICU version) — any space is the right answer.
-    expect(built.title).toMatch(/1[\s  ]250,00/)
+    expect(built.title).toMatch(/1[\s\u202f\u00a0]250,00/)
     expect(built.lines).toContain('• 1 × V8 ULTRA MAX T')
-    expect(built.lines).toContain('الزبون: MAX MUSTERMANN')
-    expect(built.lines).toContain('الهاتف: +436601234567')
-    expect(built.lines.some((line) => line.includes('Beispielgasse 2'))).toBe(true)
-    expect(built.lines.some((line) => line.includes('1030 Wien'))).toBe(true)
+    expect(built.lines.some((line) => line.includes('1030 Wien AT'))).toBe(true)
+    expect(built.lines.some((line) => line.startsWith('التسليم: توصيل'))).toBe(true)
+    expect(built.link).toBe('https://dashboard.stripe.com/payments/pi_live_1')
+  })
+
+  it('carries no name, email, phone or street — Stripe has them, one tap away', () => {
+    const everything = [renderTelegram(linkSaleMessage(session, [])), renderEmail(linkSaleMessage(session, [])).text].join('\n')
+    for (const personal of ['MUSTERMANN', 'm@example.com', '6601234567', 'Musterstrasse', 'Beispielgasse']) {
+      expect(everything).not.toContain(personal)
+    }
+  })
+
+  it('points a test sale at the test dashboard', () => {
+    const test = { ...session, livemode: false } as Stripe.Checkout.Session
+    expect(linkSaleMessage(test, []).link).toBe('https://dashboard.stripe.com/test/payments/pi_live_1')
   })
 
   it('still reads when the checkout collected almost nothing', () => {
     const bare = { id: 'cs_1', amount_total: 0, created: 1790000000, customer_details: null } as unknown as Stripe.Checkout.Session
     const built = linkSaleMessage(bare, [])
-    expect(built.lines).toContain('الزبون: —')
+    expect(built.title).toContain('0,00')
+    expect(built.link).toBe('https://dashboard.stripe.com/payments')
+  })
+
+  it('keeps the euro sign with its amount in a right-to-left title', () => {
+    const LRM = '\u200E'
+    expect(linkSaleMessage(session, []).title).toMatch(new RegExp(`${LRM}1[\s\u202f\u00a0]250,00[\s\u00a0]€${LRM}`))
   })
 })
 
 describe('closedOrderPaymentMessage', () => {
-  it('names the order, the capture and what a person must do', async () => {
-    const { closedOrderPaymentMessage } = await import('../../server/services/notify')
-    const built = closedOrderPaymentMessage('ORD-1', 'CAP-9', 'cancelled')
+  it('names the order, the provider, the payment and what a person must do', () => {
+    const built = closedOrderPaymentMessage({ orderNumber: 'ORD-1', provider: 'paypal', reference: 'CAP-9', status: 'cancelled' })
+    expect(built.title).toContain('PayPal')
     expect(built.title).toContain('ORD-1')
     expect(built.lines.join(' ')).toContain('CAP-9')
     expect(built.lines.join(' ')).toContain('ملغى')
     expect(built.link.endsWith('/admin/commandes/ORD-1')).toBe(true)
+  })
+
+  it('speaks of Stripe for a Stripe payment', () => {
+    const built = closedOrderPaymentMessage({ orderNumber: 'ORD-2', provider: 'stripe', reference: 'cs_live_9', status: 'cancelled' })
+    expect(built.title).toContain('Stripe')
+    expect(built.lines.join(' ')).toContain('cs_live_9')
   })
 })

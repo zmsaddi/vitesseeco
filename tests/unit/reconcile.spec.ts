@@ -1,6 +1,36 @@
-import { describe, expect, it } from 'vitest'
-import { missingSessionMeansUnpaid, providerPaymentState, stateOfPayPalOrder, stateOfSession } from '../../server/payments/reconcile'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  closeCheckout,
+  missingSessionMeansUnpaid,
+  providerPaymentState,
+  stateOfPayPalOrder,
+  stateOfSession,
+} from '../../server/payments/reconcile'
 import { paidOrderNumberFromWebhook, toState } from '../../server/payments/paypal'
+
+// A Stripe that keeps one session in memory: retrieve reads it, expire closes
+// it only while it is open — the rule Stripe itself enforces.
+const fake = vi.hoisted(() => ({
+  session: { status: 'open', payment_status: 'unpaid' } as Record<string, unknown>,
+  expired: [] as string[],
+  completeBeforeExpire: false,
+}))
+vi.mock('../../server/payments/stripe', () => ({
+  stripe: () => ({
+    checkout: {
+      sessions: {
+        retrieve: async () => ({ ...fake.session }),
+        expire: async (id: string) => {
+          if (fake.completeBeforeExpire) fake.session = { status: 'complete', payment_status: 'paid' }
+          if (fake.session.status !== 'open') throw new Error('This Checkout Session is not in an expirable state')
+          fake.expired.push(id)
+          fake.session = { ...fake.session, status: 'expired' }
+          return { ...fake.session }
+        },
+      },
+    },
+  }),
+}))
 
 describe('reading a Checkout Session as a payment state', () => {
   it.each([
@@ -163,5 +193,42 @@ describe('asking about an order without the network', () => {
 
   it('a method it does not know is never read as unpaid', async () => {
     expect(await providerPaymentState({ ...order, paymentMethod: 'cod' })).toBe('unknown')
+  })
+})
+
+describe('closing the payment before an order is cancelled by hand', () => {
+  const order = { orderNumber: 'ORD-1', paymentMethod: 'stripe', stripeSessionId: 'cs_test_1', paypalOrderId: null, paypalCaptureId: null }
+
+  beforeEach(() => {
+    fake.session = { status: 'open', payment_status: 'unpaid' }
+    fake.expired = []
+    fake.completeBeforeExpire = false
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  it('expires a session the customer could still pay, then allows the cancel', async () => {
+    expect(await closeCheckout(order)).toBe('unpaid')
+    expect(fake.expired).toEqual(['cs_test_1'])
+  })
+
+  it('refuses when the customer paid a moment before the session could be shut', async () => {
+    fake.completeBeforeExpire = true
+    expect(await closeCheckout(order)).toBe('paid')
+    expect(fake.expired).toEqual([])
+  })
+
+  it('leaves a paid session alone and says so', async () => {
+    fake.session = { status: 'complete', payment_status: 'paid' }
+    expect(await closeCheckout(order)).toBe('paid')
+    expect(fake.expired).toEqual([])
+  })
+
+  it('reports a debit still travelling', async () => {
+    fake.session = { status: 'complete', payment_status: 'unpaid', payment_intent: { status: 'processing' } }
+    expect(await closeCheckout(order)).toBe('pending')
+  })
+
+  it('asks PayPal the usual way: a capture on our side is money taken', async () => {
+    expect(await closeCheckout({ ...order, paymentMethod: 'paypal', stripeSessionId: null, paypalCaptureId: 'CAP-1' })).toBe('paid')
   })
 })

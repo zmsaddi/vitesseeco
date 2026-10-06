@@ -237,10 +237,11 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlacedOrder> {
     })
   } catch (error) {
     // A racing request with the same key committed first. Its order is the
-    // answer, not an error.
+    // answer, not an error — and a replay, exactly as if the first lookup had
+    // found it: the request that placed it is the one that announces it.
     if (isUniqueViolation(error, 'orders_idempotency_key')) {
       const raced = await findByIdempotencyKey(input.idempotencyKey, input.read)
-      if (raced) return raced
+      if (raced) return { ...raced, replayed: true }
     }
     throw error
   }
@@ -318,9 +319,17 @@ async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<Pl
 /**
  * Move an order to a new status, settling stock as the transition requires.
  *
- * The status predicate on the UPDATE is what makes this safe to run
- * concurrently: whoever moves the row first wins, and a second attempt updates
- * nothing and therefore settles nothing. Stock can never be credited twice.
+ * The row is locked before its status is read, so two transitions of one order
+ * queue rather than race: the second reads what the first committed. Without
+ * the lock both read awaiting_payment, the loser's UPDATE matched nothing, and
+ * it reported a status that was already history — the PayPal capture then told
+ * the owner to refund an order the webhook had just paid. The status predicate
+ * on the UPDATE stays as a second guard: whoever moves the row first wins, and
+ * a second attempt updates nothing and therefore settles nothing. Stock can
+ * never be credited twice.
+ *
+ * `from` is the status the order was in when this ran: the one it left when
+ * `changed`, the one it stays in otherwise.
  */
 export async function transitionOrder(
   orderNumber: string,

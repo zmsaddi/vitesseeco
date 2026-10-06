@@ -22,7 +22,7 @@ import { orders } from '../../db/schema'
 import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
 import { stateOfPayPalOrder } from '../../payments/reconcile'
 import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
-import { closedOrderPaymentMessage, notifyOrder, notifyOwner } from '../../services/notify'
+import { notifyOrder, reportPaymentOnClosedOrder } from '../../services/notify'
 import { audit } from '../../services/audit'
 import { holdStockForPayPalCapture, holdStockForPayPalReview } from '../../services/orders'
 import { orderNumberSchema } from '../../../shared/schemas'
@@ -173,6 +173,8 @@ export default defineRoute({
     if (captured.captureId) await recordPayPalCapture(body.orderNumber, captured.captureId)
 
     // Consumes the stock hold; forward-only, idempotent against the webhook.
+    // `from` is the status as it stands — transitionOrder locks the row — so a
+    // webhook that paid the order a moment earlier reads as paid, not as closed.
     const moved = await transitionOrder(body.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
 
     // ── A capture that landed on a closed order ─────────────────────────────
@@ -182,17 +184,11 @@ export default defineRoute({
     // flip to its own webhook reads 'paid', not this. The customer has paid; a
     // person must honour or refund it, and must hear about it — on the order
     // itself, where the panel shows it, not only in a log.
-    if (!moved.changed && moved.from === 'cancelled') {
-      console.error(
-        `[paypal] capture ${captured.captureId} landed on ${body.orderNumber}, which is ${moved.from} — refund or honour it`
-      )
-      await audit({
-        action: 'order.paypal_captured_on_closed_order',
-        actorType: 'system',
-        resourceType: 'order',
-        resourceId: body.orderNumber,
-        metadata: { paypalOrderId: order.paypalOrderId, captureId: captured.captureId, status: moved.from },
-      })
+    if (moved.changed) {
+      // Whichever of this and the webhook moved the order announces it; the
+      // other changed nothing and stays quiet.
+      await notifyOrder(body.orderNumber, 'paid')
+    } else if (moved.from === 'cancelled') {
       await noteOnOrder(
         body.orderNumber,
         `ATTENTION : paiement PayPal encaissé après l'annulation de la commande (capture ${captured.captureId ?? 'non communiquée'}). ` +
@@ -201,12 +197,15 @@ export default defineRoute({
         // The payment is the fact and the answer must still reach the payer.
         console.error(`[paypal] ${body.orderNumber}: could not record the closed-order note`, error)
       })
-      await notifyOwner(closedOrderPaymentMessage(body.orderNumber, captured.captureId, moved.from))
+      // Logged, audited and announced once, whichever path saw it first.
+      await reportPaymentOnClosedOrder({
+        orderNumber: body.orderNumber,
+        provider: 'paypal',
+        reference: captured.captureId,
+        status: moved.from,
+      })
     }
     // ── end of the closed-order capture ─────────────────────────────────────
-    // Whichever of this and the webhook moved the order announces it; the other
-    // changed nothing and stays quiet.
-    if (moved.changed) await notifyOrder(body.orderNumber, 'paid')
 
     await audit({
       action: 'order.paypal_captured',

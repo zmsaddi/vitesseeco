@@ -14,7 +14,7 @@
 const localePath = useLocalePath()
 const { locale, t } = useI18n()
 
-const LAST_UPDATED = '2026-07-29'
+const LAST_UPDATED = '2026-10-06'
 const { formatLongDate } = useFormatDate()
 const updatedOn = computed(() => formatLongDate(`${LAST_UPDATED}T12:00:00Z`))
 
@@ -125,8 +125,10 @@ useSeoMeta({
         <ul class="mt-3 space-y-2 text-content">
           <li>{{ $t('mentions.provider_database') }}</li>
           <li>{{ $t('mentions.provider_payments') }}</li>
+          <li>{{ $t('mentions.provider_paypal') }}</li>
           <li>{{ $t('mentions.provider_captcha') }}</li>
           <li>{{ $t('mentions.provider_cms') }}</li>
+          <li>{{ $t('mentions.provider_alerts') }}</li>
         </ul>
       </section>
 

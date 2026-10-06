@@ -58,3 +58,34 @@ export async function claimWebhookEvent(input: {
   )
   return existing?.status === 'processed' ? { state: 'processed' } : { state: 'in_flight' }
 }
+
+/**
+ * True the first time a key is seen, false ever after — for what must happen
+ * once per payment however many deliveries report it, which is telling the
+ * owner. A re-claimed event runs its whole handler again; without this, the
+ * same sale was announced twice.
+ *
+ * The key is kept beside the provider events under the provider name 'notify',
+ * on the same unique index, and pruned with them after thirty days — long
+ * after Stripe and PayPal stop redelivering.
+ *
+ * A database that cannot answer means true: an owner told twice is better
+ * than an owner never told.
+ */
+export async function firstTime(key: string): Promise<boolean> {
+  try {
+    const rows = await queryRows<{ id: string }>(
+      db(),
+      sql`
+        INSERT INTO webhook_events (provider, event_id, type, payload, status, processed_at)
+        VALUES ('notify', ${key}, 'announcement', '{}'::jsonb, 'processed', NOW())
+        ON CONFLICT (provider, event_id) DO NOTHING
+        RETURNING id
+      `
+    )
+    return rows.length > 0
+  } catch (error) {
+    console.error(`[notify] could not record ${key}, announcing anyway:`, String(error).slice(0, 200))
+    return true
+  }
+}
