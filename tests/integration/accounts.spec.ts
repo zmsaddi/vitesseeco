@@ -5,10 +5,13 @@
  * or delete another customer's row, and the way that is guaranteed is that the
  * owner is part of the query rather than a check applied to its result.
  */
-import { afterAll, beforeEach, describe, expect, it } from 'vitest'
+import { IncomingMessage, ServerResponse } from 'node:http'
+import { Socket } from 'node:net'
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { and, eq, sql } from 'drizzle-orm'
+import { createEvent, type H3Event } from 'h3'
 import { closePool, hasDatabase, inTransaction, resetDatabase, schema, testDb } from './setup'
-import { revokeSessionsFor } from '../../server/security/session'
+import { SESSION_COOKIE, revokeSessionsFor } from '../../server/security/session'
 import { createSessionToken, hashPassword, hashToken, verifyPassword } from '../../server/security/crypto'
 
 async function makeCustomer(email: string): Promise<string> {
@@ -327,6 +330,83 @@ describe.skipIf(!hasDatabase)('accounts', () => {
       )
       expect(rows.rows).toHaveLength(1)
       expect(rows.rows[0]?.customer_id).toBeNull()
+    })
+  })
+
+  describe('the admin panel, from the routes that offer it', () => {
+    /**
+     * A real GET through the route wrapper — session cookie, access check, rate
+     * limit and query validation included — signed in as a fresh customer.
+     */
+    async function signedInGet(path: string, email: string, verified: boolean): Promise<H3Event> {
+      const [row] = await testDb()
+        .insert(schema.customers)
+        .values({
+          email,
+          firstName: 'Max',
+          lastName: 'Mustermann',
+          emailVerifiedAt: verified ? new Date() : null,
+        })
+        .returning({ id: schema.customers.id })
+      const { token, tokenHash } = createSessionToken()
+      await testDb()
+        .insert(schema.sessions)
+        .values({ customerId: row!.id, tokenHash, expiresAt: new Date(Date.now() + 3_600_000) })
+
+      const request = new IncomingMessage(new Socket())
+      request.method = 'GET'
+      request.url = path
+      request.headers = { host: '127.0.0.1', cookie: `${SESSION_COOKIE}=${token}` }
+      return createEvent(request, new ServerResponse(request))
+    }
+
+    // Read per request, so setting it here is enough. What was there before —
+    // nothing, usually — is put back exactly: assigning undefined to an
+    // environment variable stores the string "undefined".
+    const allowlist = process.env.ADMIN_EMAILS
+    beforeAll(() => {
+      process.env.ADMIN_EMAILS = 'max.mustermann@example.com,erika.mustermann@example.com'
+    })
+    afterAll(() => {
+      if (allowlist === undefined) delete process.env.ADMIN_EMAILS
+      else process.env.ADMIN_EMAILS = allowlist
+    })
+
+    it('offers the panel only to an address every admin route will accept', async () => {
+      // requireAdmin asks for the allowlist AND a verified address; the account
+      // page asked only the first, so an allowlisted password account was shown
+      // a door into a panel whose every request answered 403.
+      const { default: me } = await import('../../server/api/auth/me.get')
+
+      const unverified = (await me(await signedInGet('/api/auth/me', 'max.mustermann@example.com', false))) as {
+        isAdmin: boolean
+      }
+      expect(unverified.isAdmin).toBe(false)
+
+      const verified = (await me(await signedInGet('/api/auth/me', 'erika.mustermann@example.com', true))) as {
+        isAdmin: boolean
+      }
+      expect(verified.isAdmin).toBe(true)
+    })
+
+    it('filters the order queue by every payment method the shop takes, PayPal included', async () => {
+      // The filter's own list left the PayPal bridge off, so choosing it in the
+      // panel answered 400 and the queue read "Aucune commande.".
+      const { default: orders } = await import('../../server/api/admin/orders.get')
+      await testDb().insert(schema.orders).values({
+        orderNumber: 'ORD-PAYPAL01',
+        idempotencyKey: 'paypal-filter-key',
+        guestEmail: 'max.mustermann@example.com',
+        shippingMethodCode: 'pickup',
+        paymentMethod: 'paypal',
+        subtotalCents: 95000,
+        totalCents: 95000,
+      })
+
+      const answer = (await orders(
+        await signedInGet('/api/admin/orders?payment=paypal', 'max.mustermann@example.com', true)
+      )) as { orders: Array<{ orderNumber: string }> }
+      expect(answer.orders.map((order) => order.orderNumber)).toEqual(['ORD-PAYPAL01'])
     })
   })
 })

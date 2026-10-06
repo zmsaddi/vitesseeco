@@ -14,13 +14,21 @@ import { db, queryRows } from '../../db/client'
 import { orders } from '../../db/schema'
 import { orderStatusSchema, paginationSchema } from '../../../shared/schemas'
 import { cents, toDecimalString } from '../../../shared/money'
+import { PAYMENT_METHODS, type PaymentMethodCode } from '../../payments'
+
+/**
+ * Every method the shop can actually take, read from the payment registry. A
+ * list written out here left the PayPal bridge off it, so choosing PayPal in
+ * the panel's filter answered 400 every time and the queue read "Aucune
+ * commande." over every PayPal order.
+ */
+const PAYMENT_CODES = Object.keys(PAYMENT_METHODS) as [PaymentMethodCode, ...PaymentMethodCode[]]
 
 const querySchema = paginationSchema
   .extend({
     status: orderStatusSchema.optional(),
-    // Every method the shop can actually take. An unknown value is refused,
-    // not ignored.
-    payment: z.enum(['stripe', 'cod', 'in_store']).optional(),
+    // An unknown value is refused, not ignored.
+    payment: z.enum(PAYMENT_CODES).optional(),
     search: z.string().trim().max(120).optional(),
     since: z.coerce.date().optional(),
   })

@@ -75,14 +75,8 @@ function adminEmails(): Set<string> {
   )
 }
 
-/**
- * Whether an address is on the allowlist.
- *
- * Exported so the session endpoint can tell its own owner that the panel exists
- * without duplicating the comparison. It answers a question about the caller's
- * own identity only — never use it to decide what to render for someone else.
- */
-export function isAdminEmail(email: string): boolean {
+/** Whether an address is on the allowlist. */
+function isAdminEmail(email: string): boolean {
   const allowlist = adminEmails()
   return allowlist.size > 0 && allowlist.has(email.toLowerCase())
 }
@@ -99,23 +93,31 @@ export function isAdminEmail(email: string): boolean {
  *
  * Both real administrators here signed in with Google and are verified, so this
  * costs nothing today and makes the allowlist mean what it looks like it means.
+ *
+ * Exported because this is the one statement of who administers the shop: the
+ * session endpoint asks it before offering the panel's link. It used to ask the
+ * allowlist alone, and an allowlisted password account was shown a door into a
+ * panel whose every request then answered 403. It answers a question about the
+ * caller's own identity only — never use it to decide what to render for
+ * someone else.
  */
+export function isAdministrator(customer: Pick<AuthenticatedCustomer, 'email' | 'emailVerified'>): boolean {
+  return isAdminEmail(customer.email) && customer.emailVerified
+}
+
 async function requireAdmin(event: H3Event): Promise<AuthenticatedCustomer> {
   const customer = await requireCustomer(event)
 
   // An empty allowlist means nobody is an admin. Failing closed is the point:
   // a missing environment variable must not open the panel to every customer.
-  if (!isAdminEmail(customer.email)) {
+  //
+  // Deliberately one error for both ways of failing: which of the two it was is
+  // the log's business, not the caller's.
+  if (!isAdministrator(customer)) {
     throw new AppError(ERROR_CODES.FORBIDDEN, {
-      internal: `${customer.email} attempted admin route ${routeKey(event)}`,
-    })
-  }
-
-  if (!customer.emailVerified) {
-    // Deliberately the same error as not being on the list at all: which of the
-    // two failed is not the caller's business.
-    throw new AppError(ERROR_CODES.FORBIDDEN, {
-      internal: `${customer.email} is allowlisted but unverified — refused ${routeKey(event)}`,
+      internal: isAdminEmail(customer.email)
+        ? `${customer.email} is allowlisted but unverified — refused ${routeKey(event)}`
+        : `${customer.email} attempted admin route ${routeKey(event)}`,
     })
   }
   return customer

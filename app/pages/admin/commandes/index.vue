@@ -29,7 +29,22 @@ interface AdminOrder {
 
 const filters = reactive({ status: '', payment: '', search: '', page: 1 })
 
-const { data, refresh, status: loadState } = await useFetch<{
+// The search box's text once typing pauses, not at every keystroke — see
+// admin/stock/index.vue for the budget each keystroke used to spend.
+const searchTerm = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
+watch(
+  () => filters.search,
+  (value) => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => {
+      searchTerm.value = value
+    }, 300)
+  }
+)
+onBeforeUnmount(() => clearTimeout(searchTimer))
+
+const { data, refresh, status: loadState, error: loadError } = await useFetch<{
   orders: AdminOrder[]
   total: number
   totalPages: number
@@ -37,11 +52,21 @@ const { data, refresh, status: loadState } = await useFetch<{
   query: computed(() => ({
     ...(filters.status ? { status: filters.status } : {}),
     ...(filters.payment ? { payment: filters.payment } : {}),
-    ...(filters.search ? { search: filters.search } : {}),
+    ...(searchTerm.value ? { search: searchTerm.value } : {}),
     page: filters.page,
     perPage: 25,
   })),
 })
+
+/**
+ * A list that could not be loaded is not an empty one. Every admin page read
+ * only `data`, which Nuxt resets on a failure, so a 403 for an allowlisted but
+ * unverified address, a rate limit or an outage drew "Aucune commande.",
+ * "Aucun produit." — an empty shop, with the reason nowhere.
+ */
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
+)
 
 const busy = ref<string | null>(null)
 const error = ref<string | null>(null)
@@ -129,6 +154,7 @@ useSeoMeta({ title: () => t('admin.orders'), robots: 'noindex' })
     <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
 
+    <p v-else-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
     <p v-else-if="!data?.orders?.length" class="mt-6 text-content-muted">{{ $t('admin.no_orders') }}</p>
 
     <ul v-else class="mt-6 space-y-3">

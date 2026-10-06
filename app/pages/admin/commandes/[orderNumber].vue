@@ -68,8 +68,13 @@ interface AdminOrder {
   items: OrderItem[]
 }
 
-const { data: order, refresh, status: loadState } = await useFetch<AdminOrder>(
+const { data: order, refresh, status: loadState, error: loadError } = await useFetch<AdminOrder>(
   () => `/api/admin/orders/${orderNumber.value}`
+)
+
+// A failed load is said, not drawn as "Aucune commande." (see admin/commandes/index.vue).
+const loadMessage = computed(() =>
+  loadError.value ? apiErrorMessage(loadError.value, t, locale.value) : null
 )
 
 const busy = ref(false)
@@ -147,6 +152,7 @@ useSeoMeta({ title: () => `${orderNumber.value} — ${t('admin.orders')}`, robot
     </NuxtLink>
 
     <p v-if="loadState === 'pending'" class="mt-6 text-content-muted">{{ $t('common.loading') }}</p>
+    <p v-else-if="loadMessage" role="alert" class="mt-6 text-sm text-danger">{{ loadMessage }}</p>
     <p v-else-if="!order" class="mt-6 text-content-muted">{{ $t('admin.no_orders') }}</p>
 
     <template v-else>

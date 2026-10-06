@@ -4,7 +4,7 @@
  * Returns null for a guest rather than a 401, because a guest asking is not an
  * error — this is how the client learns which of the two interfaces to render.
  */
-import { defineRoute, isAdminEmail } from '../../security/handler'
+import { defineRoute, isAdministrator } from '../../security/handler'
 
 export default defineRoute({
   access: 'public',
@@ -19,8 +19,8 @@ export default defineRoute({
           locale: customer.locale,
           // Lets the account page offer a localised link into the panel. It is
           // a hint for rendering, never a permission: every admin route checks
-          // the allowlist again server-side.
-          isAdmin: isAdminEmail(customer.email),
+          // the same rule again server-side.
+          isAdmin: isAdministrator(customer),
         }
       : null,
 })
