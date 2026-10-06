@@ -21,9 +21,14 @@ import { and, eq, isNull, sql, type SQL } from 'drizzle-orm'
 import { inventory, stockReservations } from '../db/schema'
 import { queryRows, type SqlExecutor, type Transaction } from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
+import { ONLINE_HOLD_MS } from '../../shared/holds'
 
-/** How long a hold survives without news. Long enough for a slow bank redirect. */
-export const RESERVATION_TTL_MS = 30 * 60 * 1000
+/**
+ * How long a hold survives without news. Long enough for a slow bank redirect.
+ * Defined in shared/holds.ts, because the checkout page times its purchase key
+ * by it too.
+ */
+export const RESERVATION_TTL_MS = ONLINE_HOLD_MS
 
 /**
  * How long a hold lasts when nobody is going to pay online.
