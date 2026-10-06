@@ -117,3 +117,25 @@ test('the address limit is stated in words, even from a page that is out of date
   await expect(page.getByRole('alert').first()).toHaveText(message('errors.too_many_addresses'))
   await expect(page.getByText('errors.too_many_addresses')).toHaveCount(0)
 })
+
+test('a field the server refuses is explained in the page language, never in zod English', async ({ page }) => {
+  test.setTimeout(120_000)
+  for (const [path, locale] of [
+    ['/contact', 'fr'],
+    ['/ar/contact', 'ar'],
+  ] as const) {
+    await page.goto(path)
+    await page.locator('input[autocomplete="name"]').fill('Max Mustermann')
+    // A domain without a dot passes the browser's type=email and fails the
+    // server's check — so the server is the one that has to say why.
+    await page.locator('input[type=email]').fill('max.mustermann@example')
+    await page.locator('form input[type=text]:not([autocomplete])').fill('Essai')
+    await page.locator('form textarea').fill('Bonjour')
+    const submit = page.locator('form button[type=submit]')
+    await expect(submit).toBeEnabled({ timeout: 30_000 })
+    await submit.click()
+
+    await expect(page.getByRole('alert').filter({ hasText: message('errors.invalid_email', {}, locale) })).toBeVisible()
+    await expect(page.getByText('Invalid email address')).toHaveCount(0)
+  }
+})

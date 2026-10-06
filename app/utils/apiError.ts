@@ -27,3 +27,18 @@ export function apiError(err: unknown): ApiErrorPayload {
   const candidate = (typeof body.data === 'object' && body.data !== null ? body.data : body) as ApiErrorPayload
   return typeof candidate.messageKey === 'string' ? candidate : {}
 }
+
+/** vue-i18n's `t`, as much of it as these readers use. */
+export type Translate = (key: string, named?: Record<string, unknown>) => string
+
+/**
+ * One field issue, in the visitor's language.
+ *
+ * The server sends an i18n key for every issue (formatIssues in
+ * server/security/handler.ts). Anything else is never printed as it came: the
+ * pages used to, and what came was zod's English — under a field on the Arabic
+ * site, with the server's regex quoted in it.
+ */
+export function issueText(message: string, t: Translate): string {
+  return t(message.startsWith('errors.') ? message : 'errors.field_invalid')
+}

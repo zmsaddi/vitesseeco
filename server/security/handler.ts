@@ -127,11 +127,34 @@ function localeIn(payload: unknown): LocaleCode | undefined {
   return isLocaleCode(value) ? value : undefined
 }
 
-function formatIssues(error: z.ZodError): Array<{ path: string; message: string }> {
+/**
+ * A validation failure as the browser receives it: which field, and an i18n key.
+ *
+ * zod's own messages are English sentences, and the forms print each issue
+ * under the field it names — so a German phone number came back as "Invalid
+ * string: must match pattern /^\+?[0-9 ().-]{6,20}$/" on every locale, the
+ * Arabic one included. A check that knows its field names a key in
+ * shared/schemas.ts; any issue still carrying prose is given the generic key
+ * for its kind of failure here, so no schema, present or future, can put a
+ * sentence on a page.
+ *
+ * Exported for its tests.
+ */
+export function formatIssues(error: z.ZodError): Array<{ path: string; message: string }> {
   return error.issues.map((issue) => ({
     path: issue.path.join('.') || '(root)',
-    message: issue.message,
+    message: issueKey(issue),
   }))
+}
+
+function issueKey(issue: z.ZodError['issues'][number]): string {
+  if (issue.message.startsWith('errors.')) return issue.message
+  // Trimmed before it is checked, so a name of only spaces lands here too.
+  if (issue.code === 'too_small' && issue.origin === 'string' && Number(issue.minimum) <= 1) {
+    return 'errors.field_required'
+  }
+  if (issue.code === 'too_big' && issue.origin === 'string') return 'errors.field_too_long'
+  return 'errors.field_invalid'
 }
 
 export function defineRoute<TBody = undefined, TQuery = undefined>(

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiError, issueText } from '~/utils/apiError'
 import type { AddressInput } from '~~/shared/schemas'
 
 /**
@@ -135,7 +135,7 @@ function readError(err: unknown): void {
   const unshowable: string[] = []
 
   for (const issue of data?.details?.issues ?? []) {
-    const message = issue.message.startsWith('errors.') ? t(issue.message) : issue.message
+    const message = issueText(issue.message, t)
     if (RENDERED_FIELDS.has(issue.path)) fieldErrors.value[issue.path] = message
     else unshowable.push(message)
   }
@@ -312,7 +312,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.firstName" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.firstName" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.firstName }}
             </span>
           </label>
@@ -326,7 +326,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.lastName" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.lastName" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.lastName }}
             </span>
           </label>
@@ -342,7 +342,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
             required
             class="field mt-1"
           />
-          <span v-if="fieldErrors.line1" class="mt-1 block text-sm text-danger">{{ fieldErrors.line1 }}</span>
+          <span v-if="fieldErrors.line1" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.line1 }}</span>
         </label>
 
         <label class="block">
@@ -376,7 +376,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.postalCode" class="mt-1 block text-sm text-danger">
+            <span v-if="fieldErrors.postalCode" role="alert" class="mt-1 block text-sm text-danger">
               {{ fieldErrors.postalCode }}
             </span>
           </label>
@@ -391,7 +391,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               required
               class="field mt-1"
             />
-            <span v-if="fieldErrors.city" class="mt-1 block text-sm text-danger">{{ fieldErrors.city }}</span>
+            <span v-if="fieldErrors.city" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.city }}</span>
           </label>
 
           <label class="block">
@@ -411,10 +411,10 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
             v-model="form.phone"
             type="tel"
             autocomplete="tel"
-            pattern="\+?[0-9 \(\)\.\-]{6,20}"
+            pattern="\+?[0-9 \(\)\.\/\-]{6,20}"
             class="field mt-1"
           />
-          <span v-if="fieldErrors.phone" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
+          <span v-if="fieldErrors.phone" role="alert" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
         </label>
 
         <label class="flex items-center gap-3">
