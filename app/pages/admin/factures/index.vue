@@ -63,14 +63,26 @@ interface IssuedInvoice {
   message: { subject: string; body: string }
 }
 
+/** A field a finished earlier invoice states differently from the form. */
+type ResumeDifference = 'frameNumber' | 'deliveredOn' | 'name' | 'address' | 'country' | 'deliveryFee'
+
 interface IssueResult extends IssuedInvoice {
   resumed: boolean
   frameNumber: string
   deliveredOn: string
   customerName: string
   total: number
-  differences: string[]
+  differences: ResumeDifference[]
   differs: boolean
+}
+
+const DIFFERENCE_LABEL: Record<ResumeDifference, string> = {
+  frameNumber: 'admin.field_frame_number',
+  deliveredOn: 'admin.field_delivered_on',
+  name: 'admin.field_name',
+  address: 'admin.field_address',
+  country: 'admin.field_country',
+  deliveryFee: 'admin.field_delivery_fee',
 }
 
 interface PendingInvoice {
@@ -466,6 +478,18 @@ function failure(sale: LinkSale, err: unknown): void {
   }
 }
 
+/**
+ * The fields a finished earlier invoice states differently, by name. The
+ * warning restates frame, date, name and total; when only the address or the
+ * country differed, all four matched the form and nothing showed what was wrong.
+ */
+function differsIn(differences: ResumeDifference[]): string {
+  if (!differences.length) return ''
+  const listLocale = isLocaleCode(locale.value) ? getLocale(locale.value).formatLocale : 'fr-FR'
+  const fields = new Intl.ListFormat(listLocale, { type: 'conjunction' }).format(differences.map((field) => t(DIFFERENCE_LABEL[field])))
+  return t('admin.differs_in', { fields })
+}
+
 async function issue(sale: LinkSale): Promise<void> {
   const draft = drafts[sale.sessionId]
   if (!draft || !isComplete(sale, draft) || issuing.value || !canIssue(sale)) return
@@ -498,12 +522,12 @@ async function issue(sale: LinkSale): Promise<void> {
         warning: result.invoice.differs,
         // What the finished invoice states, so it can be compared with what was typed.
         message: result.invoice.differs
-          ? t('admin.invoice_resumed_differs', {
+          ? `${t('admin.invoice_resumed_differs', {
               frame: result.invoice.frameNumber,
               date: dayLabel(result.invoice.deliveredOn),
               name: result.invoice.customerName,
               total: formatCents(result.invoice.total),
-            })
+            })} ${differsIn(result.invoice.differences)}`.trim()
           : t('admin.invoice_resumed'),
       }
     }

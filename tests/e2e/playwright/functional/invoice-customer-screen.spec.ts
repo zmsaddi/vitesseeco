@@ -510,6 +510,38 @@ test('an interrupted invoice says what finishing makes final, delivery fee inclu
   await expect(card(page, 0).getByRole('button', { name: new RegExp(withFee.number) })).toBeEnabled()
 })
 
+test('an issue that finished an earlier invoice names what it states differently', async ({ page }) => {
+  // An earlier attempt numbered the invoice with another address and country;
+  // every value the warning restates — frame, date, name, total — matches the form.
+  await page.route('**/api/admin/link-sales/invoice', (route) =>
+    route.fulfill({
+      json: {
+        invoice: {
+          id: 'in_test_resumed',
+          number: 'TEST-0050',
+          hostedUrl: null,
+          message: { subject: 's', body: 'b' },
+          resumed: true,
+          frameNumber: 'FRAME-0',
+          deliveredOn: new Date(Date.now() - DAY).toISOString().slice(0, 10),
+          customerName: BUYERS[0][0],
+          total: 125000,
+          differences: ['address', 'country'],
+          differs: true,
+        },
+      },
+    })
+  )
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  await holdToResume(page)
+  await card(page, 0).getByRole('button', { name: FR.issue_invoice }).click()
+
+  const fields = new Intl.ListFormat('fr-FR', { type: 'conjunction' }).format([FR.field_address!, FR.field_country!])
+  await expect(card(page, 0).getByRole('status')).toContainText(FR.differs_in!.replace('{fields}', fields))
+  await expect(card(page, 0).getByRole('status')).toHaveClass(/text-danger/)
+})
+
 test('money that went back after the number asks only for what is still to do', async ({ page }) => {
   const invoice = (number: string) => ({ id: `in_test_${number}`, number, hostedUrl: null, message: { subject: 's', body: 'b' } })
   items = [
