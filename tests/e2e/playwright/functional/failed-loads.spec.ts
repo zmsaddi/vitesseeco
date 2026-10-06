@@ -233,6 +233,16 @@ test('a catalogue that could not be read is not "no results"', async ({ page }) 
     await allow()
   })
 
+  await test.step('a filter nothing can match is still "no results", and no outage', async () => {
+    // The listing's API refuses a sort it does not know. That asks for
+    // something nothing can match, and reads as it always has: no results,
+    // with a 200 — not as the outage above.
+    const response = await page.goto('/produits?tri=inconnu')
+    expect(response?.status()).toBe(200)
+    await expect(page.getByText(message('products.no_results'))).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+
   await test.step('the comparison picker', async () => {
     await page.goto('/')
     const allow = await refuse(page, (path) => path === '/api/catalog/products')
