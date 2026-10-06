@@ -285,6 +285,9 @@ function nextPaint(): Promise<void> {
 let listScroll = 0
 
 async function openSigning(sale: LinkSale): Promise<void> {
+  // A hold left running by an earlier hand-back screen ends before this
+  // customer's screen exists: it would resume it, and show them the list.
+  stopHold()
   refreshToday()
   const draft = drafts[sale.sessionId]
   if (!draft || !readyToSign(sale, draft)) return
@@ -316,7 +319,11 @@ function confirmSignature(): void {
   mode.value = 'handback'
 }
 
-/** True while the seller's own resume steps back over the customer's entry. */
+/**
+ * True while the seller's resume is under way: the step back over the
+ * customer's entry is theirs, and no new hold may start on the screen that is
+ * on its way out.
+ */
 let resuming = false
 
 /**
@@ -349,17 +356,18 @@ async function leaveCustomerEntry(): Promise<void> {
 }
 
 async function resume(): Promise<void> {
-  handedOver.value = null
-  if (route.query[SCREEN] === CUSTOMER) {
-    resuming = true
-    try {
-      await leaveCustomerEntry()
-    } finally {
-      resuming = false
-    }
+  // One resume per hand-back screen, and no other hold left running past it.
+  stopHold()
+  if (resuming) return
+  resuming = true
+  try {
+    handedOver.value = null
+    if (route.query[SCREEN] === CUSTOMER) await leaveCustomerEntry()
+    mode.value = 'idle'
+    signingSale.value = null
+  } finally {
+    resuming = false
   }
-  mode.value = 'idle'
-  signingSale.value = null
   // Reloaded in the customer's hands: nothing was fetched, and it is safe now.
   if (!shown.value) await refresh()
   // The list was not rendered while the customer held the device, so the page
@@ -369,15 +377,30 @@ async function resume(): Promise<void> {
 }
 
 // Staff resume by holding, not tapping: a customer's stray tap must not do it.
+//
+// A hold belongs to the hand-back screen it was started on. That screen stays
+// up for a moment after a hold has fired, while the resume steps back over the
+// customer's entry, and a press in that moment — a held key's auto-repeat, a
+// second tap — started a timer the screen's removal then orphaned: its keyup or
+// pointerup reached whatever lay underneath, and 1.2 s later it resumed the
+// NEXT customer's screen and put the list in their hands.
 let holdTimer: ReturnType<typeof setTimeout> | null = null
 function startHold(): void {
-  // A held key repeats its keydown. Restarting the timer on each one meant a
-  // seller holding Enter could never resume.
-  if (holdTimer) return
+  // One timer at a time, on the hand-back screen only, and never once its
+  // resume has begun.
+  if (holdTimer || resuming || mode.value !== 'handback') return
   holdTimer = setTimeout(() => {
     holdTimer = null
     void resume()
   }, 1200)
+}
+/**
+ * A held key repeats its keydown thirty times a second: only the press itself
+ * starts a hold. Restarting the timer on every repeat once meant a seller
+ * holding Enter could never resume.
+ */
+function startKeyHold(event: KeyboardEvent): void {
+  if (!event.repeat) startHold()
 }
 function stopHold(): void {
   if (holdTimer) clearTimeout(holdTimer)
@@ -779,9 +802,9 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
           @pointerup="stopHold"
           @pointerleave="stopHold"
           @pointercancel="stopHold"
-          @keydown.enter.prevent="startHold"
+          @keydown.enter.prevent="startKeyHold"
           @keyup.enter="stopHold"
-          @keydown.space.prevent="startHold"
+          @keydown.space.prevent="startKeyHold"
           @keyup.space="stopHold"
           @contextmenu.prevent
         >

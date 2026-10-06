@@ -157,6 +157,32 @@ async function holdToResume(page: Page, label = FR.hand_back_hold!): Promise<voi
   await expect(page.getByRole('dialog')).toHaveCount(0)
 }
 
+/** Whether the device still counts as in the customer's hands — the cookie the server reads. */
+const handedOver = async (page: Page) => (await page.context().cookies()).some((cookie) => cookie.name === 'vs_handed_over')
+
+/**
+ * A slow tablet: the router's step back over the customer's entry takes `ms`.
+ * For that long the hand-back screen is still up although its hold has already
+ * fired — the moment in which a press used to start a hold nobody ended.
+ */
+async function slowStepBack(page: Page, ms = 300): Promise<void> {
+  await page.addInitScript((delay) => {
+    const go = history.go.bind(history)
+    history.go = (delta?: number) => void setTimeout(() => go(delta), delay)
+  }, ms)
+}
+
+/** The seller takes the signature again straight away, and the customer must keep that screen. */
+async function customerKeepsTheNextScreen(page: Page): Promise<void> {
+  await card(page, 0).getByRole('button', { name: FR.signature_again }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  // Past any 1.2 s timer a press during the step back could have left running.
+  await page.waitForTimeout(1600)
+  expect(await page.getByRole('dialog').count(), 'the customer’s screen was resumed under them').toBe(1)
+  expect(await page.locator('main li').count(), 'the buyer list is on the customer’s screen').toBe(0)
+  expect(await handedOver(page), 'the device no longer counts as in the customer’s hands').toBe(true)
+}
+
 const HAND_BACK_DE = 'Bitte geben Sie das Gerät dem Verkäufer zurück'
 
 test('a reload in the customer’s hands shows the hand-back screen, and the list is not even fetched', async ({ page }) => {
@@ -253,22 +279,55 @@ test('resuming returns the seller to the sale they were on', async ({ page }) =>
   expect(await page.evaluate(() => window.scrollY)).toBeLessThan(before + 5)
 })
 
-test('holding Enter resumes, however the keyboard repeats it', async ({ page }) => {
+test('holding Enter resumes once: the key’s repeats cannot resume the next customer’s screen', async ({ page }) => {
+  await slowStepBack(page)
   await openInvoices(page)
   await signAndHandBack(page, 0)
-  const hold = page.getByRole('button', { name: FR.hand_back_hold })
-  await hold.focus()
-  // A held key repeats its keydown about thirty times a second, for as long as
-  // it is held — here three seconds, well past the 1.2 s the hold needs.
+  await page.getByRole('button', { name: FR.hand_back_hold }).focus()
+  // A held key repeats its keydown about thirty times a second for as long as
+  // it is held: here through the step back, and a moment beyond.
   await page.keyboard.down('Enter')
-  const until = Date.now() + 3000
-  while (Date.now() < until && (await page.getByRole('dialog').count()) > 0) {
+  const dialog = page.getByRole('dialog')
+  const deadline = Date.now() + 4000
+  let back = 0
+  while (Date.now() < deadline && (!back || Date.now() < back + 300)) {
     await page.waitForTimeout(33)
+    if (!back && (await dialog.count()) === 0) back = Date.now()
     await page.keyboard.down('Enter')
   }
-  // Read while the key is still down: releasing it must not be what resumes.
-  expect(await page.getByRole('dialog').count(), 'still on the hand-back screen with Enter held').toBe(0)
+  // Still held when the list came back: releasing the key is not what resumed.
+  expect(back, 'still on the hand-back screen with Enter held').toBeGreaterThan(0)
   await page.keyboard.up('Enter')
+
+  await customerKeepsTheNextScreen(page)
+})
+
+test('a second press while the list comes back starts no hold of its own', async ({ page }) => {
+  await slowStepBack(page)
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  const box = (await page.getByRole('button', { name: FR.hand_back_hold }).boundingBox())!
+  await page.mouse.move(box.x + 10, box.y + 10)
+  await page.mouse.down()
+  // The hold has fired — the device is the seller's again — while the screen
+  // is still up. The seller, unsure it worked, lets go and presses again.
+  await expect.poll(() => handedOver(page), { intervals: [20] }).toBe(false)
+  await page.mouse.up()
+  await page.mouse.down()
+  expect(await page.getByRole('dialog').count(), 'the second press came after the screen had gone').toBe(1)
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await page.mouse.up()
+
+  // Left on the list, nothing resumes a second time. A second resume would
+  // pull the seller back to the sale they had scrolled away from.
+  await page.waitForTimeout(300)
+  await card(page, 5).scrollIntoViewIfNeeded()
+  const scrolled = await page.evaluate(() => window.scrollY)
+  expect(scrolled).toBeGreaterThan(200)
+  await page.waitForTimeout(1600)
+  expect(await page.evaluate(() => window.scrollY), 'the press started a hold that resumed again').toBe(scrolled)
+
+  await customerKeepsTheNextScreen(page)
 })
 
 test('an Arabic panel still lays the customer’s screen out left to right', async ({ page }) => {
