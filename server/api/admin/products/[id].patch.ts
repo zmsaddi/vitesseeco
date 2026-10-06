@@ -111,7 +111,15 @@ export default defineRoute({
 
     // A "was" price that is not actually higher advertises a discount that does
     // not exist, which is a misrepresentation wherever the feed is read.
-    if (nextCompare !== null && nextCompare !== undefined && nextCompare <= nextPrice) {
+    //
+    // Judged when this edit sets one of the two, and only then. The Studio
+    // accepts a "was" price equal to the price — the storefront then shows no
+    // discount at all — so a product can be stored that way, and judging the
+    // stored pair refused every other edit to it: the Publié toggle and each
+    // market price answered "the struck-through price must be higher" to an
+    // owner who had touched neither.
+    const setsPricing = body.price !== undefined || body.compareAtPrice !== undefined
+    if (setsPricing && nextCompare !== null && nextCompare !== undefined && nextCompare <= nextPrice) {
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
         details: { issues: [{ path: 'compareAtPrice', message: 'errors.compare_price_not_higher' }] },
         internal: `compareAtPrice ${nextCompare} is not above price ${nextPrice}`,

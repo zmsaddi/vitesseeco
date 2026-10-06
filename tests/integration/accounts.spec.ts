@@ -4,15 +4,47 @@
  * The property under test is ownership: a customer must never be able to read
  * or delete another customer's row, and the way that is guaranteed is that the
  * owner is part of the query rather than a check applied to its result.
+ *
+ * The last block drives the admin panel's own routes through the real route
+ * wrapper, signed in as a fresh account: who is offered the panel, and what
+ * its order queue and product edits accept.
  */
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { and, eq, sql } from 'drizzle-orm'
 import { createEvent, type H3Event } from 'h3'
 import { closePool, hasDatabase, inTransaction, resetDatabase, schema, testDb } from './setup'
 import { SESSION_COOKIE, revokeSessionsFor } from '../../server/security/session'
 import { createSessionToken, hashPassword, hashToken, verifyPassword } from '../../server/security/crypto'
+
+/**
+ * The Studio, for the panel's product edits: Sanity is the one store those
+ * routes write outside this database, and a test must not write to the real
+ * one. It answers with `stored` and records each committed patch.
+ */
+const studio = vi.hoisted(() => ({
+  stored: null as Record<string, unknown> | null,
+  commits: [] as Array<{ id: string; set: Record<string, unknown>; unset: string[] }>,
+}))
+vi.mock('../../server/catalog/client', () => ({
+  sanity: () => ({
+    fetch: async () => studio.stored,
+    patch: (id: string) => {
+      const change = { id, set: {} as Record<string, unknown>, unset: [] as string[] }
+      const builder = {
+        set: (values: Record<string, unknown>) => (Object.assign(change.set, values), builder),
+        unset: (keys: string[]) => (change.unset.push(...keys), builder),
+        commit: async () => {
+          studio.commits.push(change)
+          return {}
+        },
+      }
+      return builder
+    },
+  }),
+  invalidateCatalogCache: () => {},
+}))
 
 async function makeCustomer(email: string): Promise<string> {
   const [row] = await testDb()
@@ -335,10 +367,16 @@ describe.skipIf(!hasDatabase)('accounts', () => {
 
   describe('the admin panel, from the routes that offer it', () => {
     /**
-     * A real GET through the route wrapper — session cookie, access check, rate
-     * limit and query validation included — signed in as a fresh customer.
+     * A real request through the route wrapper — session cookie, access check,
+     * origin check, rate limit and validation included — signed in as a fresh
+     * customer. A GET unless a body to PATCH is given.
      */
-    async function signedInGet(path: string, email: string, verified: boolean): Promise<H3Event> {
+    async function signedIn(
+      path: string,
+      email: string,
+      verified: boolean,
+      patch?: { params: Record<string, string>; body: Record<string, unknown> }
+    ): Promise<H3Event> {
       const [row] = await testDb()
         .insert(schema.customers)
         .values({
@@ -354,10 +392,20 @@ describe.skipIf(!hasDatabase)('accounts', () => {
         .values({ customerId: row!.id, tokenHash, expiresAt: new Date(Date.now() + 3_600_000) })
 
       const request = new IncomingMessage(new Socket())
-      request.method = 'GET'
+      request.method = patch ? 'PATCH' : 'GET'
       request.url = path
-      request.headers = { host: '127.0.0.1', cookie: `${SESSION_COOKIE}=${token}` }
-      return createEvent(request, new ServerResponse(request))
+      request.headers = {
+        host: '127.0.0.1',
+        cookie: `${SESSION_COOKIE}=${token}`,
+        // A write from the panel's own page: the same origin as the host.
+        ...(patch ? { origin: 'http://127.0.0.1', 'content-type': 'application/json' } : {}),
+      }
+      // h3 reads a body already attached to the request before the stream.
+      if (patch) Object.assign(request, { body: patch.body })
+      const event = createEvent(request, new ServerResponse(request))
+      // What the file-system router would have matched in the path.
+      if (patch) event.context.params = patch.params
+      return event
     }
 
     // Read per request, so setting it here is enough. What was there before —
@@ -378,12 +426,12 @@ describe.skipIf(!hasDatabase)('accounts', () => {
       // a door into a panel whose every request answered 403.
       const { default: me } = await import('../../server/api/auth/me.get')
 
-      const unverified = (await me(await signedInGet('/api/auth/me', 'max.mustermann@example.com', false))) as {
+      const unverified = (await me(await signedIn('/api/auth/me', 'max.mustermann@example.com', false))) as {
         isAdmin: boolean
       }
       expect(unverified.isAdmin).toBe(false)
 
-      const verified = (await me(await signedInGet('/api/auth/me', 'erika.mustermann@example.com', true))) as {
+      const verified = (await me(await signedIn('/api/auth/me', 'erika.mustermann@example.com', true))) as {
         isAdmin: boolean
       }
       expect(verified.isAdmin).toBe(true)
@@ -406,9 +454,44 @@ describe.skipIf(!hasDatabase)('accounts', () => {
       })
 
       const answer = (await orders(
-        await signedInGet('/api/admin/orders?payment=paypal', 'max.mustermann@example.com', true)
+        await signedIn('/api/admin/orders?payment=paypal', 'max.mustermann@example.com', true)
       )) as { orders: Array<{ orderNumber: string }> }
       expect(answer.orders.map((order) => order.orderNumber)).toEqual(['ORD-PAYPAL01'])
+    })
+
+    it('edits a product stored with a "was" price equal to its price, and judges only prices it sets', async () => {
+      // The Studio accepts a struck-through price equal to the price, and the
+      // storefront then shows no discount. The route judged that stored pair on
+      // every edit, so the panel's Publié toggle answered "the struck-through
+      // price must be higher" to an owner who had touched neither price.
+      const { default: edit } = await import('../../server/api/admin/products/[id].patch')
+      studio.stored = { price: 1350, compareAtPrice: 1350, isAvailable: true, name: 'V8 Ultra', pricesByCountry: null }
+      studio.commits = []
+      const params = { id: 'product-v8-ultra' }
+
+      const hidden = await edit(
+        await signedIn('/api/admin/products/product-v8-ultra', 'max.mustermann@example.com', true, {
+          params,
+          body: { isAvailable: false },
+        })
+      )
+      expect(hidden).toMatchObject({ isAvailable: false })
+      expect(studio.commits).toEqual([{ id: 'product-v8-ultra', set: { isAvailable: false }, unset: [] }])
+
+      // A price this edit sets is still held to the rule, and nothing is written.
+      const refused = await Promise.resolve(
+        edit(
+          await signedIn('/api/admin/products/product-v8-ultra', 'erika.mustermann@example.com', true, {
+            params,
+            body: { price: 1400 },
+          })
+        )
+      ).catch((error: unknown) => error)
+      expect(refused).toMatchObject({
+        statusCode: 400,
+        data: { details: { issues: [{ path: 'compareAtPrice', message: 'errors.compare_price_not_higher' }] } },
+      })
+      expect(studio.commits).toHaveLength(1)
     })
   })
 })
