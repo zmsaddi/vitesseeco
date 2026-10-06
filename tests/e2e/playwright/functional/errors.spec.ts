@@ -6,48 +6,10 @@
  * broken. This drives the real form against the real route and reads the
  * message a person would read.
  */
-import type { Page } from '@playwright/test'
 import { test, expect } from '../helpers/test'
 import { displayProduct } from '../helpers/catalogue'
-import { message } from '../helpers/messages'
-
-/** A message as a pattern, with `{slot}` free to be anything matching `fill`. */
-function messagePattern(key: string, slot: string, fill: string): RegExp {
-  const escaped = message(key, { [slot]: '\u0000' }).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return new RegExp(`^${escaped.replace('\u0000', fill)}$`)
-}
-
-/** A synthetic identity no real customer can have. */
-function newAccount(): { email: string; password: string; firstName: string; lastName: string } {
-  return {
-    email: `max.mustermann.${Date.now()}.${Math.random().toString(36).slice(2, 8)}@example.com`,
-    password: 'Musterstrasse-1-Wien',
-    firstName: 'Max',
-    lastName: 'Mustermann',
-  }
-}
-
-/**
- * POST from inside the page, answering the status.
- *
- * The session cookie is `Secure`. Over the rig's plain-http loopback the
- * browser still sends it — 127.0.0.1 is a trustworthy origin to Chromium — but
- * Playwright's own request client does not, so anything signed in goes
- * through the page's fetch.
- */
-async function post(page: Page, path: string, body: unknown): Promise<number> {
-  return page.evaluate(
-    async ([url, payload]) =>
-      (
-        await fetch(url as string, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      ).status,
-    [path, body] as const
-  )
-}
+import { message, messagePattern } from '../helpers/messages'
+import { newAccount, post } from '../helpers/requests'
 
 test('a wrong password says so, not that the shop failed', async ({ page }) => {
   test.setTimeout(90_000)

@@ -107,9 +107,10 @@ Every spec imports `test` from
 which gives it:
 
 - **catalogue-image interception** (committed PNG, byte-identical every run);
-- **hydration-aware navigation** — `page.goto` waits for Vue's mount mark, so a
-  click can never land on a server-rendered button with no handler (the false
-  negative the old simulator produced under load);
+- **hydration-aware navigation** — `page.goto` waits until Nuxt has finished
+  hydrating (not merely Vue's mount mark: a page's async setup hydrates after
+  it), so a click can never land on a server-rendered button with no handler
+  (the false negative the old simulator produced under load);
 - **an error monitor** — `pageerror`, unexpected `console.error`, first-party
   5xx: any of them fails the test that caused them, visible assertions
   notwithstanding. The tolerated console patterns are enumerated in the file,

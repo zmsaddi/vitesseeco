@@ -36,3 +36,13 @@ export function message(key: string, params: Record<string, string | number> = {
   if (typeof value !== 'string') throw new Error(`${locale}.json has no message ${key}`)
   return value.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole))
 }
+
+/**
+ * A message as a whole-text pattern, with one `{slot}` free to be anything
+ * `fill` matches — for a sentence whose figure the spec cannot know to the
+ * second, like how long a rate limit has left to run.
+ */
+export function messagePattern(key: string, slot: string, fill: string): RegExp {
+  const escaped = message(key, { [slot]: '\u0000' }).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^${escaped.replace('\u0000', fill)}$`)
+}

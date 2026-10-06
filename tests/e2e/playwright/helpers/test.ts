@@ -66,8 +66,8 @@ const IGNORABLE_CONSOLE: Array<{ pattern: RegExp; reason: string }> = [
 ]
 
 interface Harness {
-  /** Write a basket into localStorage before the first navigation. */
-  seedCart: (lines: Array<{ productId: string; quantity: number }>) => Promise<void>
+  /** Write a basket — and, if given, a stored promo code — into localStorage before the first navigation. */
+  seedCart: (lines: Array<{ productId: string; quantity: number }>, promoCode?: string) => Promise<void>
   /** Findings collected by the monitor; asserted empty at teardown. */
   browserErrors: string[]
   /**
@@ -79,20 +79,26 @@ interface Harness {
 }
 
 /**
- * Block until Vue has mounted onto the Nuxt root.
+ * Block until the page has hydrated — all of it.
  *
  * A click that lands on server-rendered HTML before hydration hits a button
  * with no handler and silently does nothing — under parallel load that window
  * widens to whole seconds, and it produced exactly the false negative the old
  * simulator was retired for. Vue marks its container with `__vue_app__` the
- * moment the app mounts, in production builds too; waiting for that mark makes
- * every subsequent interaction land on live code.
+ * moment the app mounts, in production builds too — but a page's async setup
+ * hydrates after that, and the mark alone let a search typed into the listing
+ * go unheard, and a navigation pushed during it make Vue report a hydration
+ * mismatch. Nuxt clears `isHydrating` once the last of it has resolved, so
+ * that is the signal waited for.
  */
 export async function waitForHydration(page: import('@playwright/test').Page): Promise<void> {
   await page.waitForFunction(
     () =>
-      (document.querySelector('#__nuxt') as { __vue_app__?: unknown } | null)?.__vue_app__ !==
-      undefined,
+      (
+        document.querySelector('#__nuxt') as {
+          __vue_app__?: { $nuxt?: { isHydrating?: boolean } }
+        } | null
+      )?.__vue_app__?.$nuxt?.isHydrating === false,
     undefined,
     { timeout: 30_000 }
   )
@@ -167,8 +173,8 @@ export const test = base.extend<Harness>({
   },
 
   seedCart: async ({ context }, use) => {
-    await use(async (lines) => {
-      const payload = cartStorage(lines)
+    await use(async (lines, promoCode) => {
+      const payload = cartStorage(lines, promoCode ?? null)
       await context.addInitScript(
         ([key, value]) => {
           window.localStorage.setItem(key as string, value as string)
