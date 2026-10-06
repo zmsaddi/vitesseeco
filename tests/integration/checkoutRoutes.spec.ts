@@ -16,7 +16,8 @@
  *
  * Only what lives at someone else's address is stubbed: the catalogue
  * (Sanity), the captcha (Cloudflare), Stripe and PayPal. The route wrapper, the
- * order and stock services and PostgreSQL are the real ones.
+ * order and stock services and PostgreSQL are the real ones — with one pause
+ * added between two service calls, where a race lands (`ordersSeam`).
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createServer, type Server } from 'node:http'
@@ -152,6 +153,28 @@ vi.mock('../../server/payments/paypal', async (importOriginal) => {
   }
 })
 
+/**
+ * A pause between a capture being recorded and its order being moved — the
+ * instant in which the capture's own webhook can take the order's row. Nothing
+ * stubbed at PayPal reaches it: a lock taken while PayPal is being asked also
+ * holds back the capture-id write that comes first, and the move then reads a
+ * row already settled. The services themselves are the real ones.
+ */
+const ordersSeam = vi.hoisted(() => ({
+  afterCaptureRecorded: null as null | ((orderNumber: string) => Promise<void>),
+}))
+
+vi.mock('../../server/services/orders', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../server/services/orders')>()
+  return {
+    ...real,
+    recordPayPalCapture: async (orderNumber: string, captureId: string) => {
+      await real.recordPayPalCapture(orderNumber, captureId)
+      await ordersSeam.afterCaptureRecorded?.(orderNumber)
+    },
+  }
+})
+
 // Imported after the stubs above are registered, and after ./setup has pointed
 // the production accessor at the scratch database.
 const { default: start } = await import('../../server/api/checkout/start.post')
@@ -257,6 +280,7 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
     paypalDouble.created.length = 0
     paypalDouble.failNextCreate = false
     paypalDouble.unreachable = false
+    ordersSeam.afterCaptureRecorded = null
   })
 
   describe('starting a card payment', () => {
@@ -692,21 +716,40 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
       expect(await audited('order.paypal_captured_on_closed_order', orderNumber)).toBe(1)
     })
 
-    it('raises no alarm when its own webhook marked the order paid first', async () => {
+    it('raises no alarm when its own webhook is marking the order paid as the capture moves it', async () => {
+      // The webhook holds the order's row, paid but not yet committed, at the
+      // moment the route moves the order. The route read the awaiting_payment
+      // it started from, and took every status short of paid for "closed": it
+      // told the owner to refund an order that was simply paid. This is the
+      // route reading that race; the row lock that settles it is proven on its
+      // own in orderLifecycle.spec.
       const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
-      paypalDouble.capture = async (number) => {
-        await transitionOrder(number, 'paid', { expectFrom: 'awaiting_payment' })
-        return { status: 'COMPLETED', captureId: 'CAP-RACE', captureStatus: 'COMPLETED' }
+      paypalDouble.capture = async () => ({ status: 'COMPLETED', captureId: 'CAP-RACE', captureStatus: 'COMPLETED' })
+      let webhook: Promise<unknown> = Promise.resolve(null)
+      ordersSeam.afterCaptureRecorded = async (number) => {
+        let holding!: () => void
+        const held = new Promise<void>((resolve) => (holding = resolve))
+        webhook = inTransaction(async (tx) => {
+          await tx.execute(sql`SELECT id FROM orders WHERE order_number = ${number} FOR UPDATE`)
+          holding()
+          // Long enough for the route to have read and reached the row, if it can.
+          await new Promise((resolve) => setTimeout(resolve, 300))
+          return transitionOrder(number, 'paid', { expectFrom: 'awaiting_payment', runTransaction: (work) => work(tx) })
+        })
+        await held
       }
 
       const response = await post('/api/checkout/paypal-capture', { orderNumber })
 
+      // The webhook moved it, the route queued behind and found it paid.
+      expect(await webhook).toEqual({ changed: true, from: 'awaiting_payment' })
       expect(response.status).toBe(200)
       expect(response.body.state).toBe('paid')
       const after = await stateOf(orderId)
-      expect(after.status).toBe('paid')
+      expect(after).toMatchObject({ status: 'paid', captureId: 'CAP-RACE' })
       expect(after.notes).toBeNull()
       expect(await audited('order.paypal_captured_on_closed_order', orderNumber)).toBe(0)
+      expect(await onHand()).toBe(0)
     })
   })
 })
