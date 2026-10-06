@@ -6,7 +6,41 @@
  * broken. This drives the real form against the real route and reads the
  * message a person would read.
  */
+import type { Page } from '@playwright/test'
 import { test, expect } from '../helpers/test'
+import { message } from '../helpers/messages'
+
+/** A synthetic identity no real customer can have. */
+function newAccount(): { email: string; password: string; firstName: string; lastName: string } {
+  return {
+    email: `max.mustermann.${Date.now()}.${Math.random().toString(36).slice(2, 8)}@example.com`,
+    password: 'Musterstrasse-1-Wien',
+    firstName: 'Max',
+    lastName: 'Mustermann',
+  }
+}
+
+/**
+ * POST from inside the page, answering the status.
+ *
+ * The session cookie is `Secure`. Over the rig's plain-http loopback the
+ * browser still sends it — 127.0.0.1 is a trustworthy origin to Chromium — but
+ * Playwright's own request client does not, so anything signed in goes
+ * through the page's fetch.
+ */
+async function post(page: Page, path: string, body: unknown): Promise<number> {
+  return page.evaluate(
+    async ([url, payload]) =>
+      (
+        await fetch(url as string, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+      ).status,
+    [path, body] as const
+  )
+}
 
 test('a wrong password says so, not that the shop failed', async ({ page }) => {
   test.setTimeout(90_000)
@@ -20,4 +54,66 @@ test('a wrong password says so, not that the shop failed', async ({ page }) => {
   const alert = page.getByRole('alert')
   await expect(alert).toContainText('Email ou mot de passe incorrect')
   await expect(alert).not.toContainText('de notre côté')
+})
+
+test('signing up with an address that has an account says what to do, in words', async ({
+  page,
+  clientAddress,
+}) => {
+  test.setTimeout(90_000)
+  const account = newAccount()
+  const first = await page.request.post('/api/auth/register', {
+    headers: { 'x-real-ip': clientAddress },
+    data: { ...account, locale: 'fr', captchaToken: 'pw.DUMMY.TOKEN' },
+  })
+  expect(first.status()).toBe(200)
+  // That call signed this context in; the second attempt is a visitor's.
+  await page.context().clearCookies()
+
+  await page.goto('/inscription')
+  await page.locator('input[autocomplete="given-name"]').fill(account.firstName)
+  await page.locator('input[autocomplete="family-name"]').fill(account.lastName)
+  await page.locator('input[type=email]').fill(account.email)
+  await page.locator('input[type=password]').fill(account.password)
+  const submit = page.locator('form button[type=submit]')
+  await expect(submit).toBeEnabled({ timeout: 30_000 })
+  await submit.click()
+
+  // The server's own key, translated — before the fix the page printed the
+  // key itself under the email field.
+  await expect(page.getByText(message('errors.email_unavailable'))).toBeVisible()
+  await expect(page.getByText('errors.email_unavailable')).toHaveCount(0)
+})
+
+test('the address limit is stated in words, even from a page that is out of date', async ({ page }) => {
+  test.setTimeout(120_000)
+  const account = newAccount()
+  await page.goto('/')
+  expect(await post(page, '/api/auth/register', { ...account, locale: 'fr', captchaToken: 'pw.DUMMY.TOKEN' })).toBe(200)
+
+  const address = {
+    firstName: account.firstName,
+    lastName: account.lastName,
+    line1: 'Musterstrasse 1',
+    postalCode: '1010',
+    city: 'Wien',
+    country: 'AT',
+  }
+  for (let i = 1; i <= 9; i++) {
+    expect(await post(page, '/api/account/addresses', { ...address, label: `Adresse ${i}` })).toBe(200)
+  }
+
+  // Nine saved: the page offers the form. A tenth then arrives from another tab
+  // or device, so the limit is reached behind this page's back.
+  await page.goto('/compte/adresses')
+  expect(await post(page, '/api/account/addresses', { ...address, label: 'Adresse 10' })).toBe(200)
+
+  await page.getByRole('button', { name: message('addresses.add') }).click()
+  await page.locator('input[autocomplete="address-line1"]').fill('Musterstrasse 1')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[autocomplete="address-level2"]').fill('Poitiers')
+  await page.getByRole('button', { name: message('addresses.save') }).click()
+
+  await expect(page.getByRole('alert').first()).toHaveText(message('errors.too_many_addresses'))
+  await expect(page.getByText('errors.too_many_addresses')).toHaveCount(0)
 })
