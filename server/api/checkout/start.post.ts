@@ -10,14 +10,23 @@ import { defineRoute } from '../../security/handler'
 import { verifyCaptcha } from '../../security/captcha'
 import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
-import { placeOrder, attachPaymentSession, attachPayPalOrder, transitionOrder } from '../../services/orders'
+import {
+  placeOrder,
+  attachPaymentSession,
+  attachPayPalOrder,
+  holdStockForPayPalReview,
+  recordPayPalCapture,
+  transitionOrder,
+} from '../../services/orders'
 import { holdIsLive } from '../../services/stock'
+import { audit } from '../../services/audit'
 import { isOnline } from '../../payments'
 import { createCheckoutSession, stripe } from '../../payments/stripe'
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/client'
 import { orders } from '../../db/schema'
-import { createPayPalOrder } from '../../payments/paypal'
+import { createPayPalOrder, findPayPalOrder } from '../../payments/paypal'
+import { stateOfPayPalOrder, type PaymentState } from '../../payments/reconcile'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
 import { localizedUrl } from '../../../shared/locales'
@@ -105,8 +114,43 @@ export default defineRoute({
     }
 
     if (body.paymentMethod === 'paypal') {
-      // Temporary bridge (server/payments/paypal.ts). The amount handed to
-      // PayPal is the placed order's own total; the browser stated nothing.
+      // Temporary bridge (server/payments/paypal.ts).
+      //
+      // A replay: the buttons it showed may have been used and the capture's
+      // answer lost on the way back — so PayPal is asked first, and money it
+      // took settles the order instead of being offered a second time. Then the
+      // rule a card replay follows: nothing is shown again over a hold that has
+      // lapsed, since its units may be someone else's by now — re-showing the
+      // buttons there sold a bike another customer had paid for. The attempt
+      // is closed and the page starts a fresh purchase, which reserves the
+      // ordinary way.
+      const [attached] = await db()
+        .select({ paypalOrderId: orders.paypalOrderId })
+        .from(orders)
+        .where(eq(orders.id, order.id))
+        .limit(1)
+      const asked: PaymentState | null = attached?.paypalOrderId
+        ? await settlePayPalAttempt(order.orderNumber, attached.paypalOrderId)
+        : null
+      if (asked === 'paid' || asked === 'pending') {
+        throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+          messageKey: 'errors.order_already_paid',
+          internal: `checkout replayed for ${order.orderNumber}, whose PayPal payment is ${asked}`,
+        })
+      }
+      if (!(await holdIsLive(db(), order.id))) {
+        if (asked === 'unknown') {
+          // Approved a moment ago, or refunded: neither paid nor provably
+          // unpaid, and nothing is closed on that.
+          throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
+            internal: `checkout replayed for ${order.orderNumber}: its hold lapsed and PayPal's answer settles nothing yet`,
+          })
+        }
+        throw await closeAttempt(order.orderNumber, 'its stock hold lapsed before PayPal was paid')
+      }
+
+      // The amount handed to PayPal is the placed order's own total; the
+      // browser stated nothing.
       const { paypalOrderId } = await createPayPalOrder({
         orderNumber: order.orderNumber,
         total: order.breakdown.total,
@@ -208,4 +252,33 @@ function refusal(orderNumber: string, status: OrderStatus, why: string): AppErro
     messageKey: paid ? 'errors.order_already_paid' : 'errors.order_closed',
     internal: `checkout refused for ${orderNumber} (${status}): ${why}`,
   })
+}
+
+/**
+ * What became of a PayPal attempt, asked of PayPal before anything is decided
+ * about it. Money PayPal took settles the order now, as the sweep would; a
+ * capture PayPal is still reviewing keeps its units for the review. Throws when
+ * PayPal cannot be asked: nothing is closed on silence.
+ */
+async function settlePayPalAttempt(orderNumber: string, paypalOrderId: string): Promise<PaymentState> {
+  const remote = await findPayPalOrder(paypalOrderId)
+  // An order PayPal no longer knows (they expire unapproved) was never paid.
+  if (!remote) return 'unpaid'
+  const state = stateOfPayPalOrder(remote)
+  if (state === 'paid' && remote.captureId) {
+    await recordPayPalCapture(orderNumber, remote.captureId)
+    const moved = await transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
+    if (moved.changed) {
+      await audit({
+        action: 'order.reconciled_paid',
+        actorType: 'system',
+        resourceType: 'order',
+        resourceId: orderNumber,
+        metadata: { reason: 'checkout replayed; PayPal reports the capture its answer never brought back', captureId: remote.captureId },
+      })
+    }
+  } else if (state === 'pending' && remote.captureId) {
+    await holdStockForPayPalReview(orderNumber, { id: remote.captureId, status: remote.captureStatus })
+  }
+  return state
 }

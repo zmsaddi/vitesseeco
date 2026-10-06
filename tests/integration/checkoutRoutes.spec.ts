@@ -7,7 +7,7 @@
  *
  *  - a replayed checkout never opens a payment that no stock hold stands
  *    behind, and never attaches one to an order that closed while Stripe was
- *    being asked;
+ *    being asked; a PayPal replay asks PayPal before showing its buttons again;
  *  - a PayPal capture for a closed order says "start over", before PayPal is
  *    asked anything, and none takes money unless the order holds its units;
  *  - a capture PayPal is still reviewing, or declined, is not money to ship
@@ -97,23 +97,26 @@ vi.mock('../../server/payments/stripe', async (importOriginal) => ({
   },
 }))
 
-/** PayPal, as the capture route uses it. The order id carries our order number. */
+/** PayPal, as the two routes use it. The order id carries our order number. */
 const paypalDouble = vi.hoisted(() => ({
   captures: 0,
   capture: null as null | ((orderNumber: string) => Promise<Record<string, unknown>>),
-  /** What PayPal says an order is when asked before a capture. */
+  /** What PayPal says an order is when asked — before a capture, or on a replay. */
   order: {
     status: 'APPROVED',
     captureId: null as string | null,
     captureStatus: null as string | null,
     createTime: null as string | null,
   },
+  /** PayPal orders created, by our order number. */
+  created: [] as string[],
+  failNextCreate: false,
+  unreachable: false,
 }))
 
-vi.mock('../../server/payments/paypal', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../../server/payments/paypal')>()),
-  paypalConfigured: () => true,
-  getPayPalOrder: async (paypalOrderId: string) => ({
+vi.mock('../../server/payments/paypal', async (importOriginal) => {
+  const { AppError, ERROR_CODES } = await import('../../shared/errors')
+  const read = (paypalOrderId: string) => ({
     status: paypalDouble.order.status,
     invoiceId: paypalOrderId.replace(/^PP-/, ''),
     amountValue: '950.00',
@@ -122,13 +125,32 @@ vi.mock('../../server/payments/paypal', async (importOriginal) => ({
     captureStatus: paypalDouble.order.captureStatus,
     createTime: paypalDouble.order.createTime,
     updateTime: null,
-  }),
-  capturePayPalOrder: async (paypalOrderId: string) => {
-    paypalDouble.captures++
-    if (!paypalDouble.capture) throw new Error('no capture scripted for this test')
-    return paypalDouble.capture(paypalOrderId.replace(/^PP-/, ''))
-  },
-}))
+  })
+  return {
+    ...(await importOriginal<typeof import('../../server/payments/paypal')>()),
+    paypalConfigured: () => true,
+    createPayPalOrder: async (input: { orderNumber: string }) => {
+      if (paypalDouble.failNextCreate) {
+        paypalDouble.failNextCreate = false
+        throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, { internal: `PayPal createOrder for ${input.orderNumber} answered 503` })
+      }
+      paypalDouble.created.push(input.orderNumber)
+      return { paypalOrderId: `PP-${input.orderNumber}` }
+    },
+    getPayPalOrder: async (paypalOrderId: string) => read(paypalOrderId),
+    findPayPalOrder: async (paypalOrderId: string) => {
+      if (paypalDouble.unreachable) {
+        throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, { internal: `PayPal getOrder ${paypalOrderId} answered 503` })
+      }
+      return read(paypalOrderId)
+    },
+    capturePayPalOrder: async (paypalOrderId: string) => {
+      paypalDouble.captures++
+      if (!paypalDouble.capture) throw new Error('no capture scripted for this test')
+      return paypalDouble.capture(paypalOrderId.replace(/^PP-/, ''))
+    },
+  }
+})
 
 // Imported after the stubs above are registered, and after ./setup has pointed
 // the production accessor at the scratch database.
@@ -149,8 +171,11 @@ async function post(path: string, body: unknown): Promise<{ status: number; body
   return { status: response.status, body: (await response.json().catch(() => ({}))) as Record<string, any> }
 }
 
-/** A guest collecting one bike in Poitiers and paying by card. Synthetic identity only. */
-function checkout(idempotencyKey: string) {
+/**
+ * A guest collecting one bike in Poitiers and paying by card, unless `changes`
+ * says otherwise. Synthetic identity only.
+ */
+function checkout(idempotencyKey: string, changes: Record<string, unknown> = {}) {
   return post('/api/checkout/start', {
     cart: { lines: [{ productId: BIKE, quantity: 1 }] },
     shipping: { methodCode: 'pickup', destination: { country: 'FR', postalCode: '86000' } },
@@ -162,6 +187,7 @@ function checkout(idempotencyKey: string) {
     phone: '+436601234567',
     idempotencyKey,
     captchaToken: 'test-token',
+    ...changes,
   })
 }
 
@@ -172,6 +198,8 @@ async function orderWithKey(idempotencyKey: string) {
       orderNumber: schema.orders.orderNumber,
       status: schema.orders.status,
       stripeSessionId: schema.orders.stripeSessionId,
+      captureId: schema.orders.paypalCaptureId,
+      notes: schema.orders.adminNotes,
     })
     .from(schema.orders)
     .where(sql`${schema.orders.idempotencyKey} = ${idempotencyKey}`)
@@ -226,6 +254,9 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
     paypalDouble.captures = 0
     paypalDouble.capture = null
     paypalDouble.order = { status: 'APPROVED', captureId: null, captureStatus: null, createTime: null }
+    paypalDouble.created.length = 0
+    paypalDouble.failNextCreate = false
+    paypalDouble.unreachable = false
   })
 
   describe('starting a card payment', () => {
@@ -318,6 +349,130 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
       expect(order.stripeSessionId).toBeNull()
       // The session made meanwhile can take no money either.
       expect(stripeDouble.expired).toEqual(['cs_test_double1'])
+    })
+  })
+
+  describe('replaying a PayPal checkout', () => {
+    it('shows the same buttons again while the hold is live', async () => {
+      const key = crypto.randomUUID()
+      const first = await checkout(key, { paymentMethod: 'paypal' })
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(200)
+      expect(replay.body).toMatchObject({ mode: 'paypal', paypalOrderId: first.body.paypalOrderId })
+    })
+
+    it('closes an attempt whose hold lapsed while another customer bought the bike — no buttons over it', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      // Another customer takes the freed bike, and the buttons were never used.
+      expect((await checkout(crypto.randomUUID())).status).toBe(200)
+      paypalDouble.order.status = 'CREATED'
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(409)
+      expect(replay.body.data?.messageKey).toBe('errors.order_closed')
+      expect(paypalDouble.created).toEqual([order.orderNumber])
+      expect((await orderWithKey(key)).status).toBe('cancelled')
+    })
+
+    it('settles an attempt PayPal already captured instead of closing it', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      // The capture's answer was lost on the way back to the page.
+      paypalDouble.order = { status: 'COMPLETED', captureId: 'CAP-EARLIER', captureStatus: 'COMPLETED', createTime: null }
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(409)
+      expect(replay.body.data?.messageKey).toBe('errors.order_already_paid')
+      expect(await orderWithKey(key)).toMatchObject({ status: 'paid', captureId: 'CAP-EARLIER' })
+      expect(await bikesFree()).toBe(0)
+    })
+
+    it('keeps the bike for an attempt whose capture PayPal is still reviewing', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      paypalDouble.order = { status: 'COMPLETED', captureId: 'CAP-REVIEW', captureStatus: 'PENDING', createTime: null }
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(409)
+      expect(replay.body.data?.messageKey).toBe('errors.order_already_paid')
+      const after = await orderWithKey(key)
+      expect(after).toMatchObject({ status: 'awaiting_payment', captureId: null })
+      expect(after.notes).toContain('CAP-REVIEW')
+      expect(await holdExpiry(order.id)).toBeGreaterThan(Date.now() + 71 * 3_600_000)
+      expect(await bikesFree()).toBe(0)
+    })
+
+    it('warns on the order when the bike of a capture under review was sold meanwhile', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      expect((await checkout(crypto.randomUUID())).status).toBe(200)
+      paypalDouble.order = { status: 'COMPLETED', captureId: 'CAP-REVIEW', captureStatus: 'PENDING', createTime: null }
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.body.data?.messageKey).toBe('errors.order_already_paid')
+      const after = await orderWithKey(key)
+      // Not cancelled: PayPal may still take the money.
+      expect(after.status).toBe('awaiting_payment')
+      expect(after.notes).toContain('ATTENTION')
+      expect(after.notes).toContain('CAP-REVIEW')
+    })
+
+    it('closes nothing while PayPal cannot yet say whether an approval was paid', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      // Approved a moment ago: a capture may be on its way.
+      paypalDouble.order = { status: 'APPROVED', captureId: null, captureStatus: null, createTime: new Date().toISOString() }
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(502)
+      expect((await orderWithKey(key)).status).toBe('awaiting_payment')
+      expect(paypalDouble.created).toEqual([order.orderNumber])
+    })
+
+    it('closes nothing when PayPal cannot be asked', async () => {
+      const key = crypto.randomUUID()
+      await checkout(key, { paymentMethod: 'paypal' })
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+      paypalDouble.unreachable = true
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(502)
+      expect((await orderWithKey(key)).status).toBe('awaiting_payment')
+    })
+
+    it('closes a replay that never got a PayPal order once its hold has lapsed — PayPal is not asked to make one', async () => {
+      const key = crypto.randomUUID()
+      paypalDouble.failNextCreate = true
+      expect((await checkout(key, { paymentMethod: 'paypal' })).status).toBe(502)
+      const order = await orderWithKey(key)
+      await letTheHoldLapse(order.id)
+
+      const replay = await checkout(key, { paymentMethod: 'paypal' })
+
+      expect(replay.status).toBe(409)
+      expect(replay.body.data?.messageKey).toBe('errors.order_closed')
+      expect(paypalDouble.created).toEqual([])
+      expect((await orderWithKey(key)).status).toBe('cancelled')
     })
   })
 
