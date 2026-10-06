@@ -360,7 +360,11 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
           <label class="block">
             <span class="text-sm text-content-muted">{{ $t('checkout.postal_code') }}</span>
             <!-- Dutch postcodes contain letters, so a numeric keypad would make
-                 them impossible to type on a phone. -->
+                 them impossible to type on a phone.
+                 Browsers compile `pattern` with the `v` flag, which refuses a
+                 bare "-" or "(" inside brackets — and a pattern that does not
+                 compile is silently ignored, so both of these were checking
+                 nothing. Every such character is escaped. -->
             <input
               v-model="form.postalCode"
               type="text"
@@ -368,7 +372,7 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
               autocomplete="postal-code"
               minlength="3"
               maxlength="12"
-              pattern="[A-Za-z0-9][A-Za-z0-9 -]*"
+              pattern="[A-Za-z0-9][A-Za-z0-9 \-]*"
               required
               class="field mt-1"
             />
@@ -402,11 +406,12 @@ useSeoMeta({ title: () => t('account.addresses'), robots: 'noindex' })
 
         <label class="block">
           <span class="text-sm text-content-muted">{{ $t('auth.phone_optional') }}</span>
+          <!-- Escaped for the `v` flag, like the postcode above. -->
           <input
             v-model="form.phone"
             type="tel"
             autocomplete="tel"
-            pattern="\+?[0-9 ().-]{6,20}"
+            pattern="\+?[0-9 \(\)\.\-]{6,20}"
             class="field mt-1"
           />
           <span v-if="fieldErrors.phone" class="mt-1 block text-sm text-danger">{{ fieldErrors.phone }}</span>
