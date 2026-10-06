@@ -24,6 +24,7 @@ import {
   parseFaq,
   parseMarketRules,
   parseProductDetail,
+  parseProductName,
   parseProductSummary,
   parsePromo,
   parseShippingMethod,
@@ -40,6 +41,7 @@ import {
   MARKET_PRICING_QUERY,
   PRODUCTS_BY_IDS_QUERY,
   PRODUCT_BY_SLUG_QUERY,
+  PRODUCT_NAMES_BY_IDS_QUERY,
   PROMO_BY_CODE_QUERY,
   SHIPPING_METHODS_QUERY,
   SIBLINGS_QUERY,
@@ -236,6 +238,32 @@ export async function getProductsByIds(
   for (const document of documents) {
     const product = parseProductSummary(document, { locale, availability, ...pricing })
     if (product) result.set(product.id, product)
+  }
+  return result
+}
+
+/**
+ * What products are called, for telling a customer which basket line can no
+ * longer be bought. Answers for unpublished products too; a deleted one has no
+ * name left to give and is simply absent.
+ */
+export async function getProductNames(
+  productIds: string[],
+  locale: LocaleCode
+): Promise<Map<string, string>> {
+  const unique = [...new Set(productIds)]
+  if (unique.length === 0) return new Map()
+
+  const documents = await cachedFetch<unknown[]>(
+    `names:${unique.slice().sort().join(',')}`,
+    PRODUCT_NAMES_BY_IDS_QUERY,
+    { ids: unique },
+    30_000
+  )
+  const result = new Map<string, string>()
+  for (const document of documents ?? []) {
+    const parsed = parseProductName(document, locale)
+    if (parsed) result.set(parsed.id, parsed.name)
   }
   return result
 }

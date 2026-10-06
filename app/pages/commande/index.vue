@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiErrorMessage } from '~/utils/apiError'
+import { apiError, apiErrorMessage, unavailableProducts } from '~/utils/apiError'
 import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js'
 
 /**
@@ -136,25 +136,52 @@ watch(paymentOptions, (options) => {
 
 watch([selectedShipping, () => cart.lines.value], refreshTotals, { deep: true })
 
+const totalsError = ref<string | null>(null)
+
 async function refreshTotals(): Promise<void> {
+  totalsError.value = null
   if (cart.isEmpty.value || !selectedShipping.value) {
     pricing.value = null
     return
   }
-  // Typed explicitly: leaving Nuxt to infer the response from its route table
-  // sends the checker into a recursion it cannot finish.
-  pricing.value = await $fetch<Totals>('/api/cart/price', {
-    method: 'POST',
-    body: {
-      cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
-      locale: locale.value,
-      shipping: {
-        methodCode: selectedShipping.value,
-        country: destination.country,
-        postalCode: destination.postalCode,
+  try {
+    // Typed explicitly: leaving Nuxt to infer the response from its route table
+    // sends the checker into a recursion it cannot finish.
+    pricing.value = await $fetch<Totals>('/api/cart/price', {
+      method: 'POST',
+      body: {
+        cart: { lines: cart.lines.value, ...(cart.promoCode.value ? { promoCode: cart.promoCode.value } : {}) },
+        locale: locale.value,
+        shipping: {
+          methodCode: selectedShipping.value,
+          country: destination.country,
+          postalCode: destination.postalCode,
+        },
       },
-    },
-  })
+    })
+  } catch (err: unknown) {
+    // Totals that could not be had are not totals. The rejection went nowhere
+    // and the previous ones stayed on screen — collection's free delivery
+    // after the customer had chosen a paid one.
+    pricing.value = null
+    if (!withdrawUnavailable(err)) totalsError.value = apiErrorMessage(err, t, locale.value)
+  }
+}
+
+/** Lines the server said could no longer be bought, by name, once they are gone. */
+const withdrawn = ref<string[]>([])
+
+/**
+ * Take a product that left the catalogue out of the basket, as the basket page
+ * does, and keep its name on screen. The watcher above prices what remains.
+ */
+function withdrawUnavailable(err: unknown): boolean {
+  const gone = unavailableProducts(apiError(err)).filter((product) =>
+    cart.lines.value.some((line) => line.productId === product.productId)
+  )
+  for (const product of gone) cart.remove(product.productId)
+  withdrawn.value.push(...gone.map((product) => product.name ?? t('cart.an_item')))
+  return gone.length > 0
 }
 
 /**
@@ -394,7 +421,8 @@ async function submit(): Promise<void> {
     await nextTick()
     if (stripeContainer.value) instance.mount(stripeContainer.value)
   } catch (err: unknown) {
-    error.value = apiErrorMessage(err, t, locale.value)
+    // A line that left the catalogue since the totals were read goes by name.
+    if (!withdrawUnavailable(err)) error.value = apiErrorMessage(err, t, locale.value)
     // Spent, whether or not it was the reason. Asking Cloudflare to accept it
     // twice fails, and the customer would never learn why.
     captchaToken.value = ''
@@ -519,6 +547,9 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
 
     <ClientOnly v-else>
       <div v-if="cart.isEmpty.value" class="mt-8">
+        <p v-if="withdrawn.length" role="status" class="mb-4 text-sm text-content">
+          {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
+        </p>
         <p class="text-content-muted">{{ $t('cart.empty') }}</p>
         <NuxtLink :to="localePath('/produits')" class="btn-primary mt-6">{{ $t('cart.browse') }}</NuxtLink>
       </div>
@@ -726,7 +757,17 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
               <dd class="text-content-strong">{{ formatDecimal(pricing.total) }}</dd>
             </div>
           </dl>
+          <div v-else-if="totalsError" class="mt-4">
+            <p role="alert" class="text-sm text-danger">{{ totalsError }}</p>
+            <button type="button" class="btn-secondary mt-2 h-9 px-3 text-xs" @click="refreshTotals">
+              {{ $t('common.retry') }}
+            </button>
+          </div>
           <p v-else class="mt-4 text-sm text-content-muted">{{ $t('checkout.totals_pending') }}</p>
+
+          <p v-if="withdrawn.length" role="status" class="mt-4 text-sm text-content">
+            {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
+          </p>
 
           <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
 

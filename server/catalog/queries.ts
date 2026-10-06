@@ -236,6 +236,18 @@ export const PRODUCTS_BY_IDS_QUERY = `
 `
 
 /**
+ * What products are called, whether or not they are still for sale.
+ *
+ * The query above answers only for what can be bought, so a bike the owner had
+ * just unpublished left a stored basket without a name to tell the customer
+ * which line went. Published documents only — the client reads the published
+ * perspective — and only the name.
+ */
+export const PRODUCT_NAMES_BY_IDS_QUERY = `
+  *[_type == "product" && _id in $ids]{ _id, name }
+`
+
+/**
  * Every sellable slug, for the sitemap.
  *
  * Deliberately not the listing query: that one paginates, and a sitemap that

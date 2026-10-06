@@ -154,6 +154,7 @@
     "title": "Gidsen en advies"
   },
   "cart": {
+    "an_item": "een artikel",
     "apply": "Toepassen",
     "browse": "Bekijk producten",
     "checkout": "Afrekenen",
@@ -173,7 +174,8 @@
     "total": "Totaal",
     "undo_removed": "{name} uit je winkelwagen verwijderd.",
     "undo": "Ongedaan maken",
-    "undo_failed": "Dit artikel kon niet worden hersteld."
+    "undo_failed": "Dit artikel kon niet worden hersteld.",
+    "withdrawn": "We hebben wat niet meer te koop is uit uw winkelmand gehaald: {names}."
   },
   "cgv": {
     "data_link": "Privacybeleid",
@@ -291,7 +293,8 @@
     "close": "Sluiten",
     "loading": "Laden…",
     "next": "Volgende",
-    "previous": "Vorige"
+    "previous": "Vorige",
+    "retry": "Opnieuw proberen"
   },
   "compare": {
     "best": "Beste van de selectie",
@@ -395,6 +398,7 @@
     "password_too_short": "Dit wachtwoord is te kort.",
     "payment_provider": "De betaling kon niet worden verwerkt.",
     "price_changed": "De prijzen zijn gewijzigd, controleer uw winkelmand.",
+    "product_unavailable": "Een artikel in uw winkelmand is niet meer beschikbaar.",
     "promo_exhausted": "Deze kortingscode is niet meer geldig.",
     "rate_limited": "Te veel pogingen. Wacht een tijdje voordat u het opnieuw probeert.",
     "rate_limited_for": "Te veel pogingen. Probeer het over {wait} opnieuw.",

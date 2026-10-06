@@ -77,6 +77,23 @@ export function apiErrorMessage(err: unknown, t: Translate, locale: string): str
 }
 
 /**
+ * The basket lines a PRODUCT_UNAVAILABLE refusal names: products that left the
+ * catalogue, with their names where the catalogue still has them. Read
+ * defensively — an entry without a product id is of no use to a basket that
+ * holds nothing but ids.
+ */
+export function unavailableProducts(
+  payload: ApiErrorPayload
+): Array<{ productId: string; name: string | null }> {
+  const listed = payload.code === 'PRODUCT_UNAVAILABLE' ? payload.details?.unavailable : undefined
+  if (!Array.isArray(listed)) return []
+  return listed.flatMap((entry) => {
+    const { productId, name } = (entry ?? {}) as { productId?: unknown; name?: unknown }
+    return typeof productId === 'string' ? [{ productId, name: typeof name === 'string' ? name : null }] : []
+  })
+}
+
+/**
  * "15 minutes", "15 Minuten", "15 دقيقة" — Intl carries each language's plural
  * rules, which a locale file cannot: vue-i18n's plural separator is banned
  * there (check:langs).

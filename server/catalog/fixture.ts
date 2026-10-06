@@ -33,6 +33,7 @@ import {
   MARKET_PRICING_QUERY,
   PRODUCTS_BY_IDS_QUERY,
   PRODUCT_BY_SLUG_QUERY,
+  PRODUCT_NAMES_BY_IDS_QUERY,
   PROMO_BY_CODE_QUERY,
   SELLING_TERMS_QUERY,
   SHIPPING_METHODS_QUERY,
@@ -180,6 +181,12 @@ function resolve(query: string, params: Record<string, unknown>): unknown {
     case PRODUCTS_BY_IDS_QUERY: {
       const ids = Array.isArray(params.ids) ? params.ids : []
       return data.products.filter((p) => ids.includes(p._id))
+    }
+    case PRODUCT_NAMES_BY_IDS_QUERY: {
+      // Every fixture product is for sale, so an id this does not know stands
+      // for one deleted from the Studio: no name left to give.
+      const ids = Array.isArray(params.ids) ? params.ids : []
+      return data.products.filter((p) => ids.includes(p._id)).map((p) => ({ _id: p._id, name: p.name }))
     }
     case SIBLINGS_QUERY:
       return data.products

@@ -154,6 +154,7 @@
     "title": "Guides et conseils"
   },
   "cart": {
+    "an_item": "un article",
     "apply": "Appliquer",
     "browse": "Voir les produits",
     "checkout": "Commander",
@@ -173,7 +174,8 @@
     "total": "Total",
     "undo_removed": "{name} retiré du panier.",
     "undo": "Annuler",
-    "undo_failed": "Impossible de restaurer cet article."
+    "undo_failed": "Impossible de restaurer cet article.",
+    "withdrawn": "Nous avons retiré de votre panier ce qui n'est plus en vente : {names}."
   },
   "cgv": {
     "data_link": "Politique de confidentialité",
@@ -291,7 +293,8 @@
     "close": "Fermer",
     "loading": "Chargement…",
     "next": "Suivant",
-    "previous": "Précédent"
+    "previous": "Précédent",
+    "retry": "Réessayer"
   },
   "compare": {
     "best": "Meilleure valeur de la sélection",
@@ -395,6 +398,7 @@
     "password_too_short": "Ce mot de passe est trop court.",
     "payment_provider": "Le paiement n'a pas pu être traité.",
     "price_changed": "Les prix ont changé, veuillez vérifier votre panier.",
+    "product_unavailable": "Un article de votre panier n'est plus disponible.",
     "promo_exhausted": "Ce code promo n'est plus valable.",
     "rate_limited": "Trop de tentatives. Veuillez patienter avant de réessayer.",
     "rate_limited_for": "Trop de tentatives. Réessayez dans {wait}.",

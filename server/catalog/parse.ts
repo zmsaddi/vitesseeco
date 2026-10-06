@@ -295,6 +295,25 @@ function warn(document: unknown, error: z.ZodError): void {
   console.warn(`[catalog] dropping malformed document ${id} — ${problems}`)
 }
 
+const rawProductNameSchema = z.object({
+  _id: z.string().min(1),
+  name: z.union([z.string(), localized]),
+})
+
+/**
+ * Only what a product is called — for naming a basket line that is no longer
+ * for sale, where nothing else about the product matters any more.
+ */
+export function parseProductName(
+  document: unknown,
+  locale: LocaleCode
+): { id: string; name: string } | null {
+  const parsed = rawProductNameSchema.safeParse(document)
+  if (!parsed.success) return null
+  const name = translate(parsed.data.name, locale)
+  return name ? { id: parsed.data._id, name } : null
+}
+
 export function parseProductSummary(document: unknown, context: ParseContext): ProductSummary | null {
   const parsed = rawProductSchema.safeParse(document)
   if (!parsed.success) {

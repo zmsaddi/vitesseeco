@@ -154,6 +154,7 @@
     "title": "Ratgeber und Tipps"
   },
   "cart": {
+    "an_item": "ein Artikel",
     "apply": "Anwenden",
     "browse": "Produkte ansehen",
     "checkout": "Zur Kasse",
@@ -173,7 +174,8 @@
     "total": "Gesamt",
     "undo_removed": "{name} aus dem Warenkorb entfernt.",
     "undo": "Rückgängig",
-    "undo_failed": "Dieser Artikel konnte nicht wiederhergestellt werden."
+    "undo_failed": "Dieser Artikel konnte nicht wiederhergestellt werden.",
+    "withdrawn": "Was nicht mehr erhältlich ist, haben wir aus Ihrem Warenkorb entfernt: {names}."
   },
   "cgv": {
     "data_link": "Datenschutzerklärung",
@@ -291,7 +293,8 @@
     "close": "Schließen",
     "loading": "Wird geladen…",
     "next": "Weiter",
-    "previous": "Zurück"
+    "previous": "Zurück",
+    "retry": "Erneut versuchen"
   },
   "compare": {
     "best": "Bester Wert der Auswahl",
@@ -395,6 +398,7 @@
     "password_too_short": "Dieses Passwort ist zu kurz.",
     "payment_provider": "Die Zahlung konnte nicht verarbeitet werden.",
     "price_changed": "Die Preise haben sich geändert, bitte prüfen Sie Ihren Warenkorb.",
+    "product_unavailable": "Ein Artikel in Ihrem Warenkorb ist nicht mehr erhältlich.",
     "promo_exhausted": "Dieser Gutscheincode ist nicht mehr gültig.",
     "rate_limited": "Zu viele Versuche. Bitte warten Sie, bevor Sie es erneut versuchen.",
     "rate_limited_for": "Zu viele Versuche. Bitte versuchen Sie es in {wait} erneut.",

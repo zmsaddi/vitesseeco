@@ -154,6 +154,7 @@
     "title": "Guías y consejos"
   },
   "cart": {
+    "an_item": "un artículo",
     "apply": "Aplicar",
     "browse": "Ver productos",
     "checkout": "Finalizar compra",
@@ -173,7 +174,8 @@
     "total": "Total",
     "undo_removed": "{name} eliminado de la cesta.",
     "undo": "Deshacer",
-    "undo_failed": "No se ha podido restaurar este artículo."
+    "undo_failed": "No se ha podido restaurar este artículo.",
+    "withdrawn": "Hemos retirado de su cesta lo que ya no está a la venta: {names}."
   },
   "cgv": {
     "data_link": "Política de privacidad",
@@ -291,7 +293,8 @@
     "close": "Cerrar",
     "loading": "Cargando…",
     "next": "Siguiente",
-    "previous": "Anterior"
+    "previous": "Anterior",
+    "retry": "Reintentar"
   },
   "compare": {
     "best": "Mejor valor de la selección",
@@ -395,6 +398,7 @@
     "password_too_short": "Esta contraseña es demasiado corta.",
     "payment_provider": "No se ha podido procesar el pago.",
     "price_changed": "Los precios han cambiado, revise su cesta.",
+    "product_unavailable": "Un artículo de su cesta ya no está disponible.",
     "promo_exhausted": "Este código promocional ya no es válido.",
     "rate_limited": "Demasiados intentos. Espere antes de volver a intentarlo.",
     "rate_limited_for": "Demasiados intentos. Inténtelo de nuevo dentro de {wait}.",
