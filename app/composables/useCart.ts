@@ -176,11 +176,32 @@ export function useCart() {
     )
     for (const product of withdrawn) remove(product.productId)
 
+    // A code the server cannot read, or one it read and will not apply at
+    // placement (expired, used up, mistyped into another code's shape): the
+    // order is always refused while it is stored, and checkout has no field to
+    // clear it from.
     const promoDropped =
-      promoCode.value !== null && (refusal.details?.issues ?? []).some((issue) => issue.path === 'cart.promoCode')
+      promoCode.value !== null &&
+      (refusal.code === 'PROMO_EXHAUSTED' ||
+        (refusal.details?.issues ?? []).some((issue) => issue.path === 'cart.promoCode'))
     if (promoDropped) applyPromo(null)
 
     return { withdrawn, promoDropped }
+  }
+
+  /**
+   * Let go of a stored code the server priced and did not apply.
+   *
+   * A well-formed code that is unknown, expired or used up prices without
+   * error — the basket just says it is not valid — but placing the order
+   * refuses it every time, and checkout has no promo field. Kept in storage, it
+   * blocked every "Confirmer" with nothing on the page to clear it. Answers
+   * whether it dropped one, so the caller can say so and price again.
+   */
+  function settlePromo(priced: { promo: { applied: boolean } | null } | null): boolean {
+    if (promoCode.value === null || !priced?.promo || priced.promo.applied) return false
+    applyPromo(null)
+    return true
   }
 
   const count = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
@@ -200,5 +221,6 @@ export function useCart() {
     clear,
     applyPromo,
     correct,
+    settlePromo,
   }
 }

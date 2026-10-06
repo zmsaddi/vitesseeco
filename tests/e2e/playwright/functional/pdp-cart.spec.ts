@@ -169,3 +169,31 @@ test('checkout drops a stored promo code the server cannot read, and prices the 
   const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
   expect(stored.promoCode).toBeNull()
 })
+
+test('a well-formed code the shop does not honour is let go, in the basket and at checkout', async ({
+  page,
+  seedCart,
+}) => {
+  // Unknown, expired or used up, it prices without error — the basket only
+  // says it is not valid — but placing the order refused it every time, and
+  // checkout has no field to clear it. It stayed in storage and blocked every
+  // "Confirmer".
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }])
+  await page.goto('/panier')
+  await expect(page.getByText(displayProduct.name.fr).first()).toBeVisible()
+  await page.locator('#promo').fill('WELCOMEVIENA')
+  await page.getByRole('button', { name: message('cart.apply') }).click()
+  await expect(page.getByText(message('cart.promo_rejected'))).toBeVisible()
+  const basket = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(basket.promoCode).toBeNull()
+
+  // Stored before this change: checkout lets it go too, and says so.
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }], 'WELCOMEVIENA')
+  await page.goto('/commande')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+  await expect(page.getByRole('status')).toHaveText(message('errors.invalid_promo_code'))
+  await expect(page.locator('aside dl')).toContainText(displayPrice(displayProduct.price))
+  const checkout = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(checkout.promoCode).toBeNull()
+})

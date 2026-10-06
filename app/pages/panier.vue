@@ -59,6 +59,13 @@ async function refresh(): Promise<void> {
         locale: locale.value,
       },
     })
+    if (cart.settlePromo(pricing.value)) {
+      // Said once, then priced without it — the stored code would otherwise
+      // follow the customer to checkout and refuse the order there.
+      promoRefused.value = true
+      await refresh()
+      return
+    }
   } catch (err: unknown) {
     if (correctBasket(err)) {
       await refresh()

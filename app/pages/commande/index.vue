@@ -58,6 +58,7 @@ interface Totals {
   discount: string
   shipping: string
   total: string
+  promo: { code: string; applied: boolean } | null
 }
 
 const shippingOptions = ref<ShippingOption[]>([])
@@ -198,7 +199,11 @@ async function refreshTotals(): Promise<void> {
         },
       },
     })
-    if (asked === totalsAsked) pricing.value = totals
+    if (asked !== totalsAsked) return
+    // A code that prices without applying would refuse the order: dropped and
+    // said here, and the watcher prices again without it.
+    if (cart.settlePromo(totals)) promoRefused.value = true
+    pricing.value = totals
   } catch (err: unknown) {
     if (asked !== totalsAsked) return
     // Totals that could not be had are not totals. The rejection went nowhere
@@ -820,14 +825,19 @@ useSeoMeta({ title: () => t('checkout.title'), robots: 'noindex' })
           </div>
           <p v-else class="mt-4 text-sm text-content-muted">{{ $t('checkout.totals_pending') }}</p>
 
-          <p v-if="withdrawn.length" role="status" class="mt-4 text-sm text-content">
-            {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
-          </p>
-          <!-- This page has no promo field, so the code that was dropped is
-               named here; the totals above are already without it. -->
-          <p v-if="promoRefused" role="status" class="mt-4 text-sm text-danger">
-            {{ $t('errors.invalid_promo_code') }}
-          </p>
+          <!-- One live region, always in the page: a screen reader announces
+               what is inserted into a region it already knows, while a region
+               inserted together with its text is often read by nobody. -->
+          <div role="status">
+            <p v-if="withdrawn.length" class="mt-4 text-sm text-content">
+              {{ $t('cart.withdrawn', { names: withdrawn.join(', ') }) }}
+            </p>
+            <!-- This page has no promo field, so the code that was dropped is
+                 named here; the totals above are already without it. -->
+            <p v-if="promoRefused" class="mt-4 text-sm text-danger">
+              {{ $t('errors.invalid_promo_code') }}
+            </p>
+          </div>
 
           <p v-if="error" role="alert" class="mt-4 text-sm text-danger">{{ error }}</p>
 
