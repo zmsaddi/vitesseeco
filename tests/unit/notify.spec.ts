@@ -12,6 +12,8 @@ import {
 } from '../../server/services/notify'
 
 const message: OwnerMessage = {
+  ping: '💶 طلب <مدفوع> & جديد',
+  pingLink: 'https://vitesse-eco.fr/admin/commandes',
   title: '💶 طلب مدفوع VE-1 — 1 250,00 €',
   lines: ['• 1 × V8 <Ultra> & co'],
   link: 'https://vitesse-eco.fr/admin/commandes/VE-1',
@@ -36,9 +38,15 @@ afterEach(() => {
 describe('rendering', () => {
   it('escapes what Telegram HTML would otherwise parse', () => {
     const text = renderTelegram(message)
-    expect(text).toContain('<b>💶 طلب مدفوع VE-1')
-    expect(text).toContain('V8 &lt;Ultra&gt; &amp; co')
-    expect(text.endsWith(message.link)).toBe(true)
+    expect(text).toContain('<b>💶 طلب &lt;مدفوع&gt; &amp; جديد</b>')
+    expect(text.endsWith(message.pingLink)).toBe(true)
+  })
+
+  it('gives Telegram the ping and the list, never the record', () => {
+    const text = renderTelegram(message)
+    expect(text).not.toContain('VE-1')
+    expect(text).not.toContain('250')
+    expect(text).not.toContain('V8')
   })
 
   it('puts the title in the subject and the link last', () => {
@@ -125,8 +133,20 @@ describe('plainText', () => {
 describe('right-to-left lines', () => {
   const LRM = '\u200E'
 
-  it('ties a Latin value to its place inside an Arabic line', () => {
-    expect(ltr('+33745830049')).toBe(`${LRM}+33745830049${LRM}`)
+  it('marks an edge only where the bidi algorithm would move it', () => {
+    // Digits or a sign right after Arabic would become Arabic-numeric.
+    expect(ltr('+33745830049')).toBe(`${LRM}+33745830049`)
+    expect(ltr('86000 Poitiers FR')).toBe(`${LRM}86000 Poitiers FR`)
+    // A trailing symbol would take the line's direction.
+    expect(ltr('1 250,00 €')).toBe(`${LRM}1 250,00 €${LRM}`)
+    expect(ltr('Poitiers Reconnectez…')).toBe(`Poitiers Reconnectez…${LRM}`)
+  })
+
+  it('leaves identifiers clean, because they are copied into searches', () => {
+    expect(ltr('ORD-MUVZ9UWLZTQ59E6A')).toBe('ORD-MUVZ9UWLZTQ59E6A')
+    const alert = closedOrderPaymentMessage({ orderNumber: 'ORD-7', provider: 'paypal', reference: '8MC585209K746392H', status: 'cancelled' })
+    expect(alert.lines).toContain('8MC585209K746392H')
+    expect(alert.title).not.toContain(LRM)
   })
 })
 
@@ -181,8 +201,7 @@ describe('linkSaleMessage', () => {
   })
 
   it('keeps the euro sign with its amount in a right-to-left title', () => {
-    const LRM = '\u200E'
-    expect(linkSaleMessage(session, []).title).toMatch(new RegExp(`${LRM}1[\s\u202f\u00a0]250,00[\s\u00a0]€${LRM}`))
+    expect(linkSaleMessage(session, []).title).toMatch(/\u200E1[\s\u202f\u00a0]250,00[\s\u00a0]€\u200E/)
   })
 })
 

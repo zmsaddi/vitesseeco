@@ -317,6 +317,12 @@ async function findByIdempotencyKey(key: string, read?: SqlExecutor): Promise<Pl
 }
 
 /**
+ * How the admin note of a payment that arrived short of stock begins. The
+ * owner's alert recognises the note by it (server/services/notify.ts).
+ */
+export const OVERSOLD_NOTE = 'ATTENTION : payé après expiration de la réservation'
+
+/**
  * Move an order to a new status, settling stock as the transition requires.
  *
  * The row is locked before its status is read, so two transitions of one order
@@ -392,7 +398,7 @@ export async function transitionOrder(
           // Where the owner will actually see it: on the order, in the panel.
           // Also the reminder that cancelling would re-credit units never taken.
           const note =
-            `ATTENTION : payé après expiration de la réservation, stock insuffisant : ${detail}. ` +
+            `${OVERSOLD_NOTE}, stock insuffisant : ${detail}. ` +
             `Vendu sans stock — à régler à la main ; une annulation remettrait ces unités en stock à tort.`
           // In a savepoint: the note is for a person, the payment is the fact. A
           // failed note must roll back alone — one failed statement aborts the

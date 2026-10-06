@@ -167,6 +167,7 @@ useSeoMeta({
         </ul>
 
         <p class="mt-4 text-content">{{ $t('privacy.cookies_captcha') }}</p>
+        <p class="mt-3 text-content">{{ $t('privacy.cookies_payment') }}</p>
 
         <h3 class="mt-6 font-semibold text-content-strong">{{ $t('privacy.storage_title') }}</h3>
         <p class="mt-2 text-content">{{ $t('privacy.storage_intro') }}</p>
@@ -189,11 +190,13 @@ useSeoMeta({
           <li>{{ $t('privacy.recipient_neon') }}</li>
           <li>{{ $t('privacy.recipient_vercel') }}</li>
           <li>{{ $t('privacy.recipient_stripe') }}</li>
-          <li>{{ $t('privacy.recipient_paypal') }}</li>
           <li>{{ $t('privacy.recipient_cloudflare') }}</li>
           <li>{{ $t('privacy.recipient_sanity') }}</li>
           <li>{{ $t('privacy.recipient_alerts') }}</li>
         </ul>
+        <!-- Not processors acting on our instructions, so not in that list. -->
+        <p class="mt-4 text-content">{{ $t('privacy.recipient_paypal') }}</p>
+        <p class="mt-3 text-content">{{ $t('privacy.recipient_telegram') }}</p>
         <p class="mt-4 font-medium text-content-strong">{{ $t('privacy.recipients_no_sale') }}</p>
       </section>
 

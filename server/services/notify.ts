@@ -14,12 +14,13 @@
  * every failure is logged and swallowed. A customer whose payment succeeded is
  * never told otherwise because Telegram was slow.
  *
- * What it carries is a pointer, not a record: the order number, the amount,
- * the items, how it is paid and handed over, the town — and the link to the
- * order, where the rest is. No name, no email, no phone, no street. Both
- * channels are third parties outside the European Union, named as such in the
- * privacy policy, and a chat history is not where a customer's address should
- * end up living.
+ * The two channels do not carry the same thing, because they are not the same
+ * kind of recipient. Resend is a processor under a data processing agreement
+ * with the EU standard clauses, so the email is a pointer: the order number,
+ * the amount, the items, how it is paid and handed over, the town, and the
+ * link to the order. No name, no email, no phone, no street. Telegram offers no
+ * such agreement, so it gets a ping and nothing about anyone: what happened,
+ * and the admin list to open. The privacy policy says exactly this.
  *
  * Written in Arabic: it is read by the owner, not by customers.
  */
@@ -28,6 +29,7 @@ import type Stripe from 'stripe'
 import { db } from '../db/client'
 import { orderItems, orders } from '../db/schema'
 import { audit } from './audit'
+import { OVERSOLD_NOTE } from './orders'
 import { firstTime } from './webhookClaims'
 import { cents, format } from '../../shared/money'
 import { ORGANISATION, SITE_URL } from '../../shared/organisation'
@@ -35,11 +37,17 @@ import { ORGANISATION, SITE_URL } from '../../shared/organisation'
 const TIMEOUT_MS = 4_000
 
 export interface OwnerMessage {
+  /** What happened, saying nothing about who: the whole Telegram message. */
+  ping: string
+  /** Where the ping sends the owner: a list, never a record. */
+  pingLink: string
+  /** The email: its subject, its lines, and the record it points at. */
   title: string
   lines: string[]
-  /** Where the owner acts on it — the admin page for the order. */
   link: string
 }
+
+const ADMIN_ORDERS = `${SITE_URL}/admin/commandes`
 
 const PAYMENT_LABELS: Record<string, string> = {
   stripe: 'دفع إلكتروني (Stripe)',
@@ -51,15 +59,23 @@ const PAYMENT_LABELS: Record<string, string> = {
 /**
  * A left-to-right value placed in an Arabic line.
  *
- * Every line here starts with an Arabic label, so it is laid out right to left,
- * and the bidi algorithm then detaches the edges of a Latin or numeric value:
- * the € of "1 250,00 €" lands on the order number, the "+" of a phone number at
- * its far end. A left-to-right mark on each side ties them back on. LRM rather
- * than the newer isolates because every Telegram and mail client honours it.
+ * A line that starts with an Arabic label is laid out right to left, and the
+ * bidi algorithm then detaches the edges of a Latin or numeric value: digits
+ * right after Arabic become Arabic numbers (a town's postcode lands after the
+ * town), and a trailing symbol takes the line's direction (the € of
+ * "1 250,00 €" lands on the far side). A left-to-right mark fixes each edge.
+ *
+ * Only where an edge needs it. A mark is invisible but it is copied: one stuck
+ * to an order number or a payment reference makes the pasted search find
+ * nothing. Identifiers start with a letter or sit on their own line, so they
+ * never get one. LRM rather than the newer isolates because every Telegram and
+ * mail client honours it.
  */
 const LRM = '‎'
 export function ltr(value: string): string {
-  return `${LRM}${value}${LRM}`
+  const lead = /^[\p{N}+-]/u.test(value) ? LRM : ''
+  const tail = /[\p{L}\p{N}]$/u.test(value) ? '' : LRM
+  return `${lead}${value}${tail}`
 }
 
 /**
@@ -110,7 +126,7 @@ function escapeHtml(text: string): string {
 }
 
 export function renderTelegram(message: OwnerMessage): string {
-  return [`<b>${escapeHtml(message.title)}</b>`, '', ...message.lines.map(escapeHtml), '', escapeHtml(message.link)].join('\n')
+  return [`<b>${escapeHtml(message.ping)}</b>`, '', escapeHtml(message.pingLink)].join('\n')
 }
 
 export function renderEmail(message: OwnerMessage): { subject: string; text: string } {
@@ -201,26 +217,35 @@ export async function orderMessage(orderNumber: string, event: 'placed' | 'paid'
 
   // A payment that arrived after its stock hold lapsed, short of stock, leaves
   // its warning in the admin notes (server/services/orders.ts). That is
-  // exactly what the owner must see the moment the money is announced.
+  // exactly what the owner must see the moment the money is announced — as a
+  // fixed sentence: the notes are free text a person can also write in, and
+  // whatever they hold stays on the order page.
   const oversold = (order.adminNotes ?? '')
     .split('\n')
-    .filter((note) => note.startsWith('ATTENTION :'))
+    .some((note) => note.startsWith(OVERSOLD_NOTE))
+  const warning = oversold ? '⚠️ نقص في المخزون عند وصول الدفعة — التفاصيل في ملاحظات الطلب' : null
   const destination = town(order.shippingAddress as { postalCode?: string; city?: string; country?: string } | null)
+  const payment = PAYMENT_LABELS[order.paymentMethod] ?? ltr(order.paymentMethod)
 
   return {
+    ping: [
+      event === 'paid' ? `💶 طلب مدفوع جديد — ${payment}` : `🛒 طلب جديد — ${payment} (لم يُدفع بعد)`,
+      ...(warning ? [warning] : []),
+    ].join('\n'),
+    pingLink: ADMIN_ORDERS,
     title:
       event === 'paid'
-        ? `💶 طلب مدفوع ${ltr(order.orderNumber)} — ${money(order.totalCents)}`
-        : `🛒 طلب جديد ${ltr(order.orderNumber)} — ${money(order.totalCents)} (لم يُدفع بعد)`,
+        ? `💶 طلب مدفوع ${order.orderNumber} — ${money(order.totalCents)}`
+        : `🛒 طلب جديد ${order.orderNumber} — ${money(order.totalCents)} (لم يُدفع بعد)`,
     lines: [
       ...items.map((item) => `• ${item.quantity} × ${item.name}${item.color ? ` (${item.color})` : ''}`),
       '',
       destination ? `التسليم: ${destination}` : `التسليم: ${ltr(order.shippingMethodCode)}`,
-      `الدفع: ${PAYMENT_LABELS[order.paymentMethod] ?? ltr(order.paymentMethod)}`,
+      `الدفع: ${payment}`,
       `الوقت: ${parisTime(order.createdAt)}`,
-      ...(oversold.length ? ['', '⚠️ نقص في المخزون عند وصول الدفعة — يحتاج تدخلك:', ...oversold] : []),
+      ...(warning ? ['', warning] : []),
     ],
-    link: `${SITE_URL}/admin/commandes/${order.orderNumber}`,
+    link: `${ADMIN_ORDERS}/${order.orderNumber}`,
   }
 }
 
@@ -237,13 +262,17 @@ export interface ClosedOrderPayment {
 export function closedOrderPaymentMessage(payment: ClosedOrderPayment): OwnerMessage {
   const provider = payment.provider === 'stripe' ? 'Stripe' : 'PayPal'
   return {
-    title: `⚠️ دفعة ${provider} على طلب مغلق ${ltr(payment.orderNumber)}`,
+    ping: `⚠️ دفعة ${provider} وصلت على طلب ملغى — افتح لوحة الإدارة اليوم`,
+    pingLink: ADMIN_ORDERS,
+    title: `⚠️ دفعة ${provider} على طلب مغلق ${payment.orderNumber}`,
     lines: [
       `استلم ${provider} المال لكن الطلب كان ${payment.status === 'cancelled' ? 'ملغى' : ltr(payment.status)} عند وصول الدفعة.`,
       `المطلوب: إما استرداد المبلغ من ${provider}، أو تنفيذ الطلب يدويًا.`,
-      `مرجع الدفعة: ${ltr(payment.reference ?? '—')}`,
+      // On its own line, unmarked: it is what gets pasted into the provider's search.
+      'مرجع الدفعة:',
+      payment.reference ?? '—',
     ],
-    link: `${SITE_URL}/admin/commandes/${payment.orderNumber}`,
+    link: `${ADMIN_ORDERS}/${payment.orderNumber}`,
   }
 }
 
@@ -257,6 +286,13 @@ export function closedOrderPaymentMessage(payment: ClosedOrderPayment): OwnerMes
  * payment: logged every time, audited and announced the first.
  */
 export async function reportPaymentOnClosedOrder(payment: ClosedOrderPayment): Promise<void> {
+  // An order that WAS paid, by this very payment, and was cancelled afterwards
+  // on purpose: a late or re-run event for that payment is not new money. The
+  // person who cancelled it already decided what happens to it.
+  if (await isTheRecordedPayment(payment)) {
+    console.warn(`[payments] ${payment.provider} ${payment.reference} for ${payment.orderNumber} already paid it before it was cancelled`)
+    return
+  }
   console.error(
     `[payments] ${payment.provider} payment ${payment.reference ?? '(no reference)'} landed on ${payment.orderNumber}, ` +
       `which is ${payment.status} — refund or honour it`
@@ -271,6 +307,30 @@ export async function reportPaymentOnClosedOrder(payment: ClosedOrderPayment): P
     metadata: { provider: payment.provider, reference: payment.reference, status: payment.status },
   })
   await notifyOwner(closedOrderPaymentMessage(payment))
+}
+
+/**
+ * Whether the order had been paid, by the payment now reported, before it was
+ * cancelled. `paid_at` is stamped only by a transition to paid, and the
+ * reference must be the one recorded on the order: a second, different
+ * payment on a paid-then-cancelled order is still money to give back.
+ * A read that fails answers false — reporting twice beats staying silent.
+ */
+async function isTheRecordedPayment(payment: ClosedOrderPayment): Promise<boolean> {
+  if (!payment.reference) return false
+  try {
+    const [order] = await db()
+      .select({ paidAt: orders.paidAt, stripeSessionId: orders.stripeSessionId, paypalCaptureId: orders.paypalCaptureId })
+      .from(orders)
+      .where(eq(orders.orderNumber, payment.orderNumber))
+      .limit(1)
+    if (!order?.paidAt) return false
+    const recorded = payment.provider === 'stripe' ? order.stripeSessionId : order.paypalCaptureId
+    return recorded === payment.reference
+  } catch (error) {
+    console.error(`[notify] could not read ${payment.orderNumber}:`, String(error).slice(0, 200))
+    return false
+  }
 }
 
 function customField(session: Stripe.Checkout.Session, key: string): string | null {
@@ -290,6 +350,8 @@ export function linkSaleMessage(session: Stripe.Checkout.Session, productNames: 
   const intent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
   const dashboard = `https://dashboard.stripe.com${session.livemode === false ? '/test' : ''}/payments`
   return {
+    ping: '💶 بيع جديد عبر رابط الدفع',
+    pingLink: dashboard,
     title: `💶 بيع عبر رابط الدفع — ${money(session.amount_total ?? 0)}`,
     lines: [
       ...productNames.map((name) => `• ${name}`),
