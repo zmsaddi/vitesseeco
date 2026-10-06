@@ -71,11 +71,23 @@ const LIST_MAX = 200
 
 export type Fulfilment = 'pickup' | 'delivery' | null
 
-/**
- * Why a paid sale cannot be invoiced here — or, once it has been, why its
- * invoice now needs a credit note: money that went back after it was numbered.
- */
+/** Why a paid sale cannot be invoiced here. */
 export type Blocked = 'refunded' | 'disputed' | 'stripe_invoice' | null
+
+/**
+ * What the money did after the invoice was numbered, as it stands NOW. Stripe
+ * never clears a charge's `refunded` or `disputed`, so a warning read from
+ * those alone went on asking for a credit note already made, and for an answer
+ * to a dispute already won — an invitation to credit the same refund twice.
+ *
+ *   dispute_open       a dispute waits for the shop's answer;
+ *   credit_note_due    more went back — refunds, a lost dispute — than the
+ *                      invoice's credit notes cover;
+ *   dispute_in_review  the shop has answered and the bank has not ruled;
+ *   settled            money moved, and nothing is outstanding;
+ *   null               nothing moved.
+ */
+export type Reversal = 'dispute_open' | 'credit_note_due' | 'dispute_in_review' | 'settled' | null
 
 export interface BillingAddress {
   name: string
@@ -127,7 +139,10 @@ export interface LinkSale {
    * Stripe could not say — issuing then sorts it out under the lock.
    */
   pendingInvoice: PendingInvoice | null
+  /** Null once the sale is invoiced: what happens to the money after that is `reversal`'s. */
   blocked: Blocked
+  /** Once an invoice is numbered — issued, or left by an interrupted attempt. Null before. */
+  reversal: Reversal
   /** The invoice Stripe itself issued for this sale, when the link asks it to. */
   stripeInvoiceNumber: string | null
 }
@@ -368,6 +383,61 @@ function blockedReason(session: Stripe.Checkout.Session, charge: Stripe.Charge |
   return null
 }
 
+const DISPUTE_TO_ANSWER = new Set<string>(['needs_response', 'warning_needs_response'])
+const DISPUTE_IN_REVIEW = new Set<string>(['under_review', 'warning_under_review'])
+
+type ChargeReversals = Pick<Stripe.Charge, 'amount_refunded' | 'disputed'>
+
+/** Whether money ever went back on the charge: a refund, or a dispute. */
+function moneyMoved(charge: ChargeReversals | null): charge is ChargeReversals {
+  return Boolean(charge && (charge.disputed || charge.amount_refunded > 0))
+}
+
+/**
+ * The money's state after the invoice was numbered: the charge, the disputes on
+ * it as they stand, and what the invoice's credit notes cover, in cents.
+ *
+ * A lost dispute took its amount back as surely as a refund, and counts with
+ * them. A charge marked disputed with no dispute to show for it is taken as a
+ * dispute still to answer: a warning shown once too often costs a look, one
+ * missed costs the dispute.
+ */
+export function reversalOf(
+  charge: ChargeReversals | null,
+  disputes: Array<Pick<Stripe.Dispute, 'status' | 'amount'>>,
+  credited: number
+): Reversal {
+  if (!moneyMoved(charge)) return null
+  if ((charge.disputed && disputes.length === 0) || disputes.some((dispute) => DISPUTE_TO_ANSWER.has(dispute.status))) {
+    return 'dispute_open'
+  }
+  const lost = disputes.filter((dispute) => dispute.status === 'lost').reduce((sum, dispute) => sum + dispute.amount, 0)
+  if (charge.amount_refunded + lost > credited) return 'credit_note_due'
+  if (disputes.some((dispute) => DISPUTE_IN_REVIEW.has(dispute.status))) return 'dispute_in_review'
+  return 'settled'
+}
+
+/**
+ * The reads `reversalOf` needs, made only for a numbered invoice whose charge
+ * ever saw a refund or a dispute — a handful of rows, not the list. A read that
+ * fails keeps the warning: no disputes read is a dispute still to answer, no
+ * invoice read is nothing credited.
+ */
+async function reversalAfterNumber(intent: Stripe.PaymentIntent, charge: Stripe.Charge | null, invoiceId: string): Promise<Reversal> {
+  if (!moneyMoved(charge)) return null
+  const [disputes, credited] = await Promise.all([
+    charge.disputed
+      ? stripe()
+          .disputes.list({ payment_intent: intent.id, limit: 100 })
+          .then((page) => page.data, () => [])
+      : Promise.resolve([]),
+    stripe()
+      .invoices.retrieve(invoiceId)
+      .then((invoice) => invoice.post_payment_credit_notes_amount + invoice.pre_payment_credit_notes_amount, () => 0),
+  ])
+  return reversalOf(charge, disputes, credited)
+}
+
 const SESSION_EXPAND = ['line_items', 'payment_intent.latest_charge', 'discounts.promotion_code'] as const
 
 /**
@@ -396,8 +466,12 @@ async function numberedPending(id: string, sessionId: string): Promise<PendingIn
   }
 }
 
-/** `readPending`: the list asks what an interrupted attempt left; issuing settles it itself and need not. */
-async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, readPending = false): Promise<LinkSale> {
+/**
+ * `forList`: the list also asks what an interrupted attempt left and what the
+ * money did after a number was given. Issuing settles the first itself and has
+ * no use for the second.
+ */
+async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, forList = false): Promise<LinkSale> {
   const intent = session.payment_intent as Stripe.PaymentIntent
   const charge = intent.latest_charge as Stripe.Charge | null
   const details = session.customer_details
@@ -408,6 +482,9 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, readPe
   const invoiceId = intent.metadata?.invoice_id
   const pendingId = intent.metadata?.invoice_pending
   const stripeInvoice = session.invoice
+  // One read, and only for the rare sale an attempt left part-way.
+  const pendingInvoice = forList && pendingId && !invoiceId ? await numberedPending(pendingId, session.id) : null
+  const numbered = invoiceId || pendingInvoice?.id
 
   return {
     sessionId: session.id,
@@ -438,12 +515,12 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, readPe
     feeUnknown: metadata === null,
     language,
     pendingAttempt: Boolean(pendingId),
-    // One read, and only for the rare sale an attempt left part-way.
-    pendingInvoice: readPending && pendingId && !invoiceId ? await numberedPending(pendingId, session.id) : null,
-    // Reported for invoiced sales too. A refund made after the invoice was
-    // numbered needs a credit note, and hiding it once the invoice exists is how
-    // a settled invoice would be sent to a customer who got their money back.
-    blocked: blockedReason(session, charge),
+    pendingInvoice,
+    blocked: invoiceId ? null : blockedReason(session, charge),
+    // Reported once a number exists. A refund made after it needs a credit note,
+    // and hiding it then is how a settled invoice would be sent to a customer
+    // who got their money back.
+    reversal: forList && numbered ? await reversalAfterNumber(intent, charge, numbered) : null,
     stripeInvoiceNumber:
       typeof stripeInvoice === 'object' && stripeInvoice ? (stripeInvoice.number ?? stripeInvoice.id ?? null) : stripeInvoice ?? null,
   }

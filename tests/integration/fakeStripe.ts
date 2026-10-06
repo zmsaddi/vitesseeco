@@ -5,7 +5,10 @@
  * test cannot own, so this keeps its objects in memory with the semantics the
  * module depends on: an invoice is numbered only when finalised and freezes its
  * customer's name and address then; a metadata key set to '' is deleted; an
- * unknown id answers `resource_missing`; uncollectible can still be paid.
+ * unknown id answers `resource_missing`; uncollectible can still be paid; a
+ * charge keeps `refunded` and `disputed` for good, whatever was credited or
+ * ruled since — what changes is the invoice's credit-note totals and each
+ * dispute's status.
  *
  * `failNext` makes one call throw what Stripe or the network would.
  */
@@ -24,6 +27,8 @@ type Invoice = {
   hosted_invoice_url: string | null
   lines: Array<{ amount: number; description: string; product: string | null }>
   coupon: number
+  post_payment_credit_notes_amount: number
+  pre_payment_credit_notes_amount: number
 }
 
 type Customer = { id: string; name: string; address: { line1: string; postal_code: string; city: string; country: string } }
@@ -35,7 +40,12 @@ export interface SaleSetup {
   /** The link's delivery_fee_cents. */
   deliveryFee?: number
   productId?: string
+  /** Refunded in full. */
   refunded?: boolean
+  /** Refunded in part, in cents. */
+  amountRefunded?: number
+  /** Disputes on the sale's charge, as they stand now. */
+  disputes?: Array<{ status: Stripe.Dispute.Status; amount: number }>
   intentMetadata?: Record<string, string>
 }
 
@@ -86,6 +96,8 @@ export class FakeStripe {
       hosted_invoice_url: null,
       lines: [],
       coupon: 0,
+      post_payment_credit_notes_amount: 0,
+      pre_payment_credit_notes_amount: 0,
       ...invoice,
     })
   }
@@ -133,9 +145,9 @@ export class FakeStripe {
         latest_charge: {
           id: `ch_${id}`,
           created: Math.floor(Date.now() / 1000) - 86_400,
-          disputed: false,
+          disputed: Boolean(sale.disputes?.length),
           refunded: Boolean(sale.refunded),
-          amount_refunded: sale.refunded ? sale.amountTotal : 0,
+          amount_refunded: sale.amountRefunded ?? (sale.refunded ? sale.amountTotal : 0),
           payment_method_details: { type: 'card' },
         },
       },
@@ -192,7 +204,10 @@ export class FakeStripe {
         const sessionId = /'([^']+)'$/.exec(query)?.[1]
         return { data: [...this.invoices.values()].filter((i) => i.metadata.checkout_session === sessionId).map((i) => this.view(i)) }
       },
-      retrieve: async (id: string) => this.view(this.invoice(id)),
+      retrieve: async (id: string) => {
+        this.maybeFail('invoices.retrieve')
+        return this.view(this.invoice(id))
+      },
       del: async (id: string) => {
         const invoice = this.invoice(id)
         if (invoice.status !== 'draft') throw new Error('only drafts can be deleted')
@@ -216,6 +231,8 @@ export class FakeStripe {
           hosted_invoice_url: null,
           lines: [],
           coupon: 0,
+          post_payment_credit_notes_amount: 0,
+          pre_payment_credit_notes_amount: 0,
         })
         return this.view(this.invoices.get(id)!)
       },
@@ -264,6 +281,13 @@ export class FakeStripe {
         this.retotal(invoice)
         this.calls.push(`invoiceItems.create ${params.price_data ? 'price_data' : 'amount'}`)
         return { id: this.id('ii') }
+      },
+    },
+    disputes: {
+      list: async (params: { payment_intent: string }) => {
+        this.maybeFail('disputes.list')
+        const sale = [...this.sessions.values()].find((entry) => `pi_${entry.sessionId}` === params.payment_intent)
+        return { data: (sale?.disputes ?? []).map((dispute, index) => ({ id: `dp_fake${index}`, ...dispute })) }
       },
     },
     customers: {

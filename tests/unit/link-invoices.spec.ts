@@ -9,6 +9,7 @@ import {
   planInvoice,
   productIsGone,
   resumeDifferences,
+  reversalOf,
   type IssueInput,
   type PlanSource,
 } from '../../server/payments/linkInvoices'
@@ -338,5 +339,47 @@ describe('the fallback for a product Stripe no longer has', () => {
     ]) {
       expect(productIsGone(error)).toBe(false)
     }
+  })
+})
+
+describe('what the money did after an invoice was numbered', () => {
+  const charge = (amountRefunded: number, disputed = false) => ({ amount_refunded: amountRefunded, disputed })
+
+  it('says nothing when nothing went back', () => {
+    expect(reversalOf(charge(0), [], 0)).toBeNull()
+    expect(reversalOf(null, [], 0)).toBeNull()
+  })
+
+  it('asks for a credit note until the credit notes cover the refunds, then reports it settled', () => {
+    expect(reversalOf(charge(5000), [], 0)).toBe('credit_note_due')
+    expect(reversalOf(charge(5000), [], 4999)).toBe('credit_note_due')
+    expect(reversalOf(charge(5000), [], 5000)).toBe('settled')
+    // A credit note that also covers the fee paid at the door covers the refund.
+    expect(reversalOf(charge(125000), [], 128500)).toBe('settled')
+  })
+
+  it('follows a dispute through its life, as Stripe reports it', () => {
+    const disputed = charge(0, true)
+    expect(reversalOf(disputed, [{ status: 'warning_needs_response', amount: 125000 }], 0)).toBe('dispute_open')
+    expect(reversalOf(disputed, [{ status: 'needs_response', amount: 125000 }], 0)).toBe('dispute_open')
+    expect(reversalOf(disputed, [{ status: 'under_review', amount: 125000 }], 0)).toBe('dispute_in_review')
+    expect(reversalOf(disputed, [{ status: 'won', amount: 125000 }], 0)).toBe('settled')
+    expect(reversalOf(disputed, [{ status: 'warning_closed', amount: 125000 }], 0)).toBe('settled')
+  })
+
+  it('counts a lost dispute as money gone, which a credit note must cover', () => {
+    const disputed = charge(0, true)
+    expect(reversalOf(disputed, [{ status: 'lost', amount: 125000 }], 0)).toBe('credit_note_due')
+    expect(reversalOf(disputed, [{ status: 'lost', amount: 125000 }], 125000)).toBe('settled')
+  })
+
+  it('puts what is to do first: an answer, then a credit note, then waiting on the bank', () => {
+    expect(reversalOf(charge(5000, true), [{ status: 'needs_response', amount: 125000 }], 0)).toBe('dispute_open')
+    expect(reversalOf(charge(5000, true), [{ status: 'under_review', amount: 125000 }], 0)).toBe('credit_note_due')
+    expect(reversalOf(charge(5000, true), [{ status: 'under_review', amount: 125000 }], 5000)).toBe('dispute_in_review')
+  })
+
+  it('keeps a dispute to answer when the charge says disputed and no dispute could be read', () => {
+    expect(reversalOf(charge(0, true), [], 0)).toBe('dispute_open')
   })
 })

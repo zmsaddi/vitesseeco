@@ -102,9 +102,25 @@ interface LinkSale {
   pendingAttempt: boolean
   /** A numbered invoice an interrupted attempt left: finished as it stands, nothing typed or signed. */
   pendingInvoice: PendingInvoice | null
-  /** Before an invoice: why none can be issued. After: money went back, and the invoice needs a credit note. */
+  /** Why no invoice can be issued; null once one has been. */
   blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
+  /** Once a number exists: what the money did since, as it stands now. */
+  reversal: Reversal | null
   stripeInvoiceNumber: string | null
+}
+
+type Reversal = 'dispute_open' | 'credit_note_due' | 'dispute_in_review' | 'settled'
+
+/**
+ * What the owner must still do — answer a dispute, issue a credit note — reads
+ * as a warning. What is only waiting on the bank, or done, reads as plain text:
+ * a warning that never cleared asked for a credit note already made.
+ */
+const REVERSAL: Record<Reversal, { key: string; urgent: boolean }> = {
+  dispute_open: { key: 'admin.reversal_dispute_open', urgent: true },
+  credit_note_due: { key: 'admin.reversal_credit_note_due', urgent: true },
+  dispute_in_review: { key: 'admin.reversal_dispute_in_review', urgent: false },
+  settled: { key: 'admin.reversal_settled', urgent: false },
 }
 
 interface Draft {
@@ -600,9 +616,14 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
             <a v-if="sale.phone" :href="whatsapp(sale)" target="_blank" rel="noopener" class="btn-secondary h-10 px-4 text-sm">
               {{ $t('admin.send_whatsapp') }}
             </a>
-            <!-- Money that went back after the number was given: the invoice now needs a credit note. -->
-            <p v-if="sale.blocked === 'refunded' || sale.blocked === 'disputed'" class="w-full text-sm text-danger" role="status">
-              {{ sale.blocked === 'disputed' ? $t('admin.reversed_disputed') : $t('admin.reversed_refunded') }}
+            <!-- What the money did after the number was given. -->
+            <p
+              v-if="sale.reversal"
+              class="w-full text-sm"
+              :class="REVERSAL[sale.reversal].urgent ? 'text-danger' : 'text-content-muted'"
+              role="status"
+            >
+              {{ $t(REVERSAL[sale.reversal].key) }}
             </p>
             <p
               v-if="notice?.sessionId === sale.sessionId"
@@ -625,8 +646,13 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
                 })
               }}
             </p>
-            <p v-if="sale.blocked === 'refunded' || sale.blocked === 'disputed'" class="text-sm text-danger" role="status">
-              {{ sale.blocked === 'disputed' ? $t('admin.reversed_disputed') : $t('admin.reversed_refunded') }}
+            <p
+              v-if="sale.reversal"
+              class="text-sm"
+              :class="REVERSAL[sale.reversal].urgent ? 'text-danger' : 'text-content-muted'"
+              role="status"
+            >
+              {{ $t(REVERSAL[sale.reversal].key) }}
             </p>
             <p v-if="error?.sessionId === sale.sessionId" class="text-sm text-danger" role="alert">{{ error.message }}</p>
             <div>

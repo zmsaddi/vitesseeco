@@ -57,6 +57,7 @@ interface Sale {
   pendingAttempt: boolean
   pendingInvoice: { id: string; number: string; frameNumber: string; deliveredOn: string; customerName: string | null; total: number } | null
   blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
+  reversal: 'dispute_open' | 'credit_note_due' | 'dispute_in_review' | 'settled' | null
   stripeInvoiceNumber: string | null
 }
 
@@ -90,6 +91,7 @@ function sale(index: number, overrides: Partial<Sale> = {}): Sale {
     pendingAttempt: false,
     pendingInvoice: null,
     blocked: null,
+    reversal: null,
     stripeInvoiceNumber: null,
     ...overrides,
   }
@@ -448,4 +450,27 @@ test('an invoice numbered by an interrupted attempt is finished without a form o
   await expect(row.getByText(FR.invoiced!.replace('{number}', pending.number), { exact: true })).toBeVisible()
   await expect(row.getByRole('link', { name: FR.download_pdf })).toBeVisible()
   expect(sent).toEqual([{ sessionId: 'cs_test_handover0' }])
+})
+
+test('money that went back after the number asks only for what is still to do', async ({ page }) => {
+  const invoice = (number: string) => ({ id: `in_test_${number}`, number, hostedUrl: null, message: { subject: 's', body: 'b' } })
+  items = [
+    sale(0, { invoice: invoice('TEST-0001'), reversal: 'credit_note_due' }),
+    sale(1, { invoice: invoice('TEST-0002'), reversal: 'settled' }),
+    sale(2, { invoice: invoice('TEST-0003'), reversal: 'dispute_open' }),
+    sale(3, { invoice: invoice('TEST-0004'), reversal: 'dispute_in_review' }),
+    sale(4, { invoice: invoice('TEST-0005') }),
+  ]
+  await openInvoices(page)
+  const line = (index: number, key: string) => card(page, index).getByText(FR[key]!, { exact: true })
+
+  // Still to do: a warning.
+  await expect(line(0, 'reversal_credit_note_due')).toHaveClass(/text-danger/)
+  await expect(line(2, 'reversal_dispute_open')).toHaveClass(/text-danger/)
+  // Waiting on the bank, or done: plain text, and no second credit note asked for.
+  await expect(line(3, 'reversal_dispute_in_review')).toHaveClass(/text-content-muted/)
+  await expect(line(1, 'reversal_settled')).toHaveClass(/text-content-muted/)
+  await expect(card(page, 1)).not.toContainText(FR.reversal_credit_note_due!)
+  // Nothing went back: nothing said.
+  await expect(card(page, 4).getByRole('status')).toHaveCount(0)
 })

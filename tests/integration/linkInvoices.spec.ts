@@ -6,11 +6,12 @@
  * in-memory double (fakeStripe.ts); the advisory lock that keeps two attempts
  * apart is PostgreSQL's own, reached through the production accessor.
  */
+import type Stripe from 'stripe'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '../../shared/errors'
-import { finishLinkInvoice, issueLinkInvoice, listLinkSales } from '../../server/payments/linkInvoices'
+import { finishLinkInvoice, issueLinkInvoice, listLinkSales, type Reversal } from '../../server/payments/linkInvoices'
 import { closePool, hasDatabase } from './setup'
-import { FakeStripe } from './fakeStripe'
+import { FakeStripe, type SaleSetup } from './fakeStripe'
 
 const state = vi.hoisted(() => ({ fake: null as unknown as { client: unknown } }))
 vi.mock('../../server/payments/stripe', () => ({ stripe: () => state.fake.client }))
@@ -53,6 +54,17 @@ function numberedEarlier(fake: FakeStripe, status: 'open' | 'paid' | 'uncollecti
 }
 
 let fake: FakeStripe
+
+/** A sale the panel invoiced as TEST-0001, with whatever happened to its charge since. */
+function invoicedSale(setup: Partial<SaleSetup>): void {
+  fake.addSale({ sessionId: SESSION, amountTotal: 125000, intentMetadata: { invoice_id: 'in_earlier', invoice_number: 'TEST-0001' }, ...setup })
+}
+
+/** That invoice, paid, and what its credit notes cover. */
+function invoicedEarlier(credited: number): void {
+  numberedEarlier(fake, 'paid')
+  fake.invoices.get('in_earlier')!.post_payment_credit_notes_amount = credited
+}
 
 describe.skipIf(!hasDatabase)('an interrupted link-sale invoice', () => {
   afterAll(async () => {
@@ -124,17 +136,59 @@ describe.skipIf(!hasDatabase)('an interrupted link-sale invoice', () => {
     expect(items[0]).toMatchObject({ pendingAttempt: true, pendingInvoice: null })
   })
 
-  it('keeps a refund made after the invoice was numbered visible on the invoiced sale', async () => {
-    fake.addSale({
-      sessionId: SESSION,
-      amountTotal: 125000,
-      refunded: true,
-      intentMetadata: { invoice_id: 'in_earlier', invoice_number: 'TEST-0001' },
-    })
+  it('asks for a credit note after a refund until the credit notes cover it, and then stops', async () => {
+    invoicedSale({ amountRefunded: 5000 })
+    invoicedEarlier(2000)
 
-    const { items } = await listLinkSales()
+    expect((await listLinkSales()).items[0]).toMatchObject({ invoice: { number: 'TEST-0001' }, blocked: null, reversal: 'credit_note_due' })
 
-    expect(items[0]).toMatchObject({ invoice: { number: 'TEST-0001' }, blocked: 'refunded' })
+    // The owner issues the rest. Stripe still says the charge was refunded.
+    fake.invoices.get('in_earlier')!.post_payment_credit_notes_amount = 5000
+    expect((await listLinkSales()).items[0]).toMatchObject({ blocked: null, reversal: 'settled' })
+  })
+
+  it('asks for an answer only while a dispute waits for one, and counts a lost one as money gone', async () => {
+    const cases: Array<[Stripe.Dispute.Status, number, Reversal]> = [
+      ['needs_response', 0, 'dispute_open'],
+      ['warning_needs_response', 0, 'dispute_open'],
+      ['under_review', 0, 'dispute_in_review'],
+      ['won', 0, 'settled'],
+      ['warning_closed', 0, 'settled'],
+      ['lost', 0, 'credit_note_due'],
+      ['lost', 125000, 'settled'],
+    ]
+    for (const [status, credited, expected] of cases) {
+      fake = new FakeStripe()
+      state.fake = fake
+      invoicedSale({ disputes: [{ status, amount: 125000 }] })
+      invoicedEarlier(credited)
+      expect((await listLinkSales()).items[0]?.reversal, `${status}, ${credited} credited`).toBe(expected)
+    }
+  })
+
+  it('reports the money on an invoice an interrupted attempt numbered, too', async () => {
+    fake.addSale({ sessionId: SESSION, amountTotal: 125000, amountRefunded: 125000, intentMetadata: { invoice_pending: 'in_earlier' } })
+    numberedEarlier(fake, 'open')
+
+    expect((await listLinkSales()).items[0]).toMatchObject({ pendingInvoice: { number: 'TEST-0001' }, reversal: 'credit_note_due' })
+  })
+
+  it('keeps the warning when Stripe cannot say what was credited or ruled', async () => {
+    invoicedSale({ amountRefunded: 5000, disputes: [{ status: 'won', amount: 125000 }] })
+    invoicedEarlier(5000)
+    expect((await listLinkSales()).items[0]?.reversal).toBe('settled')
+
+    fake.failNext('disputes.list', Object.assign(new Error('Request timed out'), { type: 'StripeConnectionError' }))
+    expect((await listLinkSales()).items[0]?.reversal).toBe('dispute_open')
+
+    fake.failNext('invoices.retrieve', Object.assign(new Error('Request timed out'), { type: 'StripeConnectionError' }))
+    expect((await listLinkSales()).items[0]?.reversal).toBe('credit_note_due')
+  })
+
+  it('reports nothing for a sale not yet invoiced: what blocks it is still `blocked`', async () => {
+    fake.addSale({ sessionId: SESSION, amountTotal: 125000, amountRefunded: 5000 })
+
+    expect((await listLinkSales()).items[0]).toMatchObject({ invoice: null, blocked: 'refunded', reversal: null })
   })
 
   it('reports a corrected name, address, country or delivery fee that the finished invoice does not carry', async () => {
