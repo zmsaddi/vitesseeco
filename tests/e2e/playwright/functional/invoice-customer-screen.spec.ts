@@ -4,9 +4,12 @@
  * The seller fills the handover form, then passes the device across: the
  * customer signs on a screen of their own and hands it back, and only the
  * seller's long press brings the list back. That list holds every other
- * buyer's name, email and phone, so every way a browser offers to go back — a
- * reload, the back gesture, the history menu — must keep the customer on their
- * screen, and none of it may leave the seller's own navigation broken after.
+ * buyer's name, email and phone, so every way back the page itself can see — a
+ * reload, the back gesture, the history menu within the same page load — must
+ * keep the customer on their screen, and none of it may leave the seller's own
+ * navigation broken after. A jump through the history menu to a page loaded
+ * earlier in the tab leaves without telling the page; the device's own lock
+ * (Guided Access, screen pinning) answers that one, not this file.
  *
  * The sales are synthetic and served to the BROWSER: the page is reached by a
  * client-side link so its list request goes through the browser, where it is
@@ -231,9 +234,11 @@ test('a signing session leaves no dead Back press behind', async ({ page }) => {
   await expect(page).toHaveURL(/\/admin$/)
 })
 
-test('a jump through the history menu keeps the address on the invoices page', async ({ page }) => {
+test('a jump through the history menu within the same page load keeps the customer’s screen', async ({ page }) => {
   await openInvoices(page)
   await openSigning(page, 0)
+  // Two entries back is the dashboard this page load began on: the invoices
+  // page was reached from it by a link, so the jump stays inside one document.
   await page.evaluate(() => history.go(-2))
   await expect(page.getByRole('dialog')).toContainText(HAND_BACK_DE)
   await holdToResume(page)

@@ -17,17 +17,21 @@
  *   - a reload, a pull-down or this address typed again draws the hand-back
  *     screen: "in the customer's hands" is a cookie the server reads, and the
  *     list is not even fetched while it is set;
- *   - the back gesture and the history menu keep the customer's screen. The
- *     screen adds a history entry of vue-router's own, so the router can put the
- *     address back — a raw entry corrupted its state, and the next link in the
- *     panel then sent the tablet to "https://vitesse-eco.frundefined/";
+ *   - the back gesture, and the history menu within this page load, keep the
+ *     customer's screen. The screen adds a history entry of vue-router's own,
+ *     so the router can put the address back — a raw entry corrupted its
+ *     state, and the next link in the panel then sent the tablet to
+ *     "https://vitesse-eco.frundefined/";
  *   - the seller's resume steps back over that entry, so Back never gathers
  *     presses that do nothing.
  *
  * What one page cannot close is the rest of the browser: another tab, another
- * admin address typed into the bar, both behind a live admin session. The
+ * admin address typed into the bar, and a jump through the history menu to a
+ * page loaded earlier in the tab. That jump leaves this page without telling
+ * it — no event, no guard, no reload — and lands on a page that never knew a
+ * customer held the device. All three sit behind a live admin session, so the
  * device is handed over under Guided Access (iPadOS) or screen pinning
- * (Android) for that.
+ * (Android).
  *
  * Name and address are pre-filled from checkout when the link collected them;
  * the first buyers paid before it did, so every field stays editable.
@@ -416,9 +420,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   stopHold()
 })
-// Back, Forward or a jump through the history menu while the customer holds the
-// device: refused, vue-router puts the address back, and the customer is shown
-// the hand-back screen. Their own entry is the one step allowed.
+// Back, Forward or a history-menu jump within this page load while the customer
+// holds the device: refused, vue-router puts the address back, and the customer
+// is shown the hand-back screen. Their own entry is the one step allowed. A
+// jump to a page loaded earlier in the tab never reaches these guards — nothing
+// in this page runs (see the top of this file).
 onBeforeRouteUpdate((to: RouteLocationNormalized) => {
   if (mode.value === 'idle' || resuming || to.query[SCREEN] === CUSTOMER) return true
   mode.value = 'handback'
