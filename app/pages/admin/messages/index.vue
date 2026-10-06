@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Customer messages.
  *
@@ -53,8 +53,7 @@ async function patch(id: string, body: Record<string, unknown>): Promise<void> {
     await $fetch<unknown>(`/api/admin/messages/${id}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
-    const payload = apiError(err)
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   } finally {
     busy.value = null
   }

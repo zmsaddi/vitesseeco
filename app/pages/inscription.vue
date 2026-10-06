@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError, issueText } from '~/utils/apiError'
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 /**
  * Create an account.
  *
@@ -50,7 +50,7 @@ async function submit(): Promise<void> {
     // The banner is for what no field can carry. A field message is announced
     // on its own (role="alert"), since the banner is not there to be.
     if (Object.keys(fieldErrors.value).length === 0) {
-      error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+      error.value = apiErrorMessage(err, t, locale.value)
     }
     captchaToken.value = ''
     captcha.value?.reset()

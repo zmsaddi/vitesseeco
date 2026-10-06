@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError, issueText } from '~/utils/apiError'
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 /**
  * Contact.
  *
@@ -63,7 +63,7 @@ async function submit(): Promise<void> {
     // field message is a role="alert" of its own: without the banner, a screen
     // reader would otherwise announce nothing at all.
     if (Object.keys(fieldErrors.value).length === 0) {
-      error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+      error.value = apiErrorMessage(err, t, locale.value)
     }
   } finally {
     // Burned at Cloudflare either way. What the customer typed is untouched, so

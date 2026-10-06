@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * The order queue.
  *
@@ -11,7 +11,7 @@ import { apiError } from '~/utils/apiError'
  */
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { formatDecimal } = useFormatPrice()
 
 interface AdminOrder {
@@ -53,8 +53,7 @@ async function patch(orderNumber: string, body: Record<string, unknown>): Promis
     await $fetch<unknown>(`/api/admin/orders/${orderNumber}`, { method: 'PATCH', body })
     await refresh()
   } catch (err: unknown) {
-    const data = apiError(err)
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   } finally {
     busy.value = null
   }

@@ -8,7 +8,14 @@
  */
 import type { Page } from '@playwright/test'
 import { test, expect } from '../helpers/test'
+import { displayProduct } from '../helpers/catalogue'
 import { message } from '../helpers/messages'
+
+/** A message as a pattern, with `{slot}` free to be anything matching `fill`. */
+function messagePattern(key: string, slot: string, fill: string): RegExp {
+  const escaped = message(key, { [slot]: '\u0000' }).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`^${escaped.replace('\u0000', fill)}$`)
+}
 
 /** A synthetic identity no real customer can have. */
 function newAccount(): { email: string; password: string; firstName: string; lastName: string } {
@@ -138,4 +145,51 @@ test('a field the server refuses is explained in the page language, never in zod
     await expect(page.getByRole('alert').filter({ hasText: message('errors.invalid_email', {}, locale) })).toBeVisible()
     await expect(page.getByText('Invalid email address')).toHaveCount(0)
   }
+})
+
+test('a rate limit says how long it lasts, not "in a moment"', async ({ page }) => {
+  test.setTimeout(300_000)
+  await page.goto('/connexion')
+  await page.locator('input[type=email]').fill('max.mustermann@example.com')
+  const submit = page.locator('form button[type=submit]').first()
+
+  // Login allows eight attempts in fifteen minutes; the ninth is refused for
+  // whatever is left of the window — about a quarter of an hour, here.
+  for (let attempt = 1; attempt <= 9; attempt++) {
+    await page.locator('input[type=password]').fill(`Wrong-Password-${attempt}`)
+    await expect(submit).toBeEnabled({ timeout: 30_000 })
+    const answered = page.waitForResponse('**/api/auth/login')
+    await submit.click()
+    expect((await answered).status()).toBe(attempt <= 8 ? 401 : 429)
+  }
+
+  await expect(page.getByRole('alert')).toHaveText(
+    messagePattern('errors.rate_limited_for', 'wait', '1[45] minutes')
+  )
+})
+
+test('checkout says which detail is wrong, not that "some details are incorrect"', async ({
+  page,
+  seedCart,
+}) => {
+  test.setTimeout(180_000)
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }])
+  await page.goto('/commande')
+
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[autocomplete="address-level2"]').fill('Poitiers')
+  await page.locator('input[autocomplete="given-name"]').fill('Max')
+  await page.locator('input[autocomplete="family-name"]').fill('Mustermann')
+  await page.locator('input[type="email"]').fill('max.mustermann@example.com')
+  // Letters in a phone number: refused by the server, never by this form.
+  await page.locator('input[autocomplete="tel"]').fill('+43 660 1234567 (Büro)')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+  await page.locator('input[type="radio"][value="in_store"]').check()
+
+  const confirm = page.getByRole('button', { name: message('checkout.confirm') })
+  await expect(confirm).toBeEnabled({ timeout: 90_000 })
+  const answered = page.waitForResponse('**/api/checkout/start')
+  await confirm.click()
+  expect((await answered).status()).toBe(400)
+  await expect(page.getByRole('alert')).toHaveText(message('errors.invalid_phone'))
 })

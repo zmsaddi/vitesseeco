@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError, issueText } from '~/utils/apiError'
+import { apiError, apiErrorMessage, issueText } from '~/utils/apiError'
 import type { AddressInput } from '~~/shared/schemas'
 
 /**
@@ -13,7 +13,7 @@ import type { AddressInput } from '~~/shared/schemas'
 definePageMeta({ middleware: 'auth' })
 
 const localePath = useLocalePath()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 const { formatShortDate } = useFormatDate()
 
 type Country = AddressInput['country']
@@ -143,7 +143,7 @@ function readError(err: unknown): void {
   if (unshowable.length > 0) {
     error.value = unshowable.join(' · ')
   } else if (Object.keys(fieldErrors.value).length === 0) {
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   }
 }
 

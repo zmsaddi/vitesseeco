@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Catalogue: price and stock in one place.
  *
@@ -20,7 +20,7 @@ import { parseAmountInput } from '~~/shared/money'
 
 definePageMeta({ layout: 'admin', middleware: 'auth' })
 
-const { t } = useI18n()
+const { locale, t } = useI18n()
 // The two bare "€" glyphs beside the price inputs stay: an input holds the raw
 // editable number, and formatting a value someone is about to type over would
 // fight them. Only rendered text goes through the formatter.
@@ -83,8 +83,7 @@ async function save(key: string, request: () => Promise<unknown>): Promise<void>
     await request()
     flashSaved(key)
   } catch (err: unknown) {
-    const payload = apiError(err)
-    error.value = payload?.messageKey ? t(payload.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   } finally {
     saving.value = null
     // Refreshed even after a failure, so the table shows what is actually

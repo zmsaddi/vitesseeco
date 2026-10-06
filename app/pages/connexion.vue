@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * Sign in.
  *
@@ -9,7 +9,7 @@ import { apiError } from '~/utils/apiError'
  */
 const localePath = useLocalePath()
 const route = useRoute()
-const { t } = useI18n()
+const { locale, t } = useI18n()
 
 const form = reactive({ email: '', password: '' })
 const captchaToken = ref('')
@@ -55,8 +55,7 @@ async function submit(): Promise<void> {
     const safe = next.startsWith('/') && !next.startsWith('//') ? next : localePath('/compte')
     await navigateTo(safe)
   } catch (err: unknown) {
-    const data = apiError(err)
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
     // Burned at Cloudflare whether or not the password was right.
     captchaToken.value = ''
     captcha.value?.reset()

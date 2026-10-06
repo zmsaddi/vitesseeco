@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 /**
  * The basket.
  *
@@ -60,8 +60,7 @@ async function refresh(): Promise<void> {
       },
     })
   } catch (err: unknown) {
-    const data = apiError(err)
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
     pricing.value = null
   } finally {
     pending.value = false

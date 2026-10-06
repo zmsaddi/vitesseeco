@@ -18,7 +18,7 @@ Electric-mobility retailer in Poitiers, France. Bikes, parts, accessories, kids.
 | **Address** | 32 Rue du Faubourg du Pont Neuf, 86000 Poitiers |
 | **Company** | VITESSE ECO SAS · SIREN 100 732 247 · TVA FR43 100 732 247 |
 | **Markets** | FR (primary) · BE · NL · DE · ES |
-| **Languages** | fr (default) · en · nl · de · es · ar — 800 keys × 6, kept in sync by a gate |
+| **Languages** | fr (default) · en · nl · de · es · ar — 801 keys × 6, kept in sync by a gate |
 | **Catalogue** | Sanity `2jvnjf0c` / `production` — 146 products, one per colour |
 | **Node** | v24 |
 
@@ -81,7 +81,7 @@ Six habits, each of which exists because its absence cost something here.
 npm run dev                 # dev server
 npm run build               # production build — clear .nuxt first if in any doubt
 npm run test                # unit + integration (integration needs a database)
-npm run test:unit           # 366 tests, no database needed
+npm run test:unit           # 373 tests, no database needed
 npm run dev:db              # embedded PostgreSQL on 5544 + migrations, data in .devdb/
 npm run seed:inventory      # stock rows from the live catalogue
 npm run simulate -- <url>   # browser sweep: 19 pages × 6 locales, feeds, purchase path
@@ -123,7 +123,7 @@ server/
   payments/                ← adapter registry (index.ts): stripe | cod | in_store — plus paypal, a TEMPORARY direct bridge until Stripe's own PayPal activates (removal recipe in server/payments/paypal.ts)
   feeds/ middleware/ plugins/
 shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
-i18n/locales/              ← 6 files × 800 keys
+i18n/locales/              ← 6 files × 801 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
 tests/                     ← unit/ (18 files) integration/ (7 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)

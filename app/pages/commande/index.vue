@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError } from '~/utils/apiError'
+import { apiErrorMessage } from '~/utils/apiError'
 import { loadStripe, type StripeEmbeddedCheckout } from '@stripe/stripe-js'
 
 /**
@@ -394,8 +394,7 @@ async function submit(): Promise<void> {
     await nextTick()
     if (stripeContainer.value) instance.mount(stripeContainer.value)
   } catch (err: unknown) {
-    const data = apiError(err)
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
     // Spent, whether or not it was the reason. Asking Cloudflare to accept it
     // twice fails, and the customer would never learn why.
     captchaToken.value = ''
@@ -479,8 +478,7 @@ async function mountPayPalButtons(): Promise<void> {
 function abandonPayPal(err: unknown): void {
   paypalFlow.value = null
   if (err) {
-    const data = apiError(err)
-    error.value = data?.messageKey ? t(data.messageKey) : t('errors.internal')
+    error.value = apiErrorMessage(err, t, locale.value)
   }
   captchaToken.value = ''
   captcha.value?.reset()
