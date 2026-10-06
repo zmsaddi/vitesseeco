@@ -514,6 +514,13 @@ async function noteWithin(tx: Transaction, orderId: string, note: string): Promi
 /** How long a PayPal capture is given to take the money before its hold could lapse again. */
 const PAYPAL_CAPTURE_HOLD_MS = 10 * 60 * 1000
 
+/**
+ * How long the units wait for a capture PayPal is reviewing. PayPal's own review
+ * usually ends within a day; one that clears later still settles its order, as
+ * any late payment does (takeStockForLatePayment).
+ */
+export const PAYPAL_REVIEW_HOLD_MS = 72 * 60 * 60 * 1000
+
 type CaptureHold = { held: true } | { held: false; status: OrderStatus }
 
 /**
@@ -562,6 +569,60 @@ export async function holdStockForPayPalCapture(
         `Rien n'a été encaissé ; la commande est annulée.`
     )
     return { held: false, status: closed.changed ? 'cancelled' : closed.from }
+  })
+}
+
+/**
+ * A capture PayPal has neither paid nor refused — PENDING while its risk review
+ * runs, which can take a day.
+ *
+ * Not money yet, so the order stays awaiting payment. But the payer has paid as
+ * far as they can tell, and the bike must not go back on sale while PayPal
+ * decides: a thirty-minute hold did exactly that. The hold is stretched to the
+ * review horizon — taken again if it had lapsed and the units are still free —
+ * and the order says so where the shop reads it, with the capture id a dispute
+ * or a refund is answered with.
+ *
+ * That id stays out of paypal_capture_id, which reads as money taken — to the
+ * sweep (payments/reconcile.ts) and to the shop. The capture's own
+ * PAYMENT.CAPTURE.COMPLETED, or the sweep asking PayPal, settles the order once
+ * PayPal has; a declined review is cancelled by the sweep, which gives the hold
+ * back. Nothing is held or noted for an order no longer awaiting payment.
+ */
+export async function holdStockForPayPalReview(
+  orderNumber: string,
+  capture: { id: string; status: string | null },
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<{ held: boolean; status: OrderStatus }> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx): Promise<{ held: boolean; status: OrderStatus }> => {
+    const [current] = await tx
+      .select({ id: orders.id, status: orders.status, notes: orders.adminNotes })
+      .from(orders)
+      .where(eq(orders.orderNumber, orderNumber))
+      .limit(1)
+      .for('update')
+    if (!current) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+    if (current.status !== 'awaiting_payment') return { held: false, status: current.status }
+
+    const held = (await holdForPayment(tx, current.id, new Date(Date.now() + PAYPAL_REVIEW_HOLD_MS))) !== 'short'
+    // Once per capture, however often PayPal's answer is read again.
+    if (!(current.notes ?? '').includes(capture.id)) {
+      const what =
+        capture.status === 'PENDING'
+          ? `paiement PayPal en cours de vérification chez PayPal (capture ${capture.id})`
+          : `paiement PayPal ni encaissé ni refusé par PayPal (capture ${capture.id}, statut ${capture.status ?? 'non communiqué'})`
+      await noteWithin(
+        tx,
+        current.id,
+        held
+          ? `En attente : ${what}. Ne pas annuler ni expédier : la commande passera à « payée » si PayPal confirme le paiement. ` +
+              `Stock réservé ${PAYPAL_REVIEW_HOLD_MS / 3_600_000} h.`
+          : `ATTENTION : ${what}, mais le stock n'est plus libre. Ne pas annuler : si PayPal confirme le paiement, ` +
+              `la commande sera payée sans stock — à régler à la main.`
+      )
+    }
+    return { held, status: current.status }
   })
 }
 

@@ -23,7 +23,7 @@ import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
 import { stateOfPayPalOrder } from '../../payments/reconcile'
 import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
 import { audit } from '../../services/audit'
-import { holdStockForPayPalCapture } from '../../services/orders'
+import { holdStockForPayPalCapture, holdStockForPayPalReview } from '../../services/orders'
 import { orderNumberSchema } from '../../../shared/schemas'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
@@ -143,10 +143,12 @@ export default defineRoute({
     }
     if (settled !== 'paid') {
       // Held by PayPal — a review — or something a person has to read. The
-      // order stays awaiting payment and the capture unrecorded, since a
-      // recorded capture reads as money taken: the capture's own
-      // PAYMENT.CAPTURE.COMPLETED, or the sweep asking PayPal, settles it once
-      // PayPal has.
+      // order stays awaiting payment, and the capture out of paypal_capture_id,
+      // which reads as money taken: the capture's own PAYMENT.CAPTURE.COMPLETED,
+      // or the sweep asking PayPal, settles it once PayPal has. Meanwhile the
+      // bike stays this payer's — a thirty-minute hold put it back on sale while
+      // PayPal was still deciding — and the order says why it waits, capture id
+      // included.
       console.warn(`[paypal] capture ${captured.captureId} of ${body.orderNumber} is ${captured.captureStatus}; the order waits for PayPal`)
       await audit({
         action: 'order.paypal_capture_held',
@@ -155,6 +157,15 @@ export default defineRoute({
         resourceId: body.orderNumber,
         metadata: { paypalOrderId: order.paypalOrderId, captureId: captured.captureId, captureStatus: captured.captureStatus },
       })
+      if (captured.captureId) {
+        await holdStockForPayPalReview(body.orderNumber, { id: captured.captureId, status: captured.captureStatus }).catch(
+          (error: unknown) => {
+            // PayPal holds the payer's money either way; the answer must still
+            // reach them, or they pay a second time.
+            console.error(`[paypal] ${body.orderNumber}: could not hold the stock for PayPal's review`, error)
+          }
+        )
+      }
       return { state: 'pending' as const }
     }
 

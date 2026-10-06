@@ -135,7 +135,7 @@ vi.mock('../../server/payments/paypal', async (importOriginal) => ({
 const { default: start } = await import('../../server/api/checkout/start.post')
 const { default: capture } = await import('../../server/api/checkout/paypal-capture.post')
 const { transitionOrder } = await import('../../server/services/orders')
-const { reserveStock } = await import('../../server/services/stock')
+const { readAvailability, reserveStock } = await import('../../server/services/stock')
 
 let server: Server
 let base = ''
@@ -177,6 +177,11 @@ async function orderWithKey(idempotencyKey: string) {
     .where(sql`${schema.orders.idempotencyKey} = ${idempotencyKey}`)
   if (!row) throw new Error(`no order for ${idempotencyKey}`)
   return row
+}
+
+/** What another buyer could take of the bike right now. */
+async function bikesFree(): Promise<number> {
+  return (await readAvailability(testDb(), [BIKE])).get(BIKE)?.available ?? 0
 }
 
 async function holdExpiry(orderId: string): Promise<number> {
@@ -398,9 +403,25 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
 
       expect(response.status).toBe(200)
       expect(response.body.state).toBe('pending')
-      // Unrecorded: a recorded capture reads as money taken, to the sweep too.
-      expect(await stateOf(orderId)).toMatchObject({ status: 'awaiting_payment', captureId: null })
+      // Out of paypal_capture_id: a recorded capture reads as money taken, to
+      // the sweep too. Not consumed either — it is not money yet.
+      const after = await stateOf(orderId)
+      expect(after).toMatchObject({ status: 'awaiting_payment', captureId: null })
       expect(await onHand()).toBe(1)
+      // On the order instead, where the shop reads why it must neither cancel nor ship.
+      expect(after.notes).toContain('CAP-HELD')
+      expect(after.notes).toContain('Ne pas annuler ni expédier')
+      // The review can take a day. Its bike stays this payer's for the whole
+      // horizon, not for the thirty minutes an abandoned basket gets.
+      expect(await holdExpiry(orderId)).toBeGreaterThan(Date.now() + 71 * 3_600_000)
+      await testDb().execute(
+        sql`UPDATE stock_reservations SET expires_at = expires_at - interval '31 minutes' WHERE order_id = ${orderId}`
+      )
+      expect(await bikesFree()).toBe(0)
+
+      // PayPal's answer read again — a retried capture — notes it once.
+      expect((await post('/api/checkout/paypal-capture', { orderNumber })).body.state).toBe('pending')
+      expect((await stateOf(orderId)).notes?.split('CAP-HELD')).toHaveLength(2)
     })
 
     it('takes no money over a hold that lapsed while another customer took the bike — the attempt is closed first', async () => {
