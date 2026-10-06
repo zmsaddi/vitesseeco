@@ -13,10 +13,12 @@ import {
   consumeReservations,
   expireStaleReservations,
   findLowStock,
+  holdIsLive,
   readAvailability,
   releaseReservations,
   reserveStock,
   setOnHand,
+  stretchLiveHold,
 } from '../../server/services/stock'
 import { AppError } from '../../shared/errors'
 import {
@@ -27,6 +29,7 @@ import {
   schema,
   seedOrder,
   seedProduct,
+  testDb,
 } from './setup'
 
 const BIKE = 'product-v20-noir'
@@ -370,6 +373,72 @@ describe.skipIf(!hasDatabase)('stock', () => {
       expect(await inTransaction((tx) => expireStaleReservations(tx))).toBe(0)
       const availability = await inTransaction((tx) => readAvailability(tx, [BIKE]))
       expect(availability.get(BIKE)?.reserved).toBe(1)
+    })
+  })
+
+  /**
+   * A payment window must never outlive the hold behind it. Stripe opens no
+   * session for less than thirty minutes, so a session opened after its order
+   * stayed payable once the hold had lapsed — over units another buyer could
+   * hold by then. The hold is stretched to the window instead; a lapsed one is
+   * never revived.
+   */
+  describe('stretching a hold over a payment window', () => {
+    const expiryOf = async (orderId: string): Promise<number> => {
+      const rows = await testDb().execute<{ ms: number }>(
+        sql`SELECT (extract(epoch FROM expires_at) * 1000)::float8 AS ms FROM stock_reservations WHERE order_id = ${orderId}`
+      )
+      return Number(rows.rows[0]?.ms)
+    }
+
+    it('keeps a live hold until the window closes', async () => {
+      await seedProduct(BIKE, 1)
+      const orderId = await seedOrder()
+      await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 1 }]))
+      const closes = new Date(Date.now() + 45 * 60_000)
+
+      expect(await inTransaction((tx) => stretchLiveHold(tx, orderId, closes))).toBe(true)
+
+      expect(await expiryOf(orderId)).toBe(closes.getTime())
+      expect(await holdIsLive(testDb(), orderId)).toBe(true)
+    })
+
+    it('never revives a lapsed hold — the units may be another buyer\'s by now', async () => {
+      await seedProduct(BIKE, 1)
+      const lapsed = await seedOrder()
+      await inTransaction((tx) => reserveStock(tx, lapsed, [{ productId: BIKE, quantity: 1 }], -1_000))
+      const before = await expiryOf(lapsed)
+
+      expect(await holdIsLive(testDb(), lapsed)).toBe(false)
+      expect(await inTransaction((tx) => stretchLiveHold(tx, lapsed, new Date(Date.now() + 30 * 60_000)))).toBe(false)
+
+      expect(await expiryOf(lapsed)).toBe(before)
+      // The last bike is still free for the next buyer.
+      const next = await seedOrder()
+      await expect(
+        inTransaction((tx) => reserveStock(tx, next, [{ productId: BIKE, quantity: 1 }]))
+      ).resolves.toBeUndefined()
+    })
+
+    it('never shortens a hold', async () => {
+      await seedProduct(BIKE, 1)
+      const orderId = await seedOrder({ paymentMethod: 'cod' })
+      await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 1 }], CASH_RESERVATION_TTL_MS))
+      const before = await expiryOf(orderId)
+
+      expect(await inTransaction((tx) => stretchLiveHold(tx, orderId, new Date(Date.now() + 30 * 60_000)))).toBe(true)
+
+      expect(await expiryOf(orderId)).toBe(before)
+    })
+
+    it('holds nothing for an order whose hold was settled', async () => {
+      await seedProduct(BIKE, 1)
+      const orderId = await seedOrder()
+      await inTransaction((tx) => reserveStock(tx, orderId, [{ productId: BIKE, quantity: 1 }]))
+      await inTransaction((tx) => releaseReservations(tx, orderId))
+
+      expect(await holdIsLive(testDb(), orderId)).toBe(false)
+      expect(await inTransaction((tx) => stretchLiveHold(tx, orderId, new Date(Date.now() + 30 * 60_000)))).toBe(false)
     })
   })
 

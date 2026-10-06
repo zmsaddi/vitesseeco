@@ -282,7 +282,7 @@ onMounted(() => {
     // Restored so a customer returning from a failed payment retries INTO the
     // order they already have, instead of creating a second one.
     if (typeof saved.purchaseKey === 'string') purchaseKey.value = saved.purchaseKey
-    if (typeof saved.keyBelongsTo === 'string') keyBelongsTo = saved.keyBelongsTo
+    if (typeof saved.keyBelongsTo === 'string') keyBelongsTo.value = saved.keyBelongsTo
     Object.assign(address, saved.address ?? {})
     // Shipping and payment can only be re-applied once the options for the
     // restored address have been fetched — the destination watcher does it.
@@ -292,6 +292,30 @@ onMounted(() => {
     // A torn value must not break checkout.
   }
 })
+
+function saveCheckout(): void {
+  try {
+    sessionStorage.setItem(
+      CHECKOUT_STORE,
+      JSON.stringify({
+        country: destination.country,
+        postalCode: destination.postalCode,
+        city: city.value,
+        email: email.value,
+        phone: phone.value,
+        firstName: firstName.value,
+        lastName: lastName.value,
+        purchaseKey: purchaseKey.value,
+        keyBelongsTo: keyBelongsTo.value,
+        address: { ...address },
+        shipping: selectedShipping.value,
+        payment: selectedPayment.value,
+      })
+    )
+  } catch {
+    // A full storage is the browser's business, not the checkout's.
+  }
+}
 
 watch(
   () => [
@@ -306,29 +330,7 @@ watch(
     selectedShipping.value,
     selectedPayment.value,
   ],
-  () => {
-    try {
-      sessionStorage.setItem(
-        CHECKOUT_STORE,
-        JSON.stringify({
-          country: destination.country,
-          postalCode: destination.postalCode,
-          city: city.value,
-          email: email.value,
-          phone: phone.value,
-          firstName: firstName.value,
-          lastName: lastName.value,
-          purchaseKey: purchaseKey.value,
-          keyBelongsTo,
-          address: { ...address },
-          shipping: selectedShipping.value,
-          payment: selectedPayment.value,
-        })
-      )
-    } catch {
-      // A full storage is the browser's business, not the checkout's.
-    }
-  }
+  saveCheckout
 )
 
 /** The street part only — the name is asked of every order, above. */
@@ -356,7 +358,14 @@ const needsAddress = computed(
  * moment it matters — just before sending.
  */
 const purchaseKey = ref('')
-let keyBelongsTo = ''
+const keyBelongsTo = ref('')
+
+// Mirrored the moment it changes, not only when a field does. A key dropped
+// with a closed order lived on in the mirror and came back with the next visit,
+// replaying that closed order once more; a freshly minted one was never saved,
+// so a return after a failed payment started a second order instead of
+// retrying the first.
+watch([purchaseKey, keyBelongsTo], saveCheckout)
 
 const purchaseFingerprint = computed(() =>
   JSON.stringify({
@@ -370,9 +379,9 @@ const purchaseFingerprint = computed(() =>
 )
 
 function refreshPurchaseKey(): void {
-  if (purchaseKey.value && purchaseFingerprint.value === keyBelongsTo) return
+  if (purchaseKey.value && purchaseFingerprint.value === keyBelongsTo.value) return
   purchaseKey.value = crypto.randomUUID()
-  keyBelongsTo = purchaseFingerprint.value
+  keyBelongsTo.value = purchaseFingerprint.value
 }
 
 const captchaToken = ref('')
@@ -468,24 +477,34 @@ async function submit(): Promise<void> {
     await nextTick()
     if (stripeContainer.value) instance.mount(stripeContainer.value)
   } catch (err: unknown) {
-    // A line that left the catalogue since the totals were read goes by name,
-    // and a stored promo code the server cannot read is dropped, and said so.
-    if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
-    const data = apiError(err)
-    // The earlier attempt this key belongs to was closed (abandoned, then
-    // swept). Keeping the key would replay that closed order forever; the next
-    // press starts a fresh purchase instead.
-    if (data.messageKey === 'errors.order_closed') {
-      purchaseKey.value = ''
-      keyBelongsTo = ''
-    }
-    // Spent, whether or not it was the reason. Asking Cloudflare to accept it
-    // twice fails, and the customer would never learn why.
-    captchaToken.value = ''
-    captcha.value?.reset()
+    failed(err)
   } finally {
     submitting.value = false
   }
+}
+
+/**
+ * Say what went wrong, and leave the next press able to succeed. The confirm
+ * button and a refused PayPal capture both end here, so the two cannot drift
+ * apart — the capture once kept a key the button had learned to drop.
+ */
+function failed(err: unknown): void {
+  const data = apiError(err)
+  // A line that left the catalogue since the totals were read goes by name,
+  // and a stored promo code the server cannot read is dropped, and said so.
+  if (!correctBasket(err)) error.value = apiErrorMessage(err, t, locale.value)
+  // The earlier attempt this key belongs to was closed (abandoned, then swept,
+  // or cancelled by the shop). Keeping the key would replay that closed order
+  // on every press; the next press starts a fresh purchase instead — and the
+  // mirror forgets it too, or the next visit would bring it back.
+  if (data.messageKey === 'errors.order_closed') {
+    purchaseKey.value = ''
+    keyBelongsTo.value = ''
+  }
+  // Spent, whether or not it was the reason. Asking Cloudflare to accept it
+  // twice fails, and the customer would never learn why.
+  captchaToken.value = ''
+  captcha.value?.reset()
 }
 
 /**
@@ -556,13 +575,15 @@ async function mountPayPalButtons(): Promise<void> {
 /**
  * Back to the form — after a cancel, an SDK failure, or a refused capture.
  * The order and its purchase key survive, so a retry resolves to the same
- * order; the captcha token was spent starting it, so it is reset like any
- * other failed attempt.
+ * order — unless the order has closed, when the key goes with it (`failed`).
+ * The captcha token was spent starting it, so it is reset like any other
+ * failed attempt.
  */
 function abandonPayPal(err: unknown): void {
   paypalFlow.value = null
   if (err) {
-    error.value = apiErrorMessage(err, t, locale.value)
+    failed(err)
+    return
   }
   captchaToken.value = ''
   captcha.value?.reset()

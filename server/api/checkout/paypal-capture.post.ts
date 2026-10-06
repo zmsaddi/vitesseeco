@@ -52,6 +52,17 @@ export default defineRoute({
     if (order.status === 'paid' || order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
       return { state: 'paid' as const }
     }
+    // Closed before the payer approved — swept, or cancelled by the shop.
+    // Answered before PayPal is asked anything, so no money moves, and in the
+    // words a replayed checkout gets (start.post.ts): the page drops its spent
+    // purchase key on this message, so the next press starts a fresh purchase
+    // instead of replaying the closed one.
+    if (order.status === 'cancelled') {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        messageKey: 'errors.order_closed',
+        internal: `capture asked for ${body.orderNumber}, which is cancelled`,
+      })
+    }
     if (order.status !== 'awaiting_payment') {
       throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
         internal: `order ${body.orderNumber} is ${order.status}, not awaiting_payment`,

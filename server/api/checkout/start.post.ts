@@ -10,7 +10,8 @@ import { defineRoute } from '../../security/handler'
 import { verifyCaptcha } from '../../security/captcha'
 import { clientIp } from '../../security/request'
 import { startCheckoutSchema } from '../../../shared/schemas'
-import { placeOrder, attachPaymentSession, attachPayPalOrder } from '../../services/orders'
+import { placeOrder, attachPaymentSession, attachPayPalOrder, transitionOrder } from '../../services/orders'
+import { holdIsLive } from '../../services/stock'
 import { isOnline } from '../../payments'
 import { createCheckoutSession, stripe } from '../../payments/stripe'
 import { eq } from 'drizzle-orm'
@@ -21,6 +22,7 @@ import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
 import { localizedUrl } from '../../../shared/locales'
 import type { LocaleCode } from '../../../shared/locales'
+import type { OrderStatus } from '../../../shared/schemas'
 
 export default defineRoute({
   access: 'public',
@@ -121,7 +123,6 @@ export default defineRoute({
       .from(orders)
       .where(eq(orders.id, order.id))
       .limit(1)
-    let replacing: string | undefined
     if (attached?.sessionId) {
       const existing = await stripe().checkout.sessions.retrieve(attached.sessionId)
       if (existing.status === 'open' && existing.client_secret) {
@@ -133,13 +134,29 @@ export default defineRoute({
           internal: `checkout replayed for ${order.orderNumber}, whose session is already complete`,
         })
       }
-      // Expired: a fresh session replaces a dead one, which loses nothing. It
-      // needs its own idempotency key — the first session's would replay it.
-      replacing = existing.id
+      if (existing.status !== 'expired') {
+        // Open, yet with nothing to mount it by: not a session this route
+        // opened. Nothing is cancelled on a reading this odd.
+        throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
+          internal: `session ${existing.id} of ${order.orderNumber} is ${existing.status} without a client secret`,
+        })
+      }
+      // Expired — and the stock hold with it, stretched to that very moment. A
+      // second session would be payable over units that may be someone else's
+      // by now: replacing the dead one sold the same bike twice. So the attempt
+      // is over. It is closed as its lost expiry event would have closed it,
+      // which frees a single-use promotion too, and the page starts a fresh
+      // purchase, whose new order reserves its stock like any other.
+      throw await closeAttempt(order.orderNumber, `its session ${existing.id} expired`)
+    }
+
+    // No session yet on a replay: the first attempt failed before one was
+    // attached. A hold that has lapsed since is not revived, for the same reason.
+    if (!(await holdIsLive(db(), order.id))) {
+      throw await closeAttempt(order.orderNumber, 'its stock hold lapsed before a session was opened')
     }
 
     const session = await createCheckoutSession({
-      ...(replacing ? { replaces: replacing } : {}),
       orderNumber: order.orderNumber,
       orderId: order.id,
       lines: order.breakdown.lines,
@@ -153,8 +170,42 @@ export default defineRoute({
       returnUrl: `${localizedUrl('/commande/confirmation', body.locale as LocaleCode)}?order=${order.orderNumber}&session={CHECKOUT_SESSION_ID}`,
     })
 
-    await attachPaymentSession(order.id, session.sessionId)
+    const outcome = await attachPaymentSession(order.id, { id: session.sessionId, payableUntil: session.expiresAt })
+    if (!outcome.attached) {
+      // The order moved while Stripe was being asked — cancelled by the sweep
+      // or the shop — or its hold lapsed meanwhile. The new session was never
+      // handed to anyone; it is expired as well, so nothing stays payable for
+      // an order that cannot take the money.
+      await stripe()
+        .checkout.sessions.expire(session.sessionId)
+        .catch((error: unknown) => {
+          console.warn(`[checkout] could not expire unattached session ${session.sessionId}:`, String(error).slice(0, 200))
+        })
+      if (outcome.holdLapsed) {
+        throw await closeAttempt(order.orderNumber, 'its stock hold lapsed while its session was opened')
+      }
+      throw refusal(order.orderNumber, outcome.status, 'it changed while its session was opened')
+    }
 
     return { ...summary, mode: 'stripe' as const, clientSecret: session.clientSecret }
   },
 })
+
+/**
+ * End an attempt that can no longer be paid, as its lost expiry event would
+ * have — its hold and any promotion use go back — and return what the browser
+ * is told: start a fresh purchase, or, had it been paid meanwhile, that it is.
+ */
+async function closeAttempt(orderNumber: string, why: string): Promise<AppError> {
+  const moved = await transitionOrder(orderNumber, 'cancelled', { expectFrom: 'awaiting_payment' })
+  return refusal(orderNumber, moved.changed ? 'cancelled' : moved.from, why)
+}
+
+/** The answer to a replay that cannot be paid, worded the way the page acts on. */
+function refusal(orderNumber: string, status: OrderStatus, why: string): AppError {
+  const paid = status !== 'cancelled' && status !== 'draft' && status !== 'awaiting_payment'
+  return new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+    messageKey: paid ? 'errors.order_already_paid' : 'errors.order_closed',
+    internal: `checkout refused for ${orderNumber} (${status}): ${why}`,
+  })
+}

@@ -18,7 +18,6 @@ import {
   queryRows,
   withTransaction,
   type SqlExecutor,
-  type Transaction,
   type TransactionRunner,
 } from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
@@ -35,6 +34,7 @@ import {
   settleExpiredHolds,
   reserveStock,
   restockOrder,
+  stretchLiveHold,
   takeStockForLatePayment,
 } from './stock'
 import { redeemPromo, releasePromo } from './promo'
@@ -419,14 +419,49 @@ export async function transitionOrder(
   })
 }
 
-/** Attach the provider's session id, so a webhook can find the order it belongs to. */
+/**
+ * Attach a Stripe session to its order, so a webhook can find the order it
+ * belongs to — and only while the session can honestly be paid.
+ *
+ * Both conditions are checked under the order's row lock, so a cancellation
+ * (the sweep, the shop) either lands first and nothing is attached, or waits
+ * and then finds the session:
+ *
+ *  - the order still awaits payment. The session is created over the network
+ *    after the order was read; attached to an order cancelled in between, its
+ *    payment met a closed order and was dropped without a word.
+ *  - its stock is still held, stretched to the session's own expiry, so the
+ *    session can never be paid for units that are back on sale.
+ *
+ * Nothing is attached otherwise, and the caller learns which condition failed.
+ */
 export async function attachPaymentSession(
   orderId: string,
-  sessionId: string,
-  tx?: Transaction
-): Promise<void> {
-  const handle = tx ?? db()
-  await handle.update(orders).set({ stripeSessionId: sessionId }).where(eq(orders.id, orderId))
+  session: { id: string; payableUntil: Date },
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<{ attached: true } | { attached: false; status: OrderStatus; holdLapsed: boolean }> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx) => {
+    const [current] = await tx
+      .select({ status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+      .for('update')
+
+    if (!current) {
+      throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderId}` })
+    }
+    if (current.status !== 'awaiting_payment') {
+      return { attached: false, status: current.status, holdLapsed: false }
+    }
+    if (!(await stretchLiveHold(tx, orderId, session.payableUntil))) {
+      return { attached: false, status: current.status, holdLapsed: true }
+    }
+
+    await tx.update(orders).set({ stripeSessionId: session.id }).where(eq(orders.id, orderId))
+    return { attached: true }
+  })
 }
 
 export async function findOrderByStripeSession(sessionId: string): Promise<{ orderNumber: string; status: OrderStatus } | null> {

@@ -261,6 +261,84 @@ export async function reserveStock(
 }
 
 /**
+ * Whether an order's stock hold is still live.
+ *
+ * An order's holds are written together with one expiry and stretched together
+ * (`stretchLiveHold`), so they live and lapse as one: the hold is live when the
+ * order has unsettled holds and none of them has expired.
+ */
+export async function holdIsLive(executor: SqlExecutor, orderId: string): Promise<boolean> {
+  const [row] = await queryRows<{ unsettled: number; live: number }>(
+    executor,
+    sql`
+    SELECT count(*)::int AS unsettled,
+           count(*) FILTER (WHERE expires_at > NOW())::int AS live
+      FROM stock_reservations
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+  `
+  )
+  return !!row && row.unsettled > 0 && row.live === row.unsettled
+}
+
+/**
+ * Keep an order's LIVE hold for as long as a payment window opened over it.
+ *
+ * Stripe opens no Checkout Session for less than thirty minutes, and the hold
+ * was taken when the order was placed — so a session opened even a minute later
+ * stayed payable after its hold had lapsed, when the units could already be
+ * someone else's. Stretching a live hold takes nothing from anyone: those units
+ * are already this order's. A lapsed hold is never revived here — another
+ * customer may hold the units now — so the answer is false, the caller opens no
+ * payment, and the customer starts again with a fresh order, which reserves the
+ * ordinary way, through `reserveStock`.
+ *
+ * Never shortens a hold. The inventory rows are locked first, in the same stable
+ * order as every other writer, and liveness is judged on the clock rather than
+ * on NOW(): NOW() is when this transaction began, and a hold that lapsed while
+ * the locks were awaited is one another checkout may already have counted free.
+ */
+export async function stretchLiveHold(tx: Transaction, orderId: string, until: Date): Promise<boolean> {
+  const held = await tx.execute<{ product_id: string }>(sql`
+    SELECT product_id
+      FROM stock_reservations
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+  `)
+  if (held.rows.length === 0) return false
+
+  await tx.execute(sql`
+    SELECT product_id FROM inventory
+     WHERE product_id IN ${inList([...new Set(held.rows.map((row) => row.product_id))])}
+     ORDER BY product_id
+       FOR UPDATE
+  `)
+
+  // Judged once, under the locks: from here on no other checkout can count
+  // these units, so a hold found live is still this order's when stretched.
+  const lapsed = await tx.execute(sql`
+    SELECT 1
+      FROM stock_reservations
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+       AND expires_at <= clock_timestamp()
+     LIMIT 1
+  `)
+  if (lapsed.rows.length > 0) return false
+
+  const stretched = await tx.execute(sql`
+    UPDATE stock_reservations
+       SET expires_at = GREATEST(expires_at, ${until.toISOString()}::timestamptz)
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+    RETURNING id
+  `)
+  // One settled meanwhile (the sweep's housekeeping) means the order no longer
+  // holds everything it ordered.
+  return stretched.rows.length === held.rows.length
+}
+
+/**
  * Payment succeeded: turn the LIVE holds into a real decrement.
  *
  * Idempotent by construction — it only touches rows that are still unsettled,

@@ -128,7 +128,7 @@ shared/                    ← used by BOTH sides: money, locales, markets, sche
 i18n/locales/              ← 6 files × 805 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii
-tests/                     ← unit/ (20 files) integration/ (8 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
+tests/                     ← unit/ (20 files) integration/ (9 suites, real PostgreSQL) e2e/ (5 browser gates + playwright/ candidate specs)
 skills/reality-check/      ← the portable working method
 docs/                      ← see docs/README.md
 ```
@@ -183,7 +183,9 @@ export default defineRoute({
   recomputed later from today's rules.
 - **Stock moves under a row lock.** A reservation is taken at checkout and
   *consumed* on payment; cash-on-delivery holds get a 14-day TTL, online 30
-  minutes. Cancelling a paid order restocks.
+  minutes, stretched to the expiry of the Stripe session opened over it. No
+  payment window may outlive its hold, and a lapsed hold is never revived — the
+  customer starts a fresh order. Cancelling a paid order restocks.
 - Payment methods: `cod` and `in_store` need no keys; `stripe` hides itself until
   its keys exist.
 
