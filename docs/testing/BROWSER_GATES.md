@@ -115,7 +115,11 @@ which gives it:
   notwithstanding. The tolerated console patterns are enumerated in the file,
   each with its reason; the list is the entire policy.
 - **fresh state** — Playwright gives each test its own context; `seedCart`
-  writes a basket rather than inheriting one.
+  writes a basket rather than inheriting one. Each test is also its own
+  visitor to the rate limiter: `clientAddress` is a fresh documentation-range
+  address sent as `x-real-ip` on every first-party request, so rerunning one
+  spec (`--repeat-each`, UI mode) cannot spend the login or sign-up budget
+  another run needs. `page.request` calls pass it themselves.
 
 Fixture identities live in
 [`tests/e2e/playwright/helpers/catalogue.ts`](../../tests/e2e/playwright/helpers/catalogue.ts)
