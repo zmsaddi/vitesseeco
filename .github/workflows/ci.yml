@@ -246,6 +246,10 @@ jobs:
       # pipeline is not allowed back.
       - name: Playwright functional
         run: npx playwright test --project functional
+        env:
+          # The admin specs mark their administrator verified in the rig's own
+          # database (tests/e2e/playwright/helpers/admin.ts) — loopback only.
+          DATABASE_URL: postgres://vitesse:vitesse@localhost:5432/vitesse_test
 
       - name: Playwright accessibility
         run: npx playwright test --project a11y

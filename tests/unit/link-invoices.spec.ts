@@ -7,10 +7,14 @@ import {
   languageFor,
   paymentMethodLabel,
   planInvoice,
+  productIsGone,
+  resumeDifferences,
   type IssueInput,
   type PlanSource,
 } from '../../server/payments/linkInvoices'
 import { acknowledgementLines, buildHandoverPdf, decodeSignature, drawable } from '../../server/payments/handover'
+import { HANDOVER_LIMITS, isCountryCode, isHandoverDay, isHandoverText, parisDay } from '../../shared/handoverForm'
+import { isReceiptLanguage } from '../../shared/receiptLanguage'
 import { cents } from '../../shared/money'
 
 // A 1×1 transparent PNG — the smallest thing decodeSignature must accept once
@@ -238,5 +242,101 @@ describe('signature and receipt', () => {
   it('survives a name in another script and with control characters', async () => {
     const bytes = await buildHandoverPdf(handover('en', 'محمود\u0007'), PNG_1PX)
     expect(Buffer.from(bytes.subarray(0, 5)).toString('latin1')).toBe('%PDF-')
+  })
+})
+
+describe('the handover form, judged the same on both sides', () => {
+  it('accepts a handover from the payment day to today, and nothing outside', () => {
+    expect(isHandoverDay('2026-09-29', '2026-09-29', '2026-10-01')).toBe(true)
+    expect(isHandoverDay('2026-10-01', '2026-09-29', '2026-10-01')).toBe(true)
+    expect(isHandoverDay('2026-09-28', '2026-09-29', '2026-10-01')).toBe(false)
+    expect(isHandoverDay('2099-01-01', '2026-09-29', '2026-10-01')).toBe(false)
+    expect(isHandoverDay('', '2026-09-29', '2026-10-01')).toBe(false)
+    expect(isHandoverDay('1/10/2026', '2026-09-29', '2026-10-01')).toBe(false)
+  })
+
+  it('wants a two-letter country, in either case', () => {
+    expect(isCountryCode('AT')).toBe(true)
+    expect(isCountryCode(' be ')).toBe(true)
+    for (const value of ['B', 'BEL', 'B3', '', 'Österreich']) expect(isCountryCode(value)).toBe(false)
+  })
+
+  it('wants printable text within the limit the invoice and Stripe accept', () => {
+    expect(isHandoverText(' FRAME-1 ', HANDOVER_LIMITS.frameNumber)).toBe(true)
+    expect(isHandoverText('   ', HANDOVER_LIMITS.frameNumber)).toBe(false)
+    expect(isHandoverText('X'.repeat(41), HANDOVER_LIMITS.frameNumber)).toBe(false)
+    expect(isHandoverText('Bell', HANDOVER_LIMITS.name)).toBe(false)
+  })
+
+  it('dates a sale by the shop’s calendar, not the server’s', () => {
+    // 23:30 UTC on 30 September is already 1 October in Paris.
+    expect(parisDay(new Date('2026-09-30T23:30:00Z'))).toBe('2026-10-01')
+  })
+
+  it('reads a customer language back only when it is one', () => {
+    expect(isReceiptLanguage('de')).toBe(true)
+    for (const value of ['ar', 'DE', '', null, 42]) expect(isReceiptLanguage(value)).toBe(false)
+  })
+})
+
+describe('an invoice resumed from an interrupted attempt', () => {
+  const stated = {
+    metadata: { frame_number: 'FRAME-1', delivered_on: '2026-09-30' },
+    customer_name: 'MAX MUSTERMANN',
+    customer_address: { line1: 'Musterstrasse 1', line2: null, postal_code: '1030', city: 'Wien', country: 'AT', state: null },
+    total: 125000,
+  }
+  const typed = input({
+    frameNumber: 'FRAME-1',
+    billing: { name: 'MAX MUSTERMANN', line1: 'Musterstrasse 1', postalCode: '1030', city: 'Wien', country: 'at' },
+    deliveryFeeCollected: false,
+  })
+
+  it('differs in nothing when the same form is submitted again', () => {
+    expect(resumeDifferences(stated, { amountTotal: 125000, fulfilment: 'pickup' }, typed)).toEqual([])
+  })
+
+  it('names every field the invoice states otherwise', () => {
+    const corrected = input({
+      frameNumber: 'FRAME-2',
+      deliveredOn: '2026-10-01',
+      billing: { name: 'ERIKA MUSTERMANN', line1: 'Musterstrasse 1', postalCode: '1010', city: 'Wien', country: 'DE' },
+      deliveryFeeCollected: false,
+    })
+    expect(resumeDifferences(stated, { amountTotal: 125000, fulfilment: 'pickup' }, corrected)).toEqual([
+      'frameNumber',
+      'deliveredOn',
+      'name',
+      'address',
+      'country',
+    ])
+  })
+
+  it('reads the delivery fee from the total, both ways', () => {
+    const delivery = { amountTotal: 125000, fulfilment: 'delivery' as const }
+    // Fee on the invoice, box now unticked.
+    expect(resumeDifferences({ ...stated, total: 128500 }, delivery, typed)).toEqual(['deliveryFee'])
+    // No fee on the invoice, box now ticked.
+    expect(resumeDifferences(stated, delivery, { ...typed, deliveryFeeCollected: true })).toEqual(['deliveryFee'])
+    expect(resumeDifferences({ ...stated, total: 128500 }, delivery, { ...typed, deliveryFeeCollected: true })).toEqual([])
+  })
+})
+
+describe('the fallback for a product Stripe no longer has', () => {
+  it('applies to a deleted product only', () => {
+    expect(productIsGone({ type: 'StripeInvalidRequestError', code: 'resource_missing', param: 'price_data[product]' })).toBe(true)
+  })
+
+  it('never to an answer that may have written the line all the same', () => {
+    for (const error of [
+      { type: 'StripeConnectionError', message: 'Request timed out' },
+      { type: 'StripeAPIError', statusCode: 500 },
+      { type: 'StripeRateLimitError', statusCode: 429 },
+      { type: 'StripeIdempotencyError', statusCode: 400 },
+      { type: 'StripeInvalidRequestError', param: 'quantity' },
+      null,
+    ]) {
+      expect(productIsGone(error)).toBe(false)
+    }
   })
 })

@@ -9,27 +9,29 @@ import { defineRoute } from '../../../security/handler'
 import { issueLinkInvoice } from '../../../payments/linkInvoices'
 import { MAX_SIGNATURE_BYTES } from '../../../payments/handover'
 import { audit } from '../../../services/audit'
+import { CONTROL_CHARACTERS, HANDOVER_LIMITS } from '../../../../shared/handoverForm'
 
-// No control characters: these strings end up on a legal document and a PDF.
+// The page holds the form to these same rules before the customer signs, so a
+// refusal here is a bug or a tampered request — never a second signature.
 const text = (max: number) =>
   z
     .string()
     .trim()
     .min(1)
     .max(max)
-    .regex(/^[^\u0000-\u001f\u007f-\u009f]*$/)
+    .refine((value) => !CONTROL_CHARACTERS.test(value))
 
 const bodySchema = z
   .object({
     sessionId: z.string().regex(/^cs_(live|test)_[A-Za-z0-9]+$/),
-    frameNumber: text(40),
+    frameNumber: text(HANDOVER_LIMITS.frameNumber),
     deliveredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     billing: z
       .object({
-        name: text(120),
-        line1: text(200),
-        postalCode: text(20),
-        city: text(80),
+        name: text(HANDOVER_LIMITS.name),
+        line1: text(HANDOVER_LIMITS.line1),
+        postalCode: text(HANDOVER_LIMITS.postalCode),
+        city: text(HANDOVER_LIMITS.city),
         country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/),
       })
       .strict(),
@@ -61,7 +63,17 @@ export default defineRoute({
         resumed: invoice.resumed,
         frameNumber: invoice.frameNumber,
         deliveredOn: invoice.deliveredOn,
-        ...(invoice.differs ? { submittedFrameNumber: body.frameNumber, submittedDeliveredOn: body.deliveredOn } : {}),
+        // What was typed and NOT invoiced, field by field: the credit note that
+        // corrects the invoice is written from this.
+        ...(invoice.differs
+          ? {
+              differences: invoice.differences,
+              submittedFrameNumber: body.frameNumber,
+              submittedDeliveredOn: body.deliveredOn,
+              submittedBilling: body.billing,
+              submittedDeliveryFeeCollected: body.deliveryFeeCollected,
+            }
+          : {}),
       },
     })
     return { invoice }

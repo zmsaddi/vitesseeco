@@ -115,7 +115,7 @@ app/                       ← Nuxt 4 layout: everything client-facing
   composables/             ← useCart, useFormatDate (locale + Europe/Paris pinned), useFormatPrice, useWishlist
   layouts/ middleware/ plugins/
 server/
-  api/                     ← 41 routes. Every one declares access + rate limit via defineRoute
+  api/                     ← 42 routes. Every one declares access + rate limit via defineRoute
     account/ admin/ auth/ cart/ catalog/ checkout/ content/ contact cron/ webhooks/
   routes/                  ← 10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/                 ← Sanity reads: client (cached, token-gated), queries, parse, types — or the committed fixture catalogue under CATALOG_SOURCE=fixture (runtime contract: CANDIDATE_TEST_RIG=1 + loopback site/db, never on Vercel)
@@ -124,7 +124,7 @@ server/
   services/                ← orders, stock, pricing, promo, orderState, audit, maintenance
   payments/                ← adapter registry (index.ts): stripe | cod | in_store — linkInvoices + handover invoice Payment Link sales from admin/factures — plus paypal, a TEMPORARY direct bridge until Stripe's own PayPal activates (removal recipe in server/payments/paypal.ts)
   feeds/ middleware/ plugins/
-shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation
+shared/                    ← used by BOTH sides: money, locales, markets, schemas, errors, organisation, receiptLanguage
 i18n/locales/              ← 6 files × 817 keys
 cms/                       ← Sanity Studio, its own app and package.json, excluded from Vercel
 scripts/                   ← the gates + dev-db + seed-inventory + seed-candidate + redact-sanity-order-pii

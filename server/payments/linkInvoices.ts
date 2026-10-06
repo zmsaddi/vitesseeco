@@ -33,6 +33,7 @@ import { AppError, ERROR_CODES } from '../../shared/errors'
 import { withTransaction } from '../db/client'
 import { buildHandoverPdf, decodeSignature, uploadEvidence } from './handover'
 import { languageFor, type ReceiptLanguage } from '../../shared/receiptLanguage'
+import { isHandoverDay, parisDay } from '../../shared/handoverForm'
 
 /**
  * Per-link settings live on the Payment Link itself, as metadata, so a new link
@@ -70,7 +71,10 @@ const LIST_MAX = 200
 
 export type Fulfilment = 'pickup' | 'delivery' | null
 
-/** Why a paid sale cannot be invoiced here. */
+/**
+ * Why a paid sale cannot be invoiced here — or, once it has been, why its
+ * invoice now needs a credit note: money that went back after it was numbered.
+ */
 export type Blocked = 'refunded' | 'disputed' | 'stripe_invoice' | null
 
 export interface BillingAddress {
@@ -117,9 +121,27 @@ export interface LinkSale {
   language: MessageLanguage
   /** An earlier attempt stopped part-way; issuing again finishes or discards it. */
   pendingAttempt: boolean
+  /**
+   * What that attempt left when it had already numbered the invoice: finishing
+   * it needs no form and no signature. Null for an unnumbered draft, and when
+   * Stripe could not say — issuing then sorts it out under the lock.
+   */
+  pendingInvoice: PendingInvoice | null
   blocked: Blocked
   /** The invoice Stripe itself issued for this sale, when the link asks it to. */
   stripeInvoiceNumber: string | null
+}
+
+/** A numbered invoice an interrupted attempt left unfinished, as it states itself. */
+export interface PendingInvoice {
+  id: string
+  number: string
+  frameNumber: string
+  /** YYYY-MM-DD */
+  deliveredOn: string
+  customerName: string | null
+  /** Cents. */
+  total: number
 }
 
 export interface IssueInput {
@@ -306,10 +328,9 @@ export function invoiceFooter(): string {
 
 // ── Stripe reads ──────────────────────────────────────────────────────────────
 
-function parisDay(unixSeconds: number): string {
-  // en-CA renders YYYY-MM-DD; the zone is pinned so a sale just after midnight
-  // is not dated the day before by a server running in UTC.
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(unixSeconds * 1000))
+/** A Stripe timestamp as the shop's calendar day. */
+function dayOf(unixSeconds: number): string {
+  return parisDay(new Date(unixSeconds * 1000))
 }
 
 function customField(session: Stripe.Checkout.Session, key: string): string | null {
@@ -349,16 +370,43 @@ function blockedReason(session: Stripe.Checkout.Session, charge: Stripe.Charge |
 
 const SESSION_EXPAND = ['line_items', 'payment_intent.latest_charge', 'discounts.promotion_code'] as const
 
-async function toSale(session: Stripe.Checkout.Session, cache: LinkCache): Promise<LinkSale> {
+/**
+ * The statuses of an invoice that holds a number nobody has cancelled. Open and
+ * paid, and uncollectible too: that is Stripe's bad-debt mark, not a
+ * cancellation — the invoice stays valid and can still be paid. Only `void`
+ * cancels a number.
+ */
+const LIVE_NUMBER = new Set<string>(['open', 'paid', 'uncollectible'])
+
+/**
+ * The pending invoice when it already carries a number, else null: a draft, an
+ * invoice of another sale, one gone or voided — or one Stripe could not be asked
+ * about right now, which issuing will settle under the lock.
+ */
+async function numberedPending(id: string, sessionId: string): Promise<PendingInvoice | null> {
+  const invoice = await invoiceOrNull(id).catch(() => null)
+  if (!invoice || invoice.metadata?.checkout_session !== sessionId || !LIVE_NUMBER.has(invoice.status ?? '')) return null
+  return {
+    id,
+    number: invoice.number ?? id,
+    frameNumber: invoice.metadata?.frame_number ?? '',
+    deliveredOn: invoice.metadata?.delivered_on ?? '',
+    customerName: invoice.customer_name ?? null,
+    total: invoice.total,
+  }
+}
+
+/** `readPending`: the list asks what an interrupted attempt left; issuing settles it itself and need not. */
+async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, readPending = false): Promise<LinkSale> {
   const intent = session.payment_intent as Stripe.PaymentIntent
   const charge = intent.latest_charge as Stripe.Charge | null
   const details = session.customer_details
   const address = details?.address
   const promo = session.discounts?.[0]?.promotion_code
   const metadata = await linkMetadata(session, cache)
-  const fulfilment = customField(session, 'delivery')
   const language = languageFor(address?.country)
   const invoiceId = intent.metadata?.invoice_id
+  const pendingId = intent.metadata?.invoice_pending
   const stripeInvoice = session.invoice
 
   return {
@@ -370,7 +418,7 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache): Promi
     productName: (session.line_items?.data ?? []).map((item) => item.description).join(', '),
     email: details?.email ?? null,
     phone: details?.phone ?? null,
-    fulfilment: fulfilment === 'pickup' || fulfilment === 'delivery' ? fulfilment : null,
+    fulfilment: fulfilmentOf(session),
     deliveryAddress: customField(session, 'address'),
     promotionCode: typeof promo === 'object' && promo ? promo.code : null,
     paymentMethod: paymentMethodLabel(charge?.payment_method_details?.type ?? intent.payment_method_types[0]),
@@ -389,8 +437,13 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache): Promi
     deliveryFee: feeFromMetadata(metadata),
     feeUnknown: metadata === null,
     language,
-    pendingAttempt: Boolean(intent.metadata?.invoice_pending),
-    blocked: invoiceId ? null : blockedReason(session, charge),
+    pendingAttempt: Boolean(pendingId),
+    // One read, and only for the rare sale an attempt left part-way.
+    pendingInvoice: readPending && pendingId && !invoiceId ? await numberedPending(pendingId, session.id) : null,
+    // Reported for invoiced sales too. A refund made after the invoice was
+    // numbered needs a credit note, and hiding it once the invoice exists is how
+    // a settled invoice would be sent to a customer who got their money back.
+    blocked: blockedReason(session, charge),
     stripeInvoiceNumber:
       typeof stripeInvoice === 'object' && stripeInvoice ? (stripeInvoice.number ?? stripeInvoice.id ?? null) : stripeInvoice ?? null,
   }
@@ -444,7 +497,7 @@ export async function listLinkSales(): Promise<{ items: LinkSale[]; unreadable: 
     if (sessions.length >= LIST_MAX) break
   }
   const cache: LinkCache = new Map()
-  const sales = await settleBounded(sessions, 5, (session) => toSale(session, cache))
+  const sales = await settleBounded(sessions, 5, (session) => toSale(session, cache, true))
   const items = sales.filter((sale): sale is LinkSale => sale !== null)
   return { items, unreadable: sales.length - items.length }
 }
@@ -525,29 +578,73 @@ async function invoiceOrNull(id: string): Promise<Stripe.Invoice | null> {
   }
 }
 
+/** A field a finished earlier invoice states differently from the form just submitted. */
+export type ResumeDifference = 'frameNumber' | 'deliveredOn' | 'name' | 'address' | 'country' | 'deliveryFee'
+
 export interface ResumedInvoice extends IssuedInvoice {
   resumed: boolean
   /** What the issued invoice actually states — on a resume, the earlier attempt's values. */
   frameNumber: string
   deliveredOn: string
-  /** A resume finished an invoice whose frame number or date differ from what was just typed. */
+  customerName: string
+  /** Cents. */
+  total: number
+  /** What a resume finished differently from what was just typed; empty when nothing was typed. */
+  differences: ResumeDifference[]
   differs: boolean
 }
 
 /**
- * An earlier attempt that stopped part-way. A draft is unnumbered and is
- * discarded; a finalised invoice is numbered and is FINISHED — never left
- * dangling, never doubled. Runs before every other check: once a number exists
- * it must be settled, whatever has happened to the sale since.
+ * Everything a numbered invoice states that the new submission contradicts.
  *
- * The pending marker is cleared only when every candidate is known to be
- * deleted or missing. Any doubt leaves it in place and fails the request.
+ * Frame and date are on the invoice's metadata. Name and address are the
+ * snapshot Stripe froze on the invoice when it was numbered — editing the
+ * customer since changes nothing on it. The delivery fee is read from the total:
+ * an invoice only reaches a number if it equals what was paid plus the fee
+ * collected at the door, so a total above the amount paid IS the fee line.
+ */
+export function resumeDifferences(
+  invoice: Pick<Stripe.Invoice, 'metadata' | 'customer_name' | 'customer_address' | 'total'>,
+  sale: { amountTotal: number; fulfilment: Fulfilment },
+  input: IssueInput
+): ResumeDifference[] {
+  const same = (stated: string | null | undefined, typed: string) => (stated ?? '').trim() === typed.trim()
+  const address = invoice.customer_address
+  const differences: ResumeDifference[] = []
+  if (!same(invoice.metadata?.frame_number, input.frameNumber)) differences.push('frameNumber')
+  if (!same(invoice.metadata?.delivered_on, input.deliveredOn)) differences.push('deliveredOn')
+  if (!same(invoice.customer_name, input.billing.name)) differences.push('name')
+  if (
+    !same(address?.line1, input.billing.line1) ||
+    !same(address?.postal_code, input.billing.postalCode) ||
+    !same(address?.city, input.billing.city)
+  ) {
+    differences.push('address')
+  }
+  if (!same(address?.country?.toUpperCase(), input.billing.country.toUpperCase())) differences.push('country')
+  const feeOnInvoice = invoice.total !== sale.amountTotal
+  const feeTyped = sale.fulfilment === 'delivery' && input.deliveryFeeCollected
+  if (feeOnInvoice !== feeTyped) differences.push('deliveryFee')
+  return differences
+}
+
+/**
+ * An earlier attempt that stopped part-way. A draft is unnumbered and is
+ * discarded; a numbered invoice is FINISHED — never left dangling, never
+ * doubled. Runs before every other check: once a number exists it must be
+ * settled, whatever has happened to the sale since.
+ *
+ * `input` is the form just submitted, compared with what the finished invoice
+ * states; null when the seller only asked to finish, and typed nothing.
+ *
+ * The pending marker is cleared only when no candidate still holds a live
+ * number: each was deleted, is missing, was voided, or belongs to another sale.
+ * Any doubt leaves it in place and fails the request.
  */
 async function resumeEarlierAttempt(
   session: Stripe.Checkout.Session,
   intent: Stripe.PaymentIntent,
-  input: IssueInput,
-  language: MessageLanguage
+  input: IssueInput | null
 ): Promise<ResumedInvoice | null> {
   const candidates = new Set<string>()
   if (intent.metadata?.invoice_pending) candidates.add(intent.metadata.invoice_pending)
@@ -574,9 +671,12 @@ async function resumeEarlierAttempt(
       }
     }
 
-    if (invoice.status === 'open' || invoice.status === 'paid') {
+    if (LIVE_NUMBER.has(invoice.status ?? '')) {
       let paid = invoice
-      if (invoice.status === 'open') {
+      if (invoice.status !== 'paid') {
+        // Open — or marked uncollectible in the Dashboard by someone who saw an
+        // unpaid invoice for a sale already paid. Stripe lets both be marked
+        // paid, and the money did arrive, through the link.
         try {
           paid = await stripe().invoices.pay(id, { paid_out_of_band: true })
         } catch (error) {
@@ -591,24 +691,76 @@ async function resumeEarlierAttempt(
         invoice_pending: '',
         ...(invoice.metadata?.handover_file ? { handover_file: invoice.metadata.handover_file } : {}),
       })
-      const frameNumber = invoice.metadata?.frame_number ?? ''
-      const deliveredOn = invoice.metadata?.delivered_on ?? ''
+      const differences = input
+        ? resumeDifferences(invoice, { amountTotal: session.amount_total ?? 0, fulfilment: fulfilmentOf(session) }, input)
+        : []
       return {
-        ...issued(id, number, paid.hosted_invoice_url ?? null, language),
+        // Written to in the language of the customer the invoice names.
+        ...issued(id, number, paid.hosted_invoice_url ?? null, languageFor(invoice.customer_address?.country)),
         resumed: true,
-        frameNumber,
-        deliveredOn,
-        differs: frameNumber !== input.frameNumber.trim() || deliveredOn !== input.deliveredOn,
+        frameNumber: invoice.metadata?.frame_number ?? '',
+        deliveredOn: invoice.metadata?.delivered_on ?? '',
+        customerName: invoice.customer_name ?? '',
+        total: paid.total,
+        differences,
+        differs: differences.length > 0,
       }
     }
-    // void or uncollectible: an earlier mistake already cancelled; nothing to finish.
+    // void: someone cancelled that number, and a cancelled number is settled.
   }
   if (intent.metadata?.invoice_pending) await markPaymentIntent(intent.id, { invoice_pending: '' })
   return null
 }
 
+function fulfilmentOf(session: Stripe.Checkout.Session): Fulfilment {
+  const value = customField(session, 'delivery')
+  return value === 'pickup' || value === 'delivery' ? value : null
+}
+
 function todayInParis(): string {
-  return parisDay(Math.floor(Date.now() / 1000))
+  return parisDay(new Date())
+}
+
+/**
+ * Finish the invoice an interrupted attempt numbered — and nothing else.
+ *
+ * Nothing is typed and nothing is signed: the invoice already states the frame
+ * number, the date and the customer, and its signed receipt is already on file.
+ * Asking for a new signature here asked the seller for something the server
+ * then threw away, from a customer who had usually left with the bike.
+ *
+ * When no numbered invoice is waiting, a leftover draft is discarded as any
+ * attempt would, and the sale is handed back to the ordinary form.
+ */
+export async function finishLinkInvoice(sessionId: string): Promise<ResumedInvoice> {
+  return withSaleLock(sessionId, async () => {
+    const session = await paidLinkSession(sessionId)
+    const intent = session.payment_intent as Stripe.PaymentIntent
+    if (intent.metadata?.invoice_id) {
+      throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+        internal: `${session.id} already invoiced as ${intent.metadata.invoice_id}`,
+      })
+    }
+    const finished = await resumeEarlierAttempt(session, intent, null)
+    if (!finished) {
+      throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+        messageKey: 'admin.nothing_to_finish',
+        internal: `${session.id}: no numbered invoice was waiting to be finished`,
+      })
+    }
+    return finished
+  })
+}
+
+/**
+ * Stripe's answer when a line names a product it no longer has — deleted since
+ * the sale (an archived one is still accepted). Only that falls back to an
+ * amount line. A timeout, a 429 or a 5xx may have written the line all the
+ * same, and a second line under another key would double it on the invoice.
+ */
+export function productIsGone(error: unknown): boolean {
+  const failure = error as { type?: string; param?: string } | null
+  return failure?.type === 'StripeInvalidRequestError' && (failure.param ?? '').startsWith('price_data[product]')
 }
 
 /** Every line the session charged — beyond the first page when there are more. */
@@ -634,7 +786,7 @@ export async function issueLinkInvoice(input: IssueInput): Promise<ResumedInvoic
       })
     }
 
-    const resumed = await resumeEarlierAttempt(session, intent, input, language)
+    const resumed = await resumeEarlierAttempt(session, intent, input)
     if (resumed) return resumed
 
     const blocked = blockedReason(session, charge)
@@ -650,8 +802,8 @@ export async function issueLinkInvoice(input: IssueInput): Promise<ResumedInvoic
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, { internal: `${session.id}: links with Stripe Tax are not supported` })
     }
 
-    const paidOn = parisDay(charge?.created ?? session.created)
-    if (input.deliveredOn < paidOn || input.deliveredOn > todayInParis()) {
+    const paidOn = dayOf(charge?.created ?? session.created)
+    if (!isHandoverDay(input.deliveredOn, paidOn, todayInParis())) {
       throw new AppError(ERROR_CODES.VALIDATION_FAILED, {
         messageKey: 'admin.invoice_date_invalid',
         internal: `${session.id}: handover date ${input.deliveredOn} outside ${paidOn}..today`,
@@ -792,9 +944,11 @@ export async function issueLinkInvoice(input: IssueInput): Promise<ResumedInvoic
           { idempotencyKey: key(`line-${index}`) }
         )
       } catch (error) {
-        if (!line.productId) throw error
-        // The catalogue product was archived or deleted since the sale. The
-        // line still states exactly what was charged, as one amount.
+        // Anything but a product Stripe no longer has goes up, and the pending
+        // marker makes the next attempt discard this draft whole.
+        if (!line.productId || !productIsGone(error)) throw error
+        // The catalogue product was deleted since the sale. The line still
+        // states exactly what was charged, as one amount.
         await stripe().invoiceItems.create(
           {
             ...base,
@@ -839,6 +993,9 @@ export async function issueLinkInvoice(input: IssueInput): Promise<ResumedInvoic
       resumed: false,
       frameNumber: input.frameNumber.trim(),
       deliveredOn: input.deliveredOn,
+      customerName: input.billing.name.trim(),
+      total: paid.total,
+      differences: [],
       differs: false,
     }
   })

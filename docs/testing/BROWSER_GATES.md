@@ -69,6 +69,14 @@ npm run test:e2e            # functional + a11y + rtl
 npm run test:visual         # visual regression (needs this platform's baselines)
 ```
 
+The admin specs in `functional/` sign in as `sim-admin@vitesse-eco.test` and
+need `DATABASE_URL` — the loopback database the server was started with — to
+mark that address verified, the one step the rig cannot do by email
+([`tests/e2e/playwright/helpers/admin.ts`](../../tests/e2e/playwright/helpers/admin.ts)). They log
+in once per file: credential routes allow eight calls a quarter of an hour, so
+a run repeated within that window is refused until it passes (or until the
+rig's `rate_limits` rows are cleared, as the money gate does).
+
 **Re-seed between full runs.** The checkout journey places a real cash order
 and holds real stock; a second run against the leftovers asserts stock counts
 that are no longer true. `seed-candidate` is the reset button — it truncates
@@ -89,7 +97,7 @@ npm run verify:frontend -- http://127.0.0.1:3000
 
 | Suite | Project | Owns |
 |---|---|---|
-| [`functional/`](../../tests/e2e/playwright/functional) | `functional` | the journey home → listing → PDP → basket → repricing → checkout (COD) → confirmation; sold-out, colour siblings, undo, promo; the server-price-authority contract; what the customer is told when a request is refused or fails — the field at fault, how long a rate limit lasts, and never an empty page in place of a failed load |
+| [`functional/`](../../tests/e2e/playwright/functional) | `functional` | the journey home → listing → PDP → basket → repricing → checkout (COD) → confirmation; sold-out, colour siblings, undo, promo; the server-price-authority contract; what the customer is told when a request is refused or fails — the field at fault, how long a rate limit lasts, and never an empty page in place of a failed load; the invoice page on a counter tablet (the customer's screen through reload, back and the history menu) |
 | [`a11y/`](../../tests/e2e/playwright/a11y) | `a11y` | axe WCAG 2.0/2.1 A+AA on home, listing, PDP, cart, checkout, login — zero violations, blocking |
 | [`rtl/`](../../tests/e2e/playwright/rtl) | `rtl` | `lang`/`dir`, geometric mirroring (header, popover alignment, inline icon order), what must NOT mirror (brand artwork, digits, phone numbers), Arabic funnel content, and reflow at 320/390/1366 in fr and ar |
 | [`visual/`](../../tests/e2e/playwright/visual) | `visual` | eight screenshots: home/listing/PDP/cart/checkout mobile, home/PDP desktop, Arabic PDP mobile |

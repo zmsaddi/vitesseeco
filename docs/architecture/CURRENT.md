@@ -94,7 +94,7 @@ enforcement column is the part that matters: a rule nothing checks is a wish.
 ```
 app/          32 pages · 8 components · 4 composables — everything client-facing
 server/
-  api/        41 routes, each declaring access + rate limit via defineRoute
+  api/        42 routes, each declaring access + rate limit via defineRoute
   routes/     10 machine files: sitemap, robots, llms.txt, 4 feeds, catalog.csv, blog.xml
   catalog/    Sanity reads: cached, token-gated — or the committed fixture catalogue under CATALOG_SOURCE=fixture (test rigs only)
   db/         Drizzle schema + 2 migration files
@@ -141,6 +141,7 @@ price differs from the crawled page.
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail reaches customers. Password reset and order email are built against an account that does not exist yet. The OWNER is told of every paid order (including one the sweep reconciles, with any stock shortfall), every cash order placed, every Payment Link sale (once per session, however often its event is redelivered), and any Stripe or PayPal payment that lands on a cancelled order, by `server/services/notify.ts` — Telegram and/or Resend email, each live only once its variables are set in Vercel. The two channels carry different things because they are different recipients: the Resend email (a processor under its DPA with the EU standard clauses) is a pointer — order number, amount, items, payment and handover method, postcode and town, the admin link, no name, email, phone or street — while Telegram (no processor agreement) gets a ping that says what happened and links to the admin list, nothing about the customer or the order. The privacy policy says exactly this. An admin cancelling an unpaid online order first expires its Checkout Session and is refused while the provider reports money paid, travelling or unconfirmed; every admin status change carries the status the page showed, and is refused if the order moved since |
 | Payment Link sales bypass stock | A link sale has no order and moves no stock; if its units share the shop's stock, the count is corrected by hand in `/admin/stock` |
+| The counter tablet in a customer's hands | `/admin/factures` keeps the customer on their own screen through a reload, a pull-down, the back gesture and the history menu (a `vs_handed_over` cookie the server reads, and a history entry vue-router owns). It cannot close the rest of the browser — another tab, another admin address typed into the bar — so the device is handed over under Guided Access (iPadOS) or screen pinning (Android) |
 | Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, wait until no PayPal order is awaiting payment, then apply the removal recipe at the top of that file — the PAYPAL_* variables go last, because without them the sweep can no longer ask PayPal about an open order and defers it forever |
 
 ---

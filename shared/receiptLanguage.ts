@@ -9,6 +9,13 @@
  */
 export type ReceiptLanguage = 'fr' | 'de' | 'nl' | 'es' | 'en'
 
+const RECEIPT_LANGUAGES: readonly string[] = ['fr', 'de', 'nl', 'es', 'en'] satisfies ReceiptLanguage[]
+
+/** For a value read back from somewhere the page does not control, such as a cookie. */
+export function isReceiptLanguage(value: unknown): value is ReceiptLanguage {
+  return typeof value === 'string' && RECEIPT_LANGUAGES.includes(value)
+}
+
 const LANGUAGE_BY_COUNTRY: Record<string, ReceiptLanguage> = {
   FR: 'fr', BE: 'fr', LU: 'fr', MC: 'fr',
   DE: 'de', AT: 'de', CH: 'de', LI: 'de',

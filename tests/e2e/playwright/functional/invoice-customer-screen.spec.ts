@@ -1,0 +1,353 @@
+/**
+ * The invoice page, as the tablet at the counter lives it.
+ *
+ * The seller fills the handover form, then passes the device across: the
+ * customer signs on a screen of their own and hands it back, and only the
+ * seller's long press brings the list back. That list holds every other
+ * buyer's name, email and phone, so every way a browser offers to go back — a
+ * reload, the back gesture, the history menu — must keep the customer on their
+ * screen, and none of it may leave the seller's own navigation broken after.
+ *
+ * The sales are synthetic and served to the BROWSER: the page is reached by a
+ * client-side link so its list request goes through the browser, where it is
+ * answered here. The candidate needs no Stripe key, and nothing in this file
+ * can touch a real sale.
+ */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { devices, type Page, type Route } from '@playwright/test'
+import { test, expect, waitForHydration } from '../helpers/test'
+import { adminCookies } from '../helpers/admin'
+
+const locales = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', 'i18n', 'locales')
+const FR = JSON.parse(readFileSync(join(locales, 'fr.json'), 'utf8')).admin as Record<string, string>
+const AR = JSON.parse(readFileSync(join(locales, 'ar.json'), 'utf8')).admin as Record<string, string>
+
+// The counter tablet, in the Chromium the gates install. Its own default
+// browser is WebKit, which the rig does not ship.
+const { defaultBrowserType: _webkit, ...iPad } = devices['iPad Mini']
+test.use(iPad)
+
+// One admin login for the whole file, so the tests share one worker and run in order.
+test.describe.configure({ mode: 'serial' })
+
+const DAY = 86_400_000
+
+interface Sale {
+  sessionId: string
+  paidAt: string
+  amountTotal: number
+  productName: string
+  email: string | null
+  phone: string | null
+  fulfilment: 'pickup' | 'delivery' | null
+  deliveryAddress: string | null
+  promotionCode: string | null
+  paymentMethod: string
+  billing: { name?: string; line1?: string; postalCode?: string; city?: string; country?: string }
+  invoice: { id: string; number: string; hostedUrl: string | null; message: { subject: string; body: string } } | null
+  handoverFileId: string | null
+  deliveryFee: number | null
+  feeUnknown: boolean
+  pendingAttempt: boolean
+  pendingInvoice: { id: string; number: string; frameNumber: string; deliveredOn: string; customerName: string | null; total: number } | null
+  blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
+  stripeInvoiceNumber: string | null
+}
+
+const BUYERS = [
+  ['MAX MUSTERMANN', 'AT'],
+  ['ERIKA MUSTERMANN', 'DE'],
+  ['JEAN DUPONT', 'FR'],
+  ['MARIE DUPONT', 'BE'],
+  ['JAN JANSEN', 'NL'],
+  ['JUAN PEREZ', 'ES'],
+] as const
+
+function sale(index: number, overrides: Partial<Sale> = {}): Sale {
+  const [name, country] = BUYERS[index]!
+  return {
+    sessionId: `cs_test_handover${index}`,
+    paidAt: new Date(Date.now() - 2 * DAY).toISOString(),
+    amountTotal: 125000,
+    productName: 'V8 ULTRA MAX T',
+    email: `buyer${index}@example.com`,
+    phone: '+436601234567',
+    fulfilment: 'pickup',
+    deliveryAddress: null,
+    promotionCode: null,
+    paymentMethod: 'Carte bancaire',
+    billing: { name, line1: 'Musterstrasse 1', postalCode: '1010', city: 'Wien', country },
+    invoice: null,
+    handoverFileId: null,
+    deliveryFee: null,
+    feeUnknown: false,
+    pendingAttempt: false,
+    pendingInvoice: null,
+    blocked: null,
+    stripeInvoiceNumber: null,
+    ...overrides,
+  }
+}
+
+let cookies: Awaited<ReturnType<typeof adminCookies>>
+test.beforeAll(async ({ baseURL }) => {
+  cookies = await adminCookies(baseURL!)
+})
+
+/** Sales the browser is told exist, and how often it asked. */
+let items: Sale[] = []
+let listRequests = 0
+
+test.beforeEach(async ({ context }) => {
+  items = BUYERS.map((_, index) => sale(index))
+  listRequests = 0
+  await context.addCookies(cookies)
+  await context.route('**/api/admin/link-sales', (route: Route) => {
+    listRequests++
+    return route.fulfill({ json: { items, unreadable: 0 } })
+  })
+})
+
+/** Server-rendered dashboard first, then the panel's own link: the list request is the browser's. */
+async function openInvoices(page: Page, prefix = ''): Promise<void> {
+  page.on('dialog', (dialog) => dialog.accept())
+  await page.goto(`${prefix}/admin`)
+  await page.locator(`header a[href="${prefix}/admin/factures"]`).click()
+  await expect(page.locator('main li').first()).toBeVisible()
+}
+
+const card = (page: Page, index: number) => page.locator('main li', { hasText: `buyer${index}@example.com` })
+
+async function draw(page: Page): Promise<void> {
+  const box = (await page.getByRole('dialog').locator('canvas').boundingBox())!
+  await page.mouse.move(box.x + 20, box.y + 80)
+  await page.mouse.down()
+  for (let i = 0; i <= 30; i++) await page.mouse.move(box.x + 20 + i * 10, box.y + 80 - Math.sin(i / 3) * 40)
+  await page.mouse.up()
+}
+
+/** Changes whenever an entry is added: the length, or — when forward entries were dropped — the state. */
+const historyState = (page: Page) => page.evaluate(() => `${history.length} ${JSON.stringify(history.state)}`)
+
+async function openSigning(page: Page, index: number, frame = `FRAME-${index}`): Promise<void> {
+  await card(page, index).getByLabel(FR.frame_number!).fill(frame)
+  const before = await historyState(page)
+  await card(page, index).getByRole('button', { name: FR.take_signature }).click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  // The customer's screen has its own history entry before anyone reaches for Back.
+  await expect.poll(() => historyState(page)).not.toBe(before)
+}
+
+async function signAndHandBack(page: Page, index: number, frame?: string): Promise<void> {
+  await openSigning(page, index, frame)
+  await draw(page)
+  // The customer's own "I confirm and sign", in whichever language they read.
+  await page.getByRole('dialog').locator('button.btn-primary').click()
+}
+
+async function holdToResume(page: Page, label = FR.hand_back_hold!): Promise<void> {
+  const hold = page.getByRole('button', { name: label })
+  const box = (await hold.boundingBox())!
+  await page.mouse.move(box.x + 10, box.y + 10)
+  await page.mouse.down()
+  await page.waitForTimeout(1500)
+  await page.mouse.up()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+}
+
+const HAND_BACK_DE = 'Bitte geben Sie das Gerät dem Verkäufer zurück'
+
+test('a reload in the customer’s hands shows the hand-back screen, and the list is not even fetched', async ({ page }) => {
+  await openInvoices(page)
+  await openSigning(page, 0)
+  const before = listRequests
+
+  const reloaded = await page.reload()
+  await waitForHydration(page)
+  const html = (await reloaded?.text()) ?? ''
+  await expect(page.getByRole('dialog')).toContainText(HAND_BACK_DE)
+  await expect(page.locator('main li')).toHaveCount(0)
+  for (const index of BUYERS.keys()) expect(html).not.toContain(`buyer${index}@example.com`)
+  expect(listRequests, 'the reloaded page asked for the buyer list').toBe(before)
+
+  // Only the seller's hold brings it back.
+  await holdToResume(page)
+  await expect(card(page, 0)).toBeVisible()
+  expect(new URL(page.url()).search).toBe('')
+})
+
+test('back during a second signing keeps the customer screen, and the next link still works', async ({ page }) => {
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  await holdToResume(page)
+
+  await openSigning(page, 1)
+  await page.goBack()
+  await expect(page.getByRole('dialog')).toContainText(HAND_BACK_DE)
+  await expect(page.locator('main li')).toHaveCount(0)
+  await holdToResume(page)
+
+  await page.locator('header a[href="/admin/commandes"]').click()
+  await expect(page).toHaveURL(/\/admin\/commandes$/)
+  await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+})
+
+test('a signing session leaves no dead Back press behind', async ({ page }) => {
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  await holdToResume(page)
+  await signAndHandBack(page, 1)
+  await holdToResume(page)
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/admin$/)
+})
+
+test('a jump through the history menu keeps the address on the invoices page', async ({ page }) => {
+  await openInvoices(page)
+  await openSigning(page, 0)
+  await page.evaluate(() => history.go(-2))
+  await expect(page.getByRole('dialog')).toContainText(HAND_BACK_DE)
+  await holdToResume(page)
+
+  expect(new URL(page.url()).pathname).toBe('/admin/factures')
+  await page.reload()
+  await waitForHydration(page)
+  await expect(page.getByRole('heading', { level: 1, name: FR.invoices })).toBeVisible()
+})
+
+test('the history entry is created only once the customer screen has replaced the list', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = history.pushState.bind(history)
+    const pushes: Array<{ listed: number; customerScreen: boolean }> = []
+    ;(window as unknown as { __pushes: typeof pushes }).__pushes = pushes
+    history.pushState = (state, unused, url) => {
+      pushes.push({ listed: document.querySelectorAll('main li').length, customerScreen: !!document.querySelector('[role=dialog]') })
+      return original(state, unused, url)
+    }
+  })
+  await openInvoices(page)
+  const before = await page.evaluate(() => (window as unknown as { __pushes: unknown[] }).__pushes.length)
+  await openSigning(page, 0)
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __pushes: unknown[] }).__pushes.length)).toBeGreaterThan(before)
+  const pushes = await page.evaluate((from) => (window as unknown as { __pushes: Array<{ listed: number; customerScreen: boolean }> }).__pushes.slice(from), before)
+  // iOS keeps a picture of the page being left at the moment of the push, and
+  // slides that picture in under a back swipe: it must be the customer's screen.
+  for (const push of pushes) expect(push).toEqual({ listed: 0, customerScreen: true })
+})
+
+test('resuming returns the seller to the sale they were on', async ({ page }) => {
+  await openInvoices(page)
+  await card(page, 4).getByLabel(FR.frame_number!).fill('FRAME-4')
+  const sign = card(page, 4).getByRole('button', { name: FR.take_signature })
+  await sign.scrollIntoViewIfNeeded()
+  const before = await page.evaluate(() => window.scrollY)
+  expect(before).toBeGreaterThan(200)
+  await sign.click()
+  await draw(page)
+  await page.getByRole('dialog').locator('button.btn-primary').click()
+  await holdToResume(page)
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before - 5)
+  expect(await page.evaluate(() => window.scrollY)).toBeLessThan(before + 5)
+})
+
+test('holding Enter resumes, however the keyboard repeats it', async ({ page }) => {
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  const hold = page.getByRole('button', { name: FR.hand_back_hold })
+  await hold.focus()
+  // A held key repeats its keydown about thirty times a second, for as long as
+  // it is held — here three seconds, well past the 1.2 s the hold needs.
+  await page.keyboard.down('Enter')
+  const until = Date.now() + 3000
+  while (Date.now() < until && (await page.getByRole('dialog').count()) > 0) {
+    await page.waitForTimeout(33)
+    await page.keyboard.down('Enter')
+  }
+  // Read while the key is still down: releasing it must not be what resumes.
+  expect(await page.getByRole('dialog').count(), 'still on the hand-back screen with Enter held').toBe(0)
+  await page.keyboard.up('Enter')
+})
+
+test('an Arabic panel still lays the customer’s screen out left to right', async ({ page }) => {
+  await openInvoices(page, '/ar')
+  await card(page, 0).getByLabel(AR.frame_number!).fill('FRAME-AR')
+  await card(page, 0).getByRole('button', { name: AR.take_signature }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toHaveCSS('direction', 'ltr')
+  await expect(dialog.getByText(/^Le client confirme/)).toHaveCSS('direction', 'ltr')
+  await draw(page)
+  await dialog.locator('button.btn-primary').click()
+  await expect(dialog).toContainText(HAND_BACK_DE)
+  // The seller's own control stays in the seller's language and direction.
+  await expect(page.getByRole('button', { name: AR.hand_back_hold })).toHaveCSS('direction', 'rtl')
+})
+
+test('a signature taken late in the evening still stands the next morning', async ({ page }) => {
+  // 23:58 in Paris, a sale paid the day before.
+  await page.clock.install({ time: new Date('2026-03-10T22:58:00Z') })
+  items = [sale(0, { paidAt: '2026-03-09T10:00:00Z' })]
+  await openInvoices(page)
+  await signAndHandBack(page, 0)
+  await holdToResume(page)
+  await expect(card(page, 0).getByText(FR.signature_taken!)).toBeVisible()
+
+  // The tablet sleeps past midnight and wakes.
+  await page.clock.setSystemTime(new Date('2026-03-10T23:10:00Z'))
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await expect(card(page, 0).getByLabel(FR.delivered_on!)).toHaveValue('2026-03-10')
+  await expect(card(page, 0).getByText(FR.signature_taken!)).toBeVisible()
+})
+
+test('the customer cannot be asked to sign for details the server would refuse', async ({ page }) => {
+  await openInvoices(page)
+  const form = card(page, 0)
+  const sign = form.getByRole('button', { name: FR.take_signature })
+  await form.getByLabel(FR.frame_number!).fill('FRAME-0')
+  await expect(sign).toBeEnabled()
+
+  await form.getByLabel(FR.billing_country!).fill('B')
+  await expect(sign).toBeDisabled()
+  await form.getByLabel(FR.billing_country!).fill('BE')
+  await expect(sign).toBeEnabled()
+
+  // A handover before the payment, or a mistyped year.
+  await form.getByLabel(FR.delivered_on!).fill('2020-01-01')
+  await expect(sign).toBeDisabled()
+  await form.getByLabel(FR.delivered_on!).fill('2099-01-01')
+  await expect(sign).toBeDisabled()
+})
+
+test('an invoice numbered by an interrupted attempt is finished without a form or a signature', async ({ page }) => {
+  const pending = {
+    id: 'in_test_pending',
+    number: 'TEST-0042',
+    frameNumber: 'FRAME-EARLIER',
+    deliveredOn: new Date(Date.now() - DAY).toISOString().slice(0, 10),
+    customerName: 'MAX MUSTERMANN',
+    total: 125000,
+  }
+  items = [sale(0, { pendingAttempt: true, pendingInvoice: pending })]
+  const sent: unknown[] = []
+  await page.route('**/api/admin/link-sales/finish', async (route) => {
+    sent.push(route.request().postDataJSON())
+    const invoice = { id: pending.id, number: pending.number, hostedUrl: null, message: { subject: 's', body: 'b' } }
+    items = [sale(0, { invoice })]
+    await route.fulfill({
+      json: { invoice: { ...invoice, resumed: true, frameNumber: pending.frameNumber, deliveredOn: pending.deliveredOn, customerName: pending.customerName, total: pending.total, differences: [], differs: false } },
+    })
+  })
+  await openInvoices(page)
+
+  const row = card(page, 0)
+  await expect(row).toContainText(pending.number)
+  await expect(row).toContainText(pending.frameNumber)
+  await expect(row.getByRole('button', { name: FR.take_signature })).toHaveCount(0)
+  await row.getByRole('button', { name: new RegExp(pending.number) }).click()
+  // Exact: the button itself reads "Terminer la facture <number>".
+  await expect(row.getByText(FR.invoiced!.replace('{number}', pending.number), { exact: true })).toBeVisible()
+  await expect(row.getByRole('link', { name: FR.download_pdf })).toBeVisible()
+  expect(sent).toEqual([{ sessionId: 'cs_test_handover0' }])
+})
