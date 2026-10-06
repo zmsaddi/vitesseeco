@@ -473,6 +473,20 @@ export async function findOrderByStripeSession(sessionId: string): Promise<{ ord
   return row ?? null
 }
 
+/**
+ * Write a line on the order for the shop.
+ *
+ * The order's page in the panel shows its admin notes, so that is where the
+ * owner actually reads about money that needs a decision — a log line is read by
+ * nobody. Appended below whatever a person already wrote, never in its place.
+ */
+export async function noteOnOrder(orderNumber: string, note: string): Promise<void> {
+  await db()
+    .update(orders)
+    .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+    .where(eq(orders.orderNumber, orderNumber))
+}
+
 // ── Temporary PayPal bridge (server/payments/paypal.ts) ──────────────────────
 // These two leave with the bridge; the columns they write stay readable.
 

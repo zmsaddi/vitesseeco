@@ -19,7 +19,8 @@ import { defineRoute } from '../../security/handler'
 import { db } from '../../db/client'
 import { orders } from '../../db/schema'
 import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
-import { transitionOrder, recordPayPalCapture } from '../../services/orders'
+import { stateOfPayPalOrder } from '../../payments/reconcile'
+import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
 import { audit } from '../../services/audit'
 import { orderNumberSchema } from '../../../shared/schemas'
 import { toDecimalString } from '../../../shared/money'
@@ -101,14 +102,48 @@ export default defineRoute({
       })
     }
 
+    // The capture decides, not the order — the reading the sweep makes too
+    // (payments/reconcile.ts). A COMPLETED order can carry a capture PayPal is
+    // still reviewing, or one it declined; marking that paid released a bike
+    // against money PayPal could still refuse. Only when PayPal lists no
+    // capture at all (its minimal answer) does the order's COMPLETED stand.
+    const settled = captured.captureId ? stateOfPayPalOrder(captured) : 'paid'
+    if (settled === 'unpaid') {
+      // Declined or failed: nothing was charged, as with an uncompleted order.
+      throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
+        internal: `paypal capture ${captured.captureId} of ${order.paypalOrderId} is ${captured.captureStatus}`,
+      })
+    }
+    if (settled !== 'paid') {
+      // Held by PayPal — a review — or something a person has to read. The
+      // order stays awaiting payment and the capture unrecorded, since a
+      // recorded capture reads as money taken: the capture's own
+      // PAYMENT.CAPTURE.COMPLETED, or the sweep asking PayPal, settles it once
+      // PayPal has.
+      console.warn(`[paypal] capture ${captured.captureId} of ${body.orderNumber} is ${captured.captureStatus}; the order waits for PayPal`)
+      await audit({
+        action: 'order.paypal_capture_held',
+        actorType: 'system',
+        resourceType: 'order',
+        resourceId: body.orderNumber,
+        metadata: { paypalOrderId: order.paypalOrderId, captureId: captured.captureId, captureStatus: captured.captureStatus },
+      })
+      return { state: 'pending' as const }
+    }
+
     if (captured.captureId) await recordPayPalCapture(body.orderNumber, captured.captureId)
 
     // Consumes the stock hold; forward-only, idempotent against the webhook.
     const moved = await transitionOrder(body.orderNumber, 'paid', { expectFrom: 'awaiting_payment' })
-    if (!moved.changed && !['paid', 'processing', 'shipped', 'delivered'].includes(moved.from)) {
-      // PayPal took the money, but the order closed while the payer approved —
-      // the sweep cancelled it. The customer has paid; a person must honour or
-      // refund it, and that person must hear about it.
+
+    // ── A capture that landed on a closed order ─────────────────────────────
+    // PayPal took the money, but the order was cancelled while the payer
+    // approved — by the sweep, or the shop. The order row is locked while it
+    // moves, so `from` is where it really stood: a capture that lost the paid
+    // flip to its own webhook reads 'paid', not this. The customer has paid; a
+    // person must honour or refund it, and must hear about it — on the order
+    // itself, where the panel shows it, not only in a log.
+    if (!moved.changed && moved.from === 'cancelled') {
       console.error(
         `[paypal] capture ${captured.captureId} landed on ${body.orderNumber}, which is ${moved.from} — refund or honour it`
       )
@@ -119,7 +154,16 @@ export default defineRoute({
         resourceId: body.orderNumber,
         metadata: { paypalOrderId: order.paypalOrderId, captureId: captured.captureId, status: moved.from },
       })
+      await noteOnOrder(
+        body.orderNumber,
+        `ATTENTION : paiement PayPal encaissé après l'annulation de la commande (capture ${captured.captureId ?? 'non communiquée'}). ` +
+          `Stock non décompté — à honorer ou à rembourser à la main.`
+      ).catch((error: unknown) => {
+        // The payment is the fact and the answer must still reach the payer.
+        console.error(`[paypal] ${body.orderNumber}: could not record the closed-order note`, error)
+      })
     }
+    // ── end of the closed-order capture ─────────────────────────────────────
 
     await audit({
       action: 'order.paypal_captured',

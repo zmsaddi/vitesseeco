@@ -74,7 +74,13 @@ export function stateOfSession(
  * and nothing recorded — exactly the outage this sweep must survive.
  */
 export function stateOfPayPalOrder(
-  order: { status: string; captureId: string | null; captureStatus?: string | null; updateTime?: string | null },
+  order: {
+    status: string
+    captureId: string | null
+    captureStatus?: string | null
+    createTime?: string | null
+    updateTime?: string | null
+  },
   now: Date = new Date()
 ): PaymentState {
   if (order.status === 'COMPLETED' && order.captureId) {
@@ -97,7 +103,14 @@ export function stateOfPayPalOrder(
     // Approved but not captured. Usually abandoned — but a capture may be in
     // flight right now, from a payer who approved late. Only an approval that
     // has sat untouched past a grace period is read as nothing coming.
-    const changed = order.updateTime ? Date.parse(order.updateTime) : Number.NaN
+    //
+    // Counted from PayPal's last change when it states one. An approved,
+    // uncaptured order usually carries its create_time alone, and waiting for an
+    // update_time that never comes deferred it on every run until PayPal forgot
+    // the order hours later — its promotion use held all that time, and its
+    // capture still possible long after the stock hold had lapsed.
+    const stamp = order.updateTime ?? order.createTime
+    const changed = stamp ? Date.parse(stamp) : Number.NaN
     return Number.isFinite(changed) && now.getTime() - changed > APPROVAL_GRACE_MS ? 'unpaid' : 'unknown'
   }
   if (['CREATED', 'VOIDED', 'PAYER_ACTION_REQUIRED'].includes(order.status)) return 'unpaid'
@@ -108,14 +121,19 @@ export function stateOfPayPalOrder(
 export const APPROVAL_GRACE_MS = 15 * 60_000
 
 /**
- * Whether a Checkout Session id belongs to the mode of the key that asked.
- * A live session looked up with a test key (or the reverse) is "not found" for
- * a reason that says nothing about payment.
+ * Whether Stripe's "no such session" means no money ever came through it.
+ *
+ * Asked in its own mode, it does. A LIVE session looked up with a test key is
+ * "not found" for a reason that says nothing about payment, so it proves
+ * nothing. A TEST session looked up with a live key is the other way round:
+ * test money is never real, so whatever happened to it, nothing was paid here —
+ * read as "unknown", such an order (a preview sharing this database) was
+ * deferred on every run, forever, holding its promotion use.
  */
-export function sessionModeMatchesKey(sessionId: string, secretKey: string | undefined): boolean {
+export function missingSessionMeansUnpaid(sessionId: string, secretKey: string | undefined): boolean {
   const sessionLive = sessionId.startsWith('cs_live_')
   const keyLive = /^(sk|rk)_live_/.test(secretKey ?? '')
-  return sessionLive === keyLive
+  return !sessionLive || keyLive
 }
 
 export const providerPaymentState: PaymentProbe = async (order) => {
@@ -147,7 +165,7 @@ export const providerPaymentState: PaymentProbe = async (order) => {
     // only if we asked in the right mode. A live session looked up with a test
     // key is "missing" for a reason that says nothing about payment.
     if ((error as { code?: string })?.code === 'resource_missing') {
-      if (sessionModeMatchesKey(order.stripeSessionId, process.env.STRIPE_SECRET_KEY)) return 'unpaid'
+      if (missingSessionMeansUnpaid(order.stripeSessionId, process.env.STRIPE_SECRET_KEY)) return 'unpaid'
       console.warn(`[reconcile] ${order.orderNumber}: session ${order.stripeSessionId} is from another Stripe mode than the key`)
       return 'unknown'
     }

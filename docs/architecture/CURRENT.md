@@ -139,7 +139,7 @@ price differs from the crawled page.
 | Lighthouse assertion phase is broken | `@lhci/cli@0.13.x` on Node 24 dies with `normalizeAssertion is not a function` after collection; the `production-smoke` job is advisory (`continue-on-error`) so nothing blocks on it. Separate CI debt, to be fixed in its own change |
 | Four moderate advisories | `drizzle-kit`'s esbuild chain. The advisory concerns esbuild's development server; nothing here runs it, and the fix is a major bump of the migration CLI |
 | Email | No mail is sent. Password reset and order email are built against an account that does not exist yet |
-| Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, delete the PAYPAL_* variables, and apply the removal recipe at the top of that file |
+| Direct PayPal is a bridge | Stripe's PayPal method is pending activation review, so the pre-rebuild direct integration is bridged back (`server/payments/paypal.ts`, gated on its env keys). When the Stripe Dashboard shows PayPal active: enable it there, wait until no PayPal order is awaiting payment, then apply the removal recipe at the top of that file — the PAYPAL_* variables go last, because without them the sweep can no longer ask PayPal about an open order and defers it forever |
 
 ---
 

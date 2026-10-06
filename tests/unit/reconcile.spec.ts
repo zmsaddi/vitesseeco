@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { providerPaymentState, sessionModeMatchesKey, stateOfPayPalOrder, stateOfSession } from '../../server/payments/reconcile'
+import { missingSessionMeansUnpaid, providerPaymentState, stateOfPayPalOrder, stateOfSession } from '../../server/payments/reconcile'
+import { paidOrderNumberFromWebhook, toState } from '../../server/payments/paypal'
 
 describe('reading a Checkout Session as a payment state', () => {
   it.each([
@@ -66,21 +67,70 @@ describe('reading a PayPal order as a payment state', () => {
       expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, updateTime: '2026-10-06T11:30:00Z' }, now)).toBe('unpaid')
     })
 
-    it('is not judged when PayPal does not say when it changed', () => {
+    it('is not judged when PayPal says nothing about when', () => {
       expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null }, now)).toBe('unknown')
+    })
+
+    // PayPal stamps no update_time on an approved, uncaptured order: waiting for
+    // one deferred it on every run until PayPal forgot the order, hours later.
+    it('is judged from when it was created when PayPal gives no later change', () => {
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, createTime: '2026-10-06T10:55:00Z', updateTime: null }, now)).toBe('unpaid')
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, createTime: '2026-10-06T11:55:00Z', updateTime: null }, now)).toBe('unknown')
+    })
+
+    it('prefers a later change when PayPal states one', () => {
+      expect(stateOfPayPalOrder({ status: 'APPROVED', captureId: null, createTime: '2026-10-06T10:00:00Z', updateTime: '2026-10-06T11:55:00Z' }, now)).toBe('unknown')
+    })
+
+    it('reads PayPal\'s own approved-order answer, which carries create_time alone', () => {
+      // The shape of GET /v2/checkout/orders/{id} after approval (PayPal's
+      // published example, ids and payer replaced by synthetic ones).
+      const approved = toState({
+        id: '5O190127TN364715T',
+        status: 'APPROVED',
+        purchase_units: [{ invoice_id: 'ORD-TEST00001', amount: { currency_code: 'EUR', value: '950.00' } }],
+        create_time: '2026-10-06T10:00:00Z',
+      })
+      expect(approved).toMatchObject({ status: 'APPROVED', createTime: '2026-10-06T10:00:00Z', updateTime: null })
+      expect(stateOfPayPalOrder(approved, now)).toBe('unpaid')
     })
   })
 })
 
-describe('a session looked up in the wrong Stripe mode', () => {
+describe('a session Stripe says it has never heard of', () => {
   it.each([
     ['cs_live_abc', 'sk_live_x', true],
     ['cs_live_abc', 'rk_live_x', true],
     ['cs_test_abc', 'sk_test_x', true],
+    // Asked with a test key, a live session is "missing" for a reason that
+    // says nothing about payment.
     ['cs_live_abc', 'sk_test_x', false],
-    ['cs_test_abc', 'sk_live_x', false],
-  ] as const)('%s with %s → matches %s', (session, key, expected) => {
-    expect(sessionModeMatchesKey(session, key)).toBe(expected)
+    // Test money is never real: whatever became of it, nothing was paid here.
+    ['cs_test_abc', 'sk_live_x', true],
+  ] as const)('%s with %s → unpaid: %s', (session, key, expected) => {
+    expect(missingSessionMeansUnpaid(session, key)).toBe(expected)
+  })
+})
+
+describe('a PayPal webhook that means money', () => {
+  const event = (eventType: string, resource: unknown) => JSON.stringify({ id: 'WH-1', event_type: eventType, resource })
+
+  it('a completed capture names its order', () => {
+    expect(paidOrderNumberFromWebhook(event('PAYMENT.CAPTURE.COMPLETED', { status: 'COMPLETED', invoice_id: 'ORD-TEST00001' }))).toBe('ORD-TEST00001')
+  })
+
+  it('a completed order whose capture completed names its order', () => {
+    const resource = { status: 'COMPLETED', purchase_units: [{ invoice_id: 'ORD-TEST00001', payments: { captures: [{ status: 'COMPLETED' }] } }] }
+    expect(paidOrderNumberFromWebhook(event('CHECKOUT.ORDER.COMPLETED', resource))).toBe('ORD-TEST00001')
+  })
+
+  it.each(['PENDING', 'DECLINED'])('a completed order whose capture is %s is not money yet', (captureStatus) => {
+    const resource = { status: 'COMPLETED', purchase_units: [{ invoice_id: 'ORD-TEST00001', payments: { captures: [{ status: captureStatus }] } }] }
+    expect(paidOrderNumberFromWebhook(event('CHECKOUT.ORDER.COMPLETED', resource))).toBeNull()
+  })
+
+  it('an approval is not money', () => {
+    expect(paidOrderNumberFromWebhook(event('CHECKOUT.ORDER.APPROVED', { purchase_units: [{ invoice_id: 'ORD-TEST00001' }] }))).toBeNull()
   })
 })
 
