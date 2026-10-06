@@ -400,7 +400,7 @@
     "rate_limited_for": "Te veel pogingen. Probeer het over {wait} opnieuw.",
     "service_unavailable": "Dienst tijdelijk niet beschikbaar.",
     "session_expired": "Uw sessie is verlopen.",
-    "stock_reserved": "De laatste stuks zijn even gereserveerd door andere klanten — probeer het over enkele minuten opnieuw.",
+    "stock_reserved": "De laatste stuks zijn even gereserveerd voor een lopende betaling — probeer het over enkele minuten opnieuw.",
     "too_many_addresses": "U hebt het maximale aantal opgeslagen adressen bereikt. Verwijder er een om een nieuw adres toe te voegen.",
     "unknown_payment_method": "Die betaalmethode is niet beschikbaar.",
     "unknown_shipping_method": "Die bezorgoptie is niet beschikbaar.",

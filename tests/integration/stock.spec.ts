@@ -9,6 +9,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { sql } from 'drizzle-orm'
 import {
+  CASH_RESERVATION_TTL_MS,
   consumeReservations,
   expireStaleReservations,
   findLowStock,
@@ -66,6 +67,63 @@ describe.skipIf(!hasDatabase)('stock', () => {
       expect(error).toBeInstanceOf(AppError)
       const details = (error as AppError).details as { lines: Array<{ productId: string }> }
       expect(details.lines.map((l) => l.productId).sort()).toEqual([BIKE, HELMET].sort())
+    })
+
+    it('says "briefly reserved" when the last unit is held for a payment in progress', async () => {
+      // Another checkout's thirty-minute hold: the unit comes back if that
+      // payment fails, so trying again shortly is honest advice.
+      await seedProduct(BIKE, 1)
+      const paying = await seedOrder()
+      const next = await seedOrder()
+      await inTransaction((tx) => reserveStock(tx, paying, [{ productId: BIKE, quantity: 1 }]))
+
+      const error = await inTransaction((tx) =>
+        reserveStock(tx, next, [{ productId: BIKE, quantity: 1 }])
+      ).catch((e: unknown) => e)
+
+      expect((error as AppError).code).toBe('OUT_OF_STOCK')
+      expect((error as AppError).messageKey).toBe('errors.stock_reserved')
+    })
+
+    it('does not promise "a few minutes" for a unit held fourteen days for cash', async () => {
+      // A cash-on-delivery or counter order holds its bike until the money
+      // arrives, and the sweep never releases it. Telling the next customer to
+      // retry in minutes sent them back, again and again, for a sold bike.
+      await seedProduct(BIKE, 1)
+      const cash = await seedOrder()
+      const next = await seedOrder()
+      await inTransaction((tx) =>
+        reserveStock(tx, cash, [{ productId: BIKE, quantity: 1 }], CASH_RESERVATION_TTL_MS)
+      )
+
+      const error = await inTransaction((tx) =>
+        reserveStock(tx, next, [{ productId: BIKE, quantity: 1 }])
+      ).catch((e: unknown) => e)
+
+      expect((error as AppError).code).toBe('OUT_OF_STOCK')
+      expect((error as AppError).messageKey).toBe('errors.out_of_stock')
+    })
+
+    it('counts only what a brief hold could give back', async () => {
+      // Two on the shelf: one held for cash, one for a card payment. Two can
+      // never be had once the card hold lapses; one can.
+      await seedProduct(BIKE, 2)
+      const cash = await seedOrder()
+      const card = await seedOrder()
+      await inTransaction((tx) =>
+        reserveStock(tx, cash, [{ productId: BIKE, quantity: 1 }], CASH_RESERVATION_TTL_MS)
+      )
+      await inTransaction((tx) => reserveStock(tx, card, [{ productId: BIKE, quantity: 1 }]))
+
+      const askFor = async (quantity: number) => {
+        const order = await seedOrder()
+        const error = await inTransaction((tx) =>
+          reserveStock(tx, order, [{ productId: BIKE, quantity }])
+        ).catch((e: unknown) => e)
+        return (error as AppError).messageKey
+      }
+      expect(await askFor(2)).toBe('errors.out_of_stock')
+      expect(await askFor(1)).toBe('errors.stock_reserved')
     })
 
     it('leaves no partial hold behind when one line fails', async () => {

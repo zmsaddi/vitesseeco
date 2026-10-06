@@ -400,7 +400,7 @@
     "rate_limited_for": "Too many attempts. Please try again in {wait}.",
     "service_unavailable": "Service temporarily unavailable.",
     "session_expired": "Your session has expired.",
-    "stock_reserved": "The last units are briefly reserved by other shoppers — try again in a few minutes.",
+    "stock_reserved": "The last units are briefly reserved for a payment in progress — try again in a few minutes.",
     "too_many_addresses": "You have reached the maximum number of saved addresses. Delete one to add another.",
     "unknown_payment_method": "That payment method is not available.",
     "unknown_shipping_method": "That delivery option is not available.",

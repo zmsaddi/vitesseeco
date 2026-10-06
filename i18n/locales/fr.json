@@ -400,7 +400,7 @@
     "rate_limited_for": "Trop de tentatives. Réessayez dans {wait}.",
     "service_unavailable": "Service temporairement indisponible.",
     "session_expired": "Votre session a expiré.",
-    "stock_reserved": "Dernières unités momentanément réservées par d'autres clients — réessayez dans quelques minutes.",
+    "stock_reserved": "Dernières unités momentanément réservées pour un paiement en cours — réessayez dans quelques minutes.",
     "too_many_addresses": "Vous avez atteint le nombre maximal d'adresses enregistrées. Supprimez-en une pour en ajouter une autre.",
     "unknown_payment_method": "Ce moyen de paiement est indisponible.",
     "unknown_shipping_method": "Ce mode de livraison est indisponible.",

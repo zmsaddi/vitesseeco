@@ -38,6 +38,9 @@ export const RESERVATION_TTL_MS = 30 * 60 * 1000
  */
 export const CASH_RESERVATION_TTL_MS = 14 * 24 * 60 * 60 * 1000
 
+/** A hold ending within this many seconds is one an online payment can still release. */
+const BRIEF_HOLD_SECONDS = RESERVATION_TTL_MS / 1000 + 60
+
 /**
  * Put units back on the shelf for an order whose hold has already been consumed.
  *
@@ -186,8 +189,21 @@ export async function reserveStock(
 
   // Reservations are read after the lock, so any competing transaction has
   // either committed its hold or is blocked behind us.
-  const held = await tx.execute<{ product_id: string; reserved: string | number }>(sql`
-    SELECT product_id, COALESCE(SUM(quantity), 0) AS reserved
+  //
+  // `outlasting` is the part of those holds still standing once an online
+  // payment's window has passed: cash-on-delivery and counter orders, held for
+  // fourteen days and never swept. A minute of slack, because expires_at is
+  // stamped by the application's clock and NOW() is the database's.
+  const held = await tx.execute<{
+    product_id: string
+    reserved: string | number
+    outlasting: string | number
+  }>(sql`
+    SELECT product_id,
+           COALESCE(SUM(quantity), 0) AS reserved,
+           COALESCE(SUM(quantity) FILTER (
+             WHERE expires_at > NOW() + ${sql.raw(`INTERVAL '${BRIEF_HOLD_SECONDS} seconds'`)}
+           ), 0) AS outlasting
       FROM stock_reservations
      WHERE product_id IN ${inList(productIds)}
        AND settled_at IS NULL
@@ -195,6 +211,7 @@ export async function reserveStock(
      GROUP BY product_id
   `)
   const reserved = new Map(held.rows.map((r) => [r.product_id, Number(r.reserved)]))
+  const outlasting = new Map(held.rows.map((r) => [r.product_id, Number(r.outlasting)]))
 
   const shortfalls: ShortfallLine[] = []
   for (const line of lines) {
@@ -205,11 +222,16 @@ export async function reserveStock(
   }
   if (shortfalls.length > 0) {
     // Two different truths share this code: an empty shelf, and a full shelf
-    // whose last units sit in other customers' 30-minute holds. The second is
-    // told as "briefly reserved, try again shortly" — telling that customer
+    // whose last units sit in holds for payments still in progress. The second
+    // is told as "briefly reserved, try again shortly" — telling that customer
     // "out of stock" sends them to a competitor over a wait of minutes.
+    //
+    // Only a hold that ends within an online payment's window is brief. Every
+    // live hold used to count, so the last bike held for a cash-on-delivery
+    // order — fourteen days, and in practice sold — had the next customer told
+    // to come back in a few minutes, again and again.
     const merelyReserved = shortfalls.every(
-      (s) => (onHand.get(s.productId) ?? 0) >= s.requested
+      (s) => (onHand.get(s.productId) ?? 0) - (outlasting.get(s.productId) ?? 0) >= s.requested
     )
     throw new AppError(ERROR_CODES.OUT_OF_STOCK, {
       details: { lines: shortfalls },

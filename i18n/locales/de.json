@@ -400,7 +400,7 @@
     "rate_limited_for": "Zu viele Versuche. Bitte versuchen Sie es in {wait} erneut.",
     "service_unavailable": "Dienst vorübergehend nicht verfügbar.",
     "session_expired": "Ihre Sitzung ist abgelaufen.",
-    "stock_reserved": "Die letzten Stücke sind gerade von anderen Kunden reserviert — versuchen Sie es in wenigen Minuten erneut.",
+    "stock_reserved": "Die letzten Stücke sind gerade für eine laufende Zahlung reserviert — versuchen Sie es in wenigen Minuten erneut.",
     "too_many_addresses": "Sie haben die Höchstzahl gespeicherter Adressen erreicht. Löschen Sie eine, um eine weitere hinzuzufügen.",
     "unknown_payment_method": "Diese Zahlungsart ist nicht verfügbar.",
     "unknown_shipping_method": "Diese Lieferoption ist nicht verfügbar.",

@@ -37,8 +37,8 @@ It runs on `master` and `rebuild`, on push and on pull request.
 | Job | Proves |
 |---|---|
 | `static` | locale parity · no raw hex · 18 invariants · documentation · Merchant feed guard · types |
-| `unit` | 306 tests, pure logic, no I/O |
-| `integration` | 101 tests against **real PostgreSQL 17**, then `scripts/assert-suite-ran.mjs` proves they were not skipped |
+| `unit` | 373 tests, pure logic, no I/O |
+| `integration` | 104 tests against **real PostgreSQL 17**, then `scripts/assert-suite-ran.mjs` proves they were not skipped |
 | `build` | production build and the bundle budget |
 | `candidate` | builds **this commit**, seeds a real PostgreSQL and the committed fixture catalogue (`CATALOG_SOURCE=fixture` — no secret needed; activation is a runtime contract: `CANDIDATE_TEST_RIG=1` + loopback site/database, and never on Vercel), serves it on `127.0.0.1:3000`, then runs the 6-locale simulator, the frontend gate, the money gate, and the four Playwright suites (functional · axe · RTL/reflow · visual) against it |
 | `production-smoke` | Lighthouse against the live site. Advisory, and **not** a statement about the commit — Vercel deploys in parallel with this workflow |
