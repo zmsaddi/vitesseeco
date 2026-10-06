@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { apiError, apiErrorMessage, unavailableProducts } from '~/utils/apiError'
+import { apiError, apiErrorMessage } from '~/utils/apiError'
 /**
  * The basket.
  *
@@ -83,28 +83,16 @@ const promoRefused = ref(false)
  * Take out of the basket what the server will not price, and say so.
  *
  * Both of these used to fail every pricing request, and the page drew nothing
- * but the error — no lines, no "Retirer", no promo field — so a basket held one
- * unpublished bike or one mistyped code ("PROMO 10") was dead, on every reload,
- * for everything in it. The rest of the basket now goes on. Answers whether
- * anything changed, so the basket is priced again only when it did: a refusal
- * this cannot correct cannot loop.
+ * but the error — no lines, no "Retirer", no promo field — so a basket that
+ * held one unpublished bike or one mistyped code ("PROMO 10") was dead, on
+ * every reload, for everything in it. The rest of the basket now goes on.
+ * Answers whether anything changed (see useCart's `correct`).
  */
 function correctBasket(err: unknown): boolean {
-  const payload = apiError(err)
-  const gone = unavailableProducts(payload).filter((product) =>
-    cart.lines.value.some((line) => line.productId === product.productId)
-  )
-  if (gone.length > 0) {
-    for (const product of gone) cart.remove(product.productId)
-    withdrawn.value.push(...gone.map((product) => product.name ?? t('cart.an_item')))
-    return true
-  }
-  if (cart.promoCode.value && payload.details?.issues?.some((issue) => issue.path === 'cart.promoCode')) {
-    cart.applyPromo(null)
-    promoRefused.value = true
-    return true
-  }
-  return false
+  const { withdrawn: gone, promoDropped } = cart.correct(apiError(err))
+  withdrawn.value.push(...gone.map((product) => product.name ?? t('cart.an_item')))
+  if (promoDropped) promoRefused.value = true
+  return gone.length > 0 || promoDropped
 }
 
 async function setQuantity(line: { productId: string; quantity: number }, input: HTMLInputElement): Promise<void> {

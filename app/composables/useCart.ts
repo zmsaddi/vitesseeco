@@ -8,6 +8,8 @@
  *
  * Persisted to localStorage so a customer can close the tab and come back.
  */
+import { unavailableProducts, type ApiErrorPayload } from '~/utils/apiError'
+
 const STORAGE_KEY = 'vitesse.cart.v1'
 const MAX_LINES = 20
 const MAX_PER_LINE = 10
@@ -150,6 +152,37 @@ export function useCart() {
     persist()
   }
 
+  /**
+   * Take out of the basket what the server refused to price, and answer what
+   * went.
+   *
+   * Two things used to fail every pricing request for the whole basket: a
+   * product that left the catalogue (the refusal names it, PRODUCT_UNAVAILABLE),
+   * and a stored promo code the server's rule cannot read — "PROMO 10" is saved
+   * as typed. The basket lives in localStorage, so both stayed dead on every
+   * visit, for everything in them. The basket and checkout both correct
+   * themselves here, so the two cannot disagree about what a refusal means.
+   *
+   * Answers nothing when the refusal was about something else, and a caller
+   * prices again only when something changed: a refusal this cannot correct
+   * cannot loop.
+   */
+  function correct(refusal: ApiErrorPayload): {
+    withdrawn: Array<{ productId: string; name: string | null }>
+    promoDropped: boolean
+  } {
+    const withdrawn = unavailableProducts(refusal).filter((product) =>
+      lines.value.some((line) => line.productId === product.productId)
+    )
+    for (const product of withdrawn) remove(product.productId)
+
+    const promoDropped =
+      promoCode.value !== null && (refusal.details?.issues ?? []).some((issue) => issue.path === 'cart.promoCode')
+    if (promoDropped) applyPromo(null)
+
+    return { withdrawn, promoDropped }
+  }
+
   const count = computed(() => lines.value.reduce((sum, line) => sum + line.quantity, 0))
   const isEmpty = computed(() => lines.value.length === 0)
 
@@ -166,5 +199,6 @@ export function useCart() {
     remove,
     clear,
     applyPromo,
+    correct,
   }
 }

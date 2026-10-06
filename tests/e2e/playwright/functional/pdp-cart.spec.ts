@@ -151,3 +151,21 @@ test('checkout takes out a product that left the catalogue and prices the rest',
   )
   await expect(page.getByText(displayPrice(displayProduct.price)).first()).toBeVisible()
 })
+
+test('checkout drops a stored promo code the server cannot read, and prices the rest', async ({
+  page,
+  seedCart,
+}) => {
+  // Saved as typed before the basket page learned to drop it, and never shown
+  // to that page again: checkout has no promo field, so the code failed every
+  // total and every submit with nothing the customer could do about it here.
+  await seedCart([{ productId: displayProduct._id, quantity: 1 }], 'PROMO 10')
+  await page.goto('/commande')
+  await page.locator('input[autocomplete="postal-code"]').fill('86000')
+  await page.locator('input[type="radio"][value="pickup"]').check()
+
+  await expect(page.getByRole('status')).toHaveText(message('errors.invalid_promo_code'))
+  await expect(page.locator('aside dl')).toContainText(displayPrice(displayProduct.price))
+  const stored = await page.evaluate(() => JSON.parse(window.localStorage.getItem('vitesse.cart.v1') ?? '{}'))
+  expect(stored.promoCode).toBeNull()
+})
