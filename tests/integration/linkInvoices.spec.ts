@@ -123,8 +123,24 @@ describe.skipIf(!hasDatabase)('an interrupted link-sale invoice', () => {
 
     expect(items[0]).toMatchObject({
       pendingAttempt: true,
-      pendingInvoice: { id: 'in_earlier', number: 'TEST-0001', frameNumber: 'FRAME-1', deliveredOn: today, customerName: BILLING.name, total: 125000 },
+      pendingInvoice: {
+        id: 'in_earlier',
+        number: 'TEST-0001',
+        frameNumber: 'FRAME-1',
+        deliveredOn: today,
+        customerName: BILLING.name,
+        total: 125000,
+        deliveryFeeIncluded: false,
+      },
     })
+  })
+
+  it('says whether the invoice waiting to be finished carries the delivery fee', async () => {
+    fake.addSale({ sessionId: SESSION, amountTotal: 125000, fulfilment: 'delivery', deliveryFee: 3500, intentMetadata: { invoice_pending: 'in_earlier' } })
+    // Numbered with the fee line: finishing would make it final as it stands.
+    numberedEarlier(fake, 'open', 128500)
+
+    expect((await listLinkSales()).items[0]?.pendingInvoice).toMatchObject({ total: 128500, deliveryFeeIncluded: true })
   })
 
   it('lists no invoice to finish when the attempt left only an unnumbered draft', async () => {

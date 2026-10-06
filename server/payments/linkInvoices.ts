@@ -157,6 +157,8 @@ export interface PendingInvoice {
   customerName: string | null
   /** Cents. */
   total: number
+  /** Whether that total carries the delivery fee: finishing makes it final either way. */
+  deliveryFeeIncluded: boolean
 }
 
 export interface IssueInput {
@@ -453,9 +455,9 @@ const LIVE_NUMBER = new Set<string>(['open', 'paid', 'uncollectible'])
  * invoice of another sale, one gone or voided — or one Stripe could not be asked
  * about right now, which issuing will settle under the lock.
  */
-async function numberedPending(id: string, sessionId: string): Promise<PendingInvoice | null> {
+async function numberedPending(id: string, session: Stripe.Checkout.Session): Promise<PendingInvoice | null> {
   const invoice = await invoiceOrNull(id).catch(() => null)
-  if (!invoice || invoice.metadata?.checkout_session !== sessionId || !LIVE_NUMBER.has(invoice.status ?? '')) return null
+  if (!invoice || invoice.metadata?.checkout_session !== session.id || !LIVE_NUMBER.has(invoice.status ?? '')) return null
   return {
     id,
     number: invoice.number ?? id,
@@ -463,6 +465,7 @@ async function numberedPending(id: string, sessionId: string): Promise<PendingIn
     deliveredOn: invoice.metadata?.delivered_on ?? '',
     customerName: invoice.customer_name ?? null,
     total: invoice.total,
+    deliveryFeeIncluded: carriesDeliveryFee(invoice.total, session.amount_total ?? 0),
   }
 }
 
@@ -483,7 +486,7 @@ async function toSale(session: Stripe.Checkout.Session, cache: LinkCache, forLis
   const pendingId = intent.metadata?.invoice_pending
   const stripeInvoice = session.invoice
   // One read, and only for the rare sale an attempt left part-way.
-  const pendingInvoice = forList && pendingId && !invoiceId ? await numberedPending(pendingId, session.id) : null
+  const pendingInvoice = forList && pendingId && !invoiceId ? await numberedPending(pendingId, session) : null
   const numbered = invoiceId || pendingInvoice?.id
 
   return {
@@ -672,13 +675,20 @@ export interface ResumedInvoice extends IssuedInvoice {
 }
 
 /**
+ * Whether a numbered invoice carries the delivery fee, read from its total: an
+ * invoice only reaches a number if it equals what was paid plus the fee
+ * collected at the door, so a total above the amount paid IS the fee line.
+ */
+export function carriesDeliveryFee(invoiceTotal: number, amountPaid: number): boolean {
+  return invoiceTotal > amountPaid
+}
+
+/**
  * Everything a numbered invoice states that the new submission contradicts.
  *
  * Frame and date are on the invoice's metadata. Name and address are the
  * snapshot Stripe froze on the invoice when it was numbered — editing the
- * customer since changes nothing on it. The delivery fee is read from the total:
- * an invoice only reaches a number if it equals what was paid plus the fee
- * collected at the door, so a total above the amount paid IS the fee line.
+ * customer since changes nothing on it. The delivery fee is read from the total.
  */
 export function resumeDifferences(
   invoice: Pick<Stripe.Invoice, 'metadata' | 'customer_name' | 'customer_address' | 'total'>,
@@ -699,7 +709,7 @@ export function resumeDifferences(
     differences.push('address')
   }
   if (!same(address?.country?.toUpperCase(), input.billing.country.toUpperCase())) differences.push('country')
-  const feeOnInvoice = invoice.total !== sale.amountTotal
+  const feeOnInvoice = carriesDeliveryFee(invoice.total, sale.amountTotal)
   const feeTyped = sale.fulfilment === 'delivery' && input.deliveryFeeCollected
   if (feeOnInvoice !== feeTyped) differences.push('deliveryFee')
   return differences

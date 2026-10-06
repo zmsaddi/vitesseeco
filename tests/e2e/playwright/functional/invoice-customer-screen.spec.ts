@@ -55,7 +55,15 @@ interface Sale {
   deliveryFee: number | null
   feeUnknown: boolean
   pendingAttempt: boolean
-  pendingInvoice: { id: string; number: string; frameNumber: string; deliveredOn: string; customerName: string | null; total: number } | null
+  pendingInvoice: {
+    id: string
+    number: string
+    frameNumber: string
+    deliveredOn: string
+    customerName: string | null
+    total: number
+    deliveryFeeIncluded: boolean
+  } | null
   blocked: 'refunded' | 'disputed' | 'stripe_invoice' | null
   reversal: 'dispute_open' | 'credit_note_due' | 'dispute_in_review' | 'settled' | null
   stripeInvoiceNumber: string | null
@@ -428,6 +436,7 @@ test('an invoice numbered by an interrupted attempt is finished without a form o
     deliveredOn: new Date(Date.now() - DAY).toISOString().slice(0, 10),
     customerName: 'MAX MUSTERMANN',
     total: 125000,
+    deliveryFeeIncluded: false,
   }
   items = [sale(0, { pendingAttempt: true, pendingInvoice: pending })]
   const sent: unknown[] = []
@@ -450,6 +459,55 @@ test('an invoice numbered by an interrupted attempt is finished without a form o
   await expect(row.getByText(FR.invoiced!.replace('{number}', pending.number), { exact: true })).toBeVisible()
   await expect(row.getByRole('link', { name: FR.download_pdf })).toBeVisible()
   expect(sent).toEqual([{ sessionId: 'cs_test_handover0' }])
+})
+
+test('an interrupted invoice says what finishing makes final, delivery fee included or not', async ({ page }) => {
+  const pending = (index: number, total: number, deliveryFeeIncluded: boolean) => ({
+    id: `in_test_pending${index}`,
+    number: `TEST-004${index}`,
+    frameNumber: `FRAME-${index}`,
+    deliveredOn: new Date(Date.now() - DAY).toISOString().slice(0, 10),
+    customerName: BUYERS[index]![0],
+    total,
+    deliveryFeeIncluded,
+  })
+  const delivery = { fulfilment: 'delivery' as const, deliveryFee: 3500, deliveryAddress: 'Musterstrasse 1, 1010 Wien', pendingAttempt: true }
+  // The fee ticked by mistake: numbered with it, though the customer paid none at the door.
+  const withFee = pending(0, 128500, true)
+  const withoutFee = pending(1, 125000, false)
+  items = [sale(0, { ...delivery, pendingInvoice: withFee }), sale(1, { ...delivery, pendingInvoice: withoutFee })]
+  const sent: unknown[] = []
+  await page.route('**/api/admin/link-sales/finish', (route) => {
+    sent.push(route.request().postDataJSON())
+    return route.fulfill({ status: 409, json: { code: 'INVALID_STATE_TRANSITION', messageKey: 'admin.nothing_to_finish' } })
+  })
+
+  // Reached as openInvoices does, without its handler that accepts every dialog.
+  await page.goto('/admin')
+  await page.locator('header a[href="/admin/factures"]').click()
+  await expect(page.locator('main li').first()).toBeVisible()
+
+  const euros = (cents: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100)
+  const states = (key: string, invoice: ReturnType<typeof pending>) =>
+    FR[key]!.replace('{number}', invoice.number).replace('{name}', invoice.customerName).replace('{total}', euros(invoice.total))
+  await expect(card(page, 0)).toContainText(states('pending_states_fee', withFee))
+  await expect(card(page, 1)).toContainText(states('pending_states_no_fee', withoutFee))
+  // And how a mistake is corrected once it is final.
+  await expect(card(page, 0)).toContainText(FR.pending_correction!)
+
+  // The seller is asked once more, with the same values, and can still stop.
+  const asked: string[] = []
+  page.once('dialog', async (dialog) => {
+    asked.push(dialog.message())
+    await dialog.dismiss()
+  })
+  await card(page, 0).getByRole('button', { name: new RegExp(withFee.number) }).click()
+  await expect.poll(() => asked.length).toBe(1)
+  const flat = (text: string) => text.replace(/\s+/g, ' ')
+  expect(flat(asked[0]!)).toBe(flat(`${states('pending_states_fee', withFee)} ${FR.confirm_finish!.replace('{number}', withFee.number)}`))
+  await page.waitForTimeout(300)
+  expect(sent, 'finished although the seller said no').toEqual([])
+  await expect(card(page, 0).getByRole('button', { name: new RegExp(withFee.number) })).toBeEnabled()
 })
 
 test('money that went back after the number asks only for what is still to do', async ({ page }) => {

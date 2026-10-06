@@ -80,6 +80,7 @@ interface PendingInvoice {
   deliveredOn: string
   customerName: string | null
   total: number
+  deliveryFeeIncluded: boolean
 }
 
 interface LinkSale {
@@ -516,9 +517,22 @@ async function issue(sale: LinkSale): Promise<void> {
   }
 }
 
+/**
+ * What finishing makes final, in words: the invoice as the interrupted attempt
+ * numbered it. Nothing typed reaches it, so a wrong name, total or delivery fee
+ * can only be caught here — before the number is settled for good.
+ */
+function pendingStates(sale: LinkSale): string {
+  const pending = sale.pendingInvoice!
+  const values = { number: pending.number, name: pending.customerName || '—', total: formatCents(pending.total) }
+  if (pending.deliveryFeeIncluded) return t('admin.pending_states_fee', values)
+  return sale.fulfilment === 'delivery' ? t('admin.pending_states_no_fee', values) : t('admin.pending_states', values)
+}
+
 /** Settle the number an interrupted attempt left: no form, no signature, nothing new numbered. */
 async function finish(sale: LinkSale): Promise<void> {
-  if (issuing.value) return
+  if (issuing.value || !sale.pendingInvoice) return
+  if (!window.confirm(`${pendingStates(sale)}\n\n${t('admin.confirm_finish', { number: sale.pendingInvoice.number })}`)) return
   issuing.value = sale.sessionId
   error.value = null
   notice.value = null
@@ -646,6 +660,8 @@ useSeoMeta({ title: () => t('admin.invoices'), robots: 'noindex' })
                 })
               }}
             </p>
+            <p class="text-sm font-semibold text-content-strong">{{ pendingStates(sale) }}</p>
+            <p class="text-sm text-content-muted">{{ $t('admin.pending_correction') }}</p>
             <p
               v-if="sale.reversal"
               class="text-sm"
