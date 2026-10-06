@@ -18,6 +18,7 @@ import {
   queryRows,
   withTransaction,
   type SqlExecutor,
+  type Transaction,
   type TransactionRunner,
 } from '../db/client'
 import { AppError, ERROR_CODES } from '../../shared/errors'
@@ -30,6 +31,7 @@ import { assertTransition, holdsStock, stockWasDecremented, timestampFor } from 
 import {
   CASH_RESERVATION_TTL_MS,
   consumeLiveReservations,
+  holdForPayment,
   releaseReservations,
   settleExpiredHolds,
   reserveStock,
@@ -487,8 +489,81 @@ export async function noteOnOrder(orderNumber: string, note: string): Promise<vo
     .where(eq(orders.orderNumber, orderNumber))
 }
 
+/**
+ * noteOnOrder, inside a transaction that already holds the order's row — which
+ * noteOnOrder's own connection would wait on for ever. In a savepoint: the note
+ * is for a person and the decision it records is the fact, so a failed note
+ * rolls back alone instead of aborting the transaction around it.
+ */
+async function noteWithin(tx: Transaction, orderId: string, note: string): Promise<void> {
+  try {
+    await tx.transaction(async (savepoint) => {
+      await savepoint
+        .update(orders)
+        .set({ adminNotes: sql`concat_ws(chr(10), ${orders.adminNotes}, ${note}::text)` })
+        .where(eq(orders.id, orderId))
+    })
+  } catch (error) {
+    console.error(`[orders] could not write a note on order ${orderId}`, error)
+  }
+}
+
 // ── Temporary PayPal bridge (server/payments/paypal.ts) ──────────────────────
-// These two leave with the bridge; the columns they write stay readable.
+// These leave with the bridge; the columns they write stay readable.
+
+/** How long a PayPal capture is given to take the money before its hold could lapse again. */
+const PAYPAL_CAPTURE_HOLD_MS = 10 * 60 * 1000
+
+type CaptureHold = { held: true } | { held: false; status: OrderStatus }
+
+/**
+ * Before PayPal is asked to take the money, the order must hold its units.
+ *
+ * The payer approves in PayPal's own window, for as long as they like, and the
+ * buttons do not close when the thirty-minute hold lapses: a capture over a
+ * lapsed hold sold a bike another customer had bought in the meantime. So, under
+ * the order's row lock and then the inventory locks (stock.holdForPayment), a
+ * live hold is stretched to cover the capture and a lapsed one takes its units
+ * again only if they are still free. Otherwise the attempt is closed here, in
+ * the same transaction, as the sweep would close it — its hold and any
+ * promotion use go back. Nothing has been charged yet, so closing costs nobody
+ * any money.
+ *
+ * When nothing is held, `status` is where the order stands: cancelled (closed
+ * now, or earlier), or paid by a capture that got there first.
+ */
+export async function holdStockForPayPalCapture(
+  orderNumber: string,
+  options: { runTransaction?: TransactionRunner } = {}
+): Promise<CaptureHold> {
+  const run = options.runTransaction ?? withTransaction
+  return run(async (tx): Promise<CaptureHold> => {
+    const [current] = await tx
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(eq(orders.orderNumber, orderNumber))
+      .limit(1)
+      .for('update')
+    if (!current) throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })
+    if (current.status !== 'awaiting_payment') return { held: false, status: current.status }
+
+    if ((await holdForPayment(tx, current.id, new Date(Date.now() + PAYPAL_CAPTURE_HOLD_MS))) !== 'short') {
+      return { held: true }
+    }
+
+    const closed = await transitionOrder(orderNumber, 'cancelled', {
+      expectFrom: 'awaiting_payment',
+      runTransaction: (work) => work(tx),
+    })
+    await noteWithin(
+      tx,
+      current.id,
+      `Paiement PayPal refusé avant encaissement : la réservation avait expiré et le stock n'était plus libre. ` +
+        `Rien n'a été encaissé ; la commande est annulée.`
+    )
+    return { held: false, status: closed.changed ? 'cancelled' : closed.from }
+  })
+}
 
 /** Attach the PayPal order id, so capture can verify the binding server-side. */
 export async function attachPayPalOrder(orderId: string, paypalOrderId: string): Promise<void> {

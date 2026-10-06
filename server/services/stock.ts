@@ -339,6 +339,112 @@ export async function stretchLiveHold(tx: Transaction, orderId: string, until: D
 }
 
 /**
+ * Make sure an order holds every unit it ordered until `until` — asked just
+ * before money is taken for it, where the payment window can outlive the hold.
+ *
+ * The PayPal bridge is that case: its buttons stay payable long after a
+ * thirty-minute hold has lapsed, and a capture over a lapsed hold sold a bike
+ * another customer had bought meanwhile — takeStockForLatePayment then found
+ * nothing left to take. So, under the inventory locks:
+ *
+ *   stretched  the hold is live; it now lasts until `until` (never shortened)
+ *   retaken    it had lapsed, or the sweep had settled it, and every unit was
+ *              still free — on hand, less what OTHER orders hold live — so the
+ *              units are this order's again until `until`
+ *   short      a unit is no longer free; nothing is written, and the money
+ *              must not be taken
+ *
+ * Never takes a unit another order holds. This order's own hold is judged on
+ * the clock, as in stretchLiveHold — one that lapsed while the locks were
+ * awaited may already have been counted free by another checkout — and other
+ * orders' holds are counted exactly as reserveStock counts them, so a re-take
+ * is what a fresh order would have been allowed, no more. The caller holds the
+ * order's row (services/orders.ts), so the order cannot be paid or cancelled
+ * while this decides.
+ */
+export async function holdForPayment(
+  tx: Transaction,
+  orderId: string,
+  until: Date
+): Promise<'stretched' | 'retaken' | 'short'> {
+  const ordered = await tx.execute<{ product_id: string; quantity: number }>(sql`
+    SELECT product_id, SUM(quantity)::int AS quantity
+      FROM order_items
+     WHERE order_id = ${orderId}
+     GROUP BY product_id
+  `)
+  const wanted = new Map(ordered.rows.map((row) => [row.product_id, Number(row.quantity)]))
+  const productIds = [...wanted.keys()].sort()
+  if (productIds.length === 0) return 'stretched'
+
+  const locked = await tx.execute<{ product_id: string; on_hand: number }>(sql`
+    SELECT product_id, on_hand FROM inventory
+     WHERE product_id IN ${inList(productIds)}
+     ORDER BY product_id
+       FOR UPDATE
+  `)
+  const onHand = new Map(locked.rows.map((row) => [row.product_id, Number(row.on_hand)]))
+
+  // Judged once, under the locks: from here on no other checkout can count
+  // these units, so a hold found live is still this order's when stretched.
+  const own = await tx.execute<{ id: string; product_id: string; quantity: number }>(sql`
+    SELECT id, product_id, quantity
+      FROM stock_reservations
+     WHERE order_id = ${orderId}
+       AND settled_at IS NULL
+       AND expires_at > clock_timestamp()
+  `)
+  const live = new Map<string, number>()
+  for (const row of own.rows) live.set(row.product_id, (live.get(row.product_id) ?? 0) + Number(row.quantity))
+  if (productIds.every((id) => (live.get(id) ?? 0) >= wanted.get(id)!)) {
+    const stretched = await tx.execute(sql`
+      UPDATE stock_reservations
+         SET expires_at = GREATEST(expires_at, ${until.toISOString()}::timestamptz)
+       WHERE id IN ${inList(own.rows.map((row) => row.id))}
+         AND settled_at IS NULL
+      RETURNING id
+    `)
+    // One settled meanwhile (the sweep's housekeeping, on a hold that lapsed a
+    // moment ago) is taken again below, like any lapsed hold.
+    if (stretched.rows.length === own.rows.length) return 'stretched'
+  }
+
+  const others = await tx.execute<{ product_id: string; held: number }>(sql`
+    SELECT product_id, SUM(quantity)::int AS held
+      FROM stock_reservations
+     WHERE product_id IN ${inList(productIds)}
+       AND order_id <> ${orderId}
+       AND settled_at IS NULL
+       AND expires_at > NOW()
+     GROUP BY product_id
+  `)
+  const heldByOthers = new Map(others.rows.map((row) => [row.product_id, Number(row.held)]))
+  for (const productId of productIds) {
+    const shelf = onHand.get(productId)
+    // No inventory row: reserveStock refuses such a product, and so does this.
+    if (shelf === undefined) return 'short'
+    if (shelf - (heldByOthers.get(productId) ?? 0) < wanted.get(productId)!) return 'short'
+  }
+
+  // The units are this order's again. An order has one hold row per product
+  // for life, so the lapsed (or swept) row is taken up again rather than
+  // joined by a second; a hold never decremented anything, so nothing else
+  // moves. A line still held live keeps the later of its two expiries.
+  await tx
+    .insert(stockReservations)
+    .values(productIds.map((productId) => ({ orderId, productId, quantity: wanted.get(productId)!, expiresAt: until })))
+    .onConflictDoUpdate({
+      target: [stockReservations.orderId, stockReservations.productId],
+      set: {
+        quantity: sql`excluded.quantity`,
+        expiresAt: sql`GREATEST(${stockReservations.expiresAt}, excluded.expires_at)`,
+        settledAt: null,
+      },
+    })
+  return 'retaken'
+}
+
+/**
  * Payment succeeded: turn the LIVE holds into a real decrement.
  *
  * Idempotent by construction — it only touches rows that are still unsettled,

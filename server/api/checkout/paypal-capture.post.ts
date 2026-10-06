@@ -7,7 +7,8 @@
  * the invoice id and amount it holds — both must match the order. A tampered
  * client can therefore neither capture someone else's payment into its order
  * nor capture a rewritten amount; the worst it can do is complete a payment
- * its payer already approved.
+ * its payer already approved. Nor is money taken for units the order no longer
+ * holds: an approval can come long after the stock hold lapsed.
  *
  * The paid flip is the same `transitionOrder` the Stripe webhook uses, so
  * stock consumption, forward-only status and the audit of money stay one
@@ -22,6 +23,7 @@ import { capturePayPalOrder, getPayPalOrder } from '../../payments/paypal'
 import { stateOfPayPalOrder } from '../../payments/reconcile'
 import { noteOnOrder, transitionOrder, recordPayPalCapture } from '../../services/orders'
 import { audit } from '../../services/audit'
+import { holdStockForPayPalCapture } from '../../services/orders'
 import { orderNumberSchema } from '../../../shared/schemas'
 import { toDecimalString } from '../../../shared/money'
 import { AppError, ERROR_CODES } from '../../../shared/errors'
@@ -91,6 +93,31 @@ export default defineRoute({
       throw new AppError(ERROR_CODES.PAYMENT_PROVIDER_ERROR, {
         internal: `paypal order ${order.paypalOrderId} does not match ${body.orderNumber}`,
       })
+    }
+
+    // Approved: the capture below takes the money, and the units must be this
+    // order's when it does. The buttons stay payable long after the thirty-
+    // minute hold lapses, and a capture over a lapsed hold sold a bike another
+    // customer had bought meanwhile. A live hold is stretched over the capture,
+    // a lapsed one taken again if its units are still free; otherwise the
+    // attempt is closed now, while nothing is charged, and the page starts over
+    // on the words a closed order gets. Only an approved order is held for:
+    // nothing else can be captured, so nothing else may keep a bike off sale —
+    // and money PayPal already took (COMPLETED) is honoured whatever the hold.
+    if (remote.status === 'APPROVED') {
+      const hold = await holdStockForPayPalCapture(body.orderNumber)
+      if (!hold.held) {
+        if (['paid', 'processing', 'shipped', 'delivered'].includes(hold.status)) return { state: 'paid' as const }
+        if (hold.status === 'cancelled') {
+          throw new AppError(ERROR_CODES.ALREADY_PROCESSED, {
+            messageKey: 'errors.order_closed',
+            internal: `capture refused for ${body.orderNumber}: closed before the money moved — its stock was no longer held, or it was cancelled meanwhile`,
+          })
+        }
+        throw new AppError(ERROR_CODES.INVALID_STATE_TRANSITION, {
+          internal: `order ${body.orderNumber} is ${hold.status}, not awaiting_payment`,
+        })
+      }
     }
 
     const captured = await capturePayPalOrder(order.paypalOrderId)

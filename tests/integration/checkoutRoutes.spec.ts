@@ -9,7 +9,7 @@
  *    behind, and never attaches one to an order that closed while Stripe was
  *    being asked;
  *  - a PayPal capture for a closed order says "start over", before PayPal is
- *    asked anything;
+ *    asked anything, and none takes money unless the order holds its units;
  *  - a capture PayPal is still reviewing, or declined, is not money to ship
  *    against, and one that lands on an order cancelled meanwhile is written on
  *    that order, where the owner looks.
@@ -101,19 +101,26 @@ vi.mock('../../server/payments/stripe', async (importOriginal) => ({
 const paypalDouble = vi.hoisted(() => ({
   captures: 0,
   capture: null as null | ((orderNumber: string) => Promise<Record<string, unknown>>),
+  /** What PayPal says an order is when asked before a capture. */
+  order: {
+    status: 'APPROVED',
+    captureId: null as string | null,
+    captureStatus: null as string | null,
+    createTime: null as string | null,
+  },
 }))
 
 vi.mock('../../server/payments/paypal', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../server/payments/paypal')>()),
   paypalConfigured: () => true,
   getPayPalOrder: async (paypalOrderId: string) => ({
-    status: 'APPROVED',
+    status: paypalDouble.order.status,
     invoiceId: paypalOrderId.replace(/^PP-/, ''),
     amountValue: '950.00',
     currency: 'EUR',
-    captureId: null,
-    captureStatus: null,
-    createTime: null,
+    captureId: paypalDouble.order.captureId,
+    captureStatus: paypalDouble.order.captureStatus,
+    createTime: paypalDouble.order.createTime,
     updateTime: null,
   }),
   capturePayPalOrder: async (paypalOrderId: string) => {
@@ -213,6 +220,7 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
     stripeDouble.failNextCreate = false
     paypalDouble.captures = 0
     paypalDouble.capture = null
+    paypalDouble.order = { status: 'APPROVED', captureId: null, captureStatus: null, createTime: null }
   })
 
   describe('starting a card payment', () => {
@@ -393,6 +401,89 @@ describe.skipIf(!hasDatabase)('the checkout routes', () => {
       // Unrecorded: a recorded capture reads as money taken, to the sweep too.
       expect(await stateOf(orderId)).toMatchObject({ status: 'awaiting_payment', captureId: null })
       expect(await onHand()).toBe(1)
+    })
+
+    it('takes no money over a hold that lapsed while another customer took the bike — the attempt is closed first', async () => {
+      const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
+      await letTheHoldLapse(orderId)
+      expect((await checkout(crypto.randomUUID())).status).toBe(200)
+      paypalDouble.capture = async () => ({ status: 'COMPLETED', captureId: 'CAP-OVERSOLD', captureStatus: 'COMPLETED' })
+
+      const response = await post('/api/checkout/paypal-capture', { orderNumber })
+
+      expect(response.status).toBe(409)
+      expect(response.body.data?.messageKey).toBe('errors.order_closed')
+      expect(paypalDouble.captures).toBe(0)
+      const after = await stateOf(orderId)
+      expect(after.status).toBe('cancelled')
+      expect(after.notes).toContain("Rien n'a été encaissé")
+      // The other customer's bike stays theirs, and nothing was sold twice.
+      expect(await onHand()).toBe(1)
+    })
+
+    it('takes a lapsed hold up again when the bike is still free — a buyer arriving during the capture is refused', async () => {
+      const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
+      await letTheHoldLapse(orderId)
+      const rival = { status: 0 }
+      paypalDouble.capture = async () => {
+        rival.status = (await checkout(crypto.randomUUID())).status
+        return { status: 'COMPLETED', captureId: 'CAP-OK', captureStatus: 'COMPLETED' }
+      }
+
+      const response = await post('/api/checkout/paypal-capture', { orderNumber })
+
+      expect(response.status).toBe(200)
+      expect(rival.status).toBe(409)
+      const after = await stateOf(orderId)
+      expect(after.status).toBe('paid')
+      // Taken while it was free, so nothing was sold twice.
+      expect(after.notes).toBeNull()
+      expect(await onHand()).toBe(0)
+    })
+
+    it('stretches a live hold over the capture', async () => {
+      const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
+      await testDb().execute(
+        sql`UPDATE stock_reservations SET expires_at = NOW() + interval '2 seconds' WHERE order_id = ${orderId}`
+      )
+      let heldUntil = 0
+      paypalDouble.capture = async () => {
+        heldUntil = await holdExpiry(orderId)
+        return { status: 'COMPLETED', captureId: 'CAP-OK', captureStatus: 'COMPLETED' }
+      }
+
+      expect((await post('/api/checkout/paypal-capture', { orderNumber })).status).toBe(200)
+
+      expect(heldUntil).toBeGreaterThan(Date.now() + 5 * 60_000)
+    })
+
+    it('keeps nothing off sale for an order the payer has not approved — nothing can be captured from it', async () => {
+      const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
+      const before = await holdExpiry(orderId)
+      paypalDouble.order.status = 'CREATED'
+      paypalDouble.capture = async () => ({ status: 'CREATED', captureId: null, captureStatus: null })
+
+      const response = await post('/api/checkout/paypal-capture', { orderNumber })
+
+      expect(response.status).toBe(502)
+      expect(await holdExpiry(orderId)).toBe(before)
+    })
+
+    it('settles a payment PayPal had already taken, whatever became of the hold', async () => {
+      // Captured on an earlier attempt whose answer never came back. The money
+      // has moved: it is honoured, and the shortfall is written for the shop.
+      const { orderId, orderNumber } = await paypalOrder('awaiting_payment')
+      await letTheHoldLapse(orderId)
+      expect((await checkout(crypto.randomUUID())).status).toBe(200)
+      paypalDouble.order = { status: 'COMPLETED', captureId: 'CAP-EARLIER', captureStatus: 'COMPLETED', createTime: null }
+      paypalDouble.capture = async () => ({ status: 'COMPLETED', captureId: 'CAP-EARLIER', captureStatus: 'COMPLETED' })
+
+      const response = await post('/api/checkout/paypal-capture', { orderNumber })
+
+      expect(response.status).toBe(200)
+      const after = await stateOf(orderId)
+      expect(after).toMatchObject({ status: 'paid', captureId: 'CAP-EARLIER' })
+      expect(after.notes).toContain('stock insuffisant')
     })
 
     it('refuses a declined capture as not charged', async () => {
