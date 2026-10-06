@@ -325,11 +325,14 @@ export async function transitionOrder(
 ): Promise<{ changed: boolean; from: OrderStatus }> {
   const run = options.runTransaction ?? withTransaction
   return run(async (tx) => {
+    // Taken before any stock row, like the UPDATE below always did: the lock
+    // order — order, then inventory — is unchanged, only earlier.
     const [current] = await tx
       .select({ id: orders.id, status: orders.status })
       .from(orders)
       .where(eq(orders.orderNumber, orderNumber))
       .limit(1)
+      .for('update')
 
     if (!current) {
       throw new AppError(ERROR_CODES.NOT_FOUND, { internal: `no order ${orderNumber}` })

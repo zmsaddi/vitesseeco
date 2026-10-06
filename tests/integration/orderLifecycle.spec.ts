@@ -106,6 +106,33 @@ describe.skipIf(!hasDatabase)('order lifecycle', () => {
       expect(await onHand()).toBe(7)
     })
 
+    it('a transition queued behind another reports where that one left the order, not what it first read', async () => {
+      // The PayPal capture and its webhook move one order at the same moment.
+      // Before the row lock the loser read awaiting_payment, its guarded UPDATE
+      // then matched nothing, and it reported awaiting_payment — which the
+      // capture route read as "closed" and told the owner to refund a paid order.
+      const { orderNumber } = await orderHolding(1)
+      let holding!: () => void
+      const held = new Promise<void>((resolve) => (holding = resolve))
+      let release!: () => void
+      const released = new Promise<void>((resolve) => (release = resolve))
+
+      const winner = inTransaction(async (tx) => {
+        await tx.execute(sql`SELECT id FROM orders WHERE order_number = ${orderNumber} FOR UPDATE`)
+        holding()
+        await released
+        await tx.execute(sql`UPDATE orders SET status = 'paid', paid_at = NOW() WHERE order_number = ${orderNumber}`)
+      })
+      await held
+      const loser = transitionOrder(orderNumber, 'paid', { expectFrom: 'awaiting_payment', ...runInTest })
+      // Long enough for the loser to have read and reached the row, if it can.
+      await new Promise((resolve) => setTimeout(resolve, 300))
+      release()
+      await winner
+
+      expect(await loser).toEqual({ changed: false, from: 'paid' })
+    })
+
     it('stamps the moment it was paid', async () => {
       const { orderNumber } = await orderHolding(1)
       await transitionOrder(orderNumber, 'paid', runInTest)
