@@ -149,7 +149,10 @@ const CUSTOMER = 'client'
 
 const { data, refresh, status: loadState, error: loadError } = await useFetch<ListResponse>('/api/admin/link-sales', {
   // While a customer holds the device the list is not fetched at all — so it is
-  // in neither the page nor the payload a reload embeds in it.
+  // in neither the page nor the payload a reload embeds in it. The key is named
+  // so a test can read that payload and see that the fetch never ran, not only
+  // that it returned nobody.
+  key: 'admin-link-sales',
   immediate: !handedOverLanguage(),
 })
 

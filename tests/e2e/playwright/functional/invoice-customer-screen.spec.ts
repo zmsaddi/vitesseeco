@@ -14,7 +14,8 @@
  * The sales are synthetic and served to the BROWSER: the page is reached by a
  * client-side link so its list request goes through the browser, where it is
  * answered here. The candidate needs no Stripe key, and nothing in this file
- * can touch a real sale.
+ * can change a real sale: the one server render it asks for, as a control,
+ * only reads the list — and without a key, fails to.
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -188,8 +189,39 @@ async function customerKeepsTheNextScreen(page: Page): Promise<void> {
 
 const HAND_BACK_DE = 'Bitte geben Sie das Gerät dem Verkäufer zurück'
 
+/**
+ * What a server render left in the page's payload for the buyer list's fetch:
+ * its answer under `data`, or its failure under `_errors`. The payload is
+ * devalue's flat array — every value an index into it, negative ones standing
+ * for undefined — and Nuxt wraps some containers as ["ShallowReactive", index].
+ */
+function listFetchInPayload(html: string): { data: unknown; error: unknown } {
+  const raw = /<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1]
+  if (!raw) throw new Error('the page carries no payload')
+  const flat = JSON.parse(raw) as unknown[]
+  const at = (index: unknown): unknown => {
+    if (typeof index !== 'number' || index < 0) return undefined
+    let value = flat[index]
+    while (Array.isArray(value) && typeof value[0] === 'string' && typeof value[1] === 'number') value = flat[value[1]]
+    return value
+  }
+  const root = at(0) as Record<string, number>
+  const entry = (section: string) => (at(root[section]) as Record<string, number> | undefined)?.['admin-link-sales']
+  return { data: at(entry('data')) ?? null, error: at(entry('_errors')) ?? null }
+}
+
 test('a reload in the customer’s hands shows the hand-back screen, and the list is not even fetched', async ({ page }) => {
   await openInvoices(page)
+  // The control. Rendered for the seller, the payload holds the server's fetch:
+  // the list, or — in a rig with no Stripe key, like CI's — its failure. So a
+  // payload that holds neither is a fetch that never ran, not one that came
+  // back with nobody in it. The session goes as a header: its cookies are
+  // Secure, which Chromium sends to a loopback address and Playwright's own
+  // requests do not.
+  const session = cookies.map((cookie) => `${cookie.name}=${cookie.value}`).join('; ')
+  const forSeller = listFetchInPayload(await (await page.request.get('/admin/factures', { headers: { cookie: session } })).text())
+  expect(forSeller.data ?? forSeller.error, 'the payload does not show a server-side fetch at all').not.toBeNull()
+
   await openSigning(page, 0)
   const before = listRequests
 
@@ -198,7 +230,9 @@ test('a reload in the customer’s hands shows the hand-back screen, and the lis
   const html = (await reloaded?.text()) ?? ''
   await expect(page.getByRole('dialog')).toContainText(HAND_BACK_DE)
   await expect(page.locator('main li')).toHaveCount(0)
+  expect(listFetchInPayload(html), 'the server fetched the buyer list for the customer’s reload').toEqual({ data: null, error: null })
   for (const index of BUYERS.keys()) expect(html).not.toContain(`buyer${index}@example.com`)
+  // Nor does the browser ask once the page has hydrated.
   expect(listRequests, 'the reloaded page asked for the buyer list').toBe(before)
 
   // Only the seller's hold brings it back.
