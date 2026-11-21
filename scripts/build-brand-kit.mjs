@@ -37,7 +37,7 @@ const STAG_D = stagSvg.match(/ d="([^"]+)"/)[1]
 const STAG_VB = stagSvg.match(/viewBox="([^"]+)"/)[1] // 0 0 2076 2832
 const [, , SW, SH] = STAG_VB.split(' ').map(Number)
 
-const BOLT_D = 'M34 0 L0 62 h20 L8 118 56 44 H34 L52 0 Z' // vb -4 -4 64 126
+const BOLT_D = 'M46 0 L0 62 h20 L8 118 56 44 H34 Z' // vb -4 -4 64 126
 
 const font = opentype.parse(
   readFileSync('node_modules/@fontsource/manrope/files/manrope-latin-800-normal.woff').buffer.slice(0)
