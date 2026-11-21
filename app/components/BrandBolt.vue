@@ -18,7 +18,7 @@
       </linearGradient>
     </defs>
     <path
-      d="M34 0 L0 62 h20 L8 118 56 44 H34 L52 0 Z"
+      d="M46 0 L0 62 h20 L8 118 56 44 H34 Z"
       fill="url(#vs-spark)"
       transform="skewX(-6)"
       transform-origin="28 59"

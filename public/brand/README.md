@@ -6,6 +6,14 @@ spark path, and the wordmark outlined from Manrope ExtraBold — by
 `scripts/build-brand-kit.mjs`. Never hand-edit a generated file; change the
 generator and re-run.
 
+**Two corrections by the owner on 2026-11-21.** The spark's top ends in a point;
+the flat-topped one read as cut off. And the stag was redrawn: the first path
+was a trace of a 672 × 924 px picture and its outline followed that picture's
+pixel steps (1,734 anchors), which showed as a ragged edge at any size worth
+printing. `stag-symbol.svg` now holds a smoothed redraw of the same shape in 420
+anchors; less than 1 % of its area moved. The first trace, the before/after
+pictures and the script that redrew it are in `assets-reference/logo-redraw/`.
+
 The wordmark in every file is **outlined vector paths**: print shops and design
 tools need no font installed. For *editable* text work, the typeface is
 **Manrope** (free — Google Fonts, and available on Adobe Fonts), weight 800 for
